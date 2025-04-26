@@ -136,6 +136,17 @@ public:
      */
     void set_buffers(void* header_ptr, void* payload_ptr);
     /**
+     * @brief: Set memory keys for header and payload memory.
+     *
+     * This method is optional. By default Rivermax will register memory
+     * internally.
+     *
+     * @param [in] header_mkey: Memory key for header data buffer. Ignored if
+     *                          header-data split mode is not enabled.
+     * @param [in] payload_mkey: Memory key for payload data buffer.
+     */
+    void set_memory_keys(rmax_mkey_id header_mkey, rmax_mkey_id payload_mkey);
+    /**
      * @brief: Query header stride size.
      *
      * @return: Stride size in bytes.

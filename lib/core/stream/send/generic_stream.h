@@ -104,7 +104,7 @@ public:
      *        different logic and data structures for chunk management needed.
      *
      * @param [in] pointer: Pointer to the allocated memory for the chunk, this memory should be registered first.
-     * @param [in] mkey: Memory key from @ref rmax_deregister_memory in Rivermax API.
+     * @param [in] mkey: Memory key from @ref rmax_register_memory in Rivermax API.
      *
      * @return: Size of the memory initialized.
      */

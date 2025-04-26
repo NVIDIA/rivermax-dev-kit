@@ -65,6 +65,7 @@ void MediaSenderApp::add_cli_options()
     m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::SLEEP);
+    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
     // TODO: Remove this after adding SDP parser, add SDP file parameter.
     m_cli_parser_manager->get_parser()->add_option(
         "-x,--stream-type",

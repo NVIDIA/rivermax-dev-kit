@@ -30,10 +30,8 @@ namespace services
 {
 /**
  * @brief: Allocator types supported.
- *
- * @note: Currently the support GPU allocation is disabled.
  */
-enum class AllocatorType { New, Gpu };
+enum class AllocatorType { New, HugePage, Gpu };
 /**
  * @brief: Memory block representation.
  *
@@ -85,7 +83,7 @@ public:
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus memory_set(void* dst, int value, size_t count) const = 0;
+    virtual ReturnStatus memory_set(void* dst, int value, size_t count) const;
     /**
      * @brief: Copy memory.
      *
@@ -95,7 +93,7 @@ public:
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus memory_copy(void* dst, const void* src, size_t count) const = 0;
+    virtual ReturnStatus memory_copy(void* dst, const void* src, size_t count) const;
 };
 /**
  * @brief: Memory allocator implementation.
@@ -110,6 +108,7 @@ class MemoryAllocatorImp
 {
 private:
     static std::shared_ptr<MemoryUtils> utils_new;
+    static std::shared_ptr<MemoryUtils> utils_huge_pages;
     static std::shared_ptr<MemoryUtils> utils_gpu;
 public:
     MemoryAllocatorImp() = default;
@@ -136,6 +135,38 @@ public:
      * @return: Shared pointer to the memory utils.
      */
      virtual std::shared_ptr<MemoryUtils> get_memory_utils_new();
+    /**
+     * @brief: Initialize huge pages.
+     *
+     * @param [out] huge_page_size: Supported Huge Page size.
+     *
+     * @return: Return true in success, false otherwise.
+     */
+    virtual bool init_huge_pages(size_t& huge_page_size) = 0;
+    /**
+     * @brief: Allocates memory using Huge Pages alocation.
+     *
+     * @param [in] length   : Length of the memory to allocate.
+     * @param [in] alignment: Aligment size of the memory to allocate.
+     *
+     * @return: Pointer to the allocated memory.
+     */
+    virtual void* allocate_huge_pages(size_t length, size_t alignment) = 0;
+    /**
+     * @brief: Frees memory using Huge Pages delete operator.
+     *
+     * @param [in] mem_ptr: Pointer to the memory to free.
+     * @param [in] length : Length of the memory to free.
+     *
+     * @return: Status of the operation.
+     */
+    virtual ReturnStatus free_huge_pages(void* mem_ptr, size_t length) = 0;
+    /**
+     * @brief: Return Huge Pages memory utils.
+     *
+     * @return: Shared pointer to the memory utils.
+     */
+    virtual std::shared_ptr<MemoryUtils> get_memory_utils_huge_pages();
     /**
      * @brief: Allocates memory using CUDA.
      *

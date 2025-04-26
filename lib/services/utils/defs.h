@@ -116,6 +116,11 @@ typedef struct media_settings
 } media_settings_t;
 
 /**
+ * @brief: Allocator types for UI.
+ */
+enum class AllocatorTypeUI { Auto, New, HugePage, Gpu };
+
+/**
  * @brief: Application settings.
  *
  * The struct will be used to hold application parameters required
@@ -150,6 +155,7 @@ typedef struct AppSettings
     bool use_checksum_header;
     uint32_t hw_queue_full_sleep_us;
     int gpu_id;
+    AllocatorTypeUI allocator_type;
     media_settings_t media;
     std::string video_stream_type;  // TODO: Remove this after adding SDP parser.
 } AppSettings;

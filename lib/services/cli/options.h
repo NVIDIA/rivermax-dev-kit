@@ -82,6 +82,7 @@ public:
     static constexpr const char* CHECKSUM_HEADER = "-x,--checksum-header";
     static constexpr const char* WAIT_RETRY = "-w,--wait-retry";
     static constexpr const char* GPU_ID = "-g,--gpu-id";
+    static constexpr const char* ALLOCATOR_TYPE = "-A,--allocator-type";
 };
 
 

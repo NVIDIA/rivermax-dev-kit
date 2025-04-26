@@ -10,8 +10,8 @@
  * provided with the software product.
  */
 
-#ifndef RMAX_APPS_LIB_LIB_SERVICES_MEMORY_MANAGEMENT_NEW_MEMORY_ALLOCATOR_H_
-#define RMAX_APPS_LIB_LIB_SERVICES_MEMORY_MANAGEMENT_NEW_MEMORY_ALLOCATOR_H_
+#ifndef RMAX_APPS_LIB_LIB_SERVICES_MEMORY_MANAGEMENT_HUGE_PAGES_MEMORY_ALLOCATOR_H_
+#define RMAX_APPS_LIB_LIB_SERVICES_MEMORY_MANAGEMENT_HUGE_PAGES_MEMORY_ALLOCATOR_H_
 
 #include <cstddef>
 
@@ -26,25 +26,26 @@ namespace services
 {
 
 /**
- * @brief: C++ new operator memory utilities.
+ * @brief: Huge Page memory utilities.
  *
  * Implements @ref ral::lib::services::MemoryUtils interface.
  */
-class NewMemoryUtils : public MemoryUtils
+class HugePageMemoryUtils : public MemoryUtils
 {
 };
 /**
- * @brief: C++ new operator memory allocation.
+ * @brief: Huge Pages memory allocation.
  *
- * Implements @ref ral::lib::services::MemoryAllocator interface for allocating memory using C++ new operator.
+ * Implements @ref ral::lib::services::MemoryAllocator interface for allocating memory using Huge Pages.
  */
-class NewMemoryAllocator : public MemoryAllocator
+class HugePagesMemoryAllocator : public MemoryAllocator
 {
 private:
-    const size_t m_page_size;
+    size_t m_page_size;
+    size_t align_length(size_t length) final;
 public:
-    NewMemoryAllocator();
-    ~NewMemoryAllocator();
+    HugePagesMemoryAllocator();
+    ~HugePagesMemoryAllocator();
     void* allocate(const size_t length) override;
     std::shared_ptr<MemoryUtils> get_memory_utils() override;
     size_t get_page_size() const override { return m_page_size; }
@@ -54,4 +55,4 @@ public:
 } // namespace lib
 } // namespace ral
 
-#endif /* RMAX_APPS_LIB_LIB_SERVICES_MEMORY_MANAGEMENT_NEW_MEMORY_ALLOCATOR_H_ */
+#endif /* RMAX_APPS_LIB_LIB_SERVICES_MEMORY_MANAGEMENT_HUGE_PAGES_MEMORY_ALLOCATOR_H_ */

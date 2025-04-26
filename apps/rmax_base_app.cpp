@@ -22,7 +22,6 @@
 using namespace ral::apps;
 using namespace ral::lib::services;
 
-
 RmaxBaseApp::RmaxBaseApp(const std::string& app_description, const std::string& app_examples) :
     m_obj_init_status(ReturnStatus::obj_init_failure),
     m_app_settings(new AppSettings),
@@ -68,6 +67,7 @@ void RmaxBaseApp::initialize_common_default_app_settings()
     m_app_settings->use_checksum_header = false;
     m_app_settings->hw_queue_full_sleep_us = 0;
     m_app_settings->gpu_id = INVALID_GPU_ID;
+    m_app_settings->allocator_type = AllocatorTypeUI::Auto;
 }
 
 ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
@@ -80,7 +80,31 @@ ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
     }
     post_cli_parse_initialization();
 
-    AllocatorType type = (m_app_settings->gpu_id != INVALID_GPU_ID) ? AllocatorType::Gpu : AllocatorType::New;
+    AllocatorType type = AllocatorType::New;
+    if (m_app_settings->gpu_id != INVALID_GPU_ID) {
+        switch (m_app_settings->allocator_type) {
+        case AllocatorTypeUI::Auto:
+        case AllocatorTypeUI::Gpu:
+            type = AllocatorType::Gpu;
+            break;
+        default:
+            std::cerr << "For GPU configuration allocator type must be 'gpu'" << std::endl;
+            return ReturnStatus::failure;
+        }
+    } else {
+        switch (m_app_settings->allocator_type) {
+        case AllocatorTypeUI::Auto:
+        case AllocatorTypeUI::HugePage:
+            type = AllocatorType::HugePage;
+            break;
+        case AllocatorTypeUI::New:
+            type = AllocatorType::New;
+            break;
+        case AllocatorTypeUI::Gpu:
+            std::cerr << "For non-GPU configuration allocator type must not be 'gpu'" << std::endl;
+            return ReturnStatus::failure;
+        }
+    }
     m_mem_allocator = m_rmax_apps_lib.get_memory_allocator(type, m_app_settings);
     if (m_mem_allocator == nullptr) {
         std::cerr << "Failed to create memory allocator" << std::endl;

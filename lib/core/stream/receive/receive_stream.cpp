@@ -132,10 +132,20 @@ void ReceiveStream::set_buffers(void* header_ptr, void* payload_ptr)
     m_payload_block.ptr = payload_ptr;
 }
 
+void ReceiveStream::set_memory_keys(rmax_mkey_id header_mkey, rmax_mkey_id payload_mkey)
+{
+    m_header_block.mkey = header_mkey;
+    m_payload_block.mkey = payload_mkey;
+    if (m_settings.packet_app_header_size > 0) {
+        m_buffer_attr.attr_flags |= RMAX_IN_BUFFER_ATTR_BUFFER_APP_HDR_MKEY_IS_SET;
+    }
+    m_buffer_attr.attr_flags |= RMAX_IN_BUFFER_ATTR_BUFFER_DATA_MKEY_IS_SET;
+}
+
 ReturnStatus ReceiveStream::get_next_chunk(ReceiveChunk* chunk)
 {
     if (!chunk) {
-        std::cerr << "Invalid parameter: chunk muset ne non-NULL" << std::endl;
+        std::cerr << "Invalid parameter: chunk must be non-NULL" << std::endl;
         return ReturnStatus::failure;
     }
     rmax_status_t status = rmax_in_get_next_chunk(m_stream_id,

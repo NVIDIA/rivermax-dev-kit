@@ -53,6 +53,8 @@ librmaxapps_la_SOURCES = \
     services/memory_management/new_memory_allocator.cpp \
     services/memory_management/gpu_memory_allocator.h \
     services/memory_management/gpu_memory_allocator.cpp \
+    services/memory_management/huge_pages_memory_allocator.h \
+    services/memory_management/huge_pages_memory_allocator.cpp \
     \
     services/buffer_management/buffer_management.h \
     services/buffer_management/buffer_writer_interface.h \

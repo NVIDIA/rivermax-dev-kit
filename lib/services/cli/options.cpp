@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <cstring>
+#include <map>
 
 #include "CLI/CLI.hpp"
 #include "rt_threads.h"
@@ -22,6 +23,13 @@
 #include "services/cli/validators.h"
 
 using namespace ral::lib::services;
+
+static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
+    { "auto",       AllocatorTypeUI::Auto },
+    { "new",        AllocatorTypeUI::New },
+    { "hugepage",   AllocatorTypeUI::HugePage },
+    { "gpu",        AllocatorTypeUI::Gpu },
+};
 
 /**
  * @brief: CLI options factory map.
@@ -278,6 +286,16 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_option(CLIOptStr::GPU_ID,
                                       app_settings->gpu_id,
                                       "Enable GPU direct, value is GPU id")->check(CLI::Range(0, MAX_GPU_ID));
+        }
+    },
+    {
+        CLIOptStr::ALLOCATOR_TYPE,
+        [](std::shared_ptr<CLI::App> parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::ALLOCATOR_TYPE,
+                                      app_settings->allocator_type,
+                                      "Memory allocator type")
+                                      ->transform(CLI::Transformer(UI_ALLOCATOR_TYPES));
         }
     },
 };

@@ -11,9 +11,6 @@
  */
 
 #include <iostream>
-#include <cstring>
-
-#include "gpu.h"
 
 #include "services/memory_management/new_memory_allocator.h"
 #include "services/error_handling/return_status.h"
@@ -22,18 +19,6 @@
 using namespace ral::lib::services;
 
 std::shared_ptr<MemoryUtils> MemoryAllocatorImp::utils_new;
-
-ReturnStatus NewMemoryUtils::memory_set(void* dst, int value, size_t count) const
-{
-    memset(dst, value, count);
-    return ReturnStatus::success;
-}
-
-ReturnStatus NewMemoryUtils::memory_copy(void* dst, const void* src, size_t count) const
-{
-    memcpy(dst, src, count);
-    return ReturnStatus::success;
-}
 
 NewMemoryAllocator::NewMemoryAllocator() :
     m_page_size(m_imp->get_os_page_size())

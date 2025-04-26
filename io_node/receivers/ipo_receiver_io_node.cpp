@@ -69,7 +69,14 @@ void AppIPOReceiveStream::print_statistics(std::ostream& out, const std::chrono:
     std::stringstream ss;
     ss << "[stream_index " << std::setw(3) << get_id() << "]"
                 << " Got " << std::setw(7) << m_statistic.rx_counter << " packets |"
-                << " dropped: " << m_statistic.rx_dropped << " |"
+                << " dropped: ";
+    for (uint32_t s_index = 0; s_index < m_paths.size(); ++s_index) {
+        if (s_index > 0) {
+            ss << ", ";
+        }
+        ss << m_path_stats[s_index].rx_dropped +  m_statistic.rx_dropped;
+    }
+    ss << " |" << " lost: " << m_statistic.rx_dropped << " |"
                 << " bad RTP hdr: " << m_statistic.rx_corrupt_rtp_header << " | ";
     ss << std::fixed << std::setprecision(2);
     double bitrate_Mbps = m_statistic.get_bitrate_Mbps();
@@ -83,7 +90,7 @@ void AppIPOReceiveStream::print_statistics(std::ostream& out, const std::chrono:
     for (uint32_t s_index = 0; s_index < m_paths.size(); ++s_index) {
         ss << " | " << m_paths[s_index].flow.get_destination_ip() << ":" << m_paths[s_index].flow.get_destination_port();
         if (m_statistic.rx_counter) {
-            uint32_t number = static_cast<uint32_t>(ceil(100 * static_cast<double>(m_path_stats[s_index].rx_count) / static_cast<double>(m_statistic.rx_counter)));
+            uint32_t number = static_cast<uint32_t>(floor(100 * static_cast<double>(m_path_stats[s_index].rx_count) / static_cast<double>(m_statistic.rx_counter)));
             ss << " " << std::setw(3) << number << "%";
         } else {
             ss << "   0%";
@@ -91,7 +98,7 @@ void AppIPOReceiveStream::print_statistics(std::ostream& out, const std::chrono:
     }
 
     if (m_statistic.rx_dropped) {
-        ss << std::endl << "ERROR !!! Drop Packets - count: " << m_statistic.rx_dropped;
+        ss << std::endl << "ERROR !!! Lost Packets - count: " << m_statistic.rx_dropped;
     }
     if (m_statistic.rx_corrupt_rtp_header) {
         ss << std::endl << "ERROR !!! Corrupted Packets - count: " << m_statistic.rx_corrupt_rtp_header;
@@ -143,6 +150,7 @@ void AppIPOReceiveStream::complete_packet(uint32_t sequence_number)
 
     for (size_t i = 0; i < by_paths.size(); ++i) {
         m_path_stats[i].rx_count += by_paths[i];
+        m_path_stats[i].rx_dropped += 1 - by_paths[i];
     }
 
     // count dropped packets by sequence number

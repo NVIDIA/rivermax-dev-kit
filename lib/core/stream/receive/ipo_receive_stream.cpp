@@ -120,6 +120,14 @@ void IPOReceiveStream::set_buffers(void* header_ptr, void* payload_ptr)
     }
 }
 
+void IPOReceiveStream::set_memory_keys(const std::vector<rmax_mkey_id> &header_mkeys,
+        const std::vector<rmax_mkey_id> &payload_mkeys)
+{
+    for (size_t i = 0; i < m_streams.size(); ++i) {
+        m_streams[i].set_memory_keys(header_mkeys[i], payload_mkeys[i]);
+    }
+}
+
 ReturnStatus IPOReceiveStream::create_stream()
 {
     m_sequence_number_wrap_around = get_sequence_number_wrap_around(m_num_of_packets_in_chunk);

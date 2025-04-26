@@ -75,6 +75,7 @@ void GenericSenderApp::add_cli_options()
 #ifdef CUDA_ENABLED
     m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
 #endif
+    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
 }
 
 void GenericSenderApp::post_cli_parse_initialization()

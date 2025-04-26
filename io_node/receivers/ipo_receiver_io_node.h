@@ -68,6 +68,7 @@ struct IPORXStatistics {
 struct IPOPathStatistics
 {
     uint32_t rx_count = 0;
+    uint32_t rx_dropped = 0;
 
     /**
      * @brief: Reset values to zero.
@@ -75,6 +76,7 @@ struct IPOPathStatistics
     void reset()
     {
         rx_count = 0;
+        rx_dropped = 0;
     }
 };
 
