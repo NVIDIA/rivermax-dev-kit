@@ -1,0 +1,91 @@
+/*
+ * Copyright © 2017-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ *
+ * This software product is a proprietary product of Nvidia Corporation and its affiliates
+ * (the "Company") and all right, title, and interest in and to the software
+ * product, including all associated intellectual property rights, are and
+ * shall remain exclusively with the Company.
+ *
+ * This software product is governed by the End User License Agreement
+ * provided with the software product.
+ */
+
+#ifndef RMAX_APPS_LIB_LIB_CORE_STREAM_STREAM_INTERFACE_H_
+
+#include <cstddef>
+#include <ostream>
+
+#include "services/error_handling/return_status.h"
+
+namespace ral
+{
+namespace lib
+{
+namespace core
+{
+/**
+ * @brief: Stream interface.
+ */
+class IStream
+{
+public:
+    /**
+     * @brief: IStream class constructor.
+     */
+    IStream() = default;
+    virtual ~IStream() = default;
+    /**
+     * @brief: Prints stream's parameters to a output stream.
+     *
+     * The method prints the parameters of the stream to be shown to the user to a output stream.
+     * Implementors of @ref ral::lib::core::IStream can extend this operation by overriding this method
+     * in order to add the derived stream parameters.
+     *
+     * @param [out] out: Output stream parameter print to.
+     *
+     * @note: In case this method overridden, the implementor should remember to call
+              the base print method, if he wants the base parameters to be printed as well.
+     *
+     * @return: Output stream.
+     */
+    virtual std::ostream& print(std::ostream& out) const;
+    /**
+     * @brief: Overrides operator << for @ref ral::lib::core::IStream reference.
+     */
+    friend std::ostream& operator<<(std::ostream& out, IStream& stream)
+    {
+        stream.print(out);
+        return out;
+    }
+    /**
+     * @brief: Overrides operator << for @ref ral::lib::core::IStream pointer.
+     */
+    friend std::ostream& operator<<(std::ostream& out, IStream* stream)
+    {
+        stream->print(out);
+        return out;
+    }
+    /**
+     * @brief: Creates the stream.
+     *
+     * This method is responsible to create Rivermax stream.
+     *
+     * @return: Status of the operation.
+     */
+    virtual ral::lib::services::ReturnStatus create_stream() = 0;
+    /**
+     * @brief: Destroys the stream.
+     *
+     * This method is responsible to destroy Rivermax stream.
+     *
+     * @return: Status of the operation.
+     */
+    virtual ral::lib::services::ReturnStatus destroy_stream() = 0;
+};
+
+} // namespace core
+} // namespace lib
+} // namespace ral
+
+#define RMAX_APPS_LIB_LIB_CORE_STREAM_STREAM_INTERFACE_H_
+#endif /* RMAX_APPS_LIB_LIB_CORE_STREAM_STREAM_INTERFACE_H_ */
