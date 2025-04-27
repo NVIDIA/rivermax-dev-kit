@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -10,11 +10,15 @@
  * provided with the software product.
  */
 
+#include <climits>
+#include <map>
 #include <thread>
 #include <string.h>
+#include <rmx_stats_api.h>
 
-#include "services/statistics/statistics_reader.h"
 #include "rt_threads.h"
+#include "services/statistics/statistics_reader.h"
+#include "lib/services/utils/utils.h"
 
 using namespace ral::lib::services;
 

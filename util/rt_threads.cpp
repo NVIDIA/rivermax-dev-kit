@@ -1,5 +1,5 @@
 /*
- * Copyright © 2001-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright © 2001-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -675,4 +675,45 @@ int set_enviroment_variable(const std::string &name, const std::string &value)
 #else
     return setenv(name.c_str(), value.c_str(), 1);
 #endif
+}
+
+rmx_status rivermax_setparam(const std::string &name, const std::string &value, bool forced)
+{
+    rmx_lib_param param;
+    rmx_init_lib_param(&param);
+    rmx_set_lib_param_name(&param, name.c_str());
+    rmx_set_lib_param_value(&param, value.c_str());
+    if (forced) {
+        rmx_set_lib_param_forced(&param);
+    }
+    return rmx_apply_lib_param(&param);
+}
+
+bool rivermax_setparams(const std::vector<std::string> &assignments)
+{
+    for (auto &param_value_pair : assignments) {
+        size_t pos = param_value_pair.find('=');
+        if (pos == 0 || pos >= param_value_pair.length()) {
+            std::cerr << "Invalid Rivermax parameter assignment string (" << param_value_pair << ")" << std::endl;
+            return false;
+        }
+        std::string name = param_value_pair.substr(0, pos);
+        std::string value = param_value_pair.substr(pos + 1);
+
+        rmx_status status = rivermax_setparam(name, value, true);
+        switch (status) {
+            case RMX_OK:
+                continue;
+            case RMX_NOT_IMPLEMENTED:
+                std::cerr << "Invalid Rivermax parameter name: " << name << std::endl;
+                return false;
+            case RMX_INVALID_PARAM_2:
+                std::cerr << "Invalid Rivermax parameter value: " << value << std::endl;
+                return false;
+            default:
+                std::cerr << "Assigning Rivermax parameter failed" << std::endl;
+                return false;
+        }
+    }
+    return true;
 }

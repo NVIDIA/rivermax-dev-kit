@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -58,31 +58,31 @@ typedef std::unordered_map<
 class CLIOptStr
 {
 public:
-    static constexpr const char* LOCAL_IP = "-l,--local-ip";
-    static constexpr const char* LOCAL_IPS = "-l,--local-ips";
-    static constexpr const char* SRC_IPS = "-s,--src-ips";
-    static constexpr const char* DST_IP = "-d,--dst-ip";
-    static constexpr const char* DST_IPS = "-d,--dst-ips";
-    static constexpr const char* DST_PORT = "-p,--dst-port";
-    static constexpr const char* DST_PORTS = "-p,--dst-ports";
-    static constexpr const char* THREADS = "-T,--threads";
-    static constexpr const char* FLOWS = "-F,--flows";
-    static constexpr const char* STREAMS = "-S,--streams";
-    static constexpr const char* VERBOSE = "-v,--verbose";
-    static constexpr const char* CHUNKS = "-C,--chunks";
-    static constexpr const char* PACKETS = "-K,--packets";
-    static constexpr const char* PAYLOAD_SIZE = "-y,--payload-size";
-    static constexpr const char* APP_HDR_SIZE = "-e,--app-hdr-size";
-    static constexpr const char* SLEEP_US = "-z,--sleep-us";
-    static constexpr const char* SLEEP = "-z,--sleep";
-    static constexpr const char* RATE_BPS = "-r,--rate-bps";
-    static constexpr const char* RATE_BURST = "-b,--rate-burst";
-    static constexpr const char* INTERNAL_CORE = "-i,--internal-core";
-    static constexpr const char* APPLICATION_CORE = "-a,--application-core";
-    static constexpr const char* CHECKSUM_HEADER = "-x,--checksum-header";
-    static constexpr const char* WAIT_RETRY = "-w,--wait-retry";
-    static constexpr const char* GPU_ID = "-g,--gpu-id";
-    static constexpr const char* ALLOCATOR_TYPE = "-A,--allocator-type";
+    static const char* LOCAL_IP;
+    static const char* LOCAL_IPS;
+    static const char* SRC_IPS;
+    static const char* DST_IP;
+    static const char* DST_IPS;
+    static const char* DST_PORT;
+    static const char* DST_PORTS;
+    static const char* THREADS;
+    static const char* FLOWS;
+    static const char* STREAMS;
+    static const char* VERBOSE;
+    static const char* CHUNKS;
+    static const char* PACKETS;
+    static const char* PAYLOAD_SIZE;
+    static const char* APP_HDR_SIZE;
+    static const char* SLEEP_US;
+    static const char* SLEEP;
+    static const char* RATE_BPS;
+    static const char* RATE_BURST;
+    static const char* INTERNAL_CORE;
+    static const char* APPLICATION_CORE;
+    static const char* CHECKSUM_HEADER;
+    static const char* WAIT_RETRY;
+    static const char* GPU_ID;
+    static const char* ALLOCATOR_TYPE;
 };
 
 

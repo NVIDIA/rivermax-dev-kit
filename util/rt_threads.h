@@ -1,5 +1,5 @@
 /*
- * Copyright © 2001-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright © 2001-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -22,7 +22,10 @@
 #include <chrono>
 #include <csignal>
 #include <atomic>
+#include <map>
+#include <utility>
 #include <functional>
+#include "rational.h"
 #define CPU_NONE (-1)
 #define MAX_CPU_RANGE 1024
 
@@ -54,6 +57,42 @@ enum FONT_COLOR {
     COLOR_RED,
     COLOR_RESET,
 };
+
+const std::map<std::string, std::pair<std::string, Rational>> supported_fps_map = {
+    {
+        std::string("23.976"),
+        {std::string("24000/1001"), Rational(24000, 1001)}
+    },
+    {
+        std::string("24"),
+        {std::string("24"), Rational(24)}
+    },
+    {
+        std::string("25"), 
+        {std::string("25"), Rational(25)}
+    },
+    {
+        std::string("29.97"),
+        {std::string("30000/1001"), Rational(30000, 1001)}
+    },
+    {
+        std::string("30"),
+        {std::string("30"), Rational(30)}
+    },
+    {
+        std::string("50"),
+        {std::string("50"), Rational(50)}
+    },
+    {
+        std::string("59.94"),
+        {std::string("60000/1001"), Rational(60000, 1001)}
+    },
+    {
+        std::string("60"),
+        {std::string("60"), Rational(60)}
+    },
+};
+
 void register_signal_handler_cb(const std::function<void()>& callback);
 /**
  * @brief: Returns the exit status of the application.
@@ -267,24 +306,18 @@ bool parse_video_frame_rate_numeric(const std::string &frame_rate_string, T &fra
 {
     if (frame_rate_string.find(".") == std::string::npos) {
         frame_rate = stoi(frame_rate_string);
-        return true;
+    } else {
+        auto idx = frame_rate_string.find_last_of("0123456789");
+        if (idx != std::string::npos)
+            ++idx;
+        std::string frame_rate_string_trim(frame_rate_string, 0, idx);
+        auto fps = supported_fps_map.find(frame_rate_string_trim);
+        if (fps == supported_fps_map.end()) {
+            std::cerr << "invalid framerate " << frame_rate_string << std::endl;
+            return false;
+        }
+        frame_rate = rational_cast<T>(fps->second.second);
     }
-
-    std::vector<std::string> int_frac = split_string(frame_rate_string, '.');
-    if (int_frac.size() != 2) {
-        std::cerr << "invalid framerate " << frame_rate_string << std::endl;
-        return false;
-    }
-    auto idx = int_frac[1].find_last_of("0123456789");
-    if (idx != std::string::npos)
-        ++idx;
-    std::string tail(int_frac[1], 0, idx);
-    frame_rate = stoi(int_frac[0] + tail);
-    T denom = 1;
-    for (size_t i = tail.length(); i > 0; --i)
-        denom *= 10;
-    frame_rate /= denom;
-
     return true;
 }
 
@@ -595,5 +628,10 @@ bool assert_mc_ip(std::string ipv4str, std::string start_ipv4str, std::string en
 std::string get_local_time(uint64_t time_ns);
 
 int set_enviroment_variable(const std::string &name, const std::string &value);
+
+rmx_status rivermax_setparam(const std::string &name, const std::string &value, bool final);
+
+bool rivermax_setparams(const std::vector<std::string> &assignments);
+
 #endif // _RT_THREADS_H_
 

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright © 2021-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -61,8 +61,10 @@ void Rational::init(uint64_t integer, uint64_t numerator, uint64_t denominator)
 {
     uint64_t quotient;
 
-    if (!denominator)
-        throw RationalE("Rational: denominator cannot be zero");
+    if (!denominator) {
+        using namespace std;
+        throw RationalE{"Rational: denominator cannot be zero: " + to_string(integer) + " " + to_string(numerator) + " / 0"};
+    }
 
     m_integer = integer;
     m_numerator = numerator;
@@ -132,8 +134,10 @@ void Rational::reduce(uint64_t& i1, uint64_t& i2)
     if (!i1)
         return;
 
-    if (!i2)
-        throw RationalE("Rational: division by zero");
+    if (!i2) {
+        using namespace std;
+        throw RationalE{"Rational: division by zero: " + to_string(i1) + " / 0"};
+    }
 
     reduce_two(i1, i2);
     r = gcd(i1, i2);
@@ -171,13 +175,17 @@ Rational Rational::add_sub(const Rational& num1, const Rational& num2, bool is_a
         integer = num1.m_integer + num2.m_integer;
         numerator = numerator1 + numerator2;
     } else {
-        if (num1.m_integer < num2.m_integer)
-            throw RationalE("Rational: negative rationals are not supported");
+        if (num1.m_integer < num2.m_integer) {
+            using namespace std;
+            throw RationalE{"Rational: negative rationals are not supported: attempted operation " + to_string(num1) + " - " + to_string(num2)};
+        }
         integer = num1.m_integer - num2.m_integer;
 
         if (numerator1 < numerator2) {
-            if (integer < 1)
-                throw RationalE("Rational: negative rationals are not supported");
+            if (integer < 1) {
+                using namespace std;
+                throw RationalE{"Rational: negative rationals are not supported: attempted operation " + to_string(num1) + " - " + to_string(num2)};
+            }
             // fractional part of num2 is less than 1 so adding 1 to the minuend
             // makes the difference positive
             --integer;

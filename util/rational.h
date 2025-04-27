@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright © 2021-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -14,31 +14,22 @@
 #define _UTILS_RATIONAL_H_
 
 #include <cstdint>
-#include <exception>
 #include <iostream>
+#include <stdexcept>
+#include <sstream>
+#include <string>
 #include <type_traits>
 
-class RationalE : public std::exception {
+class RationalE : public std::runtime_error {
 public:
-    RationalE(const char* str)
-    {
-        m_str = str;
-    }
-
-    virtual const char* what() const throw()
-    {
-        return m_str;
-    }
-
-private:
-    const char* m_str;
+    RationalE(const std::string& what): std::runtime_error(what) {}
 };
 
 class Rational {
 public:
     Rational();
     Rational(uint64_t integer, uint64_t numerator, uint64_t denominator);
-    Rational(uint64_t integer);
+    explicit Rational(uint64_t integer);
     Rational(uint64_t numerator, uint64_t denominator);
     Rational(const Rational& num);
 
@@ -190,7 +181,7 @@ public:
         return m_denominator;
     }
 
-    operator bool() const
+    explicit operator bool() const
     {
         return m_integer || m_numerator;
     }
@@ -279,6 +270,14 @@ template <typename T, typename = typename std::enable_if<std::is_integral<T>::va
 bool operator!=(T a, const Rational& b)
 {
     return b != a;
+}
+
+namespace std {
+  inline string to_string(const Rational& r) {
+    std::ostringstream ss;
+    ss << r;
+    return ss.str();
+  }
 }
 
 #endif // _UTILS_RATIONAL_H_

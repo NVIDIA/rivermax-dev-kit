@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -23,6 +23,32 @@
 #include "services/cli/validators.h"
 
 using namespace ral::lib::services;
+
+const char* CLIOptStr::LOCAL_IP = "-l,--local-ip";
+const char* CLIOptStr::LOCAL_IPS = "-l,--local-ips";
+const char* CLIOptStr::SRC_IPS = "-s,--src-ips";
+const char* CLIOptStr::DST_IP = "-d,--dst-ip";
+const char* CLIOptStr::DST_IPS = "-d,--dst-ips";
+const char* CLIOptStr::DST_PORT = "-p,--dst-port";
+const char* CLIOptStr::DST_PORTS = "-p,--dst-ports";
+const char* CLIOptStr::THREADS = "-T,--threads";
+const char* CLIOptStr::FLOWS = "-F,--flows";
+const char* CLIOptStr::STREAMS = "-S,--streams";
+const char* CLIOptStr::VERBOSE = "-v,--verbose";
+const char* CLIOptStr::CHUNKS = "-C,--chunks";
+const char* CLIOptStr::PACKETS = "-K,--packets";
+const char* CLIOptStr::PAYLOAD_SIZE = "-y,--payload-size";
+const char* CLIOptStr::APP_HDR_SIZE = "-e,--app-hdr-size";
+const char* CLIOptStr::SLEEP_US = "-z,--sleep-us";
+const char* CLIOptStr::SLEEP = "-z,--sleep";
+const char* CLIOptStr::RATE_BPS = "-r,--rate-bps";
+const char* CLIOptStr::RATE_BURST = "-b,--rate-burst";
+const char* CLIOptStr::INTERNAL_CORE = "-i,--internal-core";
+const char* CLIOptStr::APPLICATION_CORE = "-a,--application-core";
+const char* CLIOptStr::CHECKSUM_HEADER = "-x,--checksum-header";
+const char* CLIOptStr::WAIT_RETRY = "-w,--wait-retry";
+const char* CLIOptStr::GPU_ID = "-g,--gpu-id";
+const char* CLIOptStr::ALLOCATOR_TYPE = "-A,--allocator-type";
 
 static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
     { "auto",           AllocatorTypeUI::Auto },

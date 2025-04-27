@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023-2023 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright © 2023-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -14,7 +14,10 @@
 #define RMAX_APPS_LIB_LIB_SERVICES_STATISTICS_STATISTICS_READER_H_
 
 #include "rmx_stats_api.h"
-#include "api/rmax_apps_lib_api.h"
+#include "lib/services/error_handling/error_handling.h"
+
+#include <functional>
+#include <unordered_map>
 
 using namespace ral::lib::services;
 
