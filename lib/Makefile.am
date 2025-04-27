@@ -31,6 +31,10 @@ librmaxapps_la_SOURCES = \
     \
     services/utils/utils.h \
     services/utils/defs.h \
+    services/utils/clock.h \
+    services/utils/clock.cpp \
+    services/utils/cpu.h \
+    services/utils/cpu.cpp \
     \
     services/error_handling/error_handling.h \
     services/error_handling/return_status.h \
@@ -63,6 +67,9 @@ librmaxapps_la_SOURCES = \
     services/buffer_management/checksum_buffer_writer.h \
     services/buffer_management/checksum_buffer_writer.cpp \
     \
+    services/statistics/statistics_reader.h \
+    services/statistics/statistics_reader.cpp \
+    \
     core/flow/flow.h \
     core/flow/flow.cpp \
     \
@@ -77,7 +84,6 @@ librmaxapps_la_SOURCES = \
     \
     core/stream/stream.h \
     core/stream/stream_interface.h \
-    core/stream/stream_interface.cpp \
     core/stream/single_stream_interface.h \
     core/stream/single_stream_interface.cpp \
     core/stream/aggregate_stream_interface.h \

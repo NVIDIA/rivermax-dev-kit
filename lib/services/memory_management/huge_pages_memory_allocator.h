@@ -44,7 +44,12 @@ private:
     size_t m_page_size;
     size_t align_length(size_t length) final;
 public:
-    HugePagesMemoryAllocator();
+    /**
+     * @brief: Initializes Huge Page memory allocator.
+     *
+     * @param [in] page_size_log2 - log2 of selected Huge Page size. HUGE_PAGE_SIZE_VALUE_AUTO - default
+     */
+    HugePagesMemoryAllocator(int page_size_log2);
     ~HugePagesMemoryAllocator();
     void* allocate(const size_t length) override;
     std::shared_ptr<MemoryUtils> get_memory_utils() override;

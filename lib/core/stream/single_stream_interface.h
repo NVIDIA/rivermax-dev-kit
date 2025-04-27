@@ -33,7 +33,8 @@ class ISingleStream : public IStream
 {
 protected:
     TwoTupleFlow m_local_address;
-    rmax_stream_id m_stream_id;
+    rmx_stream_id m_stream_id;
+    bool m_stream_id_set;
 public:
     /**
      * @brief: ISingleStream class constructor.
@@ -42,20 +43,13 @@ public:
      */
     ISingleStream(const TwoTupleFlow& local_address);
     virtual ~ISingleStream() = default;
-    /**
-     * @brief: Prints stream's parameters to a output stream.
-     *
-     * @param [out] out: Output stream parameter print to.
-     *
-     * @return: Output stream.
-     */
     std::ostream& print(std::ostream& out) const override;
     /**
      * @brief: Returns Rivermax stream ID.
      *
      * @return: Stream ID.
      */
-    rmax_stream_id get_id() const { return m_stream_id; }
+    rmx_stream_id get_id() const { return m_stream_id; }
 };
 
 } // namespace core

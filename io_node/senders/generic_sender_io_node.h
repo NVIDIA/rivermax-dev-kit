@@ -40,24 +40,23 @@ class AppGenericSendStream : public GenericSendStream
 private:
     std::vector<TwoTupleFlow> m_send_flows;
     size_t m_next_flow_to_send;
+    rmx_mem_region m_mem_region;
 public:
     /**
      * @brief: AppGenericSendStream constructor.
      *
-     * @param [in] network_address: Network address of the stream.
+     * @param [in] settings: Stream parameters.
      * @param [in] send_flows: Send flows the stream will use.
-     * @param [in] pp_rate: Packet pacing rate for the stream.
-     *                      If packet pacing is not needed, the struct should be initialized to 0.
-     * @param [in] num_of_requested_chunks: Number of chunks to be used in the stream.
-     * @param [in] num_of_packets_in_chunk: Number of packets in chunk.
-     * @param [in] packet_typical_payload_size: Packet typical payload size in bytes.
-     * @param [in] packet_typical_app_header_size: Packet typical application header size in bytes.
      */
-    AppGenericSendStream(
-        const FourTupleFlow& network_address, std::vector<TwoTupleFlow>& send_flows,
-        pp_rate_t rate, size_t num_of_requested_chunks, size_t num_of_packets_in_chunk,
-        uint16_t packet_typical_payload_size, uint16_t packet_typical_app_header_size);
+    AppGenericSendStream(const GenericStreamSettings& settings, const std::vector<TwoTupleFlow>& send_flows);
     virtual ~AppGenericSendStream() = default;
+    /**
+     * @brief: Assignes a memory region to be used by the stream.
+     *
+     * @param [in] mreg: Memory region.
+     */
+    virtual void assign_mem_region(const rmx_mem_region& mreg);
+    virtual ReturnStatus create_stream() override;
     std::ostream& print(std::ostream& out) const override;
     /**
      * @brief: Returns next destination flow to use, following application logic.
@@ -81,6 +80,7 @@ public:
 class GenericSenderIONode
 {
 private:
+    media_settings_t m_media_settings;
     std::vector<std::unique_ptr<AppGenericSendStream>> m_streams;
     size_t m_index;
     size_t m_num_of_streams;
@@ -93,7 +93,7 @@ private:
     uint16_t m_packet_typical_payload_size;
     uint16_t m_packet_typical_app_header_size;
     bool m_use_checksum_header;
-    gs_mem_block_t m_mem_block;
+    rmx_mem_region m_mem_region;
     rmax_cpu_set_t m_cpu_affinity_mask;
     int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
@@ -170,11 +170,11 @@ public:
      * using @ref ral::io_node::GenericSenderIONode::distribute_memory_for_streams.
      *
      * @param [in] pointer: Pointer to the allocated memory for the chunks, this memory should be registered first.
-     * @param [in] mkey: Memory key from @ref rmax_deregister_memory in Rivermax API.
+     * @param [in] mkey: Memory key from @ref rmx_deregister_memory in Rivermax API.
      *
      * @return: The initialized memory length.
      */
-    size_t initialize_memory(void* pointer, rmax_mkey_id mkey);
+    size_t initialize_memory(void* pointer, rmx_mkey_id mkey);
     /**
      * @brief: Distributes the memory for streams.
      *
@@ -189,7 +189,7 @@ public:
      * of sender and it's streams and print the information to standard output.
      *
      * @note: The information will be printed if the sender was initialized with
-     * @ref app_settings->print_parameters parameter of set to true.
+     *        @ref app_settings->print_parameters parameter of set to true.
      */
     void print_parameters();
     /**

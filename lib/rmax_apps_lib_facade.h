@@ -15,7 +15,7 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_map>
+#include <vector>
 
 #include "services/utils/defs.h"
 #include "services/memory_management/memory_allocator_interface.h"
@@ -84,23 +84,16 @@ public:
      */
     std::shared_ptr<SignalHandler> get_signal_handler(bool register_default_hanlder = false);
     /**
-     * @brief: Initialize Rivermax library.
+     * @brief: Initializes Rivermax library.
      *
-     * @param [in] config: Rivermax configuration, see @ref rmax_init_config in rivermax_api.h.
+     * @param [in] cpu_affinity: A set of CPU numbers to assign for running Rivermax internal threads.
+     * @param [in] enable_signal_handling: Enable OS signal handling by Rivermax.
      *
      * @note: There is no need to run cleanup of Rivermax, it will be done implicitly.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus initialize_rivermax(rmax_init_config& config);
-    /**
-    * @brief: Set Rivermax clock.
-    *
-    * @param [in] clock: Rivermax clock structure, see @ref rmax_clock_t in rivermax_api.h.
-    *
-    * @return: Status of the operation.
-    */
-    ReturnStatus set_rivermax_clock(rmax_clock_t& clock);
+    ReturnStatus initialize_rivermax(const std::vector<int>& cpu_affinity, bool enable_signal_handling = true);
 private:
     /**
      * @brief: Validates Rivermax library version.
@@ -112,7 +105,7 @@ private:
      */
     ReturnStatus validate_rivermax_version() const;
     /**
-     * @brief: Clean up Rivermax library.
+     * @brief: Cleans up Rivermax library.
      *
      * It will be invoked on object destruction implicitly.
      *

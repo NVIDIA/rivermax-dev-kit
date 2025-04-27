@@ -123,7 +123,9 @@ INPUT                  = . \
                          ./README.md \
                          ../include/rivermax_api.h \
                          ../include/rivermax_defs.h \
-                         ../include/rivermax_deprecated.h
+                         ../include/rivermax_deprecated.h \
+                         ../include/rmx_stats_api.h \
+                         ../include/rmx_stats_defs.h
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
                          *.cc \

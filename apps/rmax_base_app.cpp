@@ -28,7 +28,8 @@ RmaxBaseApp::RmaxBaseApp(const std::string& app_description, const std::string& 
     m_rmax_apps_lib(ral::lib::RmaxAppsLibFacade()),
     m_cli_parser_manager(m_rmax_apps_lib.get_cli_parser_manager(
         app_description + rmax_get_version_string(), app_examples, m_app_settings)),
-    m_signal_handler(m_rmax_apps_lib.get_signal_handler(true))
+    m_signal_handler(m_rmax_apps_lib.get_signal_handler(true)),
+    m_stats_reader(nullptr)
 {
 }
 
@@ -68,6 +69,8 @@ void RmaxBaseApp::initialize_common_default_app_settings()
     m_app_settings->hw_queue_full_sleep_us = 0;
     m_app_settings->gpu_id = INVALID_GPU_ID;
     m_app_settings->allocator_type = AllocatorTypeUI::Auto;
+    m_app_settings->statistics_reader_core = INVALID_CORE_NUMBER;
+    m_app_settings->session_id_stats = UINT_MAX;
 }
 
 ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
@@ -80,7 +83,7 @@ ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
     }
     post_cli_parse_initialization();
 
-    AllocatorType type = AllocatorType::New;
+    AllocatorType type = AllocatorType::Malloc;
     if (m_app_settings->gpu_id != INVALID_GPU_ID) {
         switch (m_app_settings->allocator_type) {
         case AllocatorTypeUI::Auto:
@@ -94,11 +97,20 @@ ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
     } else {
         switch (m_app_settings->allocator_type) {
         case AllocatorTypeUI::Auto:
-        case AllocatorTypeUI::HugePage:
-            type = AllocatorType::HugePage;
+        case AllocatorTypeUI::HugePageDefault:
+            type = AllocatorType::HugePageDefault;
             break;
-        case AllocatorTypeUI::New:
-            type = AllocatorType::New;
+        case AllocatorTypeUI::Malloc:
+            type = AllocatorType::Malloc;
+            break;
+        case AllocatorTypeUI::HugePage2MB:
+            type = AllocatorType::HugePage2MB;
+            break;
+        case AllocatorTypeUI::HugePage512MB:
+            type = AllocatorType::HugePage512MB;
+            break;
+        case AllocatorTypeUI::HugePage1GB:
+            type = AllocatorType::HugePage1GB;
             break;
         case AllocatorTypeUI::Gpu:
             std::cerr << "For non-GPU configuration allocator type must not be 'gpu'" << std::endl;
@@ -112,15 +124,15 @@ ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
         return rc;
     }
 
-    rc = initialize_connection_parameters();
-    if (rc == ReturnStatus::failure) {
-        std::cerr << "Failed to initialize application connection parameters" << std::endl;
-        return rc;
-    }
-
     rc = initialize_rivermax_resources();
     if (rc == ReturnStatus::failure) {
         std::cerr << "Failed to initialize Rivermax resources" << std::endl;
+        return rc;
+    }
+
+    rc = initialize_connection_parameters();
+    if (rc == ReturnStatus::failure) {
+        std::cerr << "Failed to initialize application connection parameters" << std::endl;
         return rc;
     }
 
@@ -149,4 +161,19 @@ ReturnStatus RmaxBaseApp::initialize_connection_parameters()
     }
 
     return ReturnStatus::success;
+}
+
+void RmaxBaseApp::run_stats_reader()
+{
+    if (!is_run_stats_reader()) {
+        return;
+    }
+
+    m_stats_reader.reset(new StatisticsReader());
+    m_stats_reader->set_cpu_core_affinity(m_app_settings->statistics_reader_core);
+    if (m_app_settings->session_id_stats != UINT_MAX) {
+        std::cout << "Set presen session id: " << m_app_settings->session_id_stats << std::endl;
+        m_stats_reader->set_session_id(m_app_settings->session_id_stats);
+    }
+    m_threads.push_back(std::thread(std::ref(*m_stats_reader)));
 }

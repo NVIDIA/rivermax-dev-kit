@@ -41,8 +41,7 @@ AppIPOReceiveStream::AppIPOReceiveStream(size_t id,
         const ipo_stream_settings_t& settings,
         bool extended_sequence_number,
         const std::vector<IPOReceivePath>& paths) :
-    IPOReceiveStream(id, settings, paths,
-            (extended_sequence_number) ? RMAX_IN_BUFFER_ATTER_STREAM_RTP_EXT_SEQN_PLACEMENT_ORDER : RMAX_IN_BUFFER_ATTER_STREAM_RTP_SEQN_PLACEMENT_ORDER),
+    IPOReceiveStream(id, settings, paths, extended_sequence_number),
     m_is_extended_sequence_number(extended_sequence_number),
     m_sequence_number_mask((extended_sequence_number) ? SEQUENCE_NUMBER_MASK_32BIT : SEQUENCE_NUMBER_MASK_16BIT)
 {
@@ -50,15 +49,18 @@ AppIPOReceiveStream::AppIPOReceiveStream(size_t id,
     m_path_packets.resize(settings.num_of_packets_in_chunk, std::vector<uint8_t>(paths.size(), 0));
 }
 
-ReturnStatus AppIPOReceiveStream::get_next_chunk(ReceiveChunk* chunk)
+ReturnStatus AppIPOReceiveStream::get_next_chunk(IPOReceiveChunk* chunk)
 {
     ReturnStatus status = IPOReceiveStream::get_next_chunk(chunk);
     if (status == ReturnStatus::success) {
-        m_statistic.rx_counter += chunk->get_length();
+        m_statistic.rx_counter += chunk->get_completion_chunk_size();
 
-        for (uint32_t stride_index = 0; stride_index < chunk->get_length(); ++stride_index) {
-            const auto& info = chunk->get_completion()->packet_info_arr[stride_index];
-            m_statistic.received_bytes += info.hdr_size + info.data_size;
+        const auto packet_info_array = chunk->get_completion_info_ptr();
+        for (uint32_t stride_index = 0; stride_index < chunk->get_completion_chunk_size(); ++stride_index) {
+            m_statistic.received_bytes += packet_info_array[stride_index].get_packet_sub_block_size(0);
+            if (m_header_data_split) {
+                m_statistic.received_bytes += packet_info_array[stride_index].get_packet_sub_block_size(1);
+            }
         }
     }
     return status;
@@ -115,16 +117,16 @@ void AppIPOReceiveStream::reset_statistics()
     m_statistic.reset();
 }
 
-void AppIPOReceiveStream::handle_corrupted_packet(size_t index, const rmax_in_packet_info& info)
+void AppIPOReceiveStream::handle_corrupted_packet(size_t index, const ReceivePacketInfo& packet_info)
 {
-    IPOReceiveStream::handle_corrupted_packet(index, info);
+    IPOReceiveStream::handle_corrupted_packet(index, packet_info);
 
     ++m_statistic.rx_corrupt_rtp_header;
 }
 
-void AppIPOReceiveStream::handle_packet(size_t index, uint32_t sequence_number, const rmax_in_packet_info& info)
+void AppIPOReceiveStream::handle_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info)
 {
-    IPOReceiveStream::handle_packet(index, sequence_number, info);
+    IPOReceiveStream::handle_packet(index, sequence_number, packet_info);
 
     auto& by_paths = m_path_packets.at(sequence_number % get_sequence_number_wrap_around());
 
@@ -133,9 +135,9 @@ void AppIPOReceiveStream::handle_packet(size_t index, uint32_t sequence_number, 
     }
 }
 
-void AppIPOReceiveStream::handle_redundant_packet(size_t index, uint32_t sequence_number, const rmax_in_packet_info& info)
+void AppIPOReceiveStream::handle_redundant_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info)
 {
-    IPOReceiveStream::handle_redundant_packet(index, sequence_number, info);
+    IPOReceiveStream::handle_redundant_packet(index, sequence_number, packet_info);
 
     auto& by_paths = m_path_packets.at(sequence_number % get_sequence_number_wrap_around());
 
@@ -163,7 +165,7 @@ void AppIPOReceiveStream::complete_packet(uint32_t sequence_number)
     m_last_sequence_number = sequence_number;
 }
 
-bool AppIPOReceiveStream::get_sequence_number(const byte_ptr_t header, size_t length, uint32_t& sequence_number) const
+bool AppIPOReceiveStream::get_sequence_number(const byte_t* header, size_t length, uint32_t& sequence_number) const
 {
     if (length < 4 || (header[0] & 0xC0) != 0x80) {
         return false;
@@ -192,7 +194,7 @@ IPOReceiverIONode::IPOReceiverIONode(
     m_cpu_core_affinity(cpu_core_affinity),
     m_sleep_between_operations(std::chrono::microseconds(app_settings.sleep_between_operations_us))
 {
-    m_stream_settings.stream_flags = RMAX_IN_CREATE_STREAM_INFO_PER_PACKET;
+    m_stream_settings.stream_options.insert(RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET);
     m_stream_settings.packet_payload_size = m_app_settings.packet_payload_size;
     m_stream_settings.packet_app_header_size = m_app_settings.packet_app_header_size;
     m_stream_settings.num_of_packets_in_chunk = m_app_settings.num_of_packets_in_chunk;
@@ -258,7 +260,7 @@ void IPOReceiverIONode::operator()()
     }
     print_parameters();
 
-    ReceiveChunk chunk;
+    IPOReceiveChunk chunk(m_stream_settings.packet_app_header_size != 0);
     rc = ReturnStatus::success;
 
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -351,10 +353,6 @@ ReturnStatus IPOReceiverIONode::destroy_streams()
 
 void IPOReceiverIONode::set_cpu_resources()
 {
-    memset(&m_cpu_affinity_mask, 0, sizeof(m_cpu_affinity_mask));
-    if (m_cpu_core_affinity != CPU_NONE) {
-        RMAX_CPU_SET(m_cpu_core_affinity, &m_cpu_affinity_mask);
-    }
-    rt_set_thread_affinity(&m_cpu_affinity_mask);
+    set_cpu_affinity(std::vector<int>{m_cpu_core_affinity});
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }

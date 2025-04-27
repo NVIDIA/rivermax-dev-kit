@@ -20,9 +20,9 @@ using namespace ral::lib::services;
 
 std::shared_ptr<MemoryUtils> MemoryAllocatorImp::utils_huge_pages;
 
-HugePagesMemoryAllocator::HugePagesMemoryAllocator()
+HugePagesMemoryAllocator::HugePagesMemoryAllocator(int page_size_log2)
 {
-    if (!m_imp->init_huge_pages(m_page_size)) {
+    if (!m_imp->init_huge_pages(page_size_log2, m_page_size)) {
         std::cerr << "Failed to initialize Huge Pages" << std::endl;
     }
 }

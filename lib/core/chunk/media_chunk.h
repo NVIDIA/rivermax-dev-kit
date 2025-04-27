@@ -16,8 +16,10 @@
 #include <string>
 
 #include <rivermax_api.h>
-
 #include "core/chunk/chunk_interface.h"
+#include "services/error_handling/return_status.h"
+
+using namespace ral::lib::services;
 
 namespace ral
 {
@@ -34,66 +36,98 @@ namespace core
 class MediaChunk : public IChunk
 {
 private:
+    rmx_output_media_chunk_handle m_chunk;
     void* m_data_ptr;
-    uint16_t* m_data_size_arr;
-    void* m_app_hdr_ptr;
-    uint16_t* m_app_hdr_size_arr;
     size_t m_length;
+    bool m_hds_on;
+    rmx_stream_id m_stream_id;
 public:
     /**
      * @brief: MediaChunk default constructor.
-     */
-    MediaChunk();
-    /**
-     * @brief: MediaChunk constructor.
      *
-     * @param [in] data_ptr: Pointer to the data array.
-     * @param [in] data_size_arr: Pointer to the data array sizes.
-     * @param [in] length: Length in packets of the chunk.
+     * @param [in] stream_id: ID of the owner stream.
+     * @param [in] packets_in_chunk: Number of packets in chunk.
+     * @param [in] use_hds: Separate memory for packet headers.
      */
-    MediaChunk(void** data_ptr, uint16_t* data_size_arr, size_t length);
+    MediaChunk(rmx_stream_id id, size_t packets_in_chunk, bool use_hds);
+    virtual size_t get_length() const override { return m_length; }
     /**
-     * @brief: MediaChunk constructor.
-     *
-     * @param [in] data_ptr: Pointer to the data array.
-     * @param [in] data_size_arr: Pointer to the data sizes array.
-     * @param [in] app_hdr_ptr: Pointer to the application header array.
-     * @param [in] app_hdr_size_arr: Pointer to the application header sizes array.
-     * @param [in] length: Length in packets of the chunk.
-     */
-    MediaChunk(void** data_ptr, uint16_t* data_size_arr,
-               void** app_hdr_ptr, uint16_t* app_hdr_size_arr, size_t length);
-    virtual size_t get_length() const override { return m_length; };
-    /**
-     * @brief: Sets the length of the chunk.
-     *
-     * @param [in] length: Length in packets of the chunk.
-     */
-    void set_length(size_t length) { m_length = length; };
-    /**
-     * @brief: Pointer to the underlay data array of the chunk.
-     *
-     * @returns: Pointer to the data array.
-     */
-    void** get_data_ptr() { return &m_data_ptr; };
-    /**
-     * @brief: Pointer to the underlay application header array of the chunk.
-     *
-     * @returns: Pointer to the application header array.
-     */
-    void** get_app_hdr_ptr() { return &m_app_hdr_ptr; };
-    /**
-     * @brief: Pointer to the underlay data sizes array of the chunk.
+     * @brief: Returns a pointer to the underlay payload array of the chunk.
      *
      * @returns: Pointer to the data sizes array.
      */
-    uint16_t* get_data_sizes_array() const { return m_data_size_arr; };
+    void* get_data_ptr();
     /**
-     * @brief: Pointer to the underlay application header sizes array of the chunk.
+     * @brief: Returns a pointer to the underlay application header array of the chunk.
+     *
+     * @returns: Pointer to the application header array.
+     */
+    void* get_app_hdr_ptr();
+    /**
+     * @brief: Returns a pointer to the underlay payload sizes array of the chunk.
      *
      * @returns: Pointer to the application header sizes array.
      */
-    uint16_t* get_app_hdr_sizes_array() const { return m_app_hdr_size_arr; };
+    uint16_t* get_data_sizes_array();
+    /**
+     * @brief: Returns a pointer to the underlay application header sizes array of the chunk.
+     *
+     * @returns: Pointer to the application header sizes array.
+     */
+    uint16_t* get_app_hdr_sizes_array();
+    /**
+     * @brief: Acquires the next free chunk for a media output stream.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::no_free_chunks - In case of insufficient available chunks.
+     */
+    ReturnStatus get_next_chunk();
+    /**
+     * @brief: Enables a chunk commit options. The option affect only the next commit.
+     *
+     * @param [in] options: Commmit options to enable.
+     */
+    void set_commit_option(rmx_output_commit_option option);
+    /**
+     * @brief: Disables a chunk commit options. The option affect only the next commit.
+     *
+     * @param [in] options: Commmit options to disable.
+     */
+    void clear_commit_option(rmx_output_commit_option option);
+    /**
+     * @brief: Disables all commit options. The options affect only the next commit.
+     */
+    void clear_all_commit_options();
+    /**
+     * @brief: Sends a chunk of the associated media output stream to the wire.
+     *
+     * @param [in] time: Time to schedule chunk sending, the format depends on the options
+     * set in @ref set_commit_options.
+     *
+     * @warinig: If multiple chunks were acquired with @ref get_next_chunk for the
+     * stream after the previous call to @ref commit_chunk, the oldest acquired chunk will
+     * be sent, not the one whose method was called.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::hw_send_queue_full - In case the HW send queue is full.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
+     */
+    ReturnStatus commit_chunk(uint64_t time);
+    /**
+     * @brief: Return to Rivermax all chunks that were allocated with get_next_chunk,
+     * but not committed.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::hw_send_queue_full - In case the HW send queue is full.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
+     */
+    ReturnStatus cancel_unsent();
 };
 
 } // namespace core

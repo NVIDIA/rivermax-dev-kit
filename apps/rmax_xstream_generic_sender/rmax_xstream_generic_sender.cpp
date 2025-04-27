@@ -114,27 +114,30 @@ ReturnStatus GenericSenderApp::run()
 
 ReturnStatus GenericSenderApp::initialize_rivermax_resources()
 {
-    rmax_init_config init_config;
-    memset(&init_config, 0, sizeof(init_config));
+    std::vector<int> cpu_affinity;
 
     if (m_app_settings->internal_thread_core != CPU_NONE) {
-        RMAX_CPU_SET(m_app_settings->internal_thread_core, &init_config.cpu_mask);
-        init_config.flags |= RIVERMAX_CPU_MASK;
+        cpu_affinity.push_back(m_app_settings->internal_thread_core);
     }
+
     rt_set_realtime_class();
-
-    init_config.flags |= RIVERMAX_HANDLE_SIGNAL;
-
-    return m_rmax_apps_lib.initialize_rivermax(init_config);
+    return m_rmax_apps_lib.initialize_rivermax(cpu_affinity);
 }
 
 ReturnStatus GenericSenderApp::cleanup_rivermax_resources()
 {
-    rmax_status_t status;
+    rmx_device_iface device_iface;
+    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_source_address.sin_addr);
+    if (status != RMX_OK) {
+        char str[INET_ADDRSTRLEN];
+        const char* s = inet_ntop(AF_INET, &(m_source_address.sin_addr), str, INET_ADDRSTRLEN);
+        std::cerr << "Failed to get device: " << (s ? str : "unknown") << " with status: " << status << std::endl;
+        return ReturnStatus::failure;
+    }
 
-    for (auto& mem_block : m_mem_blocks) {
-        status = rmax_deregister_memory(mem_block->mkey_id, m_source_address.sin_addr);
-        if (status != RMAX_OK) {
+    for (auto& mreg : m_mem_regions) {
+        status = rmx_deregister_memory(&mreg, &device_iface);
+        if (status != RMX_OK) {
             std::cerr << "Failed to de-register application memory with status: "
                 << status << std::endl;
             return ReturnStatus::failure;
@@ -166,32 +169,38 @@ void GenericSenderApp::initialize_send_flows()
 ReturnStatus GenericSenderApp::allocate_app_memory()
 {
     size_t length = get_memory_length();
-    gs_mem_block_t block;
+    rmx_mem_region mreg;
 
-    memset(&block, 0, sizeof(block));
-    block.mem_block.pointer = m_mem_allocator->allocate(length);
-    block.mem_block.length = length;
-    block.mkey_id = 0;
+    memset(&mreg, 0, sizeof(mreg));
+    mreg.addr = m_mem_allocator->allocate(length);
+    mreg.length = length;
+    mreg.mkey = 0;
 
-    if (!block.mem_block.pointer) {
+    if (!mreg.addr) {
         std::cerr << "Failed to allocate application memory" << std::endl;
         return ReturnStatus::failure;
     }
 
-    rmax_status_t status = rmax_register_memory(
-        block.mem_block.pointer, block.mem_block.length,
-        m_source_address.sin_addr, &block.mkey_id);
-    if (status != RMAX_OK) {
-        std::cerr << "Failed to register application memory with status: " << status << std::endl;
+    rmx_device_iface device_iface;
+    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_source_address.sin_addr);
+    if (status != RMX_OK) {
+        char str[INET_ADDRSTRLEN];
+        const char* s = inet_ntop(AF_INET, &(m_source_address.sin_addr), str, INET_ADDRSTRLEN);
+        std::cerr << "Failed to get device: " << (s ? str : "unknown") << " with status: " << status << std::endl;
         return ReturnStatus::failure;
     }
+    rmx_mem_reg_params mem_registry;
+    rmx_init_mem_registry(&mem_registry, &device_iface);
+    status = rmx_register_memory(&mreg, &mem_registry);
+    if (status != RMX_OK) {
+        std::cerr << "Failed to register payload memory with status: " << status << std::endl;
+        return ReturnStatus::failure;
+    }
+    m_mem_regions.push_back(mreg);
 
-    m_mem_blocks.push_back(std::unique_ptr<gs_mem_block_t>(
-        new gs_mem_block_t{ block.mem_block, block.mkey_id }));
-
-    std::cout << "Allocated " << block.mem_block.length <<
-        " bytes at address " << block.mem_block.pointer <<
-        " with mkey: " << block.mkey_id << std::endl;
+    std::cout << "Allocated " << mreg.length <<
+        " bytes at address " << mreg.addr <<
+        " with mkey: " << mreg.mkey << std::endl;
 
     return ReturnStatus::success;
 }
@@ -245,15 +254,15 @@ void GenericSenderApp::initialize_sender_threads()
 
 void GenericSenderApp::distribute_memory_for_senders(const int mem_block_index)
 {
-    auto& app_mem = m_mem_blocks[mem_block_index];
+    auto& app_mem = m_mem_regions[mem_block_index];
     byte_t* pointer = nullptr;
     rmax_mkey_id mkey = 0;
     size_t length = 0;
     size_t offset = 0;
 
     for (auto& sender : m_senders) {
-        pointer = reinterpret_cast<byte_t*>(app_mem->mem_block.pointer) + offset;
-        mkey = app_mem->mkey_id;
+        pointer = reinterpret_cast<byte_t*>(app_mem.addr) + offset;
+        mkey = app_mem.mkey;
         length = sender->initialize_memory(pointer, mkey);
         offset += length;
     }

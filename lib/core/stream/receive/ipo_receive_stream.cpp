@@ -23,32 +23,22 @@ using namespace ral::lib::core;
 using namespace ral::lib::services;
 
 IPOReceiveStream::IPOReceiveStream(size_t id, const ipo_stream_settings_t& settings,
-        const std::vector<IPOReceivePath>& paths,
-        rmax_in_buffer_attr_flags_t placement_order) :
+        const std::vector<IPOReceivePath>& paths, bool use_ext_seqn) :
     IAggregateStream(id),
+    m_settings(settings),
     m_paths(paths),
-    m_pkt_info_enabled(settings.stream_flags & RMAX_IN_CREATE_STREAM_INFO_PER_PACKET),
+    m_use_ext_seqn(use_ext_seqn),
     m_header_data_split(settings.packet_app_header_size > 0),
+    m_pkt_info_enabled(settings.stream_options.count(RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET) != 0),
     m_num_of_packets_in_chunk(static_cast<uint32_t>(settings.num_of_packets_in_chunk)),
-    m_max_path_differential(std::chrono::microseconds(settings.max_path_differential_us)),
-    m_stream_settings(
-            settings.packet_payload_size,
-            settings.packet_app_header_size,
-            static_cast<uint32_t>(settings.num_of_packets_in_chunk),
-            /* min_chunk_size */ 0,
-            settings.max_chunk_size,
-            /* timeout_us */ 0,
-            static_cast<rmax_in_buffer_attr_flags_t>(settings.buffer_attr_flags
-                | placement_order),
-            // always request packet information from child streams
-            /* stream_flags */ RMAX_IN_CREATE_STREAM_INFO_PER_PACKET
-        )
+    m_max_path_differential(std::chrono::microseconds(settings.max_path_differential_us))
 {
     if (m_paths.size() == 0) {
         throw std::runtime_error("Must be at least one path");
     }
-    m_ext_packet_info_arr.resize(m_stream_settings.num_of_packets_in_chunk);
-    m_packet_info_arr.resize(m_stream_settings.num_of_packets_in_chunk);
+
+    m_ext_packet_info_arr.resize(settings.num_of_packets_in_chunk);
+    m_packet_info_arr.resize(settings.num_of_packets_in_chunk);
     initialize_substreams();
 }
 
@@ -58,7 +48,20 @@ void IPOReceiveStream::initialize_substreams()
     size_t id = 0;
 
     for (const auto& path : m_paths) {
-        m_streams.emplace_back(RMAX_APP_PROTOCOL_PACKET, TwoTupleFlow(id, path.dev_ip, 0), m_stream_settings);
+        ReceiveStreamSettings settings(TwoTupleFlow(id, path.dev_ip, 0),
+                RMX_INPUT_APP_PROTOCOL_PACKET,
+                RMX_INPUT_TIMESTAMP_RAW_NANO,
+                {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
+                m_settings.num_of_packets_in_chunk,
+                m_settings.packet_payload_size,
+                m_settings.packet_app_header_size);
+
+        if (m_use_ext_seqn) {
+            settings.m_options.insert(RMX_INPUT_STREAM_RTP_EXT_SEQN_PLACEMENT_ORDER);
+        } else {
+            settings.m_options.insert(RMX_INPUT_STREAM_RTP_SEQN_PLACEMENT_ORDER);
+        }
+        m_streams.emplace_back(settings);
         ++id;
     }
 }
@@ -85,7 +88,7 @@ ReturnStatus IPOReceiveStream::query_buffer_size(size_t& header_size, size_t& pa
 
     for (auto& stream : m_streams) {
         size_t hdr, pld;
-        uint16_t hdr_stride, pld_stride;
+        size_t hdr_stride, pld_stride;
 
         ReturnStatus status = stream.query_buffer_size(hdr, pld);
         if (status != ReturnStatus::success) {
@@ -112,19 +115,19 @@ ReturnStatus IPOReceiveStream::query_buffer_size(size_t& header_size, size_t& pa
 
 void IPOReceiveStream::set_buffers(void* header_ptr, void* payload_ptr)
 {
-    m_header_buffer = static_cast<byte_ptr_t>(header_ptr);
-    m_payload_buffer = static_cast<byte_ptr_t>(payload_ptr);
+    m_header_buffer = static_cast<byte_t*>(header_ptr);
+    m_payload_buffer = static_cast<byte_t*>(payload_ptr);
 
     for (auto& stream : m_streams) {
-        stream.set_buffers(m_header_buffer, m_payload_buffer);
+        stream.set_buffers(header_ptr, payload_ptr);
     }
 }
 
-void IPOReceiveStream::set_memory_keys(const std::vector<rmax_mkey_id> &header_mkeys,
-        const std::vector<rmax_mkey_id> &payload_mkeys)
+void IPOReceiveStream::set_memory_keys(const std::vector<rmx_mem_region>& header_regions,
+        const std::vector<rmx_mem_region>& payload_regions)
 {
     for (size_t i = 0; i < m_streams.size(); ++i) {
-        m_streams[i].set_memory_keys(header_mkeys[i], payload_mkeys[i]);
+        m_streams[i].set_memory_keys(header_regions[i].mkey, payload_regions[i].mkey);
     }
 }
 
@@ -138,6 +141,8 @@ ReturnStatus IPOReceiveStream::create_stream()
             std::cerr << "Failed to create stream " << stream.get_id() << std::endl;
             return status;
         }
+        m_chunks.emplace_back(stream.get_id(), m_header_data_split);
+        stream.set_completion_moderation(0, m_settings.max_chunk_size, 0);
     }
 
     return ReturnStatus::success;
@@ -192,7 +197,7 @@ ReturnStatus IPOReceiveStream::destroy_stream()
     return (success) ? ReturnStatus::success : ReturnStatus::failure;
 }
 
-ReturnStatus IPOReceiveStream::get_next_chunk(ReceiveChunk* chunk)
+ReturnStatus IPOReceiveStream::get_next_chunk(IPOReceiveChunk* ipo_chunk)
 {
     /**
      * This function performs input stream reconstruction.
@@ -223,29 +228,25 @@ ReturnStatus IPOReceiveStream::get_next_chunk(ReceiveChunk* chunk)
      * State::Waiting state. The next arrived packet switches us back to @ref
      * State::Running.
      */
-    if (!chunk) {
+    if (!ipo_chunk) {
         std::cerr << "Chunk must be non-null!" << std::endl;
         return ReturnStatus::failure;
     }
 
-    ReceiveChunk comp;
     m_now = clock::now();
     for (size_t i = 0; i < m_streams.size(); ++i) {
         auto& stream = m_streams.at(i);
-        ReturnStatus status = stream.get_next_chunk(&comp);
+        ReturnStatus status = stream.get_next_chunk(m_chunks.at(i));
         if (status != ReturnStatus::success) {
             if (status != ReturnStatus::signal_received) {
                 std::cerr << "Failed to get data chunk from stream " << stream.get_id() << std::endl;
             }
             return status;
         }
-        process_completion(i, stream, &comp);
+        process_completion(i, stream, m_chunks[i]);
     }
 
-    auto& rmax_comp = *chunk->get_completion();
-    rmax_comp.flags = RMAX_IN_COMP_FLAG_NONE;
-    rmax_comp.chunk_size = 0;
-    rmax_comp.packet_info_arr = nullptr;
+    ipo_chunk->set_completion_chunk_size(0);
 
     if (m_state != State::Running) {
         return ReturnStatus::success;
@@ -278,9 +279,11 @@ ReturnStatus IPOReceiveStream::get_next_chunk(ReceiveChunk* chunk)
     // actually skipping the dropped packets because the packet at the end of
     // skipped interval must be processed now
     m_index = start_idx;
+
+    size_t chunk_size = 0;
     // initialize completion content
-    rmax_comp.seqn_first = info->sequence_number;
-    rmax_comp.timestamp_first = info->hw_timestamp;
+    ipo_chunk->set_completion_seqn_first(info->sequence_number);
+    ipo_chunk->set_completion_timestamp_first(info->hw_timestamp);
 
     // find maximum contiguous sequence of valid packets
     while (true) {
@@ -294,11 +297,12 @@ ReturnStatus IPOReceiveStream::get_next_chunk(ReceiveChunk* chunk)
         }
 
         info->is_valid = false;
-        rmax_comp.timestamp_last = info->hw_timestamp;
+        ipo_chunk->set_completion_timestamp_last(info->hw_timestamp);
         complete_packet(info->sequence_number);
 
         ++m_index;
-        ++rmax_comp.chunk_size;
+        chunk_size++;
+
         if (m_index >= m_sequence_number_wrap_around) {
             m_index = 0;
             // break the loop now otherwise return arrays will be non-contiguous
@@ -306,38 +310,37 @@ ReturnStatus IPOReceiveStream::get_next_chunk(ReceiveChunk* chunk)
         }
     }
 
+    ipo_chunk->set_completion_chunk_size(chunk_size);
+
     if (m_header_data_split) {
-        rmax_comp.hdr_ptr = m_header_buffer + start_idx * m_header_stride_size;
+        ipo_chunk->set_completion_header_ptr(m_header_buffer + start_idx * m_header_stride_size);
     }
-    rmax_comp.data_ptr = m_payload_buffer + start_idx * m_payload_stride_size;
+    ipo_chunk->set_completion_payload_ptr(m_payload_buffer + start_idx * m_payload_stride_size);
     if (m_pkt_info_enabled) {
-        rmax_comp.packet_info_arr = &m_packet_info_arr[start_idx];
+        ipo_chunk->set_completion_info_ptr(&m_packet_info_arr[start_idx]);
     }
 
     return ReturnStatus::success;
 }
 
-void IPOReceiveStream::process_completion(size_t index, const ReceiveStream& stream, ReceiveChunk* chunk)
+void IPOReceiveStream::process_completion(size_t index, const ReceiveStream& stream, ReceiveChunk& chunk)
 {
-    const rmax_in_completion& r_comp = *chunk->get_completion();
-
-    byte_ptr_t ptr;
-    uint16_t stride_size;
-    if (r_comp.hdr_ptr) {
-        ptr = reinterpret_cast<byte_ptr_t>(r_comp.hdr_ptr);
+    const byte_t* ptr;
+    size_t stride_size;
+    if (chunk.get_header_ptr()) {
+        ptr = reinterpret_cast<const byte_t*>(chunk.get_header_ptr());
         stride_size = stream.get_header_stride_size();
     } else {
-        ptr = reinterpret_cast<byte_ptr_t>(r_comp.data_ptr);
+        ptr = reinterpret_cast<const byte_t*>(chunk.get_payload_ptr());
         stride_size = stream.get_payload_stride_size();
     }
-
-    for (uint32_t stride_index = 0; stride_index < r_comp.chunk_size; ++stride_index, ptr += stride_size) {
+    for (uint32_t stride_index = 0; stride_index < chunk.get_length(); ++stride_index, ptr += stride_size) {
         uint32_t sequence_number = 0;
-        auto& info = r_comp.packet_info_arr[stride_index];
-        bool hdr_valid = get_sequence_number(ptr, info.hdr_size ? info.hdr_size : info.data_size, sequence_number);
+        auto packet_info = chunk.get_packet_info(stride_index);
+        bool hdr_valid = get_sequence_number(ptr, packet_info.get_packet_sub_block_size(0), sequence_number);
 
         if (unlikely(!hdr_valid)) {
-            handle_corrupted_packet(index, info);
+            handle_corrupted_packet(index, packet_info);
             continue;
         }
 
@@ -359,41 +362,41 @@ void IPOReceiveStream::process_completion(size_t index, const ReceiveStream& str
         // If we haven't received yet packet with this sequeence number...
         if (!ext_info.is_valid) {
             // packet with this sequence number is received for the first time
-            handle_packet(index, sequence_number, info);
+            handle_packet(index, sequence_number, packet_info);
         } else {
             // packet with this sequence number was already received from the other path
-            handle_redundant_packet(index, sequence_number, info);
+            handle_redundant_packet(index, sequence_number, packet_info);
         }
     }
 }
 
-void IPOReceiveStream::handle_corrupted_packet(size_t index, const rmax_in_packet_info& info)
+void IPOReceiveStream::handle_corrupted_packet(size_t index, const ReceivePacketInfo& packet_info)
 {
     NOT_IN_USE(index);
-    NOT_IN_USE(info);
+    NOT_IN_USE(packet_info);
 }
 
-void IPOReceiveStream::handle_packet(size_t index, uint32_t sequence_number, const rmax_in_packet_info& info)
+void IPOReceiveStream::handle_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info)
 {
     NOT_IN_USE(index);
     uint32_t index_in_dest_arr = sequence_number % m_sequence_number_wrap_around;
     ext_packet_info& ext_info = m_ext_packet_info_arr[index_in_dest_arr];
 
     if (m_pkt_info_enabled) {
-        memcpy(&m_packet_info_arr[index_in_dest_arr], &info, sizeof(rmax_in_packet_info));
+        m_packet_info_arr[index_in_dest_arr] = packet_info;
     }
 
-    ext_info.hw_timestamp = info.timestamp;
+    ext_info.hw_timestamp = packet_info.get_packet_timestamp();
     ext_info.sequence_number = sequence_number;
     ext_info.is_valid = true;
     ext_info.timestamp = m_now;
 }
 
-void IPOReceiveStream::handle_redundant_packet(size_t index, uint32_t sequence_number, const rmax_in_packet_info& info)
+void IPOReceiveStream::handle_redundant_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info)
 {
     NOT_IN_USE(index);
     NOT_IN_USE(sequence_number);
-    NOT_IN_USE(info);
+    NOT_IN_USE(packet_info);
 }
 
 void IPOReceiveStream::complete_packet(uint32_t sequence_number)

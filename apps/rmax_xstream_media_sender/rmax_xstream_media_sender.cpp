@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cmath>
 #include <chrono>
+#include <vector>
 
 #include <rivermax_api.h>
 
@@ -23,6 +24,7 @@
 #include "api/rmax_apps_lib_api.h"
 #include "io_node/io_node.h"
 #include "apps/rmax_base_app.h"
+#include "services/utils/clock.h"
 
 using namespace ral::lib::core;
 using namespace ral::lib::services;
@@ -71,6 +73,15 @@ void MediaSenderApp::add_cli_options()
         "-x,--stream-type",
         m_app_settings->video_stream_type,
         "Type of a video stream")->check(CLI::IsMember(SUPPORTED_STREAMS))->required();
+    auto stats_core = m_cli_parser_manager->get_parser()->add_option(
+        "-R,--statistics-core",
+        m_app_settings->statistics_reader_core,
+        "CPU core affinity for statistics reader thread")->check(CLI::Range(0, MAX_CPU_RANGE));
+    m_cli_parser_manager->get_parser()->add_option(
+        "-P,--session-id-stats",
+        m_app_settings->session_id_stats,
+        "Present runtime statistics of the given session id")->check(
+            CLI::PositiveNumber)->needs(stats_core);
 }
 
 void MediaSenderApp::post_cli_parse_initialization()
@@ -149,6 +160,7 @@ ReturnStatus MediaSenderApp::run()
         distribute_work_for_threads();
         initialize_send_flows();
         initialize_sender_threads();
+        run_stats_reader();
         run_threads(m_senders);
     }
     catch (const std::exception & error) {
@@ -161,29 +173,19 @@ ReturnStatus MediaSenderApp::run()
 
 ReturnStatus MediaSenderApp::initialize_rivermax_resources()
 {
-    rmax_init_config init_config;
-    memset(&init_config, 0, sizeof(init_config));
-
-    init_config.flags |= RIVERMAX_HANDLE_SIGNAL;
+    std::vector<int> cpu_affinity;
 
     if (m_app_settings->internal_thread_core != CPU_NONE) {
-        RMAX_CPU_SET(m_app_settings->internal_thread_core, &init_config.cpu_mask);
-        init_config.flags |= RIVERMAX_CPU_MASK;
+        cpu_affinity.push_back(m_app_settings->internal_thread_core);
     }
+
     rt_set_realtime_class();
-    return m_rmax_apps_lib.initialize_rivermax(init_config);
+    return m_rmax_apps_lib.initialize_rivermax(cpu_affinity);
 }
 
 ReturnStatus MediaSenderApp::set_rivermax_clock()
 {
-    rmax_clock_t clock;
-    memset(&clock, 0, sizeof(clock));
-
-    clock.clock_type = rmax_clock_types::RIVERMAX_USER_CLOCK_HANDLER;
-    clock.clock_u.rmax_user_clock_handler.clock_handler = MediaSenderApp::get_time_ns;
-    clock.clock_u.rmax_user_clock_handler.ctx = nullptr;
-
-    return m_rmax_apps_lib.set_rivermax_clock(clock);
+    return set_rivermax_user_clock(MediaSenderApp::get_time_ns);
 }
 
 void MediaSenderApp::initialize_send_flows()

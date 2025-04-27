@@ -25,12 +25,9 @@
 #include "senders/media_sender_io_node.h"
 #include "api/rmax_apps_lib_api.h"
 
-#define BREAK_ON_FAILURE(rc) if (unlikely(rc == ReturnStatus::failure)) { break; }
-
 using namespace ral::io_node;
 using namespace ral::lib::core;
 using namespace ral::lib::services;
-
 
 void replace_all(
     std::string& source_str, const std::string& outer_prefix_str, const std::string& inner_prefix_str,
@@ -61,11 +58,11 @@ void replace_all(
 /**
 * @breif: Replace all occurrences of sub string in the input string.
 *
-* @pram[in] source_str: Source string.
-* @pram[in] prefix_str: Prefix string before source_str.
-* @pram[in] new_str: The new string to replace.
-* @pram[in] suffix_str: Suffix string after source_str.
-* @pram[in] start_replacement_location: The location in the string to start the replacement from, defaults to 0.
+* @pram [in] source_str: Source string.
+* @pram [in] prefix_str: Prefix string before source_str.
+* @pram [in] new_str: The new string to replace.
+* @pram [in] suffix_str: Suffix string after source_str.
+* @pram [in] start_replacement_location: The location in the string to start the replacement from, defaults to 0.
 */
 inline void replace_all(
     std::string& source_str, const std::string& prefix_str,
@@ -75,11 +72,9 @@ inline void replace_all(
     return replace_all(source_str, prefix_str, "", new_str, suffix_str, start_replacement_location);
 }
 
-AppMediaSendStream::AppMediaSendStream(
-    const TwoTupleFlow& local_address, const media_settings_t& media_settings,
-    rmax_buffer_attr* buffer_attributes, rmax_qos_attr* qos_attributes, uint16_t packet_payload_size) :
-    MediaSendStream(local_address, media_settings, buffer_attributes, qos_attributes),
-    m_packet_payload_size(packet_payload_size)
+AppMediaSendStream::AppMediaSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks) :
+    MediaSendStream(settings, mem_blocks),
+    m_media_settings(settings.m_media_settings)
 {
     memset(&m_send_stats, 0, sizeof(m_send_stats));
 }
@@ -93,12 +88,12 @@ std::ostream& AppMediaSendStream::print(std::ostream& out) const
 
 inline void AppMediaSendStream::prepare_chunk_to_send(MediaChunk& chunk)
 {
-    byte_ptr_t data_pointer = reinterpret_cast<byte_ptr_t>(*chunk.get_data_ptr());
+    byte_t* data_pointer = reinterpret_cast<byte_t*>(chunk.get_data_ptr());
     auto chunk_length = chunk.get_length();
     // TODO: Update this when adding header data split.
     auto data_stride_size = get_data_stride_size();
     uint64_t stride = 0;
-    byte_ptr_t current_packet_pointer;
+    byte_t* current_packet_pointer;
 
     while (stride < chunk_length && m_send_stats.packet_counter < m_media_settings.packets_in_frame_field) {
         current_packet_pointer = data_pointer + (stride * data_stride_size);
@@ -112,7 +107,7 @@ inline void AppMediaSendStream::prepare_chunk_to_send(MediaChunk& chunk)
     m_send_stats.packet_counter %= m_media_settings.packets_in_frame_field;
 }
 
-inline void AppMediaSendStream::build_2110_20_rtp_header(byte_ptr_t& buffer)
+inline void AppMediaSendStream::build_2110_20_rtp_header(byte_t* buffer)
 {
     // build RTP header - 12 bytes:
     /*
@@ -142,7 +137,7 @@ inline void AppMediaSendStream::build_2110_20_rtp_header(byte_ptr_t& buffer)
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
     buffer[12] = (m_send_stats.rtp_sequence >> 24) & 0xff;  // High 16 bits of Extended Sequence Number.
     buffer[13] = (m_send_stats.rtp_sequence >> 16) & 0xff;  // Low 16 bits of Extended Sequence Number.
-    *(uint16_t*)&buffer[14] = htons(m_packet_payload_size - 20);  // SRD Length.
+    *(uint16_t*)&buffer[14] = htons(m_stream_settings.m_packet_payload_size - 20);  // SRD Length.
 
     uint16_t number_of_rows = m_media_settings.resolution.height;
     if (m_media_settings.video_scan_type == VideoScanType::Interlaced) {
@@ -154,8 +149,9 @@ inline void AppMediaSendStream::build_2110_20_rtp_header(byte_ptr_t& buffer)
     buffer[16] |= (m_send_stats.rtp_interlace_field_indicator << 7);
 
     *(uint16_t*)&buffer[18] = htons(m_send_stats.srd_offset);  // SRD Offset.
-    uint16_t group_size = (uint16_t)((m_packet_payload_size - 20) / 2.5);
-    m_send_stats.srd_offset = (m_send_stats.srd_offset + group_size) % (group_size * m_media_settings.packets_in_line);
+    uint16_t group_size = (uint16_t)((m_stream_settings.m_packet_payload_size - 20) / 2.5);
+    m_send_stats.srd_offset = (m_send_stats.srd_offset + group_size) %
+            (group_size * m_media_settings.packets_in_line);
 
     if (++m_send_stats.packet_counter == m_media_settings.packets_in_frame_field) {
         buffer[1] |= 0x80; // Last packet in frame (Marker).
@@ -227,34 +223,37 @@ double AppMediaSendStream::calculate_send_time_ns(uint64_t time_now_ns)
     first_packet_start_time_ns += tro;
 
     m_send_stats.rtp_timestamp = static_cast<uint32_t>(
-        time_to_rtp_timestamp(first_packet_start_time_ns, static_cast<int>(m_media_settings.sample_rate)));
+        time_to_rtp_timestamp(first_packet_start_time_ns,
+                static_cast<int>(m_media_settings.sample_rate)));
     send_time_ns = first_packet_start_time_ns;
 
     return send_time_ns;
 }
 
 MediaSenderIONode::MediaSenderIONode(
-    const FourTupleFlow& network_address,
-    std::shared_ptr<AppSettings> app_settings,
-    size_t index, size_t num_of_streams, int cpu_core_affinity,
-    std::shared_ptr<MemoryUtils> mem_utils, time_handler_ns_cb_t time_hanlder_cb) :
+        const FourTupleFlow& network_address,
+        std::shared_ptr<AppSettings> app_settings,
+        size_t index, size_t num_of_streams, int cpu_core_affinity,
+        std::shared_ptr<MemoryUtils> mem_utils, time_handler_ns_cb_t time_hanlder_cb) :
+    m_stream_packs(num_of_streams),
+    m_media_settings(app_settings->media),
     m_index(index),
     m_network_address(network_address),
-    m_num_of_streams(num_of_streams),
     m_sleep_between_operations(app_settings->sleep_between_operations),
     m_print_parameters(app_settings->print_parameters),
     m_cpu_core_affinity(cpu_core_affinity),
     m_hw_queue_full_sleep_us(app_settings->hw_queue_full_sleep_us),
     m_buffer_writer(nullptr),
     m_mem_utils(mem_utils),
-    m_media_settings(app_settings->media),
     m_num_of_chunks_in_mem_block(app_settings->num_of_chunks_in_mem_block),
     m_packet_payload_size(app_settings->packet_payload_size),
     m_num_of_packets_in_chunk(app_settings->num_of_packets_in_chunk),
     m_num_of_packets_in_mem_block(app_settings->num_of_packets_in_mem_block),
-    m_qos(new rmax_qos_attr{0, 0}),
+    m_data_stride_size(align_up_pow2(m_packet_payload_size, get_cache_line_size())),
+    m_dscp(0), m_pcp(0), m_ecn(0),
     m_get_time_ns_cb(time_hanlder_cb)
 {
+    m_stream_packs.resize(num_of_streams);
 }
 
 std::ostream& MediaSenderIONode::print(std::ostream& out) const
@@ -263,24 +262,23 @@ std::ostream& MediaSenderIONode::print(std::ostream& out) const
         << "| Sender index: " << m_index << "\n"
         << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
         << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
-        << "| Number of streams in this thread: " << m_streams.size() << "\n"
+        << "| Number of streams in this thread: " << m_stream_packs.size() << "\n"
         << "+#############################################\n";
     return out;
 }
 
 void MediaSenderIONode::initialize_send_flows(const std::vector<TwoTupleFlow>& flows)
 {
-    std::unordered_map<size_t, size_t> flows_per_stream;
+    std::vector<size_t> flows_per_stream(m_stream_packs.size(), 0);
 
-    flows_per_stream.reserve(flows.size());
     for (size_t flow = 0; flow < flows.size(); flow++) {
-        flows_per_stream[flow % m_num_of_streams]++;
+        flows_per_stream[flow % m_stream_packs.size()]++;
     }
 
     size_t flows_offset = 0;
 
-    for (size_t strm_indx = 0; strm_indx < m_num_of_streams; strm_indx++) {
-        m_flows_in_stream[strm_indx] = std::vector<TwoTupleFlow>(
+    for (size_t strm_indx = 0; strm_indx < m_stream_packs.size(); strm_indx++) {
+        m_stream_packs[strm_indx].flows = std::vector<TwoTupleFlow>(
             flows.begin() + flows_offset,
             flows.begin() + flows_offset + flows_per_stream[strm_indx]);
         flows_offset += flows_per_stream[strm_indx];
@@ -295,11 +293,12 @@ void MediaSenderIONode::initialize_streams()
     std::string destination_ip;
     uint16_t destination_port;
     std::string stream_sdp;
+    size_t stream_idx = 0;
 
-    for (size_t strm_indx = 0; strm_indx < m_num_of_streams; strm_indx++) {
+    for (auto& stream_pack : m_stream_packs) {
         stream_sdp = sender_sdp;
-        destination_ip = m_flows_in_stream[strm_indx][flow_index].get_ip();
-        destination_port = m_flows_in_stream[strm_indx][flow_index].get_port();
+        destination_ip = stream_pack.flows[flow_index].get_ip();
+        destination_port = stream_pack.flows[flow_index].get_port();
 
         // Update destination IP and port in the SDP file:
         replace_all(stream_sdp, "c=IN IP4 ", destination_ip, "/");
@@ -307,13 +306,17 @@ void MediaSenderIONode::initialize_streams()
         replace_all(stream_sdp, "m=video ", std::to_string(destination_port), " ");
 
         auto network_address = TwoTupleFlow(
-            strm_indx,
+            stream_idx++,
             m_network_address.get_source_ip(),
             m_network_address.get_source_port());
         m_media_settings.sdp = stream_sdp;
-        auto buffer_attr = m_buffer_attributes_in_stream[strm_indx].get();;
-        m_streams.push_back(std::unique_ptr<AppMediaSendStream>(new AppMediaSendStream(
-            network_address, m_media_settings, buffer_attr, m_qos.get(), m_packet_payload_size)));
+
+        MediaStreamSettings stream_settings(network_address, m_media_settings,
+                m_num_of_packets_in_chunk, m_packet_payload_size, m_data_stride_size, 0,
+                m_dscp, m_pcp, m_ecn);
+
+        stream_pack.stream = std::unique_ptr<AppMediaSendStream>(
+                new AppMediaSendStream(stream_settings, *stream_pack.mem_blockset.get()));
     }
     m_media_settings.sdp = sender_sdp;
 }
@@ -333,27 +336,11 @@ void MediaSenderIONode::distribute_memory_for_streams()
      *   * Create library buffer wrapper class to abstract the code blow.
     */
 
-    for (size_t strm_indx = 0; strm_indx < m_num_of_streams; strm_indx++) {
-        rmax_mem_block* mem_block = new rmax_mem_block;
-
-        memset(mem_block, 0, sizeof(*mem_block));
-        mem_block->chunks_num = m_num_of_chunks_in_mem_block;
-        mem_block->app_hdr_size_arr = nullptr;
-        mem_block->data_size_arr = m_mem_block_payload_sizes.data();
-        mem_block->app_hdr_ptr= nullptr;
-        mem_block->data_ptr = nullptr;
-
-        rmax_buffer_attr* buffer_attr = new rmax_buffer_attr;
-
-        memset(buffer_attr, 0, sizeof(*buffer_attr));
-        buffer_attr->chunk_size_in_strides = m_num_of_packets_in_chunk;
-        buffer_attr->mem_block_array = mem_block;
-        buffer_attr->mem_block_array_len = 1;
-        buffer_attr->data_stride_size = align_up_pow2(m_packet_payload_size, get_cache_line_size());;
-        buffer_attr->app_hdr_stride_size = 0;
-
-        m_buffer_attributes_in_stream[strm_indx] = rmax_buffer_attr_up_t(
-            buffer_attr, [](rmax_buffer_attr* attr) { delete[] attr->mem_block_array; delete attr; });
+    for (auto& stream_pack : m_stream_packs) {
+        stream_pack.mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
+                new MediaStreamMemBlockset(1, 1, m_num_of_chunks_in_mem_block));
+        stream_pack.mem_blockset->set_rivermax_to_allocate_memory();
+        stream_pack.mem_blockset->set_block_layout(0, m_mem_block_payload_sizes.data(), nullptr);
     }
 }
 
@@ -365,8 +352,8 @@ void MediaSenderIONode::print_parameters()
 
     std::stringstream sender_parameters;
     sender_parameters << this;
-    for (auto& stream : m_streams) {
-        sender_parameters << *stream;
+    for (auto& stream_pack : m_stream_packs) {
+        sender_parameters << *stream_pack.stream;
     }
     std::cout << sender_parameters.str() << std::endl;
 }
@@ -388,10 +375,9 @@ void MediaSenderIONode::operator()()
     */
     uint64_t time_now_ns = get_time_now_ns();
     double send_time_ns = 0;
-    for (auto& stream : m_streams) {
-        send_time_ns = stream->calculate_send_time_ns(time_now_ns);
+    for (auto& stream_pack : m_stream_packs) {
+        send_time_ns = stream_pack.stream->calculate_send_time_ns(time_now_ns);
     }
-
     const double start_send_time_ns = send_time_ns;
     size_t sent_mem_block_counter = 0;
     auto get_send_time_ns = [&]() { return (
@@ -401,8 +387,6 @@ void MediaSenderIONode::operator()()
         * sent_mem_block_counter);
     };
     uint64_t commit_timestamp_ns = 0;
-    rmax_commit_flags_t commit_flags{};
-    MediaChunk chunk;
     size_t chunk_in_frame_counter;
     rc = ReturnStatus::success;
 
@@ -412,18 +396,29 @@ void MediaSenderIONode::operator()()
         wait_for_next_frame(static_cast<uint64_t>(send_time_ns));
 
         do {
-            for (auto& stream : m_streams) {
-                rc = stream->blocking_get_next_chunk(chunk);
-                BREAK_ON_FAILURE(rc);
-                stream->prepare_chunk_to_send(chunk);
+            for (auto& stream_pack : m_stream_packs) {
+                do {
+                    rc = stream_pack.stream->blocking_get_next_chunk(*stream_pack.chunk_handler, BLOCKING_CHUNK_RETRIES);
+                } while (unlikely(rc == ReturnStatus::no_free_chunks));
+                if (unlikely(rc == ReturnStatus::failure)) {
+                    break;
+                }
+
+                stream_pack.stream->prepare_chunk_to_send(*stream_pack.chunk_handler.get());
                 if (unlikely(chunk_in_frame_counter % m_media_settings.chunks_in_frame_field == 0)) {
                     commit_timestamp_ns = static_cast<uint64_t>(send_time_ns);
                 } else {
                     commit_timestamp_ns = 0;
                 }
-                rc = stream->blocking_commit_chunk(commit_timestamp_ns, commit_flags);
-                BREAK_ON_FAILURE(rc);
-            }
+
+                do {
+                    rc = stream_pack.stream->blocking_commit_chunk(*stream_pack.chunk_handler,
+                            commit_timestamp_ns, BLOCKING_CHUNK_RETRIES);
+                } while (unlikely(rc == ReturnStatus::hw_send_queue_full));
+                if (unlikely(rc == ReturnStatus::failure)) {
+                    break;
+                }
+           }
             if ((chunk_in_frame_counter % m_media_settings.chunks_in_frame_field) == 0) {
                 send_time_ns += m_media_settings.frame_field_time_interval_ns;
             }
@@ -434,7 +429,7 @@ void MediaSenderIONode::operator()()
     }
 
     rc = destroy_streams();
-    if (rc == ReturnStatus::failure) {
+    if (rc != ReturnStatus::success) {
         std::cerr << "Failed to destroy sender (" << m_index << ") streams" << std::endl;
         return;
     }
@@ -444,12 +439,14 @@ ReturnStatus MediaSenderIONode::create_streams()
 {
     ReturnStatus rc;
 
-    for (auto& stream : m_streams) {
-        rc = stream->create_stream();
-        if (rc == ReturnStatus::failure) {
-            std::cerr << "Failed to create stream (" << stream->get_id() << ")" << std::endl;
+    for (auto& stream_pack : m_stream_packs) {
+        rc = stream_pack.stream->create_stream();
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to create stream (" << stream_pack.stream->get_id() << ")" << std::endl;
             return rc;
         }
+        stream_pack.chunk_handler = std::unique_ptr<MediaChunk>(
+                new MediaChunk(stream_pack.stream->get_id(), m_num_of_packets_in_chunk, 0)); // HDS is not supported
     }
 
     return ReturnStatus::success;
@@ -459,10 +456,17 @@ ReturnStatus MediaSenderIONode::destroy_streams()
 {
     ReturnStatus rc;
 
-    for (auto& stream : m_streams) {
-        rc = stream->destroy_stream();
+    for (auto& stream_pack : m_stream_packs) {
+
+        rc = stream_pack.chunk_handler->cancel_unsent();
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to cancel media streams" << std::endl;
+            return rc;
+        }
+
+        rc = stream_pack.stream->destroy_stream();
         if (rc == ReturnStatus::failure) {
-            std::cerr << "Failed to destroy stream (" << stream->get_id() << ")" << std::endl;
+            std::cerr << "Failed to destroy stream (" << stream_pack.stream->get_id() << ")" << std::endl;
             return rc;
         }
     }
@@ -472,11 +476,7 @@ ReturnStatus MediaSenderIONode::destroy_streams()
 
 void MediaSenderIONode::set_cpu_resources()
 {
-    memset(&m_cpu_affinity_mask, 0, sizeof(m_cpu_affinity_mask));
-    if (m_cpu_core_affinity != CPU_NONE) {
-        RMAX_CPU_SET(m_cpu_core_affinity, &m_cpu_affinity_mask);
-    }
-    rt_set_thread_affinity(&m_cpu_affinity_mask);
+    set_cpu_affinity(std::vector<int>{m_cpu_core_affinity});
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }
 

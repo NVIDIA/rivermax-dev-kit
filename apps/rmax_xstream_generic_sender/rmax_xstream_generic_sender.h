@@ -71,7 +71,7 @@ private:
     /* Network send flows */
     std::vector<TwoTupleFlow> m_flows;
     /* Application memory blocks */
-    std::vector<std::shared_ptr<gs_mem_block_t>> m_mem_blocks;
+    std::vector<rmx_mem_region> m_mem_regions;
 public:
     /**
      * @brief: GenericSenderApp class constructor.
@@ -137,7 +137,7 @@ private:
      * block and register it using @ref rmax_register_memory call.
      * This memory block will be distributed to the different components of the application.
      *
-     * @return: Return status of the operation.
+     * @return: Returns status of the operation.
      */
     ReturnStatus allocate_app_memory();
     /**

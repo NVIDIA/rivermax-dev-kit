@@ -22,19 +22,18 @@ using namespace ral::lib::services;
 void ChecksumBufferWriter::write_buffer(IChunk& chunk, std::shared_ptr<MemoryUtils> mem_utils)
 {
     auto& app_chunk = static_cast<GenericChunk&>(chunk);
-    auto packets = app_chunk.get_packets_ptr();
 
     for (size_t packet_index = 0; packet_index < app_chunk.get_length(); packet_index++) {
-        auto& packet = packets[packet_index];
-        for (size_t iovec_index = 0; iovec_index < packet.count; iovec_index++) {
-            auto& iovec = packet.iovec[iovec_index];
+        auto& packet = app_chunk.get_packet(packet_index);
+        for (auto& iov_elem : packet) {
             /* Fill the data with a randomly repeating char. */
             unsigned char data_char = rand() % 255;
-            mem_utils->memory_set(reinterpret_cast<void*>(iovec.addr + iovec.length), data_char, iovec.length);
+            mem_utils->memory_set(reinterpret_cast<void*>(
+                reinterpret_cast<uint8_t*>(iov_elem.addr) + iov_elem.length), data_char, iov_elem.length);
 
             /* Write the checksum for the data into the header. */
-            ChecksumHeader* header = reinterpret_cast<ChecksumHeader*>(iovec.addr);
-            uint32_t checksum = htonl((uint32_t)data_char * iovec.length);
+            ChecksumHeader* header = reinterpret_cast<ChecksumHeader*>(iov_elem.addr);
+            uint32_t checksum = htonl(static_cast<uint32_t>(data_char) * static_cast<uint32_t>(iov_elem.length));
             mem_utils->memory_copy(&header->checksum, &checksum, sizeof(checksum));
         }
     }

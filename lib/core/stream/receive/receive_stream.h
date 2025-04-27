@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <rivermax_api.h>
 
@@ -31,6 +32,85 @@ namespace core
 {
 
 /**
+ * @brief: Settings for creating an intput stream
+ *
+ * This class stores the stream configuration parameters and also
+ * implements a builder that builds the stream descriptor structure
+ * for creating a stream with Rivermax API.
+ */
+class ReceiveStreamSettings : public IStreamSettings<ReceiveStreamSettings, rmx_input_stream_params> {
+public:
+    /**
+     * @brief: ReceiveStreamSettings constructor.
+     *
+     * @param [in] local_addr: NIC address to receive the stream.
+     * @param [in] rx_type: Receive stream type, see @ref rmx_input_stream_params_type.
+     * @param [in] ts_format: Timestamp format, see @ref rmx_input_timestamp_format.
+     * @param [in] options: A set of stream options, see @ref rmx_input_option.
+     * @param [in] capacity_in_packets: Number of packets in receive memory.
+     * @param [in] payload_size: Packet payload size in bytes.
+     * @param [in] header_size: Packet application header size in bytes
+     *             (value > 0 specifies that a separate memory is used for headers).
+     */
+    ReceiveStreamSettings(const TwoTupleFlow& local_addr,
+        rmx_input_stream_params_type rx_type,
+        rmx_input_timestamp_format ts_format,
+        const std::unordered_set<rmx_input_option>& options,
+        size_t capacity_in_packets, size_t payload_size, size_t header_size);
+
+    TwoTupleFlow m_local_addr;
+    rmx_input_stream_params_type m_rx_type;
+    rmx_input_timestamp_format m_ts_format;
+    std::unordered_set<rmx_input_option> m_options;
+    size_t m_capacity_in_packets;
+    size_t m_payload_size;
+    size_t m_header_size;
+
+protected:
+    /**
+     * @brief: Initializes the intput stream descriptor structure.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_init(rmx_input_stream_params& descr);
+    /**
+     * @brief: Sets stream local address.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_nic_address(rmx_input_stream_params& descr);
+    /**
+     * @brief: Sets number of packets in memory.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_capacity(rmx_input_stream_params& descr);
+    /**
+     * @brief: Sets stream packet size.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_packet_size(rmx_input_stream_params& descr);
+    /**
+     * @brief: Sets timestamp format.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_ts_format(rmx_input_stream_params& descr);
+    /**
+     * @brief: Sets stream options.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_input_options(rmx_input_stream_params& descr);
+    /**
+     * @brief: Sequence of parameter setters invoked to build
+     *         an intput stream descriptor structure.
+     */
+    static SetterSequence s_build_steps;
+};
+
+/**
  * @brief: Base RX stream class.
  *
  * This class implements @ref ral::lib::core::ISingleStream operations.
@@ -42,36 +122,41 @@ public:
     /**
      * @brief: Receive stream constructor.
      *
-     * @param [in] rx_type: Stream steering type, see @ref rmax_in_stream_type in rivermax_api.h.
-     * @param [in] local_addr: NIC address.
-     * @param [in] settings: Common input stream settings.
+     * @param [in] settings: Receive stream settings structure, see @ref ReceiveStreamSettings.
      */
-    ReceiveStream(rmax_in_stream_type rx_type, const TwoTupleFlow& local_addr,
-            const receive_stream_settings_t& settings);
+    ReceiveStream(const ReceiveStreamSettings& settings);
     /**
-     * @brief: Destroy receive stream.
+     * @brief: Destroys receive stream.
      */
     virtual ~ReceiveStream() = default;
-    /**
-     * @brief: Print detailed stream information.
-     *
-     * @param [out] out: Output stream to print information.
-     *
-     * @return: Output stream.
-     */
     std::ostream& print(std::ostream& out) const override;
+    ReturnStatus create_stream() override;
     /**
-     * @brief: Creates the stream.
+     * @brief: Configures a rule, how many packets to receive, or how much time to wait before
+     *         returning the next requested chunk.
      *
-     * This method is responsible to create Rivermax stream.
+     * @param [in] min_count: A minimal number of packets to return.
+     * @param [in] max_count: A maximal number of packets to return.
+     * @param [in] timeout_usec: A timeout in usec to wait for @p min_count of packets.
      *
      * @return: Status of the operation:
      *          @ref ral::lib::services::ReturnStatus::success - In case of success.
      *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
      */
-    ReturnStatus create_stream() override;
+    ReturnStatus set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec);
+     /**
+     * @brief: Receives next chunk from the stream.
+     *
+     * @param [out] chunk: A chunk recived from the stream.
+     *
+     * @return: Status code as defined by @ref ReturnStatus.
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - If operation was interrupted by an OS signal.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     */
+    ReturnStatus get_next_chunk(ReceiveChunk& chunk);
     /**
-     * @brief: Attach a flow to the stream.
+     * @brief: Attaches a flow to the stream.
      *
      * @param [in] flow: Flow to attach to.
      *
@@ -81,7 +166,7 @@ public:
      */
     ReturnStatus attach_flow(const FourTupleFlow& flow);
     /**
-     * @brief: Detach a flow from the stream.
+     * @brief: Detaches a flow from the stream.
      *
      * @param [in] flow: Flow to detach from.
      *
@@ -90,42 +175,22 @@ public:
      *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
      */
     ReturnStatus detach_flow(const FourTupleFlow& flow);
-    /**
-     * @brief: Destroys the stream.
-     *
-     * This method is responsible to destroy Rivermax stream.
-     *
-     * @return: Status of the operation:
-     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
-     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
-     */
     ReturnStatus destroy_stream() override;
     /**
-     * @brief: Receive next chunk from input stream.
-     *
-     * @param [out] chunk: Pointer to the returned chunk structure.
-     *
-     * @return: Status of the operation:
-     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
-     *          @ref ral::lib::services::ReturnStatus::signal_received - If operation was interrupted by an OS signal.
-     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
-     */
-    ReturnStatus get_next_chunk(ReceiveChunk* chunk);
-    /**
-     * @brief: Return the memory size needed by Rivermax to create stream with
+     * @brief: Returns the memory size needed by Rivermax to create stream with
      * given parameters.
      *
-     * @param [out] header_size: Header buffer size (if header-data split is
+     * @param [out] header_buffer_size: Header buffer size (if header-data split is
      *                          enabled).
-     * @param [out] payload_size: Payload buffer size.
+     * @param [out] payload_buffer_size: Payload buffer size.
      *
      * @return: Status of the operation:
      *          @ref ral::lib::services::ReturnStatus::success - In case of success.
      *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
      */
-    ReturnStatus query_buffer_size(size_t& header_size, size_t& payload_size);
+    ReturnStatus query_buffer_size(size_t& header_buffer_size, size_t& payload_buffer_size);
     /**
-     * @brief: Set buffers for header and payload data.
+     * @brief: Sets buffers for header and payload data.
      *
      * This method is optional. By default Rivermax will allocate memory
      * buffer(s) internally.
@@ -136,7 +201,7 @@ public:
      */
     void set_buffers(void* header_ptr, void* payload_ptr);
     /**
-     * @brief: Set memory keys for header and payload memory.
+     * @brief: Sets memory regions for header and payload memory.
      *
      * This method is optional. By default Rivermax will register memory
      * internally.
@@ -145,29 +210,38 @@ public:
      *                          header-data split mode is not enabled.
      * @param [in] payload_mkey: Memory key for payload data buffer.
      */
-    void set_memory_keys(rmax_mkey_id header_mkey, rmax_mkey_id payload_mkey);
+    void set_memory_keys(rmx_mkey_id header_mkey, rmx_mkey_id payload_mkey);
     /**
-     * @brief: Query header stride size.
+     * @brief: Gets header stride size.
      *
      * @return: Stride size in bytes.
      */
-    uint16_t get_header_stride_size() const { return m_header_block.stride_size; }
+    size_t get_header_stride_size() const { return m_hdr_stride_size; }
     /**
-     * @brief: Query payload stride size.
+     * @brief: Gets payload stride size.
      *
      * @return: Stride size in bytes.
      */
-    uint16_t get_payload_stride_size() const { return m_payload_block.stride_size; }
-
-private:
-    const rmax_in_stream_type m_rx_type;
-    const receive_stream_settings_t m_settings;
-
-    std::unordered_map<FourTupleFlow, rmax_in_flow_attr> m_flows;
-    rmax_in_buffer_attr m_buffer_attr;
-    rmax_in_memblock m_header_block;
-    rmax_in_memblock m_payload_block;
-    rmax_in_timestamp_format m_timestamp_format;
+    size_t get_payload_stride_size() const { return m_data_stride_size; }
+    /**
+     * @brief: Gets Header-Data-Split mode status.
+     *
+     * @return: Header-Data-Split mode status.
+     */
+    bool is_header_data_split_on() const { return m_stream_settings.m_header_size != 0; }
+protected:
+    ReceiveStreamSettings m_stream_settings;
+    rmx_input_stream_params m_stream_params;
+    /* These parameters are calculated in query_buffer_size() */
+    size_t m_data_stride_size;
+    size_t m_hdr_stride_size;
+    /* This parameter is set in constructor, but is updated if query_buffer_size() is called */
+    size_t m_buffer_elements;
+    const size_t m_header_mem_block_id;
+    const size_t m_payload_mem_block_id;
+    std::unordered_map<FourTupleFlow, rmx_input_flow> m_flows;
+    rmx_mem_region* m_header_block;
+    rmx_mem_region* m_payload_block;
 };
 
 } // namespace core

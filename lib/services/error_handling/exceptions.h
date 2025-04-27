@@ -37,13 +37,6 @@ private:
     std::string m_error;
 public:
     RmaxAppsLibException(const std::string& error) : m_error(error) {}
-    /**
-     * @brief: Returns the exception error.
-     *
-     * This is a general exception for the library.
-     *
-     * @return: C string with the exception error.
-     */
     const char* what() const noexcept override { return m_error.c_str(); }
 };
 

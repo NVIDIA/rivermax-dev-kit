@@ -14,6 +14,9 @@
 
 #include <cstddef>
 #include <ostream>
+#include <vector>
+#include <functional>
+#include <algorithm>
 
 #include "services/error_handling/return_status.h"
 
@@ -23,6 +26,45 @@ namespace lib
 {
 namespace core
 {
+
+/**
+ * @brief: Stream settings interface.
+ */
+template <typename StreamType, typename DescriptorType>
+class IStreamSettings
+{
+public:
+    /**
+    * @brief: Function type to build a logical part of stream descriptor.
+    */
+    using StreamParamSetter = std::function<void(StreamType* settings, DescriptorType& descr)>;
+    /**
+    * @brief: Sequence of @ref StreamParamSetter functions to invoke when building a stream descriptor.
+    */
+    using SetterSequence = std::initializer_list<StreamParamSetter>;
+    /**
+     * @brief: IStreamSettings class constructor.
+     */
+    IStreamSettings(const SetterSequence& build_steps) : m_build_steps(build_steps) {}
+    virtual ~IStreamSettings() = default;
+    /**
+     * @brief: Stream opaque structure builder function.
+     *
+     * @param [in] descr: Pointer to opaque stream descriptor structure.
+     */
+    void build(StreamType& object, DescriptorType& descr)
+    {
+        std::for_each(m_build_steps.begin(), m_build_steps.end(),
+            [&](StreamParamSetter step) { step(&object, descr); });
+    }
+
+protected:
+    /**
+     * @brief: Functions to build logical parts of stream descriptor.
+     */
+    const SetterSequence& m_build_steps;
+};
+
 /**
  * @brief: Stream interface.
  */
@@ -48,7 +90,7 @@ public:
      *
      * @return: Output stream.
      */
-    virtual std::ostream& print(std::ostream& out) const;
+    virtual std::ostream& print(std::ostream& out) const { return out; }
     /**
      * @brief: Overrides operator << for @ref ral::lib::core::IStream reference.
      */

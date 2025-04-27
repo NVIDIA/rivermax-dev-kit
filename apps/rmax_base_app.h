@@ -24,6 +24,9 @@ namespace ral
 {
 namespace apps
 {
+
+constexpr int INVALID_CORE_NUMBER = -1;
+
 /**
  * @brief: Base calls for Rivermax application.
  *
@@ -50,6 +53,8 @@ protected:
     std::shared_ptr<SignalHandler> m_signal_handler;
     /* Thread objects container */
     std::vector<std::thread> m_threads;
+    /* Statistics reader */
+    std::unique_ptr<StatisticsReader> m_stats_reader;
 public:
     /**
      * @brief: RmaxBaseApp constructor.
@@ -85,7 +90,7 @@ protected:
      */
     virtual void add_cli_options() {};
     /**
-     * @brief: Do post CLI parsing initialization.
+     * @brief: Does post CLI parsing initialization.
      *
      * Use this method to do any needed post CLI parsing application initialization.
      * It will be called as part of the @ref ral::apps::RmaxBaseApp::initialize process.
@@ -127,11 +132,11 @@ protected:
      */
     virtual ReturnStatus cleanup_rivermax_resources() { return ReturnStatus::success; };
     /**
-     * @brief: Set Rivermax clock.
+     * @brief: Sets Rivermax clock.
      *
      * Use this method to set Rivermax clock.
      *
-     * @return: Status of the operation
+     * @return: Status of the operation.
      */
     virtual ReturnStatus set_rivermax_clock();
     /**
@@ -150,6 +155,19 @@ protected:
      */
     template<typename T>
     void run_threads(T& io_nodes);
+    /**
+     * @brief: Runs statistics reader thread.
+     */
+    void run_stats_reader();
+
+    /**
+     * @brief: Check if need not run the statistics reader.
+     *
+     * @retun: true if need to run the statistics reader.
+     */
+    bool is_run_stats_reader() {
+        return (m_app_settings->statistics_reader_core != INVALID_CORE_NUMBER);
+    }
 };
 
 template<typename T>

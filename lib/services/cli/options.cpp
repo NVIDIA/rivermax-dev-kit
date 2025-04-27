@@ -25,10 +25,13 @@
 using namespace ral::lib::services;
 
 static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
-    { "auto",       AllocatorTypeUI::Auto },
-    { "new",        AllocatorTypeUI::New },
-    { "hugepage",   AllocatorTypeUI::HugePage },
-    { "gpu",        AllocatorTypeUI::Gpu },
+    { "auto",           AllocatorTypeUI::Auto },
+    { "malloc",         AllocatorTypeUI::Malloc },
+    { "hugepage",       AllocatorTypeUI::HugePageDefault },
+    { "hugepage-2m",    AllocatorTypeUI::HugePage2MB },
+    { "hugepage-512m",  AllocatorTypeUI::HugePage512MB },
+    { "hugepage-1g",    AllocatorTypeUI::HugePage1GB },
+    { "gpu",            AllocatorTypeUI::Gpu },
 };
 
 /**

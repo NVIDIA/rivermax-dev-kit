@@ -43,7 +43,7 @@ struct IPORXStatistics {
     size_t received_bytes = 0;
 
     /**
-     * @brief: Reset values to zero.
+     * @brief: Resets values to zero.
      */
     void reset()
     {
@@ -63,7 +63,7 @@ struct IPORXStatistics {
 };
 
 /**
- * @brief: Receive path statistics.
+ * @brief: Receives path statistics.
  */
 struct IPOPathStatistics
 {
@@ -71,7 +71,7 @@ struct IPOPathStatistics
     uint32_t rx_dropped = 0;
 
     /**
-     * @brief: Reset values to zero.
+     * @brief: Resets values to zero.
      */
     void reset()
     {
@@ -99,7 +99,7 @@ private:
 
 public:
     /**
-     * @brief: Construct Inline Packet Ordering stream wrapper.
+     * @brief: Constructs Inline Packet Ordering stream wrapper.
      *
      * @param [in] id: Stream identifier.
      * @param [in] settings: Stream settings.
@@ -111,18 +111,18 @@ public:
     virtual ~AppIPOReceiveStream() = default;
 
     /**
-     * @brief: Print stream statistics.
+     * @brief: Prints stream statistics.
      *
      * @param [out] out: Output stream to print statistics to.
      * @param [in] duration: Statistics interval duration.
      */
     void print_statistics(std::ostream& out, const std::chrono::high_resolution_clock::duration& duration) const;
     /**
-     * @brief: Reset statistics.
+     * @brief: Resets statistics.
      */
     void reset_statistics();
     /**
-     * @brief: Receive next chunk from input stream.
+     * @brief: Receives next chunk from input stream.
      *
      * @param [out] chunk: Pointer to the returned chunk structure.
      *
@@ -131,18 +131,18 @@ public:
      *          @ref ral::lib::services::ReturnStatus::signal_received - If operation was interrupted by an OS signal.
      *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
      */
-    ReturnStatus get_next_chunk(ReceiveChunk* chunk) final;
+    ReturnStatus get_next_chunk(IPOReceiveChunk* chunk) final;
 
 private:
     /**
-     * @brief: Handle packet with corrupt RTP header.
+     * @brief: Handles packet with corrupt RTP header.
      *
      * @param [in] index: Redundant stream index (0-based).
-     * @param [in] info: Detailed packet information.
+     * @param [in] packet_info: Detailed packet information.
      */
-    void handle_corrupted_packet(size_t index, const rmax_in_packet_info& info) final;
+    void handle_corrupted_packet(size_t index, const ReceivePacketInfo& packet_info) final;
     /**
-     * @brief: Handle received packet.
+     * @brief: Handles received packet.
      *
      * This function is called only for the first packet, for redundant packets
      * copies received from another streams @ref handle_redundant_packet will
@@ -150,22 +150,22 @@ private:
      *
      * @param [in] index: Redundant stream index (0-based).
      * @param [in] sequence_number: Sequence number.
-     * @param [in] info: Detailed packet information.
+     * @param [in] packet_info: Detailed packet information.
      */
-    void handle_packet(size_t index, uint32_t sequence_number, const rmax_in_packet_info& info) final;
+    void handle_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info) final;
     /**
-     * @brief: Handle received redundant packet.
+     * @brief: Handles received redundant packet.
      *
      * This function is called only for redundant packet(s), for the first
      * received packet @ref handle_packet will be called.
      *
      * @param [in] index: Redundant stream index (0-based).
      * @param [in] sequence_number: Sequence number.
-     * @param [in] info: Detailed packet information.
+     * @param [in] packet_info: Detailed packet information.
      */
-    void handle_redundant_packet(size_t index, uint32_t sequence_number, const rmax_in_packet_info& info) final;
+    void handle_redundant_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info) final;
     /**
-     * @brief: Handle packet before returning it to caller.
+     * @brief: Handles packet before returning it to caller.
      *
      * This function is called when packet is transferred from cache buffer to
      * the caller.
@@ -176,7 +176,7 @@ private:
 
 protected:
     /**
-     * @brief: Extract sequence number from RTP packet and (if needed) payload header.
+     * @brief: Extracts sequence number from RTP packet and (if needed) payload header.
      *
      * If @ref m_is_extended_sequence_number is set then parse the 16 high
      * order bits of the extended 32-bit sequence number from the start of RTP
@@ -188,9 +188,9 @@ protected:
      *
      * @return: true if packet header is valid.
      */
-    bool get_sequence_number(const byte_ptr_t header, size_t length, uint32_t& sequence_number) const final;
+    bool get_sequence_number(const byte_t* header, size_t length, uint32_t& sequence_number) const final;
     /**
-     * @brief: Get sequence number mask.
+     * @brief: Gets sequence number mask.
      *
      * @return: Sequence number mask.
      */
@@ -219,7 +219,8 @@ private:
 
     ipo_stream_settings_t m_stream_settings;
     std::vector<std::unique_ptr<AppIPOReceiveStream>> m_streams;
-    rmax_cpu_set_t m_cpu_affinity_mask;
+    uint64_t m_cpu_affinity_mask[RMAX_CPU_SETSIZE / RMAX_NCPUBITS];
+
 public:
     /**
      * @brief: IPOReceiverNode constructor.
@@ -285,11 +286,11 @@ public:
      * @brief: Prints receiver's parameters.
      *
      * @note: The information will be printed if the receiver was initialized with
-     * @ref app_settings->print_parameters parameter of set to true.
+     *         @ref app_settings->print_parameters parameter of set to true.
      */
     void print_parameters();
     /**
-     * @brief: Get receiver index.
+     * @brief: Gets receiver index.
      *
      * @return: Receiver index.
      */
@@ -314,19 +315,19 @@ private:
      */
     ReturnStatus create_streams();
     /**
-     * @brief: Attach flows to receiver's streams.
+     * @brief: Attaches flows to receiver's streams.
      *
      * @return: Status of the operation.
      */
     ReturnStatus attach_flows();
     /**
-     * @brief: Detach flows from receiver's streams.
+     * @brief: Detaches flows from receiver's streams.
      *
      * @return: Status of the operation.
      */
     ReturnStatus detach_flows();
     /**
-     * @brief: Destroy receiver's streams.
+     * @brief: Destroys receiver's streams.
      *
      * This method is responsible to go over receiver's stream objects and
      * destroy the appropriate Rivermax stream.

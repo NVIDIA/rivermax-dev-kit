@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <functional>
 
 namespace ral
@@ -51,7 +52,6 @@ std::size_t operator()(T t) const { return static_cast<std::size_t>(t); }
 };
 
 typedef uint8_t byte_t;
-typedef byte_t* byte_ptr_t;
 
 enum class StreamType
 {
@@ -118,7 +118,15 @@ typedef struct media_settings
 /**
  * @brief: Allocator types for UI.
  */
-enum class AllocatorTypeUI { Auto, New, HugePage, Gpu };
+enum class AllocatorTypeUI {
+    Auto,
+    Malloc,
+    HugePageDefault,
+    HugePage2MB,
+    HugePage512MB,
+    HugePage1GB,
+    Gpu
+};
 
 /**
  * @brief: Application settings.
@@ -158,85 +166,9 @@ typedef struct AppSettings
     AllocatorTypeUI allocator_type;
     media_settings_t media;
     std::string video_stream_type;  // TODO: Remove this after adding SDP parser.
+    int statistics_reader_core;
+    uint32_t session_id_stats;
 } AppSettings;
-
-/**
- * @brief: Input stream settings.
- */
-typedef struct receive_stream_settings
-{
-    uint16_t packet_payload_size = 0;
-    uint16_t packet_app_header_size = 0;
-    uint32_t num_of_packets_in_chunk = 0;
-    size_t min_chunk_size = 0;
-    size_t max_chunk_size = 0;
-    int timeout_us = 0;
-    rmax_in_buffer_attr_flags buffer_attr_flags = RMAX_IN_BUFFER_ATTER_FLAG_NONE;
-    rmax_in_flags stream_flags = RMAX_IN_FLAG_NONE;
-
-    receive_stream_settings()
-    {
-    }
-
-    receive_stream_settings(
-            uint16_t packet_payload_size_,
-            uint16_t packet_app_header_size_,
-            uint32_t num_of_packets_in_chunk_,
-            size_t min_chunk_size_,
-            size_t max_chunk_size_,
-            int timeout_us_,
-            rmax_in_buffer_attr_flags buffer_attr_flags_,
-            rmax_in_flags stream_flags_
-    ) :
-        packet_payload_size(packet_payload_size_),
-        packet_app_header_size(packet_app_header_size_),
-        num_of_packets_in_chunk(num_of_packets_in_chunk_),
-        min_chunk_size(min_chunk_size_),
-        max_chunk_size(max_chunk_size_),
-        timeout_us(timeout_us_),
-        buffer_attr_flags(buffer_attr_flags_),
-        stream_flags(stream_flags_)
-    {
-    }
-} receive_stream_settings_t;
-
-/**
- * @brief: Redundant stream settings.
- */
-typedef struct ipo_stream_settings
-{
-    uint16_t packet_payload_size = 0;
-    uint16_t packet_app_header_size = 0;
-    size_t num_of_packets_in_chunk = 0;
-    size_t max_chunk_size = 0;
-    rmax_in_buffer_attr_flags buffer_attr_flags = RMAX_IN_BUFFER_ATTER_FLAG_NONE;
-    rmax_in_flags stream_flags = RMAX_IN_FLAG_NONE;
-    uint64_t max_path_differential_us = 0;
-
-    ipo_stream_settings()
-    {
-    }
-
-    ipo_stream_settings(
-            uint16_t packet_payload_size_,
-            uint16_t packet_app_header_size_,
-            size_t num_of_packets_in_chunk_,
-            size_t max_chunk_size_,
-            rmax_in_buffer_attr_flags buffer_attr_flags_,
-            rmax_in_flags stream_flags_,
-            uint64_t max_path_differential_us_
-    ) :
-        packet_payload_size(packet_payload_size_),
-        packet_app_header_size(packet_app_header_size_),
-        num_of_packets_in_chunk(num_of_packets_in_chunk_),
-        max_chunk_size(max_chunk_size_),
-        buffer_attr_flags(buffer_attr_flags_),
-        stream_flags(stream_flags_),
-        max_path_differential_us(max_path_differential_us_)
-    {
-    }
-
-} ipo_stream_settings_t;
 
 /**
  * @brief: Time handler callback definition.

@@ -33,50 +33,101 @@ namespace lib
 namespace core
 {
 
-constexpr int PACKET_IOVEC_SIZE = 1;
-constexpr size_t OUT_STREAM_SIZE_DEFAULT = 32768;
+/**
+ * @brief: Settings for creating a generic output stream.
+ *
+ * This class stores the stream configuration parameters and also
+ * implements a builder that builds the stream descriptor structure
+ * for creating a stream with Rivermax API.
+ */
+class GenericStreamSettings : public IStreamSettings<GenericStreamSettings, rmx_output_gen_stream_params> {
+public:
+    FourTupleFlow m_network_address;
+    bool m_fixed_dest_addr;
+    pp_rate_t m_pp_rate;
+    size_t m_num_of_requested_chunks;
+    size_t m_num_of_packets_in_chunk;
+    uint16_t m_packet_typical_payload_size;
+    uint16_t m_packet_typical_app_header_size;
+    /**
+     * @brief: GenericStreamSettings constructor.
+     *
+     * @param [in] network_address: Network address of the stream.
+     * @param [in] fixed_dest_addr: Use a fixed destination address for the stream.
+     * @param [in] pp_rate: Packet pacing rate for the stream.
+     *                      If packet pacing is not needed, the struct should be initialized to 0.
+     * @param [in] num_of_requested_chunks: Number of chunks to be used in the stream.
+     * @param [in] num_of_packets_in_chunk: Number of packets in each chunk.
+     * @param [in] packet_typical_payload_size: Packet typical payload size in bytes.
+     * @param [in] packet_typical_app_header_size: Packet typical application header size in bytes.
+     */
+    GenericStreamSettings(const FourTupleFlow& network_address, bool fixed_dest_addr,
+        pp_rate_t pp_rate, size_t num_of_requested_chunks, size_t num_of_packets_in_chunk,
+        uint16_t packet_typical_payload_size, uint16_t packet_typical_app_header_size);
+    virtual ~GenericStreamSettings() = default;
+protected:
+    /**
+     * @brief: Initializes the generic output stream descriptor structure.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    virtual void stream_param_init(rmx_output_gen_stream_params& descr);
+    /**
+     * @brief: Sets stream local address.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_local_addr(rmx_output_gen_stream_params& descr);
+    /**
+     * @brief: Sets stream remote address.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_remote_addr(rmx_output_gen_stream_params& descr);
+    /**
+     * @brief: Sets stream rate paratemers.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_rate(rmx_output_gen_stream_params& descr);
+    /**
+     * @brief: Sets stream chunk parameters.
+     *
+     * @param [out] descr: Stream descriptor opaque structure.
+     */
+    void stream_param_set_chunk_size(rmx_output_gen_stream_params& descr);
+    /**
+     * @brief: Sequence of parameter setters invoked to build
+     *         a generic output stream descriptor structure.
+     */
+    static SetterSequence s_build_steps;
+};
 
 /**
- * @brief: Generic API send stream interface
+ * @brief: Generic API send stream interface.
  *
  * This class implements @ref ral::lib::core::ISendStream operations.
  * It uses Rivermax TX generic API.
  */
 class GenericSendStream : public ISendStream
 {
-private:
-    const ral::lib::core::TwoTupleFlow m_destination_flow;
-
-    rmax_out_gen_stream_params m_rmax_parameters;
-    std::vector<GenericChunk*> m_chunks;
+protected:
+    GenericStreamSettings m_stream_settings;
+    std::vector<std::shared_ptr<GenericChunk>> m_chunks;
     size_t m_next_chunk_to_send_index;
-    size_t m_num_of_requested_chunks;
-    size_t m_num_of_packets_in_chunk;
-    uint16_t m_packet_payload_size;
-    uint16_t m_packet_app_header_size;
-    gs_mem_block_t m_mem_block;
-    pp_rate_t m_rate;
+    rmx_output_gen_stream_params m_stream_params;
 public:
     /**
      * @brief: GenericSendStream constructor.
      *
-     * @param [in] network_address: Network address of the stream.
-     * @param [in] local_address: Network address of the NIC.
-     * @param [in] pp_rate: Packet pacing rate for the stream.
-     *                      If packet pacing is not needed, the struct should be initialized to 0.
-     * @param [in] num_of_requested_chunks: Number of chunks to be used in the stream.
-     * @param [in] packet_typical_payload_size: Packet typical payload size in bytes.
-     * @param [in] packet_typical_app_header_size: Packet typical application header size in bytes.
+     * @param [in] settings: Stream parameters.
      */
-    GenericSendStream(
-        const FourTupleFlow& network_address,
-        pp_rate_t pp_rate, size_t num_of_requested_chunks, size_t num_of_packets_in_chunk,
-        uint16_t packet_typical_payload_size, uint16_t packet_typical_app_header_size);
+    GenericSendStream(const GenericStreamSettings& settings);
     std::ostream& print(std::ostream& out) const override;
     virtual ReturnStatus create_stream() override;
     virtual ReturnStatus destroy_stream() override;
     /**
-     * @brief: Returns generic chunk.
+     * @brief: Returns a generic chunk.
      *
      * @note: The user can override this function in case
      *        different logic and data structures for chunk management needed.
@@ -85,30 +136,44 @@ public:
      *
      * @return: Pointer to the generic chunk.
      */
-    virtual GenericChunk* get_chunk(size_t index) { return m_chunks[index]; };
+    virtual std::shared_ptr<GenericChunk> get_chunk(size_t index) { return m_chunks[index]; };
     /**
-     * @brief: Returns next generic chunk.
+     * @brief: Returns the next free generic chunk.
      *
      * @note: The user can override this function in case
      *        different logic and data structures for chunk management needed.
      *
-     * @param [out] chunk: Pointer to the returned chunk.
+     * @param [in] chunk: Reference to pointer to the returned chunk.
      *
      * @return: Status of the operation.
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::no_free_chunks - In case of insufficient available chunks.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
      */
-    virtual ReturnStatus get_next_chunk(GenericChunk* chunk);
+    virtual ReturnStatus get_next_chunk(std::shared_ptr<GenericChunk>& chunk);
     /**
-     * @brief: Initializes chunks layout.
+     * @brief: Acquires the next free chunk, a blocking helper.
      *
-     * @note: The user can override this function in case
-     *        different logic and data structures for chunk management needed.
+     * This function acquires the next free chunk from the stream,
+     * it makes @p retries attempts to acquire a chunk with @ref get_next_chunk.
      *
-     * @param [in] pointer: Pointer to the allocated memory for the chunk, this memory should be registered first.
-     * @param [in] mkey: Memory key from @ref rmax_register_memory in Rivermax API.
+     * @param [in] chunk: Reference to pointer to the returned chunk.
+     * @param [in] retries: Number of attempts to acuire a chunk.
      *
-     * @return: Size of the memory initialized.
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::no_free_chunks - In case of insufficient available chunks.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
      */
-    virtual size_t initialize_chunks(void* pointer, rmax_mkey_id mkey);
+    virtual ReturnStatus blocking_get_next_chunk(std::shared_ptr<GenericChunk>& chunk, size_t retries = BLOCKING_CHUNK_RETRIES);
+    /**
+     * @brief: Initializes chunks layout using the specified memory region.
+     *
+     * @param [in] mem_region - Memory region for packets data.
+     */
+    virtual void initialize_chunks(const rmx_mem_region& mem_region);
     /**
      * @brief: Returns memory length needed for the stream.
      *
@@ -116,39 +181,42 @@ public:
      */
     virtual size_t get_memory_length() const;
     /**
-     * @brief: Sends the chunk - blocking operation.
+     * @brief: Sends a chunk of the stream to the wire.
      *
-     * @param [in] chunk: Reference of the chunk to commit.
-     * @param [in] timestamp_ns: Time in nanoseconds when to start transmission of the chunk.
-     * @param [in] flags: Commit flags, see @ref rmax_out_commit_flags in rivermax_api.h.
-     * @param [in] dest_flow: Pointer to network detestation flow, defaults to nullptr.
-     *     @note: In case of nullptr, the destination flow will be the same as the flow the stream was initialized with.
+     * @param [in] chunk: Pointer to the chunk to commit.
+     * @param [in] time: Time to schedule chunk sending, the format depends on the options
+     * set in @ref set_commit_options.
      *
-     * @return: Status of the operation.
+     * @warinig: If multiple chunks were acquired with @ref get_next_chunk for the
+     * stream after the previous call to @ref commit_chunk, the oldest acquired chunk will
+     * be sent, not the one passed as @p chunk.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::hw_send_queue_full - In case the HW send queue is full.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
      */
-    virtual ReturnStatus blocking_commit_chunk(
-        GenericChunk& chunk, uint64_t timestamp_ns, rmax_commit_flags_t flags, TwoTupleFlow* dest_flow = nullptr) const;
-private:
+    ReturnStatus commit_chunk(std::shared_ptr<GenericChunk> chunk, uint64_t time);
     /**
-     * @brief: Initializes underlay Rivermax stream parameters.
+     * @brief: Sends a chunk of the stream to the wire, a blocking helper.
+     *
+     * @param [in] chunk: Pointer to the chunk to commit.
+     * @param [in] time: Time to schedule chunk sending, the format depends on the options
+     * set in @ref set_commit_options.
+     * @param [in] retries: Number of attempts to send a chunk.
+     *
+     * @warinig: If multiple chunks were acquired with @ref get_next_chunk for the
+     * stream after the previous call to @ref commit_chunk, the oldest acquired chunk will
+     * be sent, not the one passed as @p chunk.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::hw_send_queue_full - In case the HW send queue is full.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
      */
-    void initialize_rmax_stream_parameters();
-    /**
-     * @brief: Commit chunk helper - blocking operation.
-     *
-     * @param [in] chunk: Pointer to Rivermax generic chunk to commit.
-     * @param [in] timestamp_ns: Time in nanoseconds when to start transmission of the chunk.
-     * @param [in] flags: Commit flags, see @ref rmax_out_commit_flags in rivermax_api.h.
-     * @param [in] flow: Network destination address for the commit, defaults to nullptr.
-     * @param [in] retries: Number of retries for the blocking operation, defaults to BLOCKING_COMMIT_RETRIES.
-     *
-     * @note: The destination flow will be the destination flow the stream was initialized with.
-     *
-     * @return: Status of the operation.
-     */
-    inline ReturnStatus blocking_commit_chunk_helper(
-        rmax_chunk* chunk, uint64_t timestamp_ns, rmax_commit_flags_t flags,
-        sockaddr* flow = nullptr, size_t retries = BLOCKING_COMMIT_RETRIES) const;
+    ReturnStatus blocking_commit_chunk(std::shared_ptr<GenericChunk> chunk, uint64_t time, size_t retries = BLOCKING_COMMIT_RETRIES);
 };
 
 } // namespace core

@@ -54,6 +54,7 @@
 #include "lib/services/error_handling/error_handling.h"
 #include "lib/services/memory_management/memory_management.h"
 #include "lib/services/buffer_management/buffer_management.h"
+#include "lib/services/statistics/statistics_reader.h"
 #include "lib/core/stream/stream.h"
 #include "lib/core/flow/flow.h"
 #include "lib/core/chunk/chunk.h"

@@ -11,13 +11,15 @@
  */
 
 #include <memory>
-
-#include "rt_threads.h"
+#include <thread>
+#include <vector>
+#include <cstdint>
 
 #include "rmax_apps_lib_facade.h"
 #include "services/error_handling/error_handling.h"
 #include "services/memory_management/memory_management.h"
 #include "services/cli/options.h"
+#include "services/utils/cpu.h"
 
 using namespace ral::lib::services;
 
@@ -74,7 +76,7 @@ ReturnStatus ral::lib::RmaxAppsLibFacade::validate_rivermax_version() const
     std::stringstream version_header;
     version_header <<
         "###############################################\n" <<
-        "## Rivermax SDK version:        " << rmax_get_version_string() << "\n" <<
+        "## Rivermax SDK version:        " << rmx_get_version_string() << "\n" <<
         "## Application version:         " << app_version.str() << "\n" <<
         "###############################################\n";
     std::cout << version_header.str();
@@ -82,31 +84,35 @@ ReturnStatus ral::lib::RmaxAppsLibFacade::validate_rivermax_version() const
     return ReturnStatus::success;
 }
 
-ReturnStatus ral::lib::RmaxAppsLibFacade::initialize_rivermax(rmax_init_config& config)
+ReturnStatus ral::lib::RmaxAppsLibFacade::initialize_rivermax(const std::vector<int>& cpu_affinity, bool enable_signal_handling)
 {
     ReturnStatus rc = validate_rivermax_version();
     if (rc == ReturnStatus::rmax_version_incompatible) {
         return rc;
     }
 
-    rmax_status_t status = rmax_init(&config);
-    if (status != RMAX_OK) {
-        std::cerr << "Failed to initialize Rivermax with status: " << status << std::endl;
-        return ReturnStatus::failure;
+    rc = set_rivermax_thread_cpu_affinity(cpu_affinity);
+    if (rc != ReturnStatus::success) {
+        return rc;
     }
 
-    m_rmax_lib_initialized = true;
+    rmx_status status;
 
-    return ReturnStatus::success;
-}
+    if (enable_signal_handling) {
+        status = rmx_enable_system_signal_handling();
+        if (status != RMX_OK) {
+            std::cerr << "Failed to enable signal handling with status: " << status << std::endl;
+            return ReturnStatus::failure;
+        }
+    }
 
-ReturnStatus ral::lib::RmaxAppsLibFacade::set_rivermax_clock(rmax_clock_t& clock)
-{
-    rmax_status_t status = rmax_set_clock(&clock);
+    status = rmx_init();
 
-    if (status != RMAX_OK) {
-        std::cerr << "Failed to set Rivermax clock with status:" << status << std::endl;
+    if (status != RMX_OK) {
+        std::cerr << "Failed to initialize Rivermax with status: " << status << std::endl;
         return ReturnStatus::failure;
+    } else {
+        m_rmax_lib_initialized = true;
     }
 
     return ReturnStatus::success;
@@ -118,8 +124,8 @@ ReturnStatus ral::lib::RmaxAppsLibFacade::cleanup_rivermax() const
         return ReturnStatus::success;
     }
 
-    rmax_status_t status = rmax_cleanup();
-    if (status != RMAX_OK) {
+    rmx_status status = rmx_cleanup();
+    if (status != RMX_OK) {
         std::cerr << "Failed to cleanup Rivermax with status:" << status << std::endl;
         return ReturnStatus::failure;
     }

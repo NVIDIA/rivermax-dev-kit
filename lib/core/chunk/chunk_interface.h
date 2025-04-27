@@ -18,6 +18,9 @@ namespace lib
 {
 namespace core
 {
+constexpr size_t BLOCKING_COMMIT_RETRIES = 1000000;
+constexpr size_t BLOCKING_CHUNK_RETRIES = 1000000;
+
 /**
  * @brief: Chunk interface class.
  *

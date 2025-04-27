@@ -64,7 +64,7 @@ void register_signal_handler_cb(const std::function<void()>& callback);
  * long period runs.
  */
 std::atomic_bool& exit_app();
-static std::atomic_bool g_s_signal_received(false);
+extern std::atomic_bool g_s_signal_received;
 /**
 * @brief: Initializes signals caught by the application.
 */

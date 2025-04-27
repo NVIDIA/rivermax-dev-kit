@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <unordered_map>
 #include <memory>
 #include <iostream>
 #include <ostream>
@@ -58,29 +59,21 @@ struct SendingStatistics
 /**
  * @brief: Application Media API send stream interface.
  *
- * This class implements and extends @ref ral::lib::core::GenericSendStream operations.
+ * This class implements and extends @ref ral::lib::core::MediaSendStream operations.
  */
 class AppMediaSendStream : public MediaSendStream
 {
 private:
     SendingStatistics m_send_stats;
-    uint16_t m_packet_payload_size;
+    const media_settings_t m_media_settings;
 public:
     /**
      * @brief: AppMediaSendStream constructor.
      *
-     * @param [in] local_address: NIC address.
-     * @param [in] media_settings: Media related settings.
-     * @param [in] buffer_attributes: Pointer to buffer attributes, for more info
-     *                                see @ref rmax_buffer_attr in rivermax_api.h.
-     * @param [in] qos_attributes: Pointer to quality of service attributes, for more info
-     *                             see @ref rmax_qos_attr in rivermax_api.h.
-     * @param [in] packet_payload_size: Packet payload size in bytes.
+     * @param [in] settings: Stream parameters.
+     * @param [in] mem_blocks: Parameters of blocks allocated for output packets.
      */
-    AppMediaSendStream(
-        const TwoTupleFlow& local_address, const media_settings_t& media_settings,
-        rmax_buffer_attr* buffer_attributes, rmax_qos_attr* qos_attributes,
-        uint16_t packet_payload_size);
+    AppMediaSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks);
     virtual ~AppMediaSendStream() = default;
     std::ostream& print(std::ostream& out) const override;
     /**
@@ -115,12 +108,9 @@ private:
      *
      * @note: TODO: Remove this and add stream buffer writer for RTP components in the library.
      */
-    inline void build_2110_20_rtp_header(byte_ptr_t& buffer);
+    inline void build_2110_20_rtp_header(byte_t* buffer);
 };
-/**
- * @brief: Unique pointer to @ref rmax_buffer_attr with custom deleter.
- */
-typedef std::unique_ptr<rmax_buffer_attr, std::function<void(rmax_buffer_attr*)>> rmax_buffer_attr_up_t;
+
 /**
  * @brief: MediaSenderIONode class.
  *
@@ -132,10 +122,20 @@ typedef std::unique_ptr<rmax_buffer_attr, std::function<void(rmax_buffer_attr*)>
 class MediaSenderIONode
 {
 private:
-    std::vector<std::unique_ptr<AppMediaSendStream>> m_streams;
+    /**
+    * @brief: Application media send stream rerources
+    */
+    struct MediaStreamPack
+    {
+        std::unique_ptr<AppMediaSendStream> stream;
+        std::unique_ptr<MediaChunk> chunk_handler;
+        std::unique_ptr<MediaStreamMemBlockset> mem_blockset;
+        std::vector<TwoTupleFlow> flows;
+    };
+    std::vector<MediaStreamPack> m_stream_packs;
+    media_settings_t m_media_settings;
     size_t m_index;
     FourTupleFlow m_network_address;
-    size_t m_num_of_streams;
     int m_sleep_between_operations;
     bool m_print_parameters;
     rmax_cpu_set_t m_cpu_affinity_mask;
@@ -143,16 +143,14 @@ private:
     uint32_t m_hw_queue_full_sleep_us;
     std::unique_ptr<IBufferWriter> m_buffer_writer;
     std::shared_ptr<MemoryUtils> m_mem_utils;
-    media_settings_t m_media_settings;
-    std::unordered_map<size_t,rmax_buffer_attr_up_t> m_buffer_attributes_in_stream;
     size_t m_num_of_chunks_in_mem_block;
     uint16_t m_packet_payload_size;
     size_t m_num_of_packets_in_chunk;
     size_t m_num_of_packets_in_mem_block;
+    size_t m_data_stride_size;
     std::vector<uint16_t> m_mem_block_payload_sizes;
-    std::unique_ptr<rmax_qos_attr> m_qos;
+    uint8_t m_dscp, m_pcp, m_ecn;
     time_handler_ns_cb_t m_get_time_ns_cb;
-    std::unordered_map<size_t, std::vector<TwoTupleFlow>> m_flows_in_stream;
 public:
     /**
      * @brief: MediaSenderIONode constructor.
@@ -171,12 +169,6 @@ public:
         size_t index, size_t num_of_streams, int cpu_core_affinity,
         std::shared_ptr<MemoryUtils> mem_utils, time_handler_ns_cb_t time_hanlder_cb);
     virtual ~MediaSenderIONode() = default;
-    /**
-     * @brief: Returns sender's streams container.
-     *
-     * @return: Sender's streams container.
-     */
-    std::vector<std::unique_ptr<AppMediaSendStream>>& get_streams() { return m_streams; };
     /**
      * @brief: Prints sender's parameters to a output stream.
      *
@@ -259,7 +251,7 @@ private:
      */
     ReturnStatus create_streams();
     /**
-     * @brief: Destroy sender's streams.
+     * @brief: Destroys sender's streams.
      *
      * This method is responsible to go over sender's stream objects and
      * destroy the appropriate Rivermax stream.

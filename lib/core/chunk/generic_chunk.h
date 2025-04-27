@@ -14,10 +14,15 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
+#include <unordered_set>
 
 #include <rivermax_api.h>
 
 #include "core/chunk/chunk_interface.h"
+#include "services/error_handling/return_status.h"
+
+using namespace ral::lib::services;
 
 namespace ral
 {
@@ -25,6 +30,15 @@ namespace lib
 {
 namespace core
 {
+
+/**
+ * @brief: Generic output stream packet.
+ *
+ * The packet is defined by a vector of memory regions that it occupies.
+ * The maximum number of memory regions in the packet is limited by @ref RMX_MAX_SUB_BLOCKS_PER_MEM_BLOCK.
+ */
+typedef std::vector<rmx_mem_region> GenericPacket;
+
 /**
  * @brief: Generic API chunk interface class.
  *
@@ -33,37 +47,100 @@ namespace core
 class GenericChunk : public IChunk
 {
 private:
-    rmax_chunk* m_rmax_chunk;
+    rmx_output_gen_chunk_handle m_chunk;
+    rmx_stream_id m_stream_id;
+    std::vector<GenericPacket> m_packets;
 public:
     /**
      * @brief: GenericChunk default constructor.
-     */
-    GenericChunk();
-    /**
-     * @brief: GenericChunk constructor.
      *
-     * @param [in] _rmax_chunk: Rivermax generic API chunk.
+     * @param [in] stream_id: ID of the owner stream.
+     * @param [in] packets_in_chunk: Number of packets in chunk.
      */
-    GenericChunk(rmax_chunk* _rmax_chunk);
-    virtual size_t get_length() const override { return m_rmax_chunk->size; };
+    GenericChunk(rmx_stream_id stream_id, size_t packets_in_chunk);
+    virtual size_t get_length() const override { return m_packets.size(); }
     /**
      * @brief: Returns Rivermax internal chunk.
      *
      * @returns: Pointer to the underlay Rivermax chunk.
      */
-    rmax_chunk* get_rmax_chunk() const { return m_rmax_chunk; }
+    rmx_output_gen_chunk_handle* get_rmax_chunk() { return& m_chunk; }
     /**
-     * @brief: Returns Rivermax internal packets pointer.
+     * @brief: Place a packet into the chunk.
      *
-     * @returns: Pointer to the underlay Rivermax packets array.
+     * This function sets the specified packet at position @p packet_idx in the chunk.
+     *
+     * @param [in] packet_idx: Packet index.
+     * @param [in] packet: Packet to place into the chunk.
+     *
+     * @return: Status of the operation.
      */
-    rmax_packet* get_packets_ptr() const { return m_rmax_chunk->packets; };
+    void place_packet(size_t packet_idx, const GenericPacket& packet) { m_packets[packet_idx] = packet; }
     /**
-     * @brief: Returns Rivermax internal chunk context.
+     * @brief: Returns a packet by its index.
      *
-     * @returns: Pointer to the underlay Rivermax chunk context.
+     * This function returns a reference to a chunk packet.
+     * The reference can be used to fill in the packet data or to change packet location in memory.
+     *
+     * @param [in] packet_idx: Packet index.
+     *
+     * @return: The specified chunk packet.
      */
-    void* get_context() const { return m_rmax_chunk->chunk_ctx; };
+    GenericPacket& get_packet(size_t packet_idx) { return m_packets[packet_idx]; }
+    /**
+     * @brief: Acquire the next free chunk for a generic output stream.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::no_free_chunks - In case of insufficient available chunks.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
+     */
+    ReturnStatus get_next_chunk();
+    /**
+     * @brief: Sets chunk commit options. The options affect only the next commit.
+     *
+     * @param [in] options: A set of commmit options to enable.
+     */
+    void set_commit_options(const std::unordered_set<rmx_output_commit_option>& options);
+    /**
+     * @brief: Sets chunk destination address.
+     *
+     * @param [in] addr: Chunk destination address.
+     *
+     * @warning: It shall be called for every chunk of a stream,
+     *           which upon creation wasn't set into a connected mode, i.e. for which
+     *           using a fixed destination address was not configured.
+     * @warning: This API shall be called for a chunk after @ref get_next_chunk but
+     *           prior to @ref apply_packets_layout.
+     */
+    void set_dest_address(const sockaddr& addr) { rmx_output_gen_set_chunk_remote_addr(&m_chunk, &addr); }
+    /**
+     * @brief: Appplies memory layout (address, length) and destination address of all
+     *         the packets in the chunk.
+     *
+     * @warinig: This function must be called before each @ref commit_chunk.
+     *
+     * @return: Status code as defined by @ref ReturnStatus.
+     */
+    ReturnStatus apply_packets_layout();
+    /**
+     * @brief: Sends a chunk of the associated generic output stream to the wire.
+     *
+     * @param [in] time: Time to schedule chunk sending, the format depends on the options
+     * set in @ref set_commit_options.
+     *
+     * @warinig: If multiple chunks were acquired with @ref get_next_chunk for the
+     * stream after the previous call to @ref commit_chunk, the oldest acquired chunk will
+     * be sent, not the one whose method was called.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     *          @ref ral::lib::services::ReturnStatus::hw_send_queue_full - In case the HW send queue is full.
+     *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
+     */
+    ReturnStatus commit_chunk(uint64_t time);
 };
 
 } // namespace core

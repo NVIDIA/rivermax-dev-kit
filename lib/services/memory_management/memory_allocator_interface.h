@@ -29,9 +29,23 @@ namespace lib
 namespace services
 {
 /**
+ * @brief: Huge Page allocator constants.
+ */
+static constexpr int HUGE_PAGE_SIZE_VALUE_AUTO = 0;
+static constexpr int HUGE_PAGE_SIZE_VALUE_2MB = 21;
+static constexpr int HUGE_PAGE_SIZE_VALUE_512MB = 29;
+static constexpr int HUGE_PAGE_SIZE_VALUE_1GB = 30;
+/**
  * @brief: Allocator types supported.
  */
-enum class AllocatorType { New, HugePage, Gpu };
+enum class AllocatorType {
+    Malloc,
+    HugePageDefault,
+    HugePage2MB,
+    HugePage512MB,
+    HugePage1GB,
+    Gpu
+};
 /**
  * @brief: Memory block representation.
  *
@@ -56,7 +70,7 @@ typedef struct mem_block
 typedef struct gs_mem_block
 {
     mem_block_t mem_block;
-    rmax_mkey_id mkey_id;
+    rmx_mkey_id mkey_id;
 } gs_mem_block_t;
 /**
  * @brief: Memory utils interface.
@@ -75,7 +89,7 @@ public:
     MemoryUtils() {};
     virtual ~MemoryUtils() {};
     /**
-     * @brief: Set memory.
+     * @brief: Sets memory to the specified value.
      *
      * @param [in] dst: Destination memory address.
      * @param [in] value: Value to set for each byte of specified memory.
@@ -85,7 +99,7 @@ public:
      */
     virtual ReturnStatus memory_set(void* dst, int value, size_t count) const;
     /**
-     * @brief: Copy memory.
+     * @brief: Copies memory.
      *
      * @param [in] dst: Destination memory address.
      * @param [in] src:  Source memory address.
@@ -130,19 +144,20 @@ public:
      */
     virtual ReturnStatus free_new(void* mem_ptr);
     /**
-     * @brief: Return new memory utils.
+     * @brief: Returns new memory utils.
      *
      * @return: Shared pointer to the memory utils.
      */
      virtual std::shared_ptr<MemoryUtils> get_memory_utils_new();
     /**
-     * @brief: Initialize huge pages.
+     * @brief: Initializes huge pages.
      *
+     * @param [in] page_size_log2: log2 of selected Huge Page size. HUGE_PAGE_SIZE_VALUE_AUTO - default
      * @param [out] huge_page_size: Supported Huge Page size.
      *
      * @return: Return true in success, false otherwise.
      */
-    virtual bool init_huge_pages(size_t& huge_page_size) = 0;
+    virtual bool init_huge_pages(int page_size_log2, size_t& huge_page_size) = 0;
     /**
      * @brief: Allocates memory using Huge Pages alocation.
      *
@@ -186,13 +201,13 @@ public:
      */
     virtual ReturnStatus free_gpu(void* mem_ptr, size_t length);
     /**
-     * @brief: Return GPU memory utils.
+     * @brief: Returns GPU memory utils.
      *
      * @return: Shared pointer to the memory utils.
      */
     virtual std::shared_ptr<MemoryUtils> get_memory_utils_gpu();
     /**
-     * @brief: Return operating system's memory page size.
+     * @brief: Returns operating system's memory page size.
      *
      * @return: Page size in bytes.
      */
@@ -238,7 +253,7 @@ public:
      */
     virtual void* allocate(const size_t length) = 0;
     /**
-     * @brief: Allocate memory and align it to page size.
+     * @brief: Allocates memory and align it to page size.
      *
      * @param [in] length: Requested allocation length.
      * @param [in] alignment: Memory alignment.
@@ -247,7 +262,7 @@ public:
      */
     virtual void* allocate_aligned(size_t length, size_t align);
     /**
-     * @brief: Return memory utils.
+     * @brief: Returns memory utils.
      *
      * The method to implement for @ref ral::lib::services::MemoryAllocator interface.
      * Implementors of this interface should delegate the implementation
@@ -261,19 +276,19 @@ public:
      *
      * @param [in] type: Memory allocator type.
      * @param [in] app_settings: Application settings.
-     * 
+     *
      * @return: Shared pointer to the memory allocator.
      */
     static std::shared_ptr<MemoryAllocator> get_memory_allocator(
         AllocatorType type, std::shared_ptr<AppSettings> app_settings);
     /**
-     * @brief: Return memory page size.
+     * @brief: Returns memory page size.
      *
      * @return: Page size in bytes.
      */
     virtual size_t get_page_size() const = 0;
     /**
-     * @brief: Round memory length up to page size.
+     * @brief: Rounds memory length up to page size.
      *
      * @return: Rounded value.
      */

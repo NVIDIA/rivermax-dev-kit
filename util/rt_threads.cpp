@@ -105,6 +105,8 @@ bool rivermax_validate_thread_affinity_cpus(int internal_thread_affinity, std::v
     return true;
 }
 
+std::atomic_bool g_s_signal_received {false};
+
 std::atomic_bool& exit_app()
 {
     return g_s_signal_received;
@@ -655,7 +657,10 @@ std::string get_local_time(uint64_t time_ns)
     struct tm time_buff;
 #ifdef __linux__
     localtime_r(&time_format, &time_buff);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-y2k"
     strftime(time_str, sizeof(time_str) - 1, "%c", &time_buff);
+#pragma GCC diagnostic pop
 #else
     localtime_s(&time_buff, &time_format);
     strftime(time_str, sizeof(time_str) - 1, "%c", &time_buff);

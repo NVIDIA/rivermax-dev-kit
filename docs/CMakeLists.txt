@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,26 +12,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-cmake_minimum_required(VERSION 3.17)
-
-set(RMAX_APPS_DOCS FALSE CACHE BOOL "Generate documentation for Rivermax Application Library" FORCE)
-if ((NOT RMAX_APPS_DOCS) AND PROJECT_IS_TOP_LEVEL)
-    return()
-endif()
 
 if (NOT TARGET Rivermax::Rivermax)
     message(WARNING "No Rivermax library was determined to generate the docs.")
     return()
 endif()
 
-find_package(Doxygen)
+find_package(Doxygen COMPONENTS dot)
 if (NOT TARGET Doxygen::doxygen)
     message(STATUS "No Doxygen tool was determined to generate the docs.")
     return()
 endif()
 
 # Input files
-set(RMAX_INPUT_FILES "rivermax_api.h" "rivermax_defs.h" "rivermax_deprecated.h")
+set(RMAX_INPUT_FILES "rivermax_api.h" "rivermax_defs.h" "rivermax_deprecated.h" "rmx_stats_api.h" "rmx_stats_defs.h")
 set(RMAX_APPS_LIB_INPUT_FILES ${PROJECT_SOURCE_DIR}/. ${PROJECT_SOURCE_DIR}/README.md)
 
 get_target_property(RMAX_INTERFACE_INCLUDE Rivermax::Rivermax INTERFACE_INCLUDE_DIRECTORIES)
@@ -60,4 +54,5 @@ add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
                    VERBATIM)
 
 # Custom target to invoke the custom command specified above
-add_custom_target(Doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
+add_custom_target(rmax_apps_lib_docs ALL DEPENDS ${DOXYGEN_INDEX_FILE})
+set_target_properties(rmax_apps_lib_docs PROPERTIES EXCLUDE_FROM_ALL TRUE)

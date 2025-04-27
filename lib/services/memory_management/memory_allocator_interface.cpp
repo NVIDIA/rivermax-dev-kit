@@ -16,9 +16,9 @@
 #ifdef __linux__
 #include <sys/mman.h>
 #include <unistd.h>
-#define HUGE_PAGE_SZ (2*1024*1024)
 #else // __linux__
 #include <sysinfoapi.h>
+#pragma comment(lib, "mincore")
 #endif // __linux__
 
 #include "gpu.h"
@@ -33,10 +33,12 @@
 
 using namespace ral::lib::services;
 
+static constexpr int PAGE_SIZE_64KB = 65536;
+
 mem_allocator_factory_map_t MemoryAllocator::s_mem_allocator_factory = \
 {
     {
-        AllocatorType::New,
+        AllocatorType::Malloc,
         [](std::shared_ptr<AppSettings> app_settings)
         {
             NOT_IN_USE(app_settings);
@@ -44,11 +46,35 @@ mem_allocator_factory_map_t MemoryAllocator::s_mem_allocator_factory = \
         }
     },
     {
-        AllocatorType::HugePage,
+        AllocatorType::HugePageDefault,
         [](std::shared_ptr<AppSettings> app_settings)
         {
             NOT_IN_USE(app_settings);
-            return std::shared_ptr<MemoryAllocator>(new HugePagesMemoryAllocator);
+            return std::shared_ptr<MemoryAllocator>(new HugePagesMemoryAllocator(HUGE_PAGE_SIZE_VALUE_AUTO));
+        }
+    },
+    {
+        AllocatorType::HugePage2MB,
+        [](std::shared_ptr<AppSettings> app_settings)
+        {
+            NOT_IN_USE(app_settings);
+            return std::shared_ptr<MemoryAllocator>(new HugePagesMemoryAllocator(HUGE_PAGE_SIZE_VALUE_2MB));
+        }
+    },
+    {
+        AllocatorType::HugePage512MB,
+        [](std::shared_ptr<AppSettings> app_settings)
+        {
+            NOT_IN_USE(app_settings);
+            return std::shared_ptr<MemoryAllocator>(new HugePagesMemoryAllocator(HUGE_PAGE_SIZE_VALUE_512MB));
+        }
+    },
+    {
+        AllocatorType::HugePage1GB,
+        [](std::shared_ptr<AppSettings> app_settings)
+        {
+            NOT_IN_USE(app_settings);
+            return std::shared_ptr<MemoryAllocator>(new HugePagesMemoryAllocator(HUGE_PAGE_SIZE_VALUE_1GB));
         }
     },
     {
@@ -143,9 +169,11 @@ std::shared_ptr<MemoryUtils> MemoryAllocatorImp::get_memory_utils_gpu()
  */
 class LinuxMemoryAllocatorImp : public MemoryAllocatorImp
 {
+private:
+    int m_huge_page_size_log2 = 0;
 public:
     size_t get_os_page_size() const final;
-    bool init_huge_pages(size_t& huge_page_size) final;
+    bool init_huge_pages(int huge_page_size_log2, size_t& huge_page_size) final;
     void* allocate_huge_pages(size_t length, size_t alignment) final;
     ReturnStatus free_huge_pages(void* mem_ptr, size_t length) final;
 };
@@ -155,18 +183,30 @@ size_t LinuxMemoryAllocatorImp::get_os_page_size() const
     return static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
 }
 
-bool LinuxMemoryAllocatorImp::init_huge_pages(size_t& huge_page_size)
+bool LinuxMemoryAllocatorImp::init_huge_pages(int huge_page_size_log2, size_t& huge_page_size)
 {
-    huge_page_size = HUGE_PAGE_SZ;
+    if (huge_page_size_log2 == HUGE_PAGE_SIZE_VALUE_AUTO) {
+        switch (sysconf(_SC_PAGESIZE)) {
+        case PAGE_SIZE_64KB:
+            m_huge_page_size_log2 = HUGE_PAGE_SIZE_VALUE_512MB;
+            break;
+        default:
+            m_huge_page_size_log2 = HUGE_PAGE_SIZE_VALUE_2MB;
+        }
+    } else {
+        m_huge_page_size_log2 = huge_page_size_log2;
+    }
+    huge_page_size = size_t(1) << m_huge_page_size_log2;
+    std::cout << "Init huge pages with size " << huge_page_size << std::endl;
     return true;
 }
 
 void* LinuxMemoryAllocatorImp::allocate_huge_pages(size_t length, size_t alignment)
 {
     NOT_IN_USE(alignment);
-    void* mem_ptr = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE | MAP_HUGETLB, -1, 0);
+    void* mem_ptr = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE | MAP_HUGETLB | (m_huge_page_size_log2 << MAP_HUGE_SHIFT), -1, 0);
     if (mem_ptr == MAP_FAILED) {
-        std::cerr << "Failed to allocate " << length << " bytes using huge pages with errno: " << errno << std::endl;
+        std::cerr << "Failed to allocate " << length << " bytes using huge pages with errno: " << errno << ", page size log2: " << m_huge_page_size_log2 << std::endl;
         return nullptr;
     }
     return mem_ptr;
@@ -194,8 +234,11 @@ ReturnStatus LinuxMemoryAllocatorImp::free_huge_pages(void* mem_ptr, size_t leng
  */
 class WindowsMemoryAllocatorImp : public MemoryAllocatorImp
 {
+private:
+    uint64_t m_huge_page_extended_flag;
+public:
     size_t get_os_page_size() const final;
-    bool init_huge_pages(size_t& huge_page_size) final;
+    bool init_huge_pages(int huge_page_size_log2, size_t& huge_page_size) final;
     void* allocate_huge_pages(size_t length, size_t alignment) final;
     ReturnStatus free_huge_pages(void* mem_ptr, size_t length) final;
 };
@@ -207,7 +250,7 @@ size_t WindowsMemoryAllocatorImp::get_os_page_size() const
     return static_cast<size_t>(sysInfo.dwPageSize);
 }
 
-bool WindowsMemoryAllocatorImp::init_huge_pages(size_t& huge_page_size)
+bool WindowsMemoryAllocatorImp::init_huge_pages(int huge_page_size_log2, size_t& huge_page_size)
 {
     HANDLE hToken;
     TOKEN_PRIVILEGES tp;
@@ -244,6 +287,24 @@ bool WindowsMemoryAllocatorImp::init_huge_pages(size_t& huge_page_size)
     if (huge_page_size == 0) {
         std::cout << "GetLargePageMinimum() error got zero 0x" << std::hex << GetLastError() << std::dec << std::endl;
         return false;
+    } else {
+        switch (huge_page_size_log2) {
+        case HUGE_PAGE_SIZE_VALUE_AUTO:
+            m_huge_page_extended_flag = MemExtendedParameterInvalidType;
+            break;
+        case HUGE_PAGE_SIZE_VALUE_2MB:
+            m_huge_page_extended_flag = MEM_EXTENDED_PARAMETER_NONPAGED_LARGE;
+            huge_page_size = size_t(1) << huge_page_size_log2;
+            break;
+        case HUGE_PAGE_SIZE_VALUE_1GB:
+            m_huge_page_extended_flag = MEM_EXTENDED_PARAMETER_NONPAGED_HUGE;
+            huge_page_size = size_t(1) << huge_page_size_log2;
+            break;
+        default:
+            std::cerr << "Unsupported huge page size log2 value " << huge_page_size_log2 << ". Using system default " << huge_page_size << std::endl;
+            m_huge_page_extended_flag = MemExtendedParameterInvalidType;
+            break;
+        }
     }
     return true;
 }
@@ -251,9 +312,24 @@ bool WindowsMemoryAllocatorImp::init_huge_pages(size_t& huge_page_size)
 void* WindowsMemoryAllocatorImp::allocate_huge_pages(size_t length, size_t alignment)
 {
     NOT_IN_USE(alignment);
-    void* mem_ptr = VirtualAlloc(NULL, length, MEM_LARGE_PAGES | MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    ULONG num_ext_params = 0;
+    MEM_EXTENDED_PARAMETER ext_param;
+    MEM_EXTENDED_PARAMETER* ext_param_ptr = nullptr;
+    if (m_huge_page_extended_flag != MemExtendedParameterInvalidType) {
+        num_ext_params = 1;
+        ext_param_ptr = &ext_param;
+        std::memset(&ext_param, 0, sizeof(ext_param));
+        ext_param.Type = MemExtendedParameterAttributeFlags;
+        ext_param.ULong64 = m_huge_page_extended_flag;
+    }
+    void* mem_ptr = VirtualAlloc2(NULL, NULL, length, MEM_LARGE_PAGES | MEM_COMMIT | MEM_RESERVE,
+                                  PAGE_READWRITE, ext_param_ptr, num_ext_params);
     if (!mem_ptr) {
-        std::cerr << "Failed to allocate " << length << " bytes using Large Pages with error: 0x" << std::hex << GetLastError() << std::dec << std::endl;
+        auto last_error = GetLastError();
+        std::cerr << "Failed to allocate " << length << " bytes using Large Pages with error: 0x" << std::hex << last_error << std::dec << std::endl;
+        if (last_error == ERROR_INVALID_PARAMETER) {
+            std::cerr << "Non default large page size is probably not supported. Use default large page size" << std::endl;
+        }
         return nullptr;
     }
 
@@ -282,7 +358,7 @@ MemoryAllocator::MemoryAllocator() :
 
 void* MemoryAllocator::allocate_aligned(size_t length, size_t alignment)
 {
-    byte_ptr_t ptr = static_cast<byte_ptr_t>(allocate(length + alignment));
+    byte_t* ptr = static_cast<byte_t*>(allocate(length + alignment));
     size_t remainder = reinterpret_cast<size_t>(ptr) % alignment;
     if (remainder == 0) {
         return ptr;

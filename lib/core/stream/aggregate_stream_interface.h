@@ -24,7 +24,7 @@ namespace lib
 namespace core
 {
 /**
- * @brief: Aggregate stream interface (externally passed id).
+ * @brief: Aggregate stream interface (externally passed ID).
  */
 class IAggregateStream : public IStream
 {
@@ -38,13 +38,6 @@ public:
      */
     IAggregateStream(size_t id);
     virtual ~IAggregateStream() = default;
-    /**
-     * @brief: Prints stream's parameters to a output stream.
-     *
-     * @param [out] out: Output stream parameter print to.
-     *
-     * @return: Output stream.
-     */
     std::ostream& print(std::ostream& out) const override;
     /**
      * @brief: Returns stream ID.

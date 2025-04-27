@@ -21,14 +21,6 @@ namespace lib
 namespace core
 {
 /**
- * @brief: Number of retries for commit related blocking operations.
- */
-constexpr size_t BLOCKING_COMMIT_RETRIES = 1000000;
-/**
- * @brief: Number of retries for chunk related blocking operations.
- */
-constexpr size_t BLOCKING_CHUNK_RETRIES = 1000000;
-/**
  * @brief: Send stream interface.
  */
 class ISendStream : public ISingleStream
@@ -43,15 +35,6 @@ public:
      */
     ISendStream(const TwoTupleFlow& local_address);
     virtual ~ISendStream() = default;
-    /**
-     * @brief: Prints stream's parameters to a output stream.
-     *
-     * The method prints the parameters of the stream to be shown to the user to a output stream.
-     *
-     * @param [out] out: Output stream parameter print to.
-     *
-     * @return: Output stream.
-     */
     std::ostream& print(std::ostream& out) const override;
     /**
      * @brief: Returns number of chunks used in the stream.
