@@ -20,6 +20,7 @@ project(rivermax-dev-kit-apps)
 
 # Create umbrella library to contain all RDK applications
 add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE include)
 
 # Create base library to build an RDK application
 add_library(rivermax-dev-kit-app-base STATIC)
