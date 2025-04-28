@@ -42,4 +42,5 @@ enable_testing()
 
 add_subdirectory(source)
 add_subdirectory(utests)
+add_subdirectory(examples)
 add_subdirectory(docs)

@@ -43,7 +43,36 @@ namespace services
     align_down_pow2((_n) + (_alignment) - 1, _alignment)
 
 typedef uint8_t byte_t;
-
+/**
+ * @brief: Macro to check a condition and return a status with an error message.
+ *
+ * Evaluates the condition, and if true, displays the error message and returns the specified status.
+ * Useful for early exits in functions with error handling. Meant to be used mainly
+ * in the examples.
+ *
+ * @param [in] condition: Condition to evaluate.
+ * @param [in] message: Error message to display if the condition is true.
+ * @param [in] status: Status to return if the condition is true.
+ */
+#define RETURN_STATUS_IF(condition, message, status) \
+    do {                                             \
+        if (condition) {                             \
+            std::cerr << message << std::endl;       \
+            return status;                           \
+        }                                            \
+    } while (0)
+/**
+ * @brief: Macro to check if a status is not successful and return with failure status.
+ *
+ * Evaluates if the status is not equal to @ref ReturnStatus::success, and if true,
+ * displays the error message and returns @ref ReturnStatus::failure. Meant to be used mainly
+ * in the examples.
+ *
+ * @param [in] condition: Status variable to check.
+ * @param [in] message: Error message to display if the status is not successful.
+ */
+#define RETURN_FAILURE_ON_ERROR(condition, message) RETURN_STATUS_IF( \
+    condition != ReturnStatus::success, message, ReturnStatus::failure)
 /**
  * @brief: Packet pacing rate.
  */
