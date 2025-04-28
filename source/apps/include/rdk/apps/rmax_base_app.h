@@ -284,7 +284,7 @@ int common_cli_main(int argc, const char* argv[],
         ReturnStatus rc = app.initialize();
         if (rc == ReturnStatus::success_cli_help) {
             return EXIT_SUCCESS;
-        } else if (rc != ReturnStatus::obj_init_success) {
+        } else if (rc == ReturnStatus::failure) {
             std::cerr << "Application failed to initialize" << std::endl;
             return EXIT_FAILURE;
         }

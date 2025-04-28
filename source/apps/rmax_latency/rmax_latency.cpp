@@ -192,9 +192,8 @@ ReturnStatus LatencyApp::initialize_app_settings()
 ReturnStatus LatencyApp::initialize()
 {
     ReturnStatus rc  = RmaxBaseApp::initialize();
-
-    if (rc != ReturnStatus::obj_init_success) {
-        return m_obj_init_status;
+    if (rc != ReturnStatus::success) {
+        return rc;
     }
 
     try {
@@ -216,7 +215,7 @@ ReturnStatus LatencyApp::initialize()
     }
 
     m_obj_init_status = ReturnStatus::obj_init_success;
-    return m_obj_init_status;
+    return ReturnStatus::success;
 }
 
 LatencyMode LatencyApp::get_latency_mode()

@@ -130,9 +130,8 @@ ReturnStatus IPMXSenderApp::initialize_app_settings()
 ReturnStatus IPMXSenderApp::initialize()
 {
     ReturnStatus rc  = RmaxBaseApp::initialize();
-
-    if (rc != ReturnStatus::obj_init_success) {
-        return m_obj_init_status;
+    if (rc != ReturnStatus::success) {
+        return rc;
     }
 
     try {
@@ -157,7 +156,7 @@ ReturnStatus IPMXSenderApp::initialize()
     }
 
     m_obj_init_status = ReturnStatus::obj_init_success;
-    return m_obj_init_status;
+    return ReturnStatus::success;
 }
 
 ReturnStatus IPMXSenderApp::run()

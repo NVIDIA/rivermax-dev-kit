@@ -216,9 +216,8 @@ ReturnStatus MediaSenderApp::initialize_app_settings()
 ReturnStatus MediaSenderApp::initialize()
 {
     ReturnStatus rc  = RmaxBaseApp::initialize();
-
-    if (rc != ReturnStatus::obj_init_success) {
-        return m_obj_init_status;
+    if (rc != ReturnStatus::success) {
+        return rc;
     }
 
     try {
@@ -251,7 +250,7 @@ ReturnStatus MediaSenderApp::initialize()
     }
 
     m_obj_init_status = ReturnStatus::obj_init_success;
-    return m_obj_init_status;
+    return ReturnStatus::success;
 }
 
 ReturnStatus MediaSenderApp::initialize_connection_parameters()

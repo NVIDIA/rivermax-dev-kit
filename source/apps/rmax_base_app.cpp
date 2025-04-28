@@ -165,7 +165,7 @@ ReturnStatus RmaxBaseApp::initialize()
         return rc;
     }
 
-    return ReturnStatus::obj_init_success;
+    return ReturnStatus::success;
 }
 
 ReturnStatus RmaxBaseApp::initialize_rivermax_resources()
