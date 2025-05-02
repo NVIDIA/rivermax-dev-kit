@@ -23,5 +23,6 @@
 #include "rdk/services/memory_allocation/new_memory_allocator.h"
 #include "rdk/services/memory_allocation/huge_pages_memory_allocator.h"
 #include "rdk/services/memory_allocation/gpu_memory_allocator.h"
+#include "rdk/services/memory_allocation/gpu_host_pinned_memory_allocator.h"
 
 #endif /* RDK_SERVICES_MEMORY_ALLOCATION_MEMORY_ALLOCATION_H */

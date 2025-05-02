@@ -33,7 +33,8 @@ static const std::map<AllocatorTypeUI, AllocatorType> UI_ALLOCATOR_TYPE_MAP{
     { AllocatorTypeUI::Malloc,          AllocatorType::Malloc },
     { AllocatorTypeUI::HugePage2MB,     AllocatorType::HugePage2MB },
     { AllocatorTypeUI::HugePage512MB,   AllocatorType::HugePage512MB },
-    { AllocatorTypeUI::HugePage1GB,     AllocatorType::HugePage1GB }
+    { AllocatorTypeUI::HugePage1GB,     AllocatorType::HugePage1GB },
+    { AllocatorTypeUI::GpuHostPinned,      AllocatorType::GpuHostPinned }
 };
 }
 RmaxBaseApp::RmaxBaseApp() :

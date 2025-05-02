@@ -681,5 +681,35 @@ bool gpu_verify_allocated_bar1_size(int gpu_id, size_t size)
     return true;
 }
 #endif
+
+void* gpu_allocate_host_pinned_memory(size_t size)
+{
+    void* mem_ptr = nullptr;
+    cudaError_t error = cudaMallocHost(&mem_ptr, size);
+    if (error != cudaSuccess) {
+        std::cerr << "Failed to allocate " << size <<
+        " bytes of GPU host pinned memory with error: " << cudaGetErrorString(error) << std::endl;
+        return nullptr;
+    }
+    return mem_ptr;
+}
+
+bool gpu_free_host_pinned_memory(void* ptr)
+{
+    if (ptr == nullptr) {
+        std::cerr << "Failed to free the pointer at address " << ptr << std::endl;
+        return false;
+    }
+
+    cudaError_t error = cudaFreeHost(ptr);
+    if (error != cudaSuccess) {
+        std::cerr << "Failed to free GPU host pinned memory with error: "
+                  << cudaGetErrorString(error) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 #endif // CUDA_ENABLED
 

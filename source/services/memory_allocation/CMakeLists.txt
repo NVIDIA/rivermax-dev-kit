@@ -16,6 +16,7 @@
 
 target_sources(${PROJECT_NAME}
     PRIVATE
+        gpu_host_pinned_memory_allocator.cpp
         gpu_memory_allocator.cpp
         huge_pages_memory_allocator.cpp
         new_memory_allocator.cpp

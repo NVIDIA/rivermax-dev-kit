@@ -33,6 +33,7 @@
 #include "rdk/services/memory_allocation/new_memory_allocator.h"
 #include "rdk/services/memory_allocation/huge_pages_memory_allocator.h"
 #include "rdk/services/memory_allocation/gpu_memory_allocator.h"
+#include "rdk/services/memory_allocation/gpu_host_pinned_memory_allocator.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/cli/cli.h"
@@ -94,6 +95,13 @@ mem_allocator_factory_map_t MemoryAllocator::s_mem_allocator_factory = \
             }
             }
      },
+     {
+        AllocatorType::GpuHostPinned,
+        [](std::shared_ptr<AppSettings> app_settings) {
+            NOT_IN_USE(app_settings);
+            return std::shared_ptr<MemoryAllocator>(new GpuHostPinnedMemoryAllocator);
+        }
+    },
 };
 
 ReturnStatus MemoryUtils::memory_set(void* dst, int value, size_t count) const
@@ -164,6 +172,23 @@ std::shared_ptr<MemoryUtils> MemoryAllocatorImp::get_memory_utils_gpu()
         utils_gpu.reset(new GpuMemoryUtils);
     }
     return utils_gpu;
+}
+void* MemoryAllocatorImp::allocate_gpu_host_pinned(const size_t length)
+{
+    return gpu_allocate_host_pinned_memory(length);
+}
+
+ReturnStatus MemoryAllocatorImp::free_gpu_host_pinned(void* mem_ptr)
+{
+    return gpu_free_host_pinned_memory(mem_ptr) ? ReturnStatus::success : ReturnStatus::failure;
+}
+
+std::shared_ptr<MemoryUtils> MemoryAllocatorImp::get_memory_utils_gpu_host_pinned()
+{
+    if (!utils_gpu_host_pinned) {
+        utils_gpu_host_pinned.reset(new GpuHostPinnedMemoryUtils);
+    }
+    return utils_gpu_host_pinned;
 }
 
 #ifdef __linux__

@@ -65,6 +65,8 @@ void gpu_compare_checksum(const uint8_t** data_ptrs, const size_t* sizes,
                           const uint32_t* expected_checksums, uint32_t* mismatch_counter,
                           uint32_t num_packet);
 bool set_gpu_device(int gpu_id);
+void* gpu_allocate_host_pinned_memory(size_t size);
+bool gpu_free_host_pinned_memory(void* ptr);
 #ifndef TEGRA_ENABLED
 int gpu_set_locked_clocks_max_freq(int gpu_id);
 int gpu_reset_locked_clocks(int gpu_id);
@@ -239,6 +241,18 @@ static inline bool gpu_verify_allocated_bar1_size(int gpu_id, size_t size)
 {
     NOT_IN_USE(gpu_id);
     NOT_IN_USE(size);
+    return false;
+}
+
+static inline void* gpu_allocate_host_pinned_memory(size_t size)
+{
+    NOT_IN_USE(size);
+    return nullptr;
+}
+
+static inline bool gpu_free_host_pinned_memory(void* ptr)
+{
+    NOT_IN_USE(ptr);
     return false;
 }
 

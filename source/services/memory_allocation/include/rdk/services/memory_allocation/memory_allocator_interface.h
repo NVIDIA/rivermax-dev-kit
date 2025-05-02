@@ -51,7 +51,8 @@ enum class AllocatorType {
     HugePage2MB,
     HugePage512MB,
     HugePage1GB,
-    Gpu
+    Gpu,
+    GpuHostPinned
 };
 /**
  * @brief: Memory locations supported.
@@ -144,6 +145,7 @@ private:
     static std::shared_ptr<MemoryUtils> utils_new;
     static std::shared_ptr<MemoryUtils> utils_huge_pages;
     static std::shared_ptr<MemoryUtils> utils_gpu;
+    static std::shared_ptr<MemoryUtils> utils_gpu_host_pinned;
 public:
     MemoryAllocatorImp() = default;
     virtual ~MemoryAllocatorImp() = default;
@@ -226,6 +228,28 @@ public:
      * @return: Shared pointer to the memory utils.
      */
     virtual std::shared_ptr<MemoryUtils> get_memory_utils_gpu();
+    /**
+     * @brief: Allocates GPU Host Pinned memory.
+     *
+     * @param [in] length: Length of the memory to allocate.
+     *
+     * @return: Pointer to the allocated memory.
+     */
+    virtual void* allocate_gpu_host_pinned(const size_t length);
+    /**
+     * @brief: Frees GPU Host Pinned memory.
+     *
+     * @param [in] mem_ptr: Pointer to the memory to free.
+     *
+     * @return: Status of the operation.
+     */
+    virtual ReturnStatus free_gpu_host_pinned(void* mem_ptr);
+    /**
+     * @brief: Returns GPU Host Pinned memory utils.
+     *
+     * @return: Shared pointer to the memory utils.
+     */
+    virtual std::shared_ptr<MemoryUtils> get_memory_utils_gpu_host_pinned();
     /**
      * @brief: Returns operating system's memory page size.
      *

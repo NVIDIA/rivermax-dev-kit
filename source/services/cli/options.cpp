@@ -83,6 +83,7 @@ static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
     { "hugepage-2m",    AllocatorTypeUI::HugePage2MB },
     { "hugepage-512m",  AllocatorTypeUI::HugePage512MB },
     { "hugepage-1g",    AllocatorTypeUI::HugePage1GB },
+    { "gpuhostpinned",     AllocatorTypeUI::GpuHostPinned },
 };
 /**
  * @brief: Create a string to Enum mapping vector.
