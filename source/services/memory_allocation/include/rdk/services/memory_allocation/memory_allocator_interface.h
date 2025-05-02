@@ -54,6 +54,13 @@ enum class AllocatorType {
     Gpu
 };
 /**
+ * @brief: Memory locations supported.
+ */
+enum class MemoryLocation {
+    Host,
+    Gpu
+};
+/**
  * @brief: Memory block representation.
  *
  * The struct represents memory block.
@@ -95,6 +102,12 @@ public:
      */
     MemoryUtils() {};
     virtual ~MemoryUtils() {};
+    /**
+     * @brief: Returns memory location.
+     *
+     * @return: Memory location.
+     */
+    virtual MemoryLocation get_memory_location() const { return MemoryLocation::Host; };
     /**
      * @brief: Sets memory to the specified value.
      *
@@ -247,6 +260,12 @@ private:
 public:
     MemoryAllocator();
     virtual ~MemoryAllocator() = default;
+    /**
+     * @brief: Returns memory location.
+     *
+     * @return: Memory location.
+     */
+    virtual MemoryLocation get_memory_location() const = 0;
     /**
      * @brief: Allocates memory.
      *

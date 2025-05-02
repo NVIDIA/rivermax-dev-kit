@@ -38,6 +38,8 @@ namespace services
  */
 class NewMemoryUtils : public MemoryUtils
 {
+public:
+    MemoryLocation get_memory_location() const override { return MemoryLocation::Host; }
 };
 /**
  * @brief: C++ new operator memory allocation.
@@ -53,6 +55,7 @@ public:
     ~NewMemoryAllocator();
     void* allocate(const size_t length) override;
     std::shared_ptr<MemoryUtils> get_memory_utils() override;
+    MemoryLocation get_memory_location() const override { return MemoryLocation::Host; }
     size_t get_page_size() const override { return m_page_size; }
 };
 

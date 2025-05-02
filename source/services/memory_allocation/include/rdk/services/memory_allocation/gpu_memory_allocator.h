@@ -40,6 +40,7 @@ namespace services
 class GpuMemoryUtils : public MemoryUtils
 {
 public:
+    MemoryLocation get_memory_location() const override { return MemoryLocation::Gpu; }
     ReturnStatus memory_set(void* dst, int value, size_t count) const override;
     ReturnStatus memory_copy(void* dst, const void* src, size_t count) const override;
 };
@@ -55,6 +56,7 @@ public:
     ~GpuMemoryAllocator();
     void* allocate(const size_t length) override;
     std::shared_ptr<MemoryUtils> get_memory_utils() override;
+    MemoryLocation get_memory_location() const override { return MemoryLocation::Gpu; }
     size_t get_page_size() const override;
 private:
     int m_gpu_id;
