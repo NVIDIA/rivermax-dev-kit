@@ -34,7 +34,9 @@ static const std::map<AllocatorTypeUI, AllocatorType> UI_ALLOCATOR_TYPE_MAP{
     { AllocatorTypeUI::HugePage2MB,     AllocatorType::HugePage2MB },
     { AllocatorTypeUI::HugePage512MB,   AllocatorType::HugePage512MB },
     { AllocatorTypeUI::HugePage1GB,     AllocatorType::HugePage1GB },
+#ifdef CUDA_ENABLED
     { AllocatorTypeUI::GpuHostPinned,      AllocatorType::GpuHostPinned }
+#endif
 };
 }
 RmaxBaseApp::RmaxBaseApp() :

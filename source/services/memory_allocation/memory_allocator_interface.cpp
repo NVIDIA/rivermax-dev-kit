@@ -116,6 +116,28 @@ ReturnStatus MemoryUtils::memory_copy(void* dst, const void* src, size_t count) 
     return ReturnStatus::success;
 }
 
+ReturnStatus MemoryUtils::memory_copy_from(void* dst, const void* src,
+                                           size_t count, MemoryLocation src_location) const
+{
+    if(src_location == MemoryLocation::Gpu) {
+        bool status = gpu_memcpy(dst, src, count, gpu_memcpy_direction::gpuMemcpyDeviceToHost);
+        return (status) ? ReturnStatus::success : ReturnStatus::failure;
+    }
+    memcpy(dst, src, count);
+    return ReturnStatus::success;
+}
+
+ReturnStatus MemoryUtils::memory_copy_to(void* dst, const void* src,
+                                         size_t count, MemoryLocation dst_location) const
+{
+    if(dst_location == MemoryLocation::Gpu) {
+        bool status = gpu_memcpy(dst, src, count, gpu_memcpy_direction::gpuMemcpyHostToDevice);
+        return (status) ? ReturnStatus::success : ReturnStatus::failure;
+    }
+    memcpy(dst, src, count);
+    return ReturnStatus::success;
+}
+
 void* MemoryAllocatorImp::allocate_new(const size_t length)
 {
     byte_t* mem_ptr = new (std::nothrow) byte_t[length];

@@ -29,6 +29,22 @@ using namespace rivermax::dev_kit::services;
 
 std::shared_ptr<MemoryUtils> MemoryAllocatorImp::utils_gpu;
 
+GpuMemoryUtils::GpuMemoryUtils()
+{
+    stream_deleter_t deleter = [](gpu_stream* stream) {
+        if (stream) {
+            gpu_destroy_stream(*stream);
+            delete stream;
+        }
+    };
+
+    m_stream = std::unique_ptr<gpu_stream, stream_deleter_t>(new gpu_stream(), deleter);
+
+    if (!gpu_create_stream(m_stream.get())) {
+        throw std::runtime_error("Failed to create GPU stream");
+    }
+}
+
 ReturnStatus GpuMemoryUtils::memory_set(void* dst, int value, size_t count) const
 {
     return gpu_memset(dst, value, count) ? ReturnStatus::success : ReturnStatus::failure;
@@ -37,6 +53,46 @@ ReturnStatus GpuMemoryUtils::memory_set(void* dst, int value, size_t count) cons
 ReturnStatus GpuMemoryUtils::memory_copy(void* dst, const void* src, size_t count) const
 {
     return gpu_memcpy(dst, src, count) ? ReturnStatus::success : ReturnStatus::failure;
+}
+
+ReturnStatus GpuMemoryUtils::memory_copy_from(void* dst, const void* src,
+                                              size_t count, MemoryLocation src_location) const
+{
+    gpu_memcpy_direction direction;
+    switch(src_location) {
+        case MemoryLocation::Host:
+            direction = gpu_memcpy_direction::gpuMemcpyHostToDevice;
+            break;
+        case MemoryLocation::Gpu:
+            direction = gpu_memcpy_direction::gpuMemcpyDeviceToDevice;
+            break;
+        default:
+            std::cerr << "Unsupported source type for GPU copy_from" << std::endl;
+            return ReturnStatus::failure;
+    }
+
+    bool status = gpu_memcpy(dst, src, count, direction, *m_stream);
+    return (status) ? ReturnStatus::success : ReturnStatus::failure;
+}
+
+ReturnStatus GpuMemoryUtils::memory_copy_to(void* dst, const void* src,
+                                            size_t count, MemoryLocation dst_location) const
+{
+    gpu_memcpy_direction direction;
+    switch(dst_location) {
+        case MemoryLocation::Host:
+            direction = gpu_memcpy_direction::gpuMemcpyDeviceToHost;
+            break;
+        case MemoryLocation::Gpu:
+            direction = gpu_memcpy_direction::gpuMemcpyDeviceToDevice;
+            break;
+        default:
+            std::cerr << "Unsupported destination type for GPU copy_to" << std::endl;
+            return ReturnStatus::failure;
+    }
+
+    bool status = gpu_memcpy(dst, src, count, direction, *m_stream);
+    return (status) ? ReturnStatus::success : ReturnStatus::failure;
 }
 
 GpuMemoryAllocator::GpuMemoryAllocator(int gpu_id)

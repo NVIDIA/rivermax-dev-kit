@@ -28,6 +28,7 @@
 #include "rt_threads.h"
 #include "gpu.h"
 #include "checksum_kernel.h"
+
 /**
  * @brief: Initialize GPU.
  *
@@ -387,29 +388,107 @@ bool gpu_memset(void* dst, int value, size_t count)
 }
 
 /**
- * @brief: Copy to/from GPU memory, support both Tegra (Page pinned shared memory)
- *         and non Tegara (Device memory) GPUs.
+ * @brief: Convert gpu_memcpy_direction to cudaMemcpyKind.
+ *
+ * @param [in] direction: GPU memory copy direction
+ *
+ * @return: Equivalent cudaMemcpyKind value.
+ */
+cudaMemcpyKind to_cuda_memcpy_kind(gpu_memcpy_direction direction)
+{
+    switch (direction) {
+        case gpu_memcpy_direction::gpuMemcpyHostToHost:
+            return cudaMemcpyHostToHost;
+        case gpu_memcpy_direction::gpuMemcpyHostToDevice:
+            return cudaMemcpyHostToDevice;
+        case gpu_memcpy_direction::gpuMemcpyDeviceToHost:
+            return cudaMemcpyDeviceToHost;
+        case gpu_memcpy_direction::gpuMemcpyDeviceToDevice:
+            return cudaMemcpyDeviceToDevice;
+        case gpu_memcpy_direction::gpuMemcpyDefault:
+        default:
+            return cudaMemcpyDefault;
+    }
+}
+/**
+ * @brief: Copy to/from GPU memory.
+ *
+ * Copy to/from GPU memory, support both Tegra (Page pinned shared memory)
+ * and non Tegra (Device memory) GPUs.
  *
  * @param [in] dst: Destination memory address.
- * @param [in] src:  Source memory address.
+ * @param [in] src: Source memory address.
  * @param [in] count: Size in bytes to copy.
+ * @param [in] direction: Direction of copy operation.
+ * @param [in] stream: GPU stream to use for the copy operation.
+ * @param [in] sync_mode: Whether to synchronize after the copy.
  *
  * @return: Return status of the operation.
  */
-bool gpu_memcpy(void* dst, const void* src, size_t count)
+bool gpu_memcpy(void* dst, const void* src, size_t count,
+    gpu_memcpy_direction direction, gpu_stream stream, gpu_sync_mode sync_mode)
 {
     cudaError_t cuda_err = cudaSuccess;
 
 #ifdef TEGRA_ENABLED
     std::memcpy(dst, src, count);
 #else
-    cuda_err = cudaMemcpyAsync(dst, src, count, cudaMemcpyDefault);
-#endif
+    cuda_err = cudaMemcpyAsync(dst, src, count, to_cuda_memcpy_kind(direction), stream.cuda_stream);
     if (cuda_err != cudaSuccess) {
-        std::cerr << "Failed to copy memory to/from GPU." << std::endl;
+        std::cerr << "Failed to copy memory GPU memory." << std::endl;
         return false;
     }
 
+    if (sync_mode == gpu_sync_mode::SYNC) {
+        if (!gpu_synchronize_stream(stream)) {
+            return false;
+        }
+    }
+#endif
+    return true;
+}
+/**
+ * @brief: Synchronize GPU stream.
+ *
+ * Wait for all operations in the specified stream to complete.
+ *
+ * @param [in] stream: GPU stream to synchronize.
+ *
+ * @return: Return status of the operation.
+ */
+bool gpu_synchronize_stream(gpu_stream stream)
+{
+    cudaError_t cuda_err = cudaStreamSynchronize(stream.cuda_stream);
+    if (cuda_err != cudaSuccess) {
+        std::cerr << "Failed to synchronize GPU stream: " << cudaGetErrorString(cuda_err) << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool gpu_create_stream(gpu_stream* stream)
+{
+    if (stream == nullptr) {
+        std::cerr << "Failed to create GPU stream; stream is null." << std::endl;
+        return false;
+    }
+    cudaError_t cuda_result = cudaStreamCreate(&stream->cuda_stream);
+    if (cuda_result != cudaSuccess) {
+        std::cerr << "Failed to create GPU stream: "
+            << cudaGetErrorString(cuda_result) << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool gpu_destroy_stream(gpu_stream stream)
+{
+    cudaError_t cuda_result = cudaStreamDestroy(stream.cuda_stream);
+    if (cuda_result != cudaSuccess) {
+        std::cerr << "Failed to destroy CUDA stream: "
+            << cudaGetErrorString(cuda_result) << std::endl;
+        return false;
+    }
     return true;
 }
 
@@ -712,4 +791,3 @@ bool gpu_free_host_pinned_memory(void* ptr)
 }
 
 #endif // CUDA_ENABLED
-

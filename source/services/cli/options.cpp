@@ -76,6 +76,11 @@ const char* CLIOptStr::DYNAMIC_FILE_LOADING = "--dfl,--dynamic-file-loading";
 
 const char* CLIGroupStr::VIDEO_FORMAT_OPTIONS = "Video format options";
 
+/**
+ * @note: TODO: GPU related options are handled awkwardly and should be improved.
+ *        The GPU allocator is now used implicitly rather than explicitly, which makes
+ *        the interface unclear and should be refactored for better clarity.
+ */
 static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
     { "auto",           AllocatorTypeUI::Auto },
     { "malloc",         AllocatorTypeUI::Malloc },
@@ -83,7 +88,9 @@ static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
     { "hugepage-2m",    AllocatorTypeUI::HugePage2MB },
     { "hugepage-512m",  AllocatorTypeUI::HugePage512MB },
     { "hugepage-1g",    AllocatorTypeUI::HugePage1GB },
+#ifdef CUDA_ENABLED
     { "gpuhostpinned",     AllocatorTypeUI::GpuHostPinned },
+#endif
 };
 /**
  * @brief: Create a string to Enum mapping vector.

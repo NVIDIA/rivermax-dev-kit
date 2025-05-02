@@ -34,7 +34,7 @@ if (CMAKE_CUDA_COMPILER)
     add_subdirectory(cuda)
 endif()
 
-target_link_libraries(${PROJECT_NAME} 
+target_link_libraries(${PROJECT_NAME}
     PRIVATE
         rivermax-dev-kit-build
         rivermax-dev-kit-services-cpu
@@ -44,7 +44,7 @@ target_link_libraries(${PROJECT_NAME}
         $<$<BOOL:${RMAX_CUDA}>:rivermax-dev-kit-services-legacy-util-cuda>
 )
 
-target_sources(${PROJECT_NAME} 
+target_sources(${PROJECT_NAME}
     PUBLIC
         defs.h
         rational.h

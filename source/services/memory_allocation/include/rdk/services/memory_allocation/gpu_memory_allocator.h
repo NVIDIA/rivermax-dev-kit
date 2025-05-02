@@ -21,9 +21,12 @@
 
 #include <cstddef>
 #include <memory>
+#include <functional>
 
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/memory_allocation/memory_allocator_interface.h"
+
+struct gpu_stream;
 
 namespace rivermax
 {
@@ -40,9 +43,19 @@ namespace services
 class GpuMemoryUtils : public MemoryUtils
 {
 public:
+    GpuMemoryUtils();
+    ~GpuMemoryUtils() = default;
+
     MemoryLocation get_memory_location() const override { return MemoryLocation::Gpu; }
     ReturnStatus memory_set(void* dst, int value, size_t count) const override;
     ReturnStatus memory_copy(void* dst, const void* src, size_t count) const override;
+    ReturnStatus memory_copy_from(void* dst, const void* src,
+        size_t count, MemoryLocation  src_location) const override;
+    ReturnStatus memory_copy_to(void* dst, const void* src,
+       size_t count, MemoryLocation dst_location) const override;
+private:
+    using stream_deleter_t = std::function<void(gpu_stream*)>;
+    mutable std::unique_ptr<gpu_stream, stream_deleter_t> m_stream;
 };
 /**
  * @brief: GPU memory allocation.

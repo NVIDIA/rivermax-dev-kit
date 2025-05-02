@@ -123,12 +123,36 @@ public:
      * @brief: Copies memory.
      *
      * @param [in] dst: Destination memory address.
-     * @param [in] src:  Source memory address.
+     * @param [in] src: Source memory address.
      * @param [in] count: Size in bytes to copy.
      *
      * @return: Status of the operation.
      */
     virtual ReturnStatus memory_copy(void* dst, const void* src, size_t count) const;
+    /**
+     * @brief: Copies memory from specified source type.
+     *
+     * @param [in] dst: Destination memory address.
+     * @param [in] src: Source memory address.
+     * @param [in] count: Size in bytes to copy.
+     * @param [in] src_location: Source memory location.
+     *
+     * @return: Status of the operation.
+     */
+    virtual ReturnStatus memory_copy_from(void* dst, const void* src,
+        size_t count, MemoryLocation src_location) const;
+    /**
+     * @brief: Copies memory from specified destination type.
+     *
+     * @param [in] dst: Destination memory address.
+     * @param [in] src: Source memory address.
+     * @param [in] count: Size in bytes to copy.
+     * @param [in] dst_location: Destination memory location.
+     *
+     * @return: Status of the operation.
+     */
+    virtual ReturnStatus memory_copy_to(void* dst, const void* src,
+       size_t count, MemoryLocation dst_location) const;
 };
 /**
  * @brief: Memory allocator implementation.

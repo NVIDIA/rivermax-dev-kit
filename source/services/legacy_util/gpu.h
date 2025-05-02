@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef _GENERIC_RECEIVER_GPU_H_
-#define _GENERIC_RECEIVER_GPU_H_
+#ifndef RDK_SERVICES_LEGACY_UTIL_GPU_H_
+#define RDK_SERVICES_LEGACY_UTIL_GPU_H_
 
 #include <cerrno>
 #include <cstdint>
@@ -33,6 +33,21 @@
 constexpr const char* CUDA_DEVICE_ORDER = "CUDA_DEVICE_ORDER";
 constexpr const char* CUDA_PCI_BUS_ID_DEVICE_ORDER = "PCI_BUS_ID";
 
+enum class gpu_memcpy_direction
+{
+    gpuMemcpyHostToHost = 0,
+    gpuMemcpyHostToDevice = 1,
+    gpuMemcpyDeviceToHost = 2,
+    gpuMemcpyDeviceToDevice = 3,
+    gpuMemcpyDefault = 4
+};
+
+enum class gpu_sync_mode
+{
+    ASYNC = 0,
+    SYNC = 1
+};
+
 /**
  * @brief: BAR1 Memory allocation information for a device
  *
@@ -43,10 +58,17 @@ typedef struct gpu_bar1_memory_info {
     uint64_t used; /**< Allocated Used Memory (in bytes) */
 } gpu_bar1_memory_info;
 
+struct gpu_stream;
+
 #ifdef CUDA_ENABLED
 #include <iostream>
 #include <cuda_runtime.h>
 #include <cuda.h>
+
+struct gpu_stream
+{
+    cudaStream_t cuda_stream;
+};
 
 bool gpu_init(int gpu_id);
 bool gpu_uninit(int gpu_id);
@@ -60,7 +82,13 @@ size_t gpu_query_alignment(int gpu_id);
 void* gpu_allocate_memory(int gpu_id, size_t size, size_t align);
 bool gpu_free_memory(void* ptr, size_t size);
 bool gpu_memset(void* dst, int value, size_t count);
-bool gpu_memcpy(void* dst, const void* src, size_t count);
+bool gpu_memcpy(void* dst, const void* src, size_t count,
+    gpu_memcpy_direction direction = gpu_memcpy_direction::gpuMemcpyDefault,
+    gpu_stream stream = {0},
+    gpu_sync_mode sync_mode = gpu_sync_mode::ASYNC);
+bool gpu_synchronize_stream(gpu_stream stream = {0});
+bool gpu_create_stream(gpu_stream *stream);
+bool gpu_destroy_stream(gpu_stream stream);
 void gpu_compare_checksum(const uint8_t** data_ptrs, const size_t* sizes,
                           const uint32_t* expected_checksums, uint32_t* mismatch_counter,
                           uint32_t num_packet);
@@ -99,6 +127,10 @@ static inline bool gpu_verify_allocated_bar1_size(int gpu_id, size_t size)
 }
 #endif
 #else // !CUDA_ENABLED
+
+struct gpu_stream
+{
+};
 
 static inline bool gpu_init(int gpu_id)
 {
@@ -170,12 +202,35 @@ static inline bool gpu_memset(void* dst, int value, size_t count)
     return false;
 }
 
-static inline bool gpu_memcpy(void* dst, const void* src, size_t count)
+static inline bool gpu_memcpy(void* dst, const void* src, size_t count,
+    gpu_memcpy_direction direction = gpu_memcpy_direction::gpuMemcpyDefault,
+    gpu_stream stream = {},
+    gpu_sync_mode sync_mode = gpu_sync_mode::ASYNC)
 {
     NOT_IN_USE(dst);
     NOT_IN_USE(src);
     NOT_IN_USE(count);
+    NOT_IN_USE(direction);
+    NOT_IN_USE(stream);
+    NOT_IN_USE(sync_mode);
+    return false;
+}
 
+static inline bool gpu_synchronize_stream(gpu_stream stream = {})
+{
+    NOT_IN_USE(stream);
+    return false;
+}
+
+static inline bool gpu_create_stream(gpu_stream *stream)
+{
+    NOT_IN_USE(stream);
+    return false;
+}
+
+static inline bool gpu_destroy_stream(gpu_stream stream)
+{
+    NOT_IN_USE(stream);
     return false;
 }
 
