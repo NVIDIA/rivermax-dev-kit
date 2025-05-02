@@ -53,6 +53,9 @@ public:
         size_t count, MemoryLocation  src_location) const override;
     ReturnStatus memory_copy_to(void* dst, const void* src,
        size_t count, MemoryLocation dst_location) const override;
+    ReturnStatus memory_copy_2D(void* dst, size_t dst_padded_width,
+        const void* src, size_t src_padded_width, size_t width, size_t height,
+        MemoryLocation src_location) const override;
 private:
     using stream_deleter_t = std::function<void(gpu_stream*)>;
     mutable std::unique_ptr<gpu_stream, stream_deleter_t> m_stream;

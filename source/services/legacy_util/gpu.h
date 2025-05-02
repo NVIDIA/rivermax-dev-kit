@@ -70,6 +70,8 @@ struct gpu_stream
     cudaStream_t cuda_stream;
 };
 
+extern const gpu_stream DEFAULT_GPU_STREAM;
+
 bool gpu_init(int gpu_id);
 bool gpu_uninit(int gpu_id);
 bool verify_gpu_device_id(int device_id);
@@ -83,6 +85,11 @@ void* gpu_allocate_memory(int gpu_id, size_t size, size_t align);
 bool gpu_free_memory(void* ptr, size_t size);
 bool gpu_memset(void* dst, int value, size_t count);
 bool gpu_memcpy(void* dst, const void* src, size_t count,
+    gpu_memcpy_direction direction = gpu_memcpy_direction::gpuMemcpyDefault,
+    gpu_stream stream = {0},
+    gpu_sync_mode sync_mode = gpu_sync_mode::ASYNC);
+bool gpu_memcopy_2D(void* dst, size_t dst_padded_width,
+    const void* src, size_t src_padded_width, size_t width, size_t height,
     gpu_memcpy_direction direction = gpu_memcpy_direction::gpuMemcpyDefault,
     gpu_stream stream = {0},
     gpu_sync_mode sync_mode = gpu_sync_mode::ASYNC);
@@ -131,6 +138,8 @@ static inline bool gpu_verify_allocated_bar1_size(int gpu_id, size_t size)
 struct gpu_stream
 {
 };
+
+static const gpu_stream DEFAULT_GPU_STREAM = {};
 
 static inline bool gpu_init(int gpu_id)
 {
@@ -213,6 +222,25 @@ static inline bool gpu_memcpy(void* dst, const void* src, size_t count,
     NOT_IN_USE(direction);
     NOT_IN_USE(stream);
     NOT_IN_USE(sync_mode);
+    return false;
+}
+
+static inline bool gpu_memcopy_2D(void* dst, size_t dst_padded_width,
+    const void* src, size_t src_padded_width, size_t width, size_t height,
+    gpu_memcpy_direction direction = gpu_memcpy_direction::gpuMemcpyDefault,
+    gpu_stream stream = {},
+    gpu_sync_mode sync_mode = gpu_sync_mode::ASYNC)
+{
+    NOT_IN_USE(dst);
+    NOT_IN_USE(dst_padded_width);
+    NOT_IN_USE(src);
+    NOT_IN_USE(src_padded_width);
+    NOT_IN_USE(width);
+    NOT_IN_USE(height);
+    NOT_IN_USE(direction);
+    NOT_IN_USE(sync_mode);
+    NOT_IN_USE(stream);
+
     return false;
 }
 
@@ -312,5 +340,8 @@ static inline bool gpu_free_host_pinned_memory(void* ptr)
 }
 
 #endif // CUDA_ENABLED
-#endif // _GENERIC_RECEIVER_GPU_H_
+bool host_mem_copy_2D(void* dst, size_t dst_padded_width,
+    const void* src, size_t src_padded_width, size_t width, size_t height);
+
+#endif // RDK_SERVICES_LEGACY_UTIL_GPU_H_
 

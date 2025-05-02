@@ -94,6 +94,27 @@ ReturnStatus GpuMemoryUtils::memory_copy_to(void* dst, const void* src,
     bool status = gpu_memcpy(dst, src, count, direction, *m_stream);
     return (status) ? ReturnStatus::success : ReturnStatus::failure;
 }
+ReturnStatus GpuMemoryUtils::memory_copy_2D(void* dst, size_t dst_padded_width,
+    const void* src, size_t src_padded_width, size_t width, size_t height,
+    MemoryLocation src_location) const
+{
+    gpu_memcpy_direction direction;
+    switch(src_location) {
+        case MemoryLocation::Host:
+            direction = gpu_memcpy_direction::gpuMemcpyHostToDevice;
+            break;
+        case MemoryLocation::Gpu:
+            direction = gpu_memcpy_direction::gpuMemcpyDeviceToDevice;
+            break;
+        default:
+            std::cerr << "Unsupported source type for GPU memcopy 2D" << std::endl;
+            return ReturnStatus::failure;
+    }
+
+    bool status = gpu_memcopy_2D(dst, dst_padded_width, src, src_padded_width, width, height,
+        direction, *m_stream);
+    return (status) ? ReturnStatus::success : ReturnStatus::failure;
+}
 
 GpuMemoryAllocator::GpuMemoryAllocator(int gpu_id)
     : MemoryAllocator()

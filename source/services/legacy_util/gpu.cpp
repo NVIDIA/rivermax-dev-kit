@@ -17,17 +17,19 @@
  */
 
 #include <cerrno>
-#ifdef CUDA_ENABLED
-
 #include <iostream>
 #include <cstring>
+#include "defs.h"
+#include "gpu.h"
+
+#ifdef CUDA_ENABLED
 #ifndef TEGRA_ENABLED
 #include <nvml.h>
 #endif
-#include "defs.h"
 #include "rt_threads.h"
-#include "gpu.h"
 #include "checksum_kernel.h"
+
+const gpu_stream DEFAULT_GPU_STREAM = {0};
 
 /**
  * @brief: Initialize GPU.
@@ -448,13 +450,68 @@ bool gpu_memcpy(void* dst, const void* src, size_t count,
     return true;
 }
 /**
+ * @brief: Copies a matrix.
+ *
+ * Copies a matrix (@p height rows of @p width bytes each) from the memory area
+ * pointed to by @p src to the memory area pointed to by @p dst.
+ * @p dst_padded_width and @p src_padded_width are the widths in memory in bytes
+ * of the 2D arrays pointed to by @p dst and @p src, including any padding added
+ * to the end of each row.
+ *
+ * @note: The memory areas may not overlap.
+ * @note: @p width must not exceed either @p dst_padded_width or @p src_padded_width.
+ *
+ * @param [in] dst: Destination memory address.
+ * @param [in] dst_padded_width: Padded memory width of destination memory.
+ * @param [in] src: Source memory address.
+ * @param [in] src_padded_width: Padded memory width of source memory.
+ * @param [in] width: Width of matrix transfer (columns in bytes).
+ * @param [in] height: Height of matrix transfer (rows).
+ * @param [in] direction: Direction of copy operation.
+ * @param [in] stream: CUDA stream to use for the copy operation.
+ * @param [in] sync_mode: Whether to synchronize after the copy.
+ *
+ * @return: Status of the operation.
+ */
+bool gpu_memcopy_2D(void* dst, size_t dst_padded_width,
+    const void* src, size_t src_padded_width, size_t width, size_t height,
+    gpu_memcpy_direction direction, gpu_stream stream, gpu_sync_mode sync_mode)
+{
+#ifdef TEGRA_ENABLED
+    host_mem_copy_2D(dst, dst_padded_width, src, src_padded_width, width, height);
+#else
+    if (!dst || !src || width == 0 || height == 0 || dst_padded_width == 0 ||
+        src_padded_width == 0 || (width > dst_padded_width) || (width > src_padded_width)) {
+        std::cerr << "Invalid parameters for 2D memory copy" << std::endl;
+        return false;
+    }
+    cudaError_t cuda_result = cudaMemcpy2DAsync(dst, dst_padded_width,
+        src, src_padded_width, width, height, to_cuda_memcpy_kind(direction), stream.cuda_stream);
+    if (cuda_result != cudaSuccess) {
+        std::cerr << "Failed to copy 2D memory on GPU : "
+            << cudaGetErrorString(cuda_result) << std::endl;
+        std::cerr << "dst: " << dst << ", dst_padded_width: " << dst_padded_width
+            << ", src: " << src << ", src_padded_width: " << src_padded_width
+            << ", width: " << width << ", height: " << height << std::endl;
+        return false;
+    }
+
+    if (sync_mode == gpu_sync_mode::SYNC) {
+        if (!gpu_synchronize_stream(stream)) {
+            return false;
+        }
+    }
+#endif
+    return true;
+}
+/**
  * @brief: Synchronize GPU stream.
  *
  * Wait for all operations in the specified stream to complete.
  *
  * @param [in] stream: GPU stream to synchronize.
  *
- * @return: Return status of the operation.
+ * @return: Status of the operation.
  */
 bool gpu_synchronize_stream(gpu_stream stream)
 {
@@ -791,3 +848,44 @@ bool gpu_free_host_pinned_memory(void* ptr)
 }
 
 #endif // CUDA_ENABLED
+
+/**
+ * @brief: Copies a matrix. (Host version)
+ *
+ * Copies a matrix (@p height rows of @p width bytes each) from the memory area
+ * pointed to by @p src to the memory area pointed to by @p dst.
+ * @p dst_padded_width and @p src_padded_width are the widths in memory in bytes
+ * of the 2D arrays pointed to by @p dst and @p src, including any padding added
+ * to the end of each row.
+ *
+ * @note: The memory areas may not overlap.
+ * @note: @p width must not exceed either @p dst_padded_width or @p src_padded_width.
+ *
+ * @param [in] dst: Destination memory address.
+ * @param [in] dst_padded_width: Padded memory width of destination memory.
+ * @param [in] src: Source memory address.
+ * @param [in] src_padded_width: Padded memory width of source memory.
+ * @param [in] width: Width of matrix transfer (columns in bytes).
+ * @param [in] height: Height of matrix transfer (rows).
+ *
+ * @return: Status of the operation.
+ */
+bool host_mem_copy_2D(void* dst, size_t dst_padded_width,
+    const void* src, size_t src_padded_width, size_t width, size_t height)
+{
+    if (!dst || !src || width == 0 || height == 0 || dst_padded_width == 0 ||
+        src_padded_width == 0 || (width > dst_padded_width) || (width > src_padded_width)) {
+        std::cerr << "Invalid parameters for host_memory_copy_2D" << std::endl;
+        return false;
+    }
+
+    uint8_t* dst_ptr = static_cast<uint8_t*>(dst);
+    const uint8_t* src_ptr = static_cast<const uint8_t*>(src);
+
+    for (size_t row = 0; row < height; ++row) {
+        uint8_t* dst_row = dst_ptr + row * dst_padded_width;
+        const uint8_t* src_row = src_ptr + row * src_padded_width;
+        std::memcpy(dst_row, src_row, width);
+    }
+    return true;
+}

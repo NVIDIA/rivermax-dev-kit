@@ -49,9 +49,9 @@ target_sources(${PROJECT_NAME}
         defs.h
         rational.h
         rt_threads.h
-        $<$<BOOL:${RMAX_CUDA}>:${CMAKE_CURRENT_SOURCE_DIR}/gpu.h>
+        gpu.h
     PRIVATE
         rational.cpp
         rt_threads.cpp
-        $<$<BOOL:${RMAX_CUDA}>:${CMAKE_CURRENT_SOURCE_DIR}/gpu.cpp>
+        gpu.cpp
 )

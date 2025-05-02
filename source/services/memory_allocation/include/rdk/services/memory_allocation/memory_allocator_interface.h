@@ -153,6 +153,31 @@ public:
      */
     virtual ReturnStatus memory_copy_to(void* dst, const void* src,
        size_t count, MemoryLocation dst_location) const;
+    /**
+     * @brief: Copies a matrix.
+     *
+     * Copies a matrix (@p height rows of @p width bytes each) from the memory area
+     * pointed to by @p src to the memory area pointed to by @p dst.
+     * @p dst_padded_width and @p src_padded_width are the widths in memory in bytes
+     * of the 2D arrays pointed to by @p dst and @p src, including any padding added
+     * to the end of each row.
+     *
+     * @note: The memory areas may not overlap.
+     * @note: @p width must not exceed either @p dst_padded_width or @p src_padded_width.
+     *
+     * @param [in] dst: Destination memory address.
+     * @param [in] dst_padded_width: Padded memory width of destination memory.
+     * @param [in] src: Source memory address.
+     * @param [in] src_padded_width: Padded memory width of source memory.
+     * @param [in] width: Width of matrix transfer (columns in bytes).
+     * @param [in] height: Height of matrix transfer (rows).
+     * @param [in] src_location: Source memory location.
+     *
+     * @return: Status of the operation.
+     */
+    virtual ReturnStatus memory_copy_2D(void* dst, size_t dst_padded_width,
+        const void* src, size_t src_padded_width, size_t width, size_t height,
+        MemoryLocation src_location) const;
 };
 /**
  * @brief: Memory allocator implementation.
