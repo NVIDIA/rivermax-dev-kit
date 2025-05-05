@@ -132,10 +132,69 @@ ReturnStatus RTPVideoBufferWriter::set_next_frame(std::shared_ptr<MediaFrame> fr
     return ReturnStatus::success;
 }
 
+ReturnStatus RTPVideoBufferWriter::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
+{
+    byte_t* header_pointer = reinterpret_cast<byte_t*>(header_ptr);
+    byte_t* payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);
+    assert(header_pointer);
+    assert(payload_ptr);
+
+    if (m_current_frame == nullptr || m_current_frame->data == nullptr ||
+        m_current_frame->data->get() == nullptr || !m_payload_mem_utils ||
+        m_data_left_in_frame == 0) {
+        std::cerr << "Error: Invalid frame state" << std::endl;
+        return ReturnStatus::failure;
+    }
+
+    // Determine how many complete packets we can process
+    size_t packets_to_process = std::min(length_in_strides,
+        static_cast<size_t>(m_media_settings.packets_in_frame_field - m_send_data.packet_counter));
+    // Limit by available frame data
+    size_t max_packets_by_data =
+        (m_data_left_in_frame + m_media_settings.raw_packet_payload_size - 1) /
+        m_media_settings.raw_packet_payload_size;
+    packets_to_process = std::min(packets_to_process, max_packets_by_data);
+
+    if (packets_to_process == 0) {
+        std::cerr << "Warning: No packets to process. State may be inconsistent." << std::endl;
+        return ReturnStatus::success;
+    }
+
+    if (packets_to_process < length_in_strides) {
+        std::cerr << "Warning: Requested " << length_in_strides << " packets but only "
+                  << packets_to_process << " can be processed due to data constraints." << std::endl;
+    }
+
+    for (size_t i = 0; i < packets_to_process; i++) {
+        byte_t* current_packet_pointer = header_pointer + (i * m_app_header_stride_size);
+        build_rtp_header(current_packet_pointer);
+        update_in_frame_state();
+    }
+
+    byte_t* frame_ptr = m_current_frame->data->get() + (m_current_frame->data->get_size() - m_data_left_in_frame);
+    auto status = m_payload_mem_utils->memory_copy_2D(payload_pointer, m_data_stride_size,
+        frame_ptr, m_media_settings.raw_packet_payload_size,
+        m_media_settings.raw_packet_payload_size, packets_to_process, m_current_frame->data->get_memory_location());
+
+    size_t data_copied = std::min(packets_to_process * m_media_settings.raw_packet_payload_size, m_data_left_in_frame);
+    m_data_left_in_frame -= data_copied;
+
+    if (m_data_left_in_frame == 0) {
+        m_current_frame = nullptr;
+    }
+
+    if (status != ReturnStatus::success) {
+        std::cerr << "Failed to 2D copy" << std::endl;
+        return ReturnStatus::failure;
+    }
+    return ReturnStatus::success;
+}
+
 size_t RTPVideoBufferWriter::fill_packet(byte_t* buffer)
 {
     if (m_current_frame == nullptr || m_current_frame->data == nullptr ||
         m_current_frame->data->get() == nullptr || !m_payload_mem_utils) {
+        std::cerr << "Error: Invalid frame state" << std::endl;
         return 0;
     }
     auto raw_payload_size = m_media_settings.raw_packet_payload_size;

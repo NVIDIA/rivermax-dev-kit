@@ -110,6 +110,8 @@ public:
      */
     virtual ~RTPVideoBufferWriter() = default;
     ReturnStatus set_next_frame(std::shared_ptr<MediaFrame> frame) override;
+    using IBufferWriter::write_buffer;
+    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
 protected:
     size_t fill_packet(byte_t* buffer) override;
 };
