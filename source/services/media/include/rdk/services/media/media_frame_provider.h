@@ -356,6 +356,7 @@ protected:
     MemoryAllocator& m_mem_allocator;
     MediaType m_media_type;
     size_t m_frame_size;
+    size_t m_aligned_frame_size;
     bool m_loop_frames;
     bool m_stop;
     bool m_frames_loaded;

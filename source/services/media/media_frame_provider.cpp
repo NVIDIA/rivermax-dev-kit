@@ -220,6 +220,7 @@ MediaFileFrameProvider::MediaFileFrameProvider(const std::string &file_path, Med
     m_mem_allocator(mem_allocator),
     m_media_type(type),
     m_frame_size(frame_size),
+    m_aligned_frame_size(mem_allocator.align_length(frame_size)),
     m_loop_frames(loop),
     m_stop(false),
     m_frames_loaded(false)
@@ -267,9 +268,7 @@ ReturnStatus MediaFileFrameProvider::allocate_frames_memory(size_t file_size,
     byte_t*& file_memory_buffer, size_t& required_memory_size)
 {
     size_t num_frames = file_size / m_frame_size;
-    required_memory_size = num_frames * m_frame_size;
-    required_memory_size = m_mem_allocator.align_length(required_memory_size);
-
+    required_memory_size = num_frames * m_aligned_frame_size;
     file_memory_buffer = static_cast<byte_t*>(m_mem_allocator.allocate_aligned(required_memory_size,
         m_mem_allocator.get_page_size()));
     if (!file_memory_buffer) {
@@ -321,7 +320,7 @@ ReturnStatus MediaFileFrameProvider::read_frames(byte_t* file_memory_buffer)
 
         m_cv.notify_one();
         frame_index++;
-        cur_frame_ptr += m_frame_size;
+        cur_frame_ptr += m_aligned_frame_size;
     }
     return ReturnStatus::success;
 }
