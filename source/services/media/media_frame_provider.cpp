@@ -25,52 +25,59 @@
 using namespace rivermax::dev_kit::services;
 
 FrameBuffer::FrameBuffer(size_t buffer_size) :
-    owned_buffer(new byte_t[buffer_size]),
-    buffer_ptr(owned_buffer.get()),
-    size(buffer_size),
-    is_owned(true)
+    m_owned_buffer(new byte_t[buffer_size]),
+    m_buffer_ptr(m_owned_buffer.get()),
+    m_size(buffer_size),
+    m_is_owned(true),
+    m_memory_location(MemoryLocation::Host)
 {
 }
 
-FrameBuffer::FrameBuffer(byte_t* external_buffer, size_t buffer_size) :
-    owned_buffer(nullptr),
-    buffer_ptr(external_buffer),
-    size(buffer_size),
-    is_owned(false)
+FrameBuffer::FrameBuffer(byte_t* external_buffer, size_t buffer_size,
+    MemoryLocation memory_location) :
+    m_owned_buffer(nullptr),
+    m_buffer_ptr(external_buffer),
+    m_size(buffer_size),
+    m_is_owned(false),
+    m_memory_location(memory_location)
 {
 }
 
-FrameBuffer::FrameBuffer(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size) :
-    owned_buffer(nullptr),
-    buffer_ptr(shared_buffer.get()),
-    size(buffer_size),
-    is_owned(false)
+FrameBuffer::FrameBuffer(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
+    MemoryLocation memory_location) :
+    m_owned_buffer(nullptr),
+    m_buffer_ptr(shared_buffer.get()),
+    m_size(buffer_size),
+    m_is_owned(false),
+    m_memory_location(memory_location)
 {
 }
 
 FrameBuffer::FrameBuffer(FrameBuffer&& other) noexcept :
-    owned_buffer(std::move(other.owned_buffer)),
-    buffer_ptr(other.buffer_ptr),
-    size(other.size),
-    is_owned(other.is_owned)
+    m_owned_buffer(std::move(other.m_owned_buffer)),
+    m_buffer_ptr(other.m_buffer_ptr),
+    m_size(other.m_size),
+    m_is_owned(other.m_is_owned),
+    m_memory_location(other.m_memory_location)
 {
     // If other owned its buffer, its pointer is now invalid after the move.
-    if (other.is_owned) {
-        other.buffer_ptr = nullptr;
+    if (other.m_is_owned) {
+        other.m_buffer_ptr = nullptr;
     }
 }
 
 FrameBuffer& FrameBuffer::operator=(FrameBuffer&& other) noexcept
 {
     if (this != &other) {
-        owned_buffer = std::move(other.owned_buffer);
-        buffer_ptr = other.buffer_ptr;
-        size = other.size;
-        is_owned = other.is_owned;
+        m_owned_buffer = std::move(other.m_owned_buffer);
+        m_buffer_ptr = other.m_buffer_ptr;
+        m_size = other.m_size;
+        m_is_owned = other.m_is_owned;
+        m_memory_location = other.m_memory_location;
 
         // If other owned its buffer, its pointer is now invalid after the move
-        if (other.is_owned) {
-            other.buffer_ptr = nullptr;
+        if (other.m_is_owned) {
+            other.m_buffer_ptr = nullptr;
         }
     }
     return *this;
@@ -82,14 +89,16 @@ MediaFrame::MediaFrame(size_t buffer_size) :
 {
 }
 
-MediaFrame::MediaFrame(byte_t* external_buffer, size_t buffer_size) :
-    data(external_buffer, buffer_size),
+MediaFrame::MediaFrame(byte_t* external_buffer, size_t buffer_size,
+    MemoryLocation memory_location) :
+    data(external_buffer, buffer_size, memory_location),
     metadata(nullptr)
 {
 }
 
-MediaFrame::MediaFrame(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size) :
-    data(shared_buffer, buffer_size),
+MediaFrame::MediaFrame(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
+    MemoryLocation memory_location) :
+    data(shared_buffer, buffer_size, memory_location),
     metadata(nullptr)
 {
 }

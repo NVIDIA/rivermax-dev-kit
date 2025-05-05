@@ -40,17 +40,77 @@ namespace dev_kit
 namespace services
 {
 /**
+ * @brief: Abstract interface for frame buffer management.
  *
- * @brief: Holds the essential frame data.
+ * IFrameBuffer defines the essential contract for frame buffer implementations,
+ * providing access to buffer data, size information, and memory location details.
+ * This interface abstracts the underlying memory management strategy, allowing
+ * different implementations to handle owned vs. borrowed memory, different
+ * memory locations (Host/GPU), and various allocation schemes.
+ *
+ * Key responsibilities:
+ * - Provide access to the raw buffer data.
+ * - Report buffer size and alignment information.
+ * - Indicate memory location for proper memory operations.
  */
-class FrameBuffer {
+class IFrameBuffer {
+public:
+    /**
+     * @brief: Destructor.
+     */
+    virtual ~IFrameBuffer() = default;
+    /**
+     * @brief: Returns pointer to the buffer.
+     *
+     * @return: Pointer to the buffer.
+     */
+    virtual byte_t* get() const = 0;
+    /**
+     * @brief: Returns size of the buffer.
+     *
+     * @return: Size of the buffer.
+     */
+    virtual size_t get_size() const = 0;
+    /**
+     * @brief: Returns aligned size of the buffer.
+     *
+     * @return: Aligned size of the buffer.
+     */
+    virtual size_t get_aligned_size() const = 0;
+    /**
+     * @brief: Returns the memory location of the buffer.
+     *
+     * @return: Memory location of the buffer.
+     **/
+    virtual MemoryLocation get_memory_location() const = 0;
+};
+
+/**
+ * @brief: Concrete implementation of @ref IFrameBuffer with flexible memory management.
+ *
+ * FrameBuffer provides a robust frame buffer implementation that supports multiple
+ * memory ownership models:
+ *
+ * 1. Owned Memory: Automatically allocates and manages its own memory buffer.
+ * 2. Borrowed Raw Pointer: References externally managed memory via raw pointer.
+ * 3. Shared Memory: References externally managed memory via shared_ptr.
+ *
+ * Key features:
+ * - Memory Location Awareness: Tracks whether data resides on Host or GPU.
+ * - Move Semantics: Efficient transfer of ownership without copying data.
+ * - Zero-Copy Operations: Can reference external buffers without duplication.
+ * - RAII Compliance: Automatic resource management with proper cleanup.
+ * - Thread Safety: Safe for concurrent read access.
+ */
+class FrameBuffer : public IFrameBuffer {
 private:
     /* Smart pointer for the owned memory */
-    std::unique_ptr<byte_t[]> owned_buffer;
+    std::unique_ptr<byte_t[]> m_owned_buffer;
     /* Raw pointer that always points to the active buffer (whether owned or borrowed) */
-    byte_t* buffer_ptr;
-    size_t size;
-    bool is_owned;
+    byte_t* m_buffer_ptr;
+    size_t m_size;
+    bool m_is_owned;
+    MemoryLocation m_memory_location;
 public:
     /**
      * @brief: Constructor that allocates internal memory.
@@ -63,36 +123,28 @@ public:
      *
      * @param [in] external_buffer: Pointer to the external buffer.
      * @param [in] buffer_size: Size of the external buffer.
+     * @param [in] memory_location: Memory location of the external buffer.
      */
-    FrameBuffer(byte_t* external_buffer, size_t buffer_size);
+    FrameBuffer(byte_t* external_buffer, size_t buffer_size,
+        MemoryLocation memory_location = MemoryLocation::Host);
     /**
      * @brief: Constructor for external memory provided as a shared_ptr.
      *
      * @param [in] shared_buffer: Shared pointer to the external buffer.
      * @param [in] buffer_size: Size of the external buffer.
+     * @param [in] memory_location: Memory location of the external buffer.
      */
-    FrameBuffer(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size);
+    FrameBuffer(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
+        MemoryLocation memory_location = MemoryLocation::Host);
     FrameBuffer(const FrameBuffer&) = delete;
     FrameBuffer& operator=(const FrameBuffer&) = delete;
     FrameBuffer(FrameBuffer&& other) noexcept;
     FrameBuffer& operator=(FrameBuffer&& other) noexcept;
     ~FrameBuffer() = default;
-    /**
-     * @brief: Return pointer to the buffer.
-     *
-     * @return: Pointer to the buffer.
-     */
-    byte_t* get() const {
-        return buffer_ptr;
-    }
-    /**
-     * @brief: Return size of the buffer.
-     *
-     * @return: Size of the buffer.
-     */
-    size_t get_size() const {
-        return size;
-    }
+    byte_t* get() const override { return m_buffer_ptr; }
+    size_t get_size() const override { return m_size; }
+    size_t get_aligned_size() const override { return m_size; }
+    MemoryLocation get_memory_location() const override { return m_memory_location; }
 };
 
 /**
@@ -123,15 +175,19 @@ struct MediaFrame {
      *
      * @param [in] external_buffer: Pointer to the external buffer.
      * @param [in] buffer_size: Size of the external buffer.
+     * @param [in] memory_location: Memory location of the external buffer.
      */
-    MediaFrame(byte_t* external_buffer, size_t buffer_size);
+    MediaFrame(byte_t* external_buffer, size_t buffer_size,
+        MemoryLocation memory_location = MemoryLocation::Host);
     /**
      * @brief: Constructor for external memory provided as a shared_ptr.
      *
      * @param [in] shared_buffer: Shared pointer to the external buffer.
      * @param [in] buffer_size: Size of the external buffer.
+     * @param [in] memory_location: Memory location of the external buffer.
      */
-    MediaFrame(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size);
+    MediaFrame(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
+        MemoryLocation memory_location = MemoryLocation::Host);
     MediaFrame(const MediaFrame&) = delete;
     MediaFrame& operator=(const MediaFrame&) = delete;
     MediaFrame(MediaFrame&&) noexcept = default;
