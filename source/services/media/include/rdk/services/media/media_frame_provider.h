@@ -160,9 +160,22 @@ struct FrameMetadata {
 
 /**
  * @brief: Represents a media frame with data and metadata.
+ *
+ * MediaFrame encapsulates frame data through a polymorphic @ref IFrameBuffer interface
+ * and associated metadata. It supports multiple construction patterns for different
+ * memory management scenarios:
+ *
+ * 1. Self-Allocated: Creates its own FrameBuffer with allocated memory
+ * 2. External Raw Pointer: Wraps external memory via raw pointer
+ * 3. External Shared Pointer: Wraps external memory via shared_ptr
+ * 4. Polymorphic Buffer: Accepts any @ref IFrameBuffer implementation
+ *
+ * The frame data is managed through a unique_ptr<IFrameBuffer>, enabling
+ * polymorphic behavior while maintaining clear ownership semantics.
+ * Move-only semantics prevent accidental expensive frame copies.
  */
 struct MediaFrame {
-    FrameBuffer data;
+    std::unique_ptr<IFrameBuffer> data;
     std::shared_ptr<FrameMetadata> metadata;
     /**
      * @brief: Constructor that allocates its own memory.
@@ -188,6 +201,12 @@ struct MediaFrame {
      */
     MediaFrame(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
         MemoryLocation memory_location = MemoryLocation::Host);
+    /**
+     * @brief: Constructor for external memory provided as a unique_ptr.
+     *
+     * @param [in] frame_data: Unique pointer to an @ref IFrameBuffer implementation.
+     */
+    MediaFrame(std::unique_ptr<IFrameBuffer>&& frame_data);
     MediaFrame(const MediaFrame&) = delete;
     MediaFrame& operator=(const MediaFrame&) = delete;
     MediaFrame(MediaFrame&&) noexcept = default;

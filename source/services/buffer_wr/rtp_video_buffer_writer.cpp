@@ -122,15 +122,20 @@ size_t RTPVideoMockBufferWriter::build_rtp_header(byte_t* buffer)
 
 ReturnStatus RTPVideoBufferWriter::set_next_frame(std::shared_ptr<MediaFrame> frame)
 {
+    if (frame == nullptr || frame->data == nullptr) {
+        std::cerr << "Error: Frame is null or frame data is null" << std::endl;
+        return ReturnStatus::failure;
+    }
     RTPVideoMockBufferWriter::set_next_frame(frame);
     m_current_frame = std::move(frame);
-    m_data_left_in_frame = m_current_frame->data.get_size();
+    m_data_left_in_frame = m_current_frame->data->get_size();
     return ReturnStatus::success;
 }
 
 size_t RTPVideoBufferWriter::fill_packet(byte_t* buffer)
 {
-    if (m_current_frame == nullptr || !m_payload_mem_utils) {
+    if (m_current_frame == nullptr || m_current_frame->data == nullptr ||
+        m_current_frame->data->get() == nullptr || !m_payload_mem_utils) {
         return 0;
     }
     auto raw_payload_size = m_media_settings.raw_packet_payload_size;
@@ -138,7 +143,7 @@ size_t RTPVideoBufferWriter::fill_packet(byte_t* buffer)
         raw_payload_size = m_data_left_in_frame;
     }
 
-    byte_t* frame_ptr = m_current_frame->data.get() + (m_current_frame->data.get_size() - m_data_left_in_frame);
+    byte_t* frame_ptr = m_current_frame->data->get() + (m_current_frame->data->get_size() - m_data_left_in_frame);
     m_payload_mem_utils->memory_copy(buffer, frame_ptr, raw_payload_size);
     m_data_left_in_frame -= raw_payload_size;
 

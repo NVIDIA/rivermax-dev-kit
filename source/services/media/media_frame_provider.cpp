@@ -84,21 +84,26 @@ FrameBuffer& FrameBuffer::operator=(FrameBuffer&& other) noexcept
 }
 
 MediaFrame::MediaFrame(size_t buffer_size) :
-    data(buffer_size),
+    data(std::make_unique<FrameBuffer>(buffer_size)),
     metadata(nullptr)
 {
 }
 
 MediaFrame::MediaFrame(byte_t* external_buffer, size_t buffer_size,
     MemoryLocation memory_location) :
-    data(external_buffer, buffer_size, memory_location),
+    data(std::make_unique<FrameBuffer>(external_buffer, buffer_size, memory_location)),
     metadata(nullptr)
 {
 }
 
 MediaFrame::MediaFrame(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
     MemoryLocation memory_location) :
-    data(shared_buffer, buffer_size, memory_location),
+    data(std::make_unique<FrameBuffer>(shared_buffer, buffer_size, memory_location)),
+    metadata(nullptr)
+{
+}
+MediaFrame::MediaFrame(std::unique_ptr<IFrameBuffer>&& frame_buffer) :
+    data(std::move(frame_buffer)),
     metadata(nullptr)
 {
 }
@@ -185,6 +190,7 @@ std::shared_ptr<MediaFrame> BufferedMediaFrameProvider::get_frame_not_blocking()
 ReturnStatus BufferedMediaFrameProvider::add_frame(std::shared_ptr<MediaFrame> frame)
 {
     if (!frame) {
+        std::cerr << "Received null frame" << std::endl;
         return ReturnStatus::failure;
     }
     std::lock_guard<std::mutex> lock(m_mutex);
