@@ -109,6 +109,41 @@ void set_bitmap_bit(T (&bitmap)[S], size_t bit)
     auto offset = bit % bit_size;
     bitmap[index] |= ((T)1) << offset;
 }
+/**
+ * @brief: Byte memory literal operator.
+ *
+ * In this operator, the value is treated as bytes, but no conversion is done.
+ * The value is returned as-is. Useful for defining byte values in a more readable way.
+ *
+ * @param [in] value: Value to convert to bytes.
+ *
+ * @return: Value in bytes.
+ */
+constexpr size_t operator"" _B(unsigned long long value) { return value; }
+/**
+ * @brief: Kilobyte memory literal operator.
+ *
+ * @param [in] value: Value to convert to kilobytes.
+ *
+ * @return: Value in kilobytes.
+ */
+constexpr size_t operator"" _KB(unsigned long long value) { return value << 10; }
+/**
+ * @brief: Megabyte memory literal operator.
+ *
+ * @param [in] value: Value to convert to megabytes.
+ *
+ * @return: Value in megabytes.
+ */
+constexpr size_t operator"" _MB(unsigned long long value) { return value << 20; }
+/**
+ * @brief: Gigabyte memory literal operator.
+ *
+ * @param [in] value: Value to convert to gigabytes.
+ *
+ * @return: Value in gigabytes.
+ */
+constexpr size_t operator"" _GB(unsigned long long value) { return value << 30; }
 
 } // namespace services
 } // namespace dev_kit
