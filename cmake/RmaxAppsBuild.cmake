@@ -1,4 +1,5 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,36 +36,36 @@ if (MSVC)
     foreach(lang_name C CXX)
         string(REPLACE "/Ob2" "" CMAKE_${lang_name}_FLAGS_RELEASE "${CMAKE_${lang_name}_FLAGS_RELEASE}")
     endforeach()
-    set(RMAX_C_CXX_FLAGS 
+    set(RMAX_C_CXX_FLAGS
         /D_WINSOCK_DEPRECATED_NO_WARNINGS
-        /DNOMINMAX 
-        /GS /GL /W4 
-        /Zc:wchar_t- 
-        /Zi /Gm-  
-        /Zc:inline /fp:fast 
-        /D_WIN64 
-        /D_AMD64_ 
-        /DAMD64 
-        /DWIN32_LEAN_AND_MEAN=1 
-        /D_WIN32_WINNT=0x0A00 
-        /DWINVER=0x0A00 
-        /DWINNT=1 
-        /DNTDDI_VERSION=0xA00000A 
-        /D_STL100_ 
+        /DNOMINMAX
+        /GS /GL /W4
+        /Zc:wchar_t-
+        /Zi /Gm-
+        /Zc:inline /fp:fast
+        /D_WIN64
+        /D_AMD64_
+        /DAMD64
+        /DWIN32_LEAN_AND_MEAN=1
+        /D_WIN32_WINNT=0x0A00
+        /DWINVER=0x0A00
+        /DWINNT=1
+        /DNTDDI_VERSION=0xA00000A
+        /D_STL100_
         /DUNICODE /D_UNICODE
-        /D_ALLOW_RUNTIME_LIBRARY_MISMATCH 
-        /D_STATIC_CPPLIB 
-        /D_DISABLE_DEPRECATE_STATIC_CPPLIB 
-        /D_CRT_SECURE_NO_WARNINGS 
-        /D_HAS_ITERATOR_DEBUGGING=0 
-        /D_SECURE_SCL=0 
-        /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS 
-        /D_CRTIMP_= 
-        /DNDEBUG 
-        /errorReport:prompt 
-        /WX 
-        /Zc:forScope 
-        /GR /Gz /MD /FC 
+        /D_ALLOW_RUNTIME_LIBRARY_MISMATCH
+        /D_STATIC_CPPLIB
+        /D_DISABLE_DEPRECATE_STATIC_CPPLIB
+        /D_CRT_SECURE_NO_WARNINGS
+        /D_HAS_ITERATOR_DEBUGGING=0
+        /D_SECURE_SCL=0
+        /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS
+        /D_CRTIMP_=
+        /DNDEBUG
+        /errorReport:prompt
+        /WX
+        /Zc:forScope
+        /GR /Gz /MD /FC
         /EHsc /nologo
         /wd4324 # due to src\utils\stat\stat.h
         /wd4702 # due to src\main.cpp
@@ -104,13 +105,13 @@ else()
         -Wnon-virtual-dtor
     )
 endif()
-target_compile_options(rmax-apps-build INTERFACE 
+target_compile_options(rmax-apps-build INTERFACE
     $<$<COMPILE_LANGUAGE:CXX,C>:${RMAX_C_CXX_FLAGS}>
     $<$<COMPILE_LANGUAGE:CXX>:${RMAX_CXX_FLAGS}>
     $<$<COMPILE_LANGUAGE:CUDA>:-m64>
 )
-target_compile_definitions(rmax-apps-build INTERFACE 
-    ENABLE_DPCP 
+target_compile_definitions(rmax-apps-build INTERFACE
+    ENABLE_DPCP
     CONFIG_MERSENNE_TWISTER
     $<$<BOOL:${RMAX_CUDA}>:CUDA_ENABLED>
 )
@@ -122,7 +123,7 @@ find_package(Rivermax REQUIRED)
 find_package(Threads REQUIRED)
 
 target_link_libraries(rmax-apps-build INTERFACE
-    Threads::Threads 
+    Threads::Threads
     Rivermax::Rivermax
     $<$<BOOL:${RMAX_CUDA}>:CUDA::cuda_driver>
     $<$<BOOL:${RMAX_CUDA}>:CUDA::cudart>

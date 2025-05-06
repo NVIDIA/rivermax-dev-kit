@@ -1,4 +1,5 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +41,7 @@ endmacro()
 #[=======================================================================[.rst:
 .. command:: RmaxDetermineVersion
 
-  Extract from given header file ``version_file_path`` the Rivermax 
+  Extract from given header file ``version_file_path`` the Rivermax
   version and export it in a standard format via ``out_version``
 
   .. code-block:: cmake
@@ -63,7 +64,7 @@ endfunction()
 #[=======================================================================[.rst:
 .. command:: RmaxListTargets
 
-  List all targets defined within the directory tree specified 
+  List all targets defined within the directory tree specified
   by ``root_directory`` and populate the list via ``output_var``.
 
   .. code-block:: cmake
@@ -97,7 +98,7 @@ include(CheckCXXCompilerFlag)
 #[=======================================================================[.rst:
 .. command:: RmaxAppendCompileFlags
 
-  This function is analogous to AX_APPEND_COMPILE_FLAGS macro from 
+  This function is analogous to AX_APPEND_COMPILE_FLAGS macro from
   Autoconf Archive. Its purpose to add to given variable ``target_var``
   compilation flags passed to the function as part of ``ARGN``.
 
