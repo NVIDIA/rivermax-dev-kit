@@ -21,7 +21,6 @@
 
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/cli/options.h"
-#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -60,4 +59,5 @@ void AppSettings::init_default_values()
     stats_report_interval_ms = STATS_REPORT_INTERVAL_MS_DEFAULT;
     dynamic_media_file_load = false;
     rx_stream_type = RMX_INPUT_APP_PROTOCOL_PACKET;
+    num_of_packets_in_chunk_specified = false;
 }
