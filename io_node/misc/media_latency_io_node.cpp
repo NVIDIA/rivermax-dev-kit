@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #include <thread>
@@ -23,6 +23,9 @@
 #include <rt_threads.h>
 #include <api/rmax_apps_lib_api.h>
 #include "media_latency_io_node.h"
+#include "services/error_handling/return_status.h"
+#include "services/utils/rtp_video.h"
+
 
 using namespace ral::io_node;
 using namespace ral::lib::core;
@@ -77,8 +80,8 @@ void MediaTxIONode::initialize_send_stream()
             m_app_settings->num_of_packets_in_chunk, m_app_settings->packet_payload_size,
             m_send_data_stride_size, m_send_header_stride_size);
 
-    m_send_stream = std::shared_ptr<RTPVideoSendStream>(
-            new RTPVideoSendStream(stream_settings));
+    m_send_stream = std::shared_ptr<RtpVideoSendStream>(
+            new RtpVideoSendStream(stream_settings));
 }
 
 ReturnStatus MediaTxIONode::query_memory_size(size_t& tx_header_size, size_t& tx_payload_size,
@@ -450,7 +453,9 @@ ReturnStatus MediaTxIONode::try_process_one_completion(LatencyStats &tx_delay)
         return ReturnStatus::no_completion;
     }
     if (rc != ReturnStatus::success) {
-        std::cerr << "Failed polling for Tx completion" << std::endl;
+        if (rc != ReturnStatus::signal_received) {
+            std::cerr << "Failed polling for Tx completion" << std::endl;
+        }
         return rc;
     }
     uint64_t tx_hw_timestamp;

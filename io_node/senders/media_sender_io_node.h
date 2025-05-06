@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
-#ifndef RMAX_APPS_LIB_IO_NODE_SENDERS_MEIDA_SENDER_IO_NODE_H_
+#ifndef RMAX_APPS_LIB_IO_NODE_SENDERS_MEDIA_SENDER_IO_NODE_H_
 
 #include <cstddef>
 #include <vector>
@@ -23,7 +23,6 @@
 #include <rivermax_api.h>
 
 #include "api/rmax_apps_lib_api.h"
-#include "senders/rtp_video_send_stream.h"
 
 using namespace ral::lib::core;
 using namespace ral::lib::services;
@@ -49,7 +48,7 @@ private:
     */
     struct MediaStreamPack
     {
-        std::unique_ptr<RTPVideoSendStream> stream;
+        std::unique_ptr<RtpVideoSendStream> stream;
         std::unique_ptr<MediaChunk> chunk_handler;
         std::unique_ptr<MediaStreamMemBlockset> mem_blockset;
         std::vector<TwoTupleFlow> flows;
@@ -212,5 +211,5 @@ private:
 } // io_node
 } // ral
 
-#define RMAX_APPS_LIB_IO_NODE_SENDERS_MEIDA_SENDER_IO_NODE_H_
-#endif /* RMAX_APPS_LIB_IO_NODE_SENDERS_MEIDA_SENDER_IO_NODE_H_ */
+#define RMAX_APPS_LIB_IO_NODE_SENDERS_MEDIA_SENDER_IO_NODE_H_
+#endif /* RMAX_APPS_LIB_IO_NODE_SENDERS_MEDIA_SENDER_IO_NODE_H_ */

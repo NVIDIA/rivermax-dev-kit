@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #ifndef RMAX_APPS_LIB_LIB_SERVICES_UTILS_DEFS_H_
@@ -56,6 +56,7 @@ typedef uint8_t byte_t;
 enum class StreamType
 {
     Video2110_20,
+    VideoIPMX
 };
 
 enum class VideoScanType
@@ -113,6 +114,7 @@ typedef struct media_settings
     size_t lines_in_frame_field;
     size_t chunks_in_frame_field;
     size_t frames_fields_in_mem_block;
+    std::string refclk;
 } media_settings_t;
 
 /**
@@ -167,7 +169,8 @@ typedef struct AppSettings
     int gpu_id;
     AllocatorTypeUI allocator_type;
     media_settings_t media;
-    std::string video_stream_type;  // TODO: Remove this after adding SDP parser.
+    std::string video_stream_type;
+    bool ref_clk_is_ptp;
     int statistics_reader_core;
     uint32_t session_id_stats;
 } AppSettings;

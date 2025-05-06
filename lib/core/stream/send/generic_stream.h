@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #ifndef RMAX_APPS_LIB_LIB_CORE_STREAM_SEND_GENERIC_STREAM_H_
@@ -127,7 +127,7 @@ public:
     virtual ReturnStatus create_stream() override;
     virtual ReturnStatus destroy_stream() override;
     /**
-     * @brief: Returns a generic chunk.
+     * @brief: Returns a generic chunk from the chunk pool by index.
      *
      * @note: The user can override this function in case
      *        different logic and data structures for chunk management needed.
@@ -136,7 +136,13 @@ public:
      *
      * @return: Pointer to the generic chunk.
      */
-    virtual std::shared_ptr<GenericChunk> get_chunk(size_t index) { return m_chunks[index]; };
+    virtual std::shared_ptr<GenericChunk>& get_chunk(size_t index) { return m_chunks[index]; };
+    /**
+     * @brief: Returns the first generic chunk in the chunk pool.
+     *
+     * @return: Pointer to the generic chunk.
+     */
+    std::shared_ptr<GenericChunk>& get_chunk() { return m_chunks[0]; };
     /**
      * @brief: Returns the next free generic chunk.
      *

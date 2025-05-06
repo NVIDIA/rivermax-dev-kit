@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #include <string>
@@ -83,6 +83,7 @@ void RmaxBaseApp::initialize_common_default_app_settings()
     m_app_settings->allocator_type = AllocatorTypeUI::Auto;
     m_app_settings->statistics_reader_core = INVALID_CORE_NUMBER;
     m_app_settings->session_id_stats = UINT_MAX;
+    m_app_settings->ref_clk_is_ptp = true;
 }
 
 ReturnStatus RmaxBaseApp::initialize_memory_allocators()

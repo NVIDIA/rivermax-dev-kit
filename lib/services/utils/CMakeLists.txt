@@ -17,9 +17,11 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         clock.cpp
         cpu.cpp
+        rtp_video.cpp
     PUBLIC
         defs.h
         utils.h
         clock.h
         cpu.h
+        rtp_video.h
 )

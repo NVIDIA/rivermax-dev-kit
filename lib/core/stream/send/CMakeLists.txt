@@ -17,9 +17,11 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         generic_stream.cpp
         media_stream.cpp
+        rtp_video_send_stream.cpp
         send_stream_interface.cpp
     PUBLIC
         generic_stream.h
         media_stream.h
+        rtp_video_send_stream.h
         send_stream_interface.h
 )

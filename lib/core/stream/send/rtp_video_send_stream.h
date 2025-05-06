@@ -1,22 +1,19 @@
 /*
- * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
-#ifndef RMAX_APPS_LIB_IO_NODE_SENDERS_RTP_VIDEO_SEND_STREAM_H_
-#define RMAX_APPS_LIB_IO_NODE_SENDERS_RTP_VIDEO_SEND_STREAM_H_
+#ifndef RMAX_APPS_LIB_LIB_CORE_STREAM_RTP_VIDEO_SEND_STREAM_H_
+#define RMAX_APPS_LIB_LIB_CORE_STREAM_RTP_VIDEO_SEND_STREAM_H_
 
 #include <cstddef>
-#include <vector>
-#include <unordered_map>
-#include <memory>
 #include <iostream>
 #include <ostream>
 #include <chrono>
@@ -34,18 +31,6 @@ namespace io_node
 {
 
 constexpr size_t SLEEP_THRESHOLD_NS = std::chrono::nanoseconds{ std::chrono::milliseconds{ 2 } }.count();
-constexpr size_t NS_IN_SEC = std::chrono::nanoseconds{ std::chrono::seconds{ 1 } }.count();
-constexpr uint8_t LEAP_SECONDS = 37;
-constexpr const char* VIDEO_2110_20_1080p50 = "1080p50";
-constexpr const char* VIDEO_2110_20_1080p60 = "1080p60";
-constexpr const char* VIDEO_2110_20_2160p50 = "2160p50";
-constexpr const char* VIDEO_2110_20_2160p60 = "2160p60";
-const std::unordered_set<const char*> SUPPORTED_STREAMS = {
-    VIDEO_2110_20_1080p50,
-    VIDEO_2110_20_1080p60,
-    VIDEO_2110_20_2160p50,
-    VIDEO_2110_20_2160p60
-};
 
 /**
  * @brief: Sending statistics struct.
@@ -62,41 +47,29 @@ struct SendingStatistics
     uint16_t srd_offset;
 };
 /**
- * @brief: Compose @ref media_settings_t for the given media stream.
- *
- * This helper function calculates media settings for the selected video stream format.
- */
-void compose_media_settings(AppSettings& s);
-/**
- * @brief: Calculate timing parameters for the given media stream.
- *
- * This helper function calculates media settings for the selected video stream format.
- */
-void calculate_tro_trs(media_settings_t& media_settings, double& tro, double& trs);
-/**
  * @brief: RTP Video send stream interface.
  *
  * This class implements and extends @ref ral::lib::core::MediaSendStream operations.
  */
-class RTPVideoSendStream : public MediaSendStream
+class RtpVideoSendStream : public MediaSendStream
 {
 private:
     SendingStatistics m_send_stats;
 public:
     /**
-     * @brief: RTPVideoSendStream constructor without assigning memory blocks.
+     * @brief: RtpVideoSendStream constructor without assigning memory blocks.
      *
      * @param [in] settings: Stream parameters.
      */
-    RTPVideoSendStream(const MediaStreamSettings& settings);
+    RtpVideoSendStream(const MediaStreamSettings& settings);
     /**
-     * @brief: RTPVideoSendStream constructor with assigning memory blocks.
+     * @brief: RtpVideoSendStream constructor with assigning memory blocks.
      *
      * @param [in] settings: Stream parameters.
      * @param [in] mem_blocks: Parameters of blocks allocated for output packets.
      */
-    RTPVideoSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks);
-    virtual ~RTPVideoSendStream() = default;
+    RtpVideoSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks);
+    virtual ~RtpVideoSendStream() = default;
     std::ostream& print(std::ostream& out) const override;
     /**
      * @brief: Prepares media chunk to send.
@@ -144,4 +117,4 @@ private:
 } // io_node
 } // ral
 
-#endif /* RMAX_APPS_LIB_IO_NODE_SENDERS_RTP_VIDEO_SEND_STREAM_H_ */
+#endif /* RMAX_APPS_LIB_LIB_CORE_STREAM_RTP_VIDEO_SEND_STREAM_H_ */

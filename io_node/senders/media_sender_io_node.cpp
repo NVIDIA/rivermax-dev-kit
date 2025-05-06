@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #include <thread>
@@ -30,7 +30,7 @@ using namespace ral::io_node;
 using namespace ral::lib::core;
 using namespace ral::lib::services;
 
-void replace_all(
+static void replace_all(
     std::string& source_str, const std::string& outer_prefix_str, const std::string& inner_prefix_str,
     const std::string& new_str, const char* suffix_str, std::string::size_type start_replacement_location = 0)
 {
@@ -65,7 +65,7 @@ void replace_all(
 * @pram [in] suffix_str: Suffix string after source_str.
 * @pram [in] start_replacement_location: The location in the string to start the replacement from, defaults to 0.
 */
-inline void replace_all(
+static inline void replace_all(
     std::string& source_str, const std::string& prefix_str,
     const std::string& new_str, const char* suffix_str,
     std::string::size_type start_replacement_location = 0)
@@ -158,8 +158,8 @@ void MediaSenderIONode::initialize_streams()
                 m_num_of_packets_in_chunk, m_packet_payload_size, m_data_stride_size, 0,
                 m_dscp, m_pcp, m_ecn);
 
-        stream_pack.stream = std::unique_ptr<RTPVideoSendStream>(
-                new RTPVideoSendStream(stream_settings, *stream_pack.mem_blockset.get()));
+        stream_pack.stream = std::unique_ptr<RtpVideoSendStream>(
+                new RtpVideoSendStream(stream_settings, *stream_pack.mem_blockset.get()));
     }
     m_media_settings.sdp = sender_sdp;
 }

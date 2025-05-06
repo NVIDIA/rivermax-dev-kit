@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #ifndef RMAX_APPS_LIB_IO_NODE_MISC_MEDIA_LATENCY_IO_NODE_H_
@@ -23,7 +23,6 @@
 #include "generic_latency_io_node.h"
 
 #include "api/rmax_apps_lib_api.h"
-#include "senders/rtp_video_send_stream.h"
 
 using namespace ral::lib::core;
 using namespace ral::lib::services;
@@ -55,7 +54,7 @@ class MediaTxIONode: public LatencyIONode
 {
 protected:
     std::shared_ptr<AppSettings> m_app_settings;
-    std::shared_ptr<RTPVideoSendStream> m_send_stream;
+    std::shared_ptr<RtpVideoSendStream> m_send_stream;
     std::shared_ptr<ReceiveStream> m_receive_stream;
     StreamDimensions m_receive_dim;
     uint32_t m_hw_queue_full_sleep_us;

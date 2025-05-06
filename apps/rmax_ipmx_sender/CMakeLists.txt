@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,13 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-target_sources(${PROJECT_NAME}
-    PRIVATE
-        generic_sender_io_node.cpp
-        media_sender_io_node.cpp
-        ipmx_sender_io_node.cpp
-    PUBLIC
-        generic_sender_io_node.h
-        media_sender_io_node.h
-        ipmx_sender_io_node.h
+project(rmax_ipmx_sender)
+
+add_executable(${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} rmax-base-app)
+target_sources(${PROJECT_NAME} PRIVATE
+    rmax_ipmx_sender.cpp
+    rmax_ipmx_sender.h
 )

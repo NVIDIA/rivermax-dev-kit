@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2001-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * SPDX-FileCopyrightText: Copyright (c) 2001-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
- * This software product is a proprietary product of Nvidia Corporation and its affiliates
- * (the "Company") and all right, title, and interest in and to the software
- * product, including all associated intellectual property rights, are and
- * shall remain exclusively with the Company.
- *
- * This software product is governed by the End User License Agreement
- * provided with the software product.
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #ifndef _RT_THREADS_H_
@@ -68,7 +68,7 @@ const std::map<std::string, std::pair<std::string, Rational>> supported_fps_map 
         {std::string("24"), Rational(24)}
     },
     {
-        std::string("25"),
+        std::string("25"), 
         {std::string("25"), Rational(25)}
     },
     {
@@ -633,8 +633,6 @@ int set_enviroment_variable(const std::string &name, const std::string &value);
 rmx_status rivermax_setparam(const std::string &name, const std::string &value, bool final);
 
 bool rivermax_setparams(const std::vector<std::string> &assignments);
-
-bool wait_rivermax_clock_steady();
 
 #endif // _RT_THREADS_H_
 
