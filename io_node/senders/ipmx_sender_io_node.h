@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -29,24 +29,31 @@
 using namespace ral::lib::core;
 using namespace ral::lib::services;
 
-/*
- * Big-endian mask for version, padding bit and packet type pair
- */
-#define RTP_VERSION         2
-#define RTCPP_SEND_REPORT   200
-#define RTCP_TYPE_VER ((RTP_VERSION << 14) | RTCPP_SEND_REPORT)
-#define IPMX_TAG 0x5831
-#define IPMX_MIB_TYPE 0x0001
+static constexpr uint8_t RTP_VERSION = 2;
+static constexpr uint8_t RTCP_SOURCE_CNT = 1;
+static constexpr uint16_t IPMX_TAG = 0x5831;
+static constexpr uint16_t IPMX_MIB_TYPE = 0x0001;
+
+enum class RtcpPacketType {
+    SenderReport = 200,
+    SourceDescr = 202
+};
+
+enum class RtcpSdesType {
+    Cname = 1,
+    End = 0
+};
 
 struct IpmxInfoBlock {
     uint16_t ipmx_tag;
     uint16_t length;
     uint8_t block_version;
     uint8_t pad[3];
-    uint8_t ts_refclk[60];
+    uint8_t ts_refclk[64];
     uint8_t mediaclk[12];
 };
 
+#define IPMX_MEDIA_INFO_PACKING(bit_depth, interlace) ((((bit_depth) & 0x7f) << 8) | ((!!(interlace)) << 5))
 struct IpmxMediaInfoBlock {
     uint16_t type;
     uint16_t length;
@@ -77,6 +84,37 @@ struct IpmxSenderReport {
     uint32_t byte_cnt;
     IpmxInfoBlock info;
     IpmxMediaInfoBlock media;
+};
+
+static constexpr uint8_t RTCP_SDES_CNAME_LEN_MAX = 255;
+static constexpr uint8_t RTCP_SDES_PAD_LEN_MAX = 3;
+
+struct RtcpSdesCname {
+    uint8_t type;
+    uint8_t length;
+};
+
+struct RtcpSdesEnd {
+    uint8_t type;
+};
+
+struct RtcpSdesChunk {
+    uint32_t ssrc;
+};
+
+struct RtcpSourceDescr {
+    uint16_t type_ver;
+    uint16_t length;
+};
+
+static constexpr size_t RTCP_SDES_SIZE_MAX = sizeof(RtcpSourceDescr) +
+                                             sizeof(RtcpSdesChunk) +
+                                             sizeof(RtcpSdesCname) + RTCP_SDES_CNAME_LEN_MAX +
+                                             sizeof(RtcpSdesEnd) + RTCP_SDES_PAD_LEN_MAX;
+
+struct RtcpCompoundPacket {
+    IpmxSenderReport sr;
+    uint8_t sdes_raw[RTCP_SDES_SIZE_MAX];
 };
 
 namespace ral
@@ -144,7 +182,9 @@ public:
 protected:
     ReturnStatus process_media_completion();
     void configure_memory_layout();
-    void prepare_sender_report_template();
+    size_t prepare_sender_report_base(uint32_t ssrc, const TwoTupleFlow& src_address);
+    size_t prepare_sender_report_sdes(uint32_t ssrc, const TwoTupleFlow& src_address);
+    void prepare_compound_report_template(const TwoTupleFlow& src_address);
     size_t m_sender_id;
     size_t m_stream_number;
     std::unique_ptr<RtpVideoSendStream> m_stream;
@@ -174,7 +214,8 @@ protected:
     uint64_t m_period_report_delay_sum;
     uint64_t m_period_report_delay_max;
     uint64_t m_period_report_delay_min;
-    IpmxSenderReport m_report;
+    RtcpCompoundPacket m_report;
+    size_t m_report_size;
 };
 
 /**
@@ -205,7 +246,7 @@ private:
     size_t m_chunks_in_mem_block;
     size_t m_packets_in_chunk;
     size_t m_data_stride_size;
-    size_t m_sender_report_size;
+    size_t m_sender_report_buffer_size;
     time_handler_ns_cb_t m_get_nic_time_ns;
     time_handler_ns_cb_t m_get_wall_time_ns;
     rmx_mem_region m_report_mem_region;

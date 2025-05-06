@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -20,6 +20,7 @@
 #include "services/memory_management/memory_management.h"
 #include "services/cli/options.h"
 #include "services/utils/cpu.h"
+#include "services/utils/gpu_manager.h"
 
 using namespace ral::lib::services;
 
@@ -38,7 +39,7 @@ ral::lib::RmaxAppsLibFacade::~RmaxAppsLibFacade()
 std::shared_ptr<MemoryAllocator> ral::lib::RmaxAppsLibFacade::get_memory_allocator(
     AllocatorType type, std::shared_ptr<AppSettings> app_settings) const
 {
-    return MemoryAllocator::get_memory_allocator(type, app_settings);
+    return MemoryAllocator::get_memory_allocator(type, std::move(app_settings));
 }
 
 std::shared_ptr<CLIParserManager> ral::lib::RmaxAppsLibFacade::get_cli_parser_manager(
@@ -47,7 +48,7 @@ std::shared_ptr<CLIParserManager> ral::lib::RmaxAppsLibFacade::get_cli_parser_ma
 {
     if (!m_cli_parser_manager) {
         m_cli_parser_manager = std::shared_ptr<CLIParserManager>(
-            new CLIParserManager(app_description, app_examples, app_settings));
+            new CLIParserManager(app_description, app_examples, std::move(app_settings)));
     }
 
     return m_cli_parser_manager;
@@ -60,6 +61,15 @@ std::shared_ptr<SignalHandler> ral::lib::RmaxAppsLibFacade::get_signal_handler(b
     }
 
     return m_signal_handler;
+}
+
+std::shared_ptr<GPUManager> ral::lib::RmaxAppsLibFacade::get_gpu_manager()
+{
+    if (!m_gpu_manager) {
+        m_gpu_manager = std::make_shared<GPUManager>();
+    }
+
+    return m_gpu_manager;
 }
 
 ReturnStatus ral::lib::RmaxAppsLibFacade::validate_rivermax_version() const

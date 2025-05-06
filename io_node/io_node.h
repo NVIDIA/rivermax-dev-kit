@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -16,6 +16,7 @@
 #include "io_node/senders/media_sender_io_node.h"
 #include "io_node/senders/ipmx_sender_io_node.h"
 #include "io_node/receivers/ipo_receiver_io_node.h"
+#include "io_node/receivers/rtp_receiver_io_node.h"
 
 #define RMAX_APPS_LIB_IO_NODE_IO_NODE_H_
 #endif /* RMAX_APPS_LIB_IO_NODE_IO_NODE_H_ */

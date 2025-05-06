@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -75,7 +75,6 @@ public:
 private:
     void add_cli_options() override;
     void post_cli_parse_initialization() override;
-    ReturnStatus initialize_rivermax_resources() override;
     ReturnStatus set_rivermax_clock() override;
     /**
      * @brief: Initializes network send flows.

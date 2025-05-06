@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -11,6 +11,7 @@
  */
 
 #include "rtp_video.h"
+#include "services/utils/defs.h"
 
 using namespace ral::lib::services;
 
@@ -32,6 +33,8 @@ static void compose_common_media_settings(AppSettings& s)
         s.media.frame_rate = { 60, 1 };
     }
 
+    s.media.sampling_type = SamplingType::Ycbcr422;
+    s.media.bit_depth = 10;
     s.media.media_block_index = 0;
     s.media.video_scan_type = VideoScanType::Progressive;
     s.media.sample_rate = 90000;
@@ -98,21 +101,28 @@ static void compose_media_sdp(AppSettings& s) {
         << "c=IN IP4 " << s.destination_ip << "/64\n"
         << "a=source-filter: incl IN IP4 " << s.destination_ip << " " << s.local_ip << "\n"
         << "a=rtpmap:96 raw/90000\n"
-        << "a=fmtp:96 sampling=YCbCr-4:2:2; width=" << s.media.resolution.width
+        << "a=fmtp:96 sampling=" << get_sampling_type_name(s.media.sampling_type)
+        << "; width=" << s.media.resolution.width
         << "; height=" << s.media.resolution.height
-        << "; exactframerate=" << rate_string << "; depth=10;"
-        << " TCS=SDR; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN;"
+        << "; exactframerate=" << rate_string << "; depth=" << s.media.bit_depth
+        << "; TCS=SDR; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN;"
         << stream_type_suffix << "\n"
-        << s.media.refclk;
+        << "a=mediaclk:direct=0\n"
+        << "a=ts-refclk:" << s.media.refclk;
 
     s.media.sdp = sdp.str();
 }
 
-void ral::lib::services::compose_ipmx_media_settings(AppSettings& s) {
+void ral::lib::services::compose_ipmx_media_settings(AppSettings& s, const std::string& local_mac)
+{
     compose_common_media_settings(s);
 
     s.media.stream_type = StreamType::VideoIPMX;
-    s.media.refclk = "a=ts-refclk:ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:127";
+    if (s.ref_clk_is_ptp) {
+        s.media.refclk = "ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:127";
+    } else {
+        s.media.refclk = "localmac=" + local_mac;
+    }
 
     compose_media_sdp(s);
 }
@@ -122,13 +132,8 @@ void ral::lib::services::compose_media_settings(AppSettings& s)
     compose_common_media_settings(s);
 
     s.media.stream_type = StreamType::Video2110_20;
+    s.media.refclk = "ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:127";
 
-    if (s.ref_clk_is_ptp) {
-        s.media.refclk = "a=ts-refclk:ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:127";
-    } else {
-        // TODO: place the real MAC address
-        s.media.refclk = "a=ts-refclk:localmac=40-a3-6b-a0-2b-d2";
-    }
     compose_media_sdp(s);
 }
 
@@ -180,4 +185,19 @@ void ral::lib::services::calculate_tro_trs(media_settings_t& media_settings, dou
 
     trs = (t_frame_ns * r_active) / packets_in_frame;
     tro = (tro_default_multiplier * t_frame_ns) - (VIDEO_TRO_DEFAULT_MODIFICATION * trs);
+}
+
+static const std::unordered_map<SamplingType, const char*> SUPPORTED_SAMPLING = {
+    {SamplingType::Ycbcr422, "YCbCr-4:2:2"},
+    {SamplingType::Ycbcr444, "YCbCr-4:4:4"},
+    {SamplingType::Rgb,"RGB"}
+};
+
+const char* ral::lib::services::get_sampling_type_name(SamplingType sampling_type) {
+    auto sampling = SUPPORTED_SAMPLING.find(sampling_type);
+    if (sampling != SUPPORTED_SAMPLING.end()) {
+        return sampling->second;
+    } else {
+        return "unknown";
+    }
 }

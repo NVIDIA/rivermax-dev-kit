@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -93,7 +93,7 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
      |                           ssrc                                |
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
     buffer[0] = 0x80;  // 10000000 - version2, no padding, no extension.
-    buffer[1] = 0;  // Payload type.
+    buffer[1] = 96;    // Payload type - Dynamic
     buffer[2] = (m_send_stats.rtp_sequence >> 8) & 0xff;  // Sequence number MSB.
     buffer[3] = (m_send_stats.rtp_sequence) & 0xff;  // Sequence number LSB.
     *(uint32_t*)&buffer[4] = htonl(m_send_stats.rtp_timestamp);

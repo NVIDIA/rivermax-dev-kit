@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -65,6 +65,13 @@ enum class VideoScanType
     Interlaced
 };
 
+enum class SamplingType
+{
+    Ycbcr422,
+    Ycbcr444,
+    Rgb
+};
+
 enum class TPMode
 {
     TPN,
@@ -105,6 +112,8 @@ typedef struct media_settings
     StreamType stream_type;
     frame_rate_t frame_rate;
     resolution_t resolution;
+    SamplingType sampling_type;
+    unsigned bit_depth;
     VideoScanType video_scan_type;
     TPMode tp_mode;
     size_t sample_rate;
@@ -141,6 +150,7 @@ typedef struct AppSettings
     int sleep_between_operations_us;
     bool sleep_between_operations;
     std::string local_ip;
+    std::string local_mac;
     std::vector<std::string> local_ips;
     std::string source_ip;
     std::vector<std::string> source_ips;
@@ -167,12 +177,14 @@ typedef struct AppSettings
     bool use_checksum_header;
     uint32_t hw_queue_full_sleep_us;
     int gpu_id;
+    bool lock_gpu_clocks;
     AllocatorTypeUI allocator_type;
     media_settings_t media;
     std::string video_stream_type;
     bool ref_clk_is_ptp;
     int statistics_reader_core;
     uint32_t session_id_stats;
+    bool register_memory;
 } AppSettings;
 
 /**

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ if (CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
 elseif(RMAX_CUDA)
-    message(WARNING "Failed to find CUDA on this machine!")
+    message(FATAL_ERROR "Failed to find CUDA on this machine!")
 elseif(RMAX_TEGRA)
     message(WARNING "Enabling of TEGRA requires CUDA!")
 endif()

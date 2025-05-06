@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -61,6 +61,7 @@ private:
     std::unordered_map<size_t,size_t> m_streams_per_thread;
     std::vector<TwoTupleFlow> m_stream_dst_addresses;
     rmx_device_iface m_device_interface;
+    std::string m_local_mac;
     rmx_mem_region m_mem_region;
 public:
     /**
@@ -76,7 +77,6 @@ private:
     void initialize_common_default_app_settings() final;
     void add_cli_options() override;
     void post_cli_parse_initialization() override;
-    ReturnStatus initialize_rivermax_resources() override;
     ReturnStatus initialize_connection_parameters() final;
     ReturnStatus set_rivermax_clock() override;
     /**
@@ -154,6 +154,32 @@ private:
      * @return: Return status of the operation.
      */
     ReturnStatus init_device_iface(rmx_device_iface& device_iface);
+    /**
+     * @brief: Checks if the given device has the specified address.
+     *
+     * @param [in] device: Network device to check.
+     * @param [in] addr: IP address to check.
+     *
+     * @return: Return status of the operation.
+     */
+    static bool device_has_ip(const rmx_device* device, const in_addr& addr);
+    /**
+     * @brief: Obtains the MAC address of the given device.
+     *
+     * @param [in] device: Device interface to get the MAC address from.
+     * @param [out] mac: MAC address in text form.
+     *
+     * @return: Return status of the operation.
+     */
+    static ReturnStatus read_device_mac_address(const rmx_device* device, std::string& mac);
+    /**
+     * @brief: Obtains the MAC address of the local interface used by the application.
+     *
+     * @param [out] mac: MAC address in text form.
+     *
+     * @return: Return status of the operation.
+     */
+    ReturnStatus read_local_mac_address(std::string& mac) const;
 };
 
 } // namespace rmax_ipmx_sender

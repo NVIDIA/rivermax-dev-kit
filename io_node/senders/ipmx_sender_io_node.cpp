@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -68,7 +68,7 @@ ReturnStatus SharedMessageHandler::get_next_buffer(rmx_mem_region& mreg)
         return status;
     }
 
-    auto packet = m_chunk_handle->get_packet(0);
+    auto& packet = m_chunk_handle->get_packet(0);
     mreg = packet[0];
     return ReturnStatus::success;
 }
@@ -77,6 +77,8 @@ ReturnStatus SharedMessageHandler::commit_message(const rmx_mem_region& mreg, si
 {
     ReturnStatus status;
     m_chunk_handle->set_dest_address(addr);
+    auto& packet = m_chunk_handle->get_packet(0);
+    packet[0] = mreg;
     status = m_chunk_handle->apply_packets_layout();
     if (status != ReturnStatus::success) {
         if (status != ReturnStatus::signal_received) {
@@ -124,7 +126,7 @@ IpmxStreamSender::IpmxStreamSender(size_t sender_id, const TwoTupleFlow& src_add
         size_t packets_in_chunk, uint16_t packet_payload_size, size_t data_stride_size) :
     m_sender_id{sender_id},
     m_stream_number{dst_address.get_id()},
-    m_get_wall_time_ns(get_wall_time_ns),
+    m_get_wall_time_ns(std::move(get_wall_time_ns)),
     m_media_settings(media_settings),
     m_chunks_in_mem_block{chunks_in_mem_block},
     m_packets_in_chunk{packets_in_chunk},
@@ -160,7 +162,7 @@ IpmxStreamSender::IpmxStreamSender(size_t sender_id, const TwoTupleFlow& src_add
     configure_memory_layout();
     m_stream = std::make_unique<RtpVideoSendStream>(stream_settings, *m_mem_blockset.get());
 
-    prepare_sender_report_template();
+    prepare_compound_report_template(src_address);
 }
 
 void IpmxStreamSender::configure_memory_layout()
@@ -173,26 +175,82 @@ void IpmxStreamSender::configure_memory_layout()
     m_mem_blockset->set_block_layout(0, m_mem_block_payload_sizes.data(), nullptr);
 }
 
-void IpmxStreamSender::prepare_sender_report_template()
+size_t IpmxStreamSender::prepare_sender_report_sdes(uint32_t ssrc, const TwoTupleFlow& src_address)
 {
+    uint8_t* ptr = m_report.sdes_raw;
+    RtcpSourceDescr* sdes = new (ptr) RtcpSourceDescr;
+    ptr += sizeof(RtcpSourceDescr);
+    sdes->type_ver = htons((RTP_VERSION << 14) | (RTCP_SOURCE_CNT << 8) |
+                           static_cast<uint16_t>(RtcpPacketType::SourceDescr));
+    RtcpSdesChunk* chunk = new (ptr) RtcpSdesChunk;
+    ptr += sizeof(RtcpSdesChunk);
+    std::string cname = "ipmx@" + src_address.get_ip();
+    chunk->ssrc = htonl(ssrc);
+    RtcpSdesCname* sdes_cname_item = new (ptr) RtcpSdesCname;
+    ptr += sizeof(RtcpSdesCname);
+    sdes_cname_item->type = static_cast<uint8_t>(RtcpSdesType::Cname);
+    sdes_cname_item->length = static_cast<uint8_t>(cname.length());
+    size_t sdes_cname_item_size = sizeof(RtcpSdesCname) + sdes_cname_item->length;
+    std::strncpy((char *)(ptr), cname.c_str(),
+                 RTCP_SDES_CNAME_LEN_MAX);
+    ptr += sdes_cname_item->length;
+    RtcpSdesEnd* sdes_end_item = new (ptr) RtcpSdesEnd;
+    ptr += sizeof(RtcpSdesEnd);
+    sdes_end_item->type = static_cast<uint8_t>(RtcpSdesType::End);
+    size_t sdes_size = align_up_pow2(ptr - m_report.sdes_raw, sizeof(uint32_t));
+    sdes->length = htons(static_cast<uint16_t>(sdes_size) / sizeof(uint32_t) - 1);
+    return sdes_size;
+}
+
+size_t IpmxStreamSender::prepare_sender_report_base(uint32_t ssrc, const TwoTupleFlow& src_address)
+{
+    m_report.sr.type_ver = htons((RTP_VERSION << 14) |
+                                 static_cast<uint16_t>(RtcpPacketType::SenderReport));
+    m_report.sr.ssrc = htonl(ssrc);
+    m_report.sr.length = htons(sizeof(m_report.sr) / sizeof(uint32_t) - 1);
+    m_report.sr.info.ipmx_tag = htons(IPMX_TAG);
+    m_report.sr.info.length = htons(sizeof(m_report.sr.info) / sizeof(uint32_t) - 1);
+    std::strncpy((char *)(m_report.sr.info.ts_refclk), m_media_settings.refclk.c_str(),
+                          sizeof(m_report.sr.info.ts_refclk) - 1);
+    std::strncpy((char *)(m_report.sr.info.mediaclk), "direct=0",
+                          sizeof(m_report.sr.info.mediaclk) - 1);
+
+    m_report.sr.media.type = htons(IPMX_MIB_TYPE);
+    m_report.sr.media.length = htons(sizeof(m_report.sr.media) / sizeof(uint32_t) - 1);
+    std::strncpy((char *)(m_report.sr.media.sampling),
+            get_sampling_type_name(m_media_settings.sampling_type),
+            sizeof(m_report.sr.media.sampling) - 1);
+    m_report.sr.media.packing = htons(IPMX_MEDIA_INFO_PACKING(m_media_settings.bit_depth,
+            (m_media_settings.video_scan_type == VideoScanType::Interlaced)));
+    std::strncpy((char *)(m_report.sr.media.range), "NARROW", sizeof(m_report.sr.media.range) - 1);
+    std::strncpy((char *)(m_report.sr.media.colorimetry), "BT709",
+            sizeof(m_report.sr.media.colorimetry) - 1);
+    std::strncpy((char *)(m_report.sr.media.tcs), "SDR", sizeof(m_report.sr.media.tcs) - 1);
+    m_report.sr.media.par_h = 1;
+    m_report.sr.media.par_w = 1;
+    m_report.sr.media.width = htons(m_media_settings.resolution.width);
+    m_report.sr.media.height = htons(m_media_settings.resolution.height);
+    uint64_t pixel_clock = ((static_cast<uint64_t>(m_media_settings.resolution.width *
+                                                   m_media_settings.resolution.height) *
+                            m_media_settings.frame_rate.num) / m_media_settings.frame_rate.denom);
+    m_report.sr.media.pixel_clk_hi = htonl(static_cast<uint32_t>(pixel_clock / NS_IN_SEC));
+    m_report.sr.media.pixel_clk_lo = htonl(static_cast<uint32_t>(pixel_clock % NS_IN_SEC));
+    m_report.sr.media.htotal = m_report.sr.media.width;
+    m_report.sr.media.vtotal = m_report.sr.media.height;
+    m_report.sr.media.rate = htonl((m_media_settings.frame_rate.num) << 10 |
+                                   (m_media_settings.frame_rate.denom));
+    return sizeof(IpmxSenderReport);
+}
+
+void IpmxStreamSender::prepare_compound_report_template(const TwoTupleFlow& src_address)
+{
+    uint32_t ssrc = static_cast<uint32_t>(m_stream_number);
     memset(&m_report, 0, sizeof(m_report));
-    m_report.type_ver = htons(RTCP_TYPE_VER);
-    m_report.length = htons(sizeof(m_report) / 4 - 1);
-    m_report.info.ipmx_tag = htons(IPMX_TAG);
-    m_report.info.length = htons(sizeof(m_report.info) / 4 - 1);
-    strncpy((char *)(m_report.info.ts_refclk), "", sizeof(m_report.info.ts_refclk) - 1);
-    strncpy((char *)(m_report.info.mediaclk), "", sizeof(m_report.info.mediaclk) - 1);
-    m_report.media.type = htons(IPMX_MIB_TYPE);
-    m_report.media.length = htons(sizeof(m_report.media) / 4 - 1);
-    strncpy((char *)(m_report.media.sampling), "YCbCr-4:2:2", sizeof(m_report.media.sampling) - 1);
-    strncpy((char *)(m_report.media.range), "NARROW", sizeof(m_report.media.range) - 1);
-    strncpy((char *)(m_report.media.colorimetry), "BT709", sizeof(m_report.media.colorimetry) - 1);
-    strncpy((char *)(m_report.media.tcs), "SDR", sizeof(m_report.media.tcs) - 1);
-    m_report.media.par_h = 1;
-    m_report.media.par_w = 1;
-    m_report.media.width = htons(m_media_settings.resolution.width);
-    m_report.media.height = htons(m_media_settings.resolution.height);
-    m_report.media.rate = htonl((m_media_settings.frame_rate.num) << 10 | (m_media_settings.frame_rate.denom));
+
+    size_t base_size = prepare_sender_report_base(ssrc, src_address);
+    size_t sdes_size = prepare_sender_report_sdes(ssrc, src_address);
+
+    m_report_size = base_size + sdes_size;
 }
 
 ReturnStatus IpmxStreamSender::notify_report_completion(uint64_t completion_timestamp)
@@ -242,14 +300,22 @@ ReturnStatus IpmxStreamSender::commit_sender_report()
         return status;
     }
 
-    uint64_t ts = m_get_wall_time_ns(NULL);
-    m_report.ntp_ts_hi = htonl((ts / NS_IN_SEC) & 0xffffffff);
-    m_report.ntp_ts_lo = htonl(ts % NS_IN_SEC);
-    uint32_t rtp_ts = static_cast<uint32_t>(time_to_rtp_timestamp(ts, static_cast<int>(m_media_settings.sample_rate)));
-    m_report.rtp_ts = htonl(rtp_ts);
+    uint64_t timestamp = m_start_send_time_ns + m_media_settings.frame_field_time_interval_ns *
+                                         m_finished_first_chunks;
+    m_report.sr.ntp_ts_hi = htonl(static_cast<uint32_t>(timestamp / NS_IN_SEC));
+    m_report.sr.ntp_ts_lo = htonl(static_cast<uint32_t>(timestamp % NS_IN_SEC));
+    uint32_t rtp_ts = static_cast<uint32_t>(
+            time_to_rtp_timestamp(timestamp, static_cast<int>(m_media_settings.sample_rate)));
+    m_report.sr.rtp_ts = htonl(rtp_ts);
+    uint32_t sent_pkt_cnt = m_finished_fields * m_media_settings.packets_in_frame_field;
+    m_report.sr.pkt_cnt = htonl(sent_pkt_cnt);
+    uint32_t payload_octets_in_packet = m_packet_payload_size -
+                                        (RTP_FIXED_HEADER_SIZE + RTP_SINGLE_SRD_HEADER_SIZE);
+    m_report.sr.byte_cnt = htonl(sent_pkt_cnt * payload_octets_in_packet);
 
-    memcpy(mreg.addr, &m_report, sizeof(m_report));
-    mreg.length = sizeof(m_report);
+    auto* report = new (mreg.addr) RtcpCompoundPacket;
+    *report = m_report;
+    mreg.length = m_report_size;
 
     status = m_report_chunk_handler->commit_message(mreg, m_sender_id, m_report_dst_flow->get_socket_address());
 
@@ -457,9 +523,9 @@ IpmxSenderIONode::IpmxSenderIONode(
     m_chunks_in_mem_block(app_settings->num_of_chunks_in_mem_block),
     m_packets_in_chunk(app_settings->num_of_packets_in_chunk),
     m_data_stride_size(align_up_pow2(m_packet_payload_size, get_cache_line_size())),
-    m_sender_report_size(align_up_pow2(sizeof(IpmxSenderReport), get_cache_line_size())),
-    m_get_nic_time_ns(nic_time_hanlder_cb),
-    m_get_wall_time_ns(wall_time_hanlder_cb),
+    m_sender_report_buffer_size(align_up_pow2(sizeof(RtcpCompoundPacket), get_cache_line_size())),
+    m_get_nic_time_ns(std::move(nic_time_hanlder_cb)),
+    m_get_wall_time_ns(std::move(wall_time_hanlder_cb)),
     m_start_send_time_ns(0)
 {
     memset(&m_report_mem_region, 0, sizeof(m_report_mem_region));
@@ -483,7 +549,7 @@ void IpmxSenderIONode::initialize_streams(
 {
     FourTupleFlow report_route {0, src_address, dst_addresses[0]};
     GenericStreamSettings settings(report_route, false, pp_rate_t{0, 0},
-            dst_addresses.size(), 1, static_cast<uint16_t>(m_sender_report_size), 0);
+            dst_addresses.size(), 1, static_cast<uint16_t>(m_sender_report_buffer_size), 0);
     m_rtcp_stream = std::make_shared<GenericSendStream>(settings);
 
     m_stream_senders.reserve(dst_addresses.size());

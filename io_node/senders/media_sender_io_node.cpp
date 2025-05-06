@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -87,14 +87,14 @@ MediaSenderIONode::MediaSenderIONode(
     m_cpu_core_affinity(cpu_core_affinity),
     m_hw_queue_full_sleep_us(app_settings->hw_queue_full_sleep_us),
     m_buffer_writer(nullptr),
-    m_mem_utils(mem_utils),
+    m_mem_utils(std::move(mem_utils)),
     m_num_of_chunks_in_mem_block(app_settings->num_of_chunks_in_mem_block),
     m_packet_payload_size(app_settings->packet_payload_size),
     m_num_of_packets_in_chunk(app_settings->num_of_packets_in_chunk),
     m_num_of_packets_in_mem_block(app_settings->num_of_packets_in_mem_block),
     m_data_stride_size(align_up_pow2(m_packet_payload_size, get_cache_line_size())),
     m_dscp(0), m_pcp(0), m_ecn(0),
-    m_get_time_ns_cb(time_hanlder_cb)
+    m_get_time_ns_cb(std::move(time_hanlder_cb))
 {
     m_stream_packs.resize(num_of_streams);
 }
@@ -161,7 +161,7 @@ void MediaSenderIONode::initialize_streams()
         stream_pack.stream = std::unique_ptr<RtpVideoSendStream>(
                 new RtpVideoSendStream(stream_settings, *stream_pack.mem_blockset.get()));
     }
-    m_media_settings.sdp = sender_sdp;
+    m_media_settings.sdp = std::move(sender_sdp);
 }
 
 void MediaSenderIONode::initialize_memory()

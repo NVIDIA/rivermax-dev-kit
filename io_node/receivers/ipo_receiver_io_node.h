@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -54,11 +54,23 @@ struct IPORXStatistics {
         rx_exceed_md = 0;
         received_bytes = 0;
     }
-
     /**
-     * @return: Bitrate in Mbits per second.
+     * @brief: Returns total number of packets.
+     *
+     * Calculate the number of packets in statistics interval (including
+     * dropped as calculated by sequence number differences).
+     *
+     * @return: Returns total number of packets.
      */
-    double get_bitrate_Mbps() const
+    size_t get_total_packets() const {
+        return rx_counter + rx_dropped;
+    }
+    /**
+     * @brief: Returns total received data in Mbits.
+     *
+     * @return: Returns total received data in Mbits.
+     */
+    double get_Mbits() const
     {
         return ((received_bytes * 8) / 1.e6);
     }
@@ -116,9 +128,9 @@ public:
      * @brief: Prints stream statistics.
      *
      * @param [out] out: Output stream to print statistics to.
-     * @param [in] duration: Statistics interval duration.
+     * @param [in] interval_duration: Statistics interval duration.
      */
-    void print_statistics(std::ostream& out, const std::chrono::high_resolution_clock::duration& duration) const;
+    void print_statistics(std::ostream& out, const std::chrono::high_resolution_clock::duration& interval_duration) const;
     /**
      * @brief: Resets statistics.
      */
@@ -218,7 +230,7 @@ protected:
  *
  * This class implements the required operations in order to be a IPO receiver.
  * The sender class will be the context that will be run under a std::thread by
- * overriding the operator ().  Each receiver will be able to run multiple
+ * overriding the operator (). Each receiver will be able to run multiple
  * streams.
  */
 class IPOReceiverIONode

@@ -1,13 +1,18 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
- * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
  *
- * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
- * property and proprietary rights in and to this material, related
- * documentation and any modifications thereto. Any use, reproduction,
- * disclosure or distribution of this material and related documentation
- * without an express license agreement from NVIDIA CORPORATION or
- * its affiliates is strictly prohibited.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef _GENERIC_RECEIVER_GPU_H_
@@ -48,7 +53,9 @@ void* gpu_allocate_memory(int gpu_id, size_t size, size_t align);
 bool gpu_free_memory(void* ptr, size_t size);
 bool gpu_memset(void* dst, int value, size_t count);
 bool gpu_memcpy(void* dst, const void* src, size_t count);
-void gpu_compare_checksum(uint32_t expected, unsigned char* data, size_t size, uint32_t* mismatches);
+void gpu_compare_checksum(const uint8_t** data_ptrs, const size_t* sizes,
+                          const uint32_t* expected_checksums, uint32_t* mismatch_counter,
+                          uint32_t num_packet);
 bool set_gpu_device(int gpu_id);
 #ifndef TEGRA_ENABLED
 int gpu_set_locked_clocks_max_freq(int gpu_id);
@@ -183,12 +190,15 @@ static inline bool verify_gpu_device_id(int gpu)
     return true;
 }
 
-static inline void gpu_compare_checksum(uint32_t expected, unsigned char* data, size_t size, uint32_t* mismatches)
+static inline void gpu_compare_checksum(const uint8_t** data_ptrs, const size_t* sizes,
+                                        const uint32_t* expected_checksums,
+                                        uint32_t* mismatch_counter, uint32_t num_packet)
 {
-    NOT_IN_USE(expected);
-    NOT_IN_USE(data);
-    NOT_IN_USE(size);
-    NOT_IN_USE(mismatches);
+    NOT_IN_USE(data_ptrs);
+    NOT_IN_USE(sizes);
+    NOT_IN_USE(expected_checksums);
+    NOT_IN_USE(mismatch_counter);
+    NOT_IN_USE(num_packet);
 }
 
 static inline bool set_gpu_device(int gpu_id)

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -53,6 +53,8 @@ protected:
     std::shared_ptr<MemoryAllocator> m_payload_allocator;
     /* Application signal handler */
     std::shared_ptr<SignalHandler> m_signal_handler;
+    /* Application GPU manager */
+    std::shared_ptr<GPUManager> m_gpu_manager;
     /* Thread objects container */
     std::vector<std::thread> m_threads;
     /* Statistics reader */
@@ -105,6 +107,12 @@ protected:
      */
     virtual ReturnStatus initialize_memory_allocators();
     /**
+     * @brief: Initializes GPU manager.
+     *
+     * @retun: Status of the operation.
+     */
+    virtual ReturnStatus initialize_gpu_manager();
+    /**
      * @brief: Runs application initialization flow.
      *
      * Use this method to run application initialization flow using the other methods in this
@@ -127,7 +135,7 @@ protected:
      *
      * @retun: Status of the operation.
      */
-    virtual ReturnStatus initialize_rivermax_resources() = 0;
+    virtual ReturnStatus initialize_rivermax_resources();
     /**
      * @brief: Cleans up Rivermax library resources.
      *

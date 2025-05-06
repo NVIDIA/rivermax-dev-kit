@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -115,12 +115,6 @@ ReturnStatus MediaSenderApp::run()
     }
 
     return ReturnStatus::success;
-}
-
-ReturnStatus MediaSenderApp::initialize_rivermax_resources()
-{
-    rt_set_realtime_class();
-    return m_rmax_apps_lib.initialize_rivermax(m_app_settings->internal_thread_core);
 }
 
 ReturnStatus MediaSenderApp::set_rivermax_clock()

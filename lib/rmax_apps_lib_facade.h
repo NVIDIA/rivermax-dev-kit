@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "services/utils/defs.h"
+#include "services/utils/gpu_manager.h"
 #include "services/memory_management/memory_allocator_interface.h"
 #include "services/error_handling/error_handling.h"
 
@@ -42,6 +43,8 @@ private:
     std::shared_ptr<CLIParserManager> m_cli_parser_manager;
     /* Application signal handler */
     std::shared_ptr<SignalHandler> m_signal_handler;
+    /* Application GPU Manager */
+    std::shared_ptr<GPUManager> m_gpu_manager;
 public:
     /**
      * @brief: RmaxAppsLibFacade constructor.
@@ -81,6 +84,12 @@ public:
      * @return: Shared pointer to the signal handler object.
      */
     std::shared_ptr<SignalHandler> get_signal_handler(bool register_default_hanlder = false);
+    /**
+     * @brief: Factory method for GPU manager class.
+     *
+     * @return: Shared pointer to the GPU manager object.
+     */
+    std::shared_ptr<GPUManager> get_gpu_manager();
     /**
      * @brief: Initializes Rivermax library.
      *

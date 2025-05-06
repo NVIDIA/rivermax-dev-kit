@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -32,7 +32,7 @@ namespace core
 {
 
 /**
- * @brief: Settings for creating an intput stream
+ * @brief: Settings for creating an input stream
  *
  * This class stores the stream configuration parameters and also
  * implements a builder that builds the stream descriptor structure
@@ -68,7 +68,7 @@ public:
 
 protected:
     /**
-     * @brief: Initializes the intput stream descriptor structure.
+     * @brief: Initializes the input stream descriptor structure.
      *
      * @param [out] descr: Stream descriptor opaque structure.
      */
@@ -105,7 +105,7 @@ protected:
     void stream_param_set_input_options(rmx_input_stream_params& descr);
     /**
      * @brief: Sequence of parameter setters invoked to build
-     *         an intput stream descriptor structure.
+     *         an input stream descriptor structure.
      */
     static SetterSequence s_build_steps;
 };
@@ -154,7 +154,7 @@ public:
      *          @ref ral::lib::services::ReturnStatus::signal_received - If operation was interrupted by an OS signal.
      *          @ref ral::lib::services::ReturnStatus::failure - In case of failure, Rivermax status will be logged.
      */
-    ReturnStatus get_next_chunk(ReceiveChunk& chunk);
+    virtual ReturnStatus get_next_chunk(ReceiveChunk& chunk);
     /**
      * @brief: Attaches a flow to the stream.
      *

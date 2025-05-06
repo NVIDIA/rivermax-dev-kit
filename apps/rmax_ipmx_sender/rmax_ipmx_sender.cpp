@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -10,6 +10,7 @@
  * its affiliates is strictly prohibited.
  */
 
+#include <sstream>
 #include <string>
 #include <cstdlib>
 #include <cstring>
@@ -24,6 +25,7 @@
 #include "api/rmax_apps_lib_api.h"
 #include "io_node/io_node.h"
 #include "apps/rmax_base_app.h"
+#include "services/error_handling/return_status.h"
 #include "services/utils/clock.h"
 #include "services/utils/rtp_video.h"
 
@@ -99,8 +101,6 @@ void IpmxSenderApp::add_cli_options()
 
 void IpmxSenderApp::post_cli_parse_initialization()
 {
-    m_app_settings->media.frames_fields_in_mem_block = MIN_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP;
-    compose_ipmx_media_settings(*m_app_settings);
 }
 
 ReturnStatus IpmxSenderApp::run()
@@ -130,10 +130,62 @@ ReturnStatus IpmxSenderApp::run()
     return ReturnStatus::success;
 }
 
-ReturnStatus IpmxSenderApp::initialize_rivermax_resources()
+bool IpmxSenderApp::device_has_ip(const rmx_device* device, const in_addr& addr)
 {
-    rt_set_realtime_class();
-    return m_rmax_apps_lib.initialize_rivermax(m_app_settings->internal_thread_core);
+    size_t ip_count = rmx_get_device_ip_count(device);
+    for (size_t ip_index = 0; ip_index < ip_count; ip_index++) {
+        const rmx_ip_addr *ip_addr = rmx_get_device_ip_address(device, ip_index);
+        if (ip_addr == NULL) {
+            std::cerr << "Error reading Rivermax device IP address" << std::endl;
+            return false;
+        }
+        if ((ip_addr->family == AF_INET) && (ip_addr->addr.ipv4.s_addr == addr.s_addr)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+ReturnStatus IpmxSenderApp::read_device_mac_address(const rmx_device* device, std::string& mac)
+{
+    const uint8_t *mac_addr = rmx_get_device_mac_address(device);
+    if (mac_addr == NULL) {
+        std::cerr << "Error reading Rivermax device MAC address" << std::endl;
+        return ReturnStatus::failure;
+    }
+    std::stringstream s;
+    s << std::hex << std::setw(2) << std::setfill('0');
+    for (int octet = 0; octet < 6; octet++) {
+        if (octet > 0) {
+            s << "-";
+        }
+        s << static_cast<unsigned>(mac_addr[octet]);
+    }
+    mac = s.str();
+    return ReturnStatus::success;
+}
+
+ReturnStatus IpmxSenderApp::read_local_mac_address(std::string& mac) const
+{
+    ReturnStatus rc = ReturnStatus::failure;
+    rmx_device_list* device_list;
+    size_t device_count = rmx_get_device_list(&device_list);
+    if (device_count == 0) {
+        std::cerr << "Rivermax device list is empty" << std::endl;
+    }
+    for (size_t device_index = 0; device_index < device_count; device_index++) {
+        const rmx_device* device = rmx_get_device(device_list, device_index);
+        if (device == NULL) {
+            std::cerr << "Error reading Rivermax device list" << std::endl;
+            break;
+        }
+        if (device_has_ip(device, m_local_address.sin_addr)) {
+            rc = read_device_mac_address(device, mac);
+            break;
+        }
+    }
+    rmx_free_device_list(device_list);
+    return rc;
 }
 
 ReturnStatus IpmxSenderApp::initialize_connection_parameters()
@@ -142,7 +194,11 @@ ReturnStatus IpmxSenderApp::initialize_connection_parameters()
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    return init_device_iface(m_device_interface);
+    rc = init_device_iface(m_device_interface);
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
+    return read_local_mac_address(m_local_mac);
 }
 
 ReturnStatus IpmxSenderApp::init_device_iface(rmx_device_iface& device_iface)
@@ -238,6 +294,9 @@ ReturnStatus IpmxSenderApp::set_rivermax_clock()
 
 void IpmxSenderApp::initialize_send_flows()
 {
+    m_app_settings->media.frames_fields_in_mem_block = MIN_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP;
+    compose_ipmx_media_settings(*m_app_settings, m_local_mac);
+
     auto ip_octets = CLI::detail::split(m_app_settings->destination_ip, '.');
     auto ip_prefix = std::string(ip_octets[0] + "." + ip_octets[1] + "." + ip_octets[2] + ".");
     auto ip_last_octet = std::stoi(ip_octets[3]);

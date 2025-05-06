@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -95,7 +95,7 @@ GenericSenderIONode::GenericSenderIONode(
     m_buffer_writer(std::unique_ptr<IBufferWriter>(app_settings->use_checksum_header
         ? dynamic_cast<IBufferWriter*>(new ChecksumBufferWriter())
         : dynamic_cast<IBufferWriter*>(new GenericBufferWriter()))),
-    m_mem_utils(mem_utils)
+    m_mem_utils(std::move(mem_utils))
 {
     memset(&m_mem_region, 0, sizeof(m_mem_region));
 }

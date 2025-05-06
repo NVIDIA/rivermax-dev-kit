@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -202,7 +202,10 @@ void LatencyApp::add_cli_options()
     m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
+#ifdef CUDA_ENABLED
     m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
+    m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+#endif
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
 }
 
@@ -272,13 +275,6 @@ ReturnStatus LatencyApp::run()
     }
 
     return ReturnStatus::success;
-}
-
-ReturnStatus LatencyApp::initialize_rivermax_resources()
-{
-    rt_set_realtime_class();
-
-    return m_rmax_apps_lib.initialize_rivermax({m_app_settings->internal_thread_core}, true);
 }
 
 ReturnStatus LatencyApp::initialize_connection_parameters()

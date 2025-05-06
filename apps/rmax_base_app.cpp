@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -18,6 +18,7 @@
 
 #include "apps/rmax_base_app.h"
 #include "api/rmax_apps_lib_api.h"
+#include "services/utils/gpu_manager.h"
 
 using namespace ral::apps;
 using namespace ral::lib::services;
@@ -40,6 +41,7 @@ RmaxBaseApp::RmaxBaseApp(const std::string& app_description, const std::string& 
     m_cli_parser_manager(m_rmax_apps_lib.get_cli_parser_manager(
         app_description + rmx_get_version_string(), app_examples, m_app_settings)),
     m_signal_handler(m_rmax_apps_lib.get_signal_handler(true)),
+    m_gpu_manager(m_rmax_apps_lib.get_gpu_manager()),
     m_stats_reader(nullptr)
 {
     memset(&m_local_address, 0, sizeof(m_local_address));
@@ -80,10 +82,12 @@ void RmaxBaseApp::initialize_common_default_app_settings()
     m_app_settings->use_checksum_header = false;
     m_app_settings->hw_queue_full_sleep_us = 0;
     m_app_settings->gpu_id = INVALID_GPU_ID;
+    m_app_settings->lock_gpu_clocks = LOCK_GPU_CLOCKS_DEFAULT;
     m_app_settings->allocator_type = AllocatorTypeUI::Auto;
     m_app_settings->statistics_reader_core = INVALID_CORE_NUMBER;
     m_app_settings->session_id_stats = UINT_MAX;
     m_app_settings->ref_clk_is_ptp = true;
+    m_app_settings->register_memory = false;
 }
 
 ReturnStatus RmaxBaseApp::initialize_memory_allocators()
@@ -116,6 +120,27 @@ ReturnStatus RmaxBaseApp::initialize_memory_allocators()
     return ReturnStatus::success;
 }
 
+ReturnStatus RmaxBaseApp::initialize_gpu_manager()
+{
+    if (m_app_settings->gpu_id == INVALID_GPU_ID) { 
+        return ReturnStatus::success;
+    }
+    const ReturnStatus status = m_gpu_manager->initialize(m_app_settings->gpu_id);
+    if (status != ReturnStatus::success) {
+        std::cerr << "Failed to initialize GPU manager" << std::endl;
+        return status;
+    }
+    if (m_app_settings->lock_gpu_clocks) {
+        ReturnStatus clock_status = m_gpu_manager->lock_clocks_max_frequency();
+        if (clock_status != ReturnStatus::success) {
+            std::cerr << "Warning - Failed to lock GPU clocks to their maximum frequency. "
+                         "Performance might be affected."
+                      << std::endl;
+        }
+    }
+    return status;
+}
+
 ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
 {
     ReturnStatus rc = m_cli_parser_manager->initialize();
@@ -132,6 +157,11 @@ ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
     }
 
     post_cli_parse_initialization();
+
+    rc = initialize_gpu_manager();
+    if (rc == ReturnStatus::failure) {
+        return rc;
+    }
 
     rc = initialize_memory_allocators();
     if (rc == ReturnStatus::failure) {
@@ -159,6 +189,12 @@ ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
     }
 
     return ReturnStatus::obj_init_success;
+}
+
+ReturnStatus RmaxBaseApp::initialize_rivermax_resources()
+{
+    rt_set_realtime_class();
+    return m_rmax_apps_lib.initialize_rivermax(m_app_settings->internal_thread_core);
 }
 
 ReturnStatus RmaxBaseApp::set_rivermax_clock()

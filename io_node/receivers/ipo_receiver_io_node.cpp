@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -67,8 +67,10 @@ ReturnStatus AppIPOReceiveStream::get_next_chunk(IPOReceiveChunk* chunk)
     return status;
 }
 
-void AppIPOReceiveStream::print_statistics(std::ostream& out, const std::chrono::high_resolution_clock::duration& duration) const
+void AppIPOReceiveStream::print_statistics(std::ostream& out, const std::chrono::high_resolution_clock::duration& interval_duration) const
 {
+    using namespace std::chrono;
+
     std::stringstream ss;
     ss << "[stream_index " << std::setw(3) << get_id() << "]"
                 << " Got " << std::setw(7) << m_statistic.rx_counter << " packets |"
@@ -84,18 +86,19 @@ void AppIPOReceiveStream::print_statistics(std::ostream& out, const std::chrono:
        << " |" << " bad RTP hdr: " << m_statistic.rx_corrupt_rtp_header
        << " | ";
     ss << std::fixed << std::setprecision(2);
-    double bitrate_Mbps = m_statistic.get_bitrate_Mbps();
+    double duration_s = duration_cast<duration<double>>(interval_duration).count();
+    double bitrate_Mbps = m_statistic.get_Mbits() / duration_s;
     if (bitrate_Mbps > 1000.) {
         ss << std::setw(4) << bitrate_Mbps / 1000. << " Gbps during ";
     } else {
         ss << std::setw(4) << bitrate_Mbps << " Mbps during ";
     }
-    ss << std::setw(4) << static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(duration).count()) / 1.e6 << " sec";
+    ss << std::setw(4) << duration_s << " sec";
 
     for (uint32_t s_index = 0; s_index < m_paths.size(); ++s_index) {
         ss << " | " << m_paths[s_index].flow.get_destination_ip() << ":" << m_paths[s_index].flow.get_destination_port();
         if (m_statistic.rx_counter) {
-            uint32_t number = static_cast<uint32_t>(floor(100 * static_cast<double>(m_path_stats[s_index].rx_count) / static_cast<double>(m_statistic.rx_counter)));
+            uint32_t number = static_cast<uint32_t>(floor(100 * static_cast<double>(m_path_stats[s_index].rx_count) / static_cast<double>(m_statistic.get_total_packets())));
             ss << " " << std::setw(3) << number << "%";
         } else {
             ss << "   0%";
@@ -221,7 +224,7 @@ IPOReceiverIONode::IPOReceiverIONode(
 std::ostream& IPOReceiverIONode::print(std::ostream& out) const
 {
     out << "+#############################################\n"
-        << "| Sender index: " << m_index << "\n"
+        << "| Receiver index: " << m_index << "\n"
         << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
         << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
         << "| Number of streams in this thread: " << m_streams.size() << "\n"

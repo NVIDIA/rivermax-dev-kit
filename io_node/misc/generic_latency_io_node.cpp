@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -35,7 +35,7 @@ GenericLatencyIONode::GenericLatencyIONode(
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb
-    ) : LatencyIONode(settings, header_mem_utils, payload_mem_utils, time_handler_cb),
+    ) : LatencyIONode(settings, std::move(header_mem_utils), std::move(payload_mem_utils), std::move(time_handler_cb)),
     m_send_dim(send_dim),
     m_receive_dim(receive_dim),
     m_hw_queue_full_sleep_us(settings.app->hw_queue_full_sleep_us),
@@ -231,7 +231,7 @@ PingPongIONode::PingPongIONode(
                       0, settings.app->packet_payload_size),
                       StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1,
                       0, settings.app->packet_payload_size),
-                      header_mem_utils, payload_mem_utils, time_handler_cb)
+                      std::move(header_mem_utils), std::move(payload_mem_utils), std::move(time_handler_cb))
 {
 }
 
@@ -464,7 +464,7 @@ FrameIONode::FrameIONode(
                                          settings.app->num_of_packets_in_chunk,
                                          settings.app->packet_app_header_size,
                                          settings.app->packet_payload_size),
-                header_mem_utils, payload_mem_utils, time_handler_cb),
+                std::move(header_mem_utils), std::move(payload_mem_utils), std::move(time_handler_cb)),
     m_rx_next_pkt_num{0},
     m_rx_iteration{0},
     m_rx_drop_cnt{0}
@@ -494,7 +494,7 @@ void FrameIONode::prepare_chunks(uint32_t iteration)
         auto chunk = m_send_stream->get_chunk(chunk_index);
         for (size_t pkt_num = 0; pkt_num < chunk->get_length(); pkt_num++) {
             packet_header hdr {iteration, pkt_id++};
-            auto mreg = chunk->get_packet(pkt_num)[0];
+            const auto& mreg = chunk->get_packet(pkt_num)[0];
             m_header_mem_utils->memory_copy(mreg.addr, &hdr, sizeof(hdr));
         }
     }

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -49,7 +49,9 @@ const char* CLIOptStr::APPLICATION_CORE = "-a,--application-core";
 const char* CLIOptStr::CHECKSUM_HEADER = "-x,--checksum-header";
 const char* CLIOptStr::WAIT_RETRY = "-w,--wait-retry";
 const char* CLIOptStr::GPU_ID = "-g,--gpu-id";
+const char* CLIOptStr::LOCK_GPU_CLOCKS = "-L,--lock-gpu-clocks";
 const char* CLIOptStr::ALLOCATOR_TYPE = "-A,--allocator-type";
+const char* CLIOptStr::REGISTER_MEMORY = "-M,--register-memory";
 
 static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
     { "auto",           AllocatorTypeUI::Auto },
@@ -328,13 +330,32 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         }
     },
     {
+        CLIOptStr::LOCK_GPU_CLOCKS,
+        [](std::shared_ptr<CLI::App> parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::LOCK_GPU_CLOCKS,
+                                    app_settings->lock_gpu_clocks,
+                                    "Lock GPU clocks to their maximum frequency",
+                                    true)->check(CLI::Range(0, 1));
+        }
+    },
+    {
         CLIOptStr::ALLOCATOR_TYPE,
         [](std::shared_ptr<CLI::App> parser, std::shared_ptr<AppSettings> app_settings)
         {
             return parser->add_option(CLIOptStr::ALLOCATOR_TYPE,
                                       app_settings->allocator_type,
                                       "Memory allocator type")
-                                      ->transform(CLI::Transformer(UI_ALLOCATOR_TYPES));
+                                      ->transform(CLI::CheckedTransformer(UI_ALLOCATOR_TYPES));
+        }
+    },
+    {
+        CLIOptStr::REGISTER_MEMORY,
+        [](std::shared_ptr<CLI::App> parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_flag(CLIOptStr::REGISTER_MEMORY,
+                                    app_settings->register_memory,
+                                    "Register memory on the application side for better performance");
         }
     },
 };

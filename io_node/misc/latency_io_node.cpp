@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -136,9 +136,9 @@ LatencyIONode::LatencyIONode(
     m_cpu_core_affinity(settings.app->app_threads_cores[0]),
     m_client_mode(settings.client_mode),
     m_measure_interval_sec(settings.measure_interval),
-    m_header_mem_utils(header_mem_utils),
-    m_payload_mem_utils(payload_mem_utils),
-    m_get_time_ns_cb(time_handler_cb),
+    m_header_mem_utils(std::move(header_mem_utils)),
+    m_payload_mem_utils(std::move(payload_mem_utils)),
+    m_get_time_ns_cb(std::move(time_handler_cb)),
     m_percentiles(settings.percentiles)
 {
 }

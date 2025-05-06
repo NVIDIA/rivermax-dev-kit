@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -388,7 +388,7 @@ std::shared_ptr<MemoryAllocator> MemoryAllocator::get_memory_allocator(
 {
     auto iter = MemoryAllocator::s_mem_allocator_factory.find(type);
     if (iter != MemoryAllocator::s_mem_allocator_factory.end()) {
-        return iter->second(app_settings);
+        return iter->second(std::move(app_settings));
     }
     else {
         return nullptr;

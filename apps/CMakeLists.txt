@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +25,16 @@ target_link_libraries(${PROJECT_NAME}
 target_sources(${PROJECT_NAME}
     PRIVATE
         rmax_base_app.cpp
+        rmax_receiver_base.cpp
     PUBLIC
         rmax_base_app.h
+        rmax_receiver_base.h
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 set(RMAX_XTREAM_APPS
     "rmax_ipo_receiver"
+    "rmax_rtp_receiver"
     "rmax_xstream_generic_sender"
     "rmax_xstream_media_sender"
     "rmax_ipmx_sender"

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,10 +18,12 @@ target_sources(${PROJECT_NAME}
         clock.cpp
         cpu.cpp
         rtp_video.cpp
+        gpu_manager.cpp
     PUBLIC
         defs.h
         utils.h
         clock.h
         cpu.h
         rtp_video.h
+        gpu_manager.h
 )

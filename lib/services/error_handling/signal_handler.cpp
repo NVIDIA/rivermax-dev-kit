@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -52,6 +52,6 @@ void SignalHandler::signal_handler_arbiter(int signal)
 
 void SignalHandler::register_signal_handler_callback(int signal, signal_handler_t handler)
 {
-    SignalHandler::s_signal_handlers_map[signal] = handler;
+    SignalHandler::s_signal_handlers_map[signal] = std::move(handler);
     std::signal(signal, SignalHandler::signal_handler_arbiter);
 }

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -29,7 +29,7 @@ CLIParserManager::CLIParserManager(
     const std::string& app_description,
     const std::string& app_examples,
     std::shared_ptr<AppSettings> app_settings) :
-    m_app_settings(app_settings),
+    m_app_settings(std::move(app_settings)),
     m_app_description(app_description),
     m_app_examples(app_examples)
 {

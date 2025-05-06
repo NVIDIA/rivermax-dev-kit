@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -44,7 +44,7 @@ MediaTxIONode::MediaTxIONode(
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb
-    ) : LatencyIONode(settings, header_mem_utils, payload_mem_utils, time_handler_cb),
+    ) : LatencyIONode(settings, std::move(header_mem_utils), std::move(payload_mem_utils), std::move(time_handler_cb)),
     m_app_settings(settings.app),
     m_receive_dim(StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1, 0, MEDIA_TX_REPLY_SIZE)),
     m_hw_queue_full_sleep_us(settings.app->hw_queue_full_sleep_us),
@@ -501,7 +501,7 @@ MediaRxIONode::MediaRxIONode(
                 settings,
                 StreamDimensions(DEFAULT_NUM_OF_SEND_CHUNKS, 1, 0, MEDIA_TX_REPLY_SIZE),
                 StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1, 0, DEFAULT_RESPONSE_SIZE),
-                header_mem_utils, payload_mem_utils, get_time_ns_cb),
+                std::move(header_mem_utils), std::move(payload_mem_utils), std::move(get_time_ns_cb)),
     m_app_settings(settings.app)
 {
     m_app_settings->num_of_total_streams = 1;

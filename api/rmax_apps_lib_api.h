@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -51,6 +51,7 @@
 */
 #include "lib/services/cli/cli.h"
 #include "lib/services/utils/utils.h"
+#include "lib/services/utils/gpu_manager.h"
 #include "lib/services/error_handling/error_handling.h"
 #include "lib/services/memory_management/memory_management.h"
 #include "lib/services/buffer_management/buffer_management.h"

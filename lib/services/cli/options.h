@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2017-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -35,6 +35,7 @@ constexpr int IP_OCTET_LEN = 256;
 constexpr size_t MAX_NUM_OF_TOTAL_FLOWS = MAX_PORT * IP_OCTET_LEN;
 constexpr int INVALID_GPU_ID = INT_MAX;
 constexpr int MAX_GPU_ID = 500;
+constexpr bool LOCK_GPU_CLOCKS_DEFAULT = true;
 constexpr size_t NUM_OF_THREADS_DEFAULT = 1;
 constexpr uint16_t NUM_OF_TOTAL_STREAMS_DEFAULT = 1;
 constexpr size_t NUM_OF_TOTAL_FLOWS_DEFAULT = 1;
@@ -83,7 +84,9 @@ public:
     static const char* CHECKSUM_HEADER;
     static const char* WAIT_RETRY;
     static const char* GPU_ID;
+    static const char* LOCK_GPU_CLOCKS;
     static const char* ALLOCATOR_TYPE;
+    static const char* REGISTER_MEMORY;
 };
 
 

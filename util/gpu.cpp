@@ -1,13 +1,18 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
- * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
  *
- * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
- * property and proprietary rights in and to this material, related
- * documentation and any modifications thereto. Any use, reproduction,
- * disclosure or distribution of this material and related documentation
- * without an express license agreement from NVIDIA CORPORATION or
- * its affiliates is strictly prohibited.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <cerrno>
@@ -21,10 +26,8 @@
 #include "defs.h"
 #include "rt_threads.h"
 #include "gpu.h"
+#include "checksum_kernel.h"
 
-extern "C"
-void cuda_compare_checksum(unsigned int expected, unsigned char* data,
-    unsigned int size, unsigned int* mismatches);
 
 /**
  * @brief: Initialize GPU.
@@ -72,9 +75,11 @@ bool gpu_uninit(int gpu_id)
     return true;
 }
 
-void gpu_compare_checksum(uint32_t expected, unsigned char* data, size_t size, uint32_t* mismatches)
+void gpu_compare_checksum(const uint8_t** data_ptrs, const size_t* sizes,
+                          const uint32_t* expected_checksums, uint32_t* mismatch_counter,
+                          uint32_t num_packet)
 {
-    cuda_compare_checksum(expected, data, (uint32_t)size, mismatches);
+    cuda_compare_checksum(data_ptrs, sizes, expected_checksums, mismatch_counter, num_packet);
 }
 
 uint32_t* gpu_allocate_counter()
@@ -94,7 +99,8 @@ uint32_t gpu_read_counter(uint32_t *counter)
 
 void gpu_reset_counter(uint32_t *counter)
 {
-    cudaMemset(counter, 0, sizeof(uint32_t));
+    unsigned int zero = 0;
+    cudaMemcpy(counter, &zero, sizeof(uint32_t), cudaMemcpyHostToDevice);
 }
 
 /**
@@ -419,7 +425,8 @@ bool verify_gpu_device_id(int device_id)
             std::cout << "ERROR: User set the GPU id as = " << device_id << " but maximum allowed GPU id is " << count - 1 << std::endl;
             return false;
         }
-        std::cout << "gpu_device_id = " << device_id << std::endl;
+        const std::string gpu_name = get_gpu_device_name(device_id);
+        std::cout << "Using GPU: " << gpu_name << " with id = " << device_id << std::endl;
     }
     return true;
 }
