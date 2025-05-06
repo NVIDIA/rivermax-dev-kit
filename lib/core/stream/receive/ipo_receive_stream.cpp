@@ -11,6 +11,7 @@
  */
 
 #include <algorithm>
+#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
@@ -134,6 +135,7 @@ void IPOReceiveStream::set_memory_keys(const std::vector<rmx_mem_region>& header
 ReturnStatus IPOReceiveStream::create_stream()
 {
     m_sequence_number_wrap_around = get_sequence_number_wrap_around(m_num_of_packets_in_chunk);
+    m_sequence_number_msb_mask = (get_sequence_number_mask() >> 1) + 1;
 
     for (auto& stream : m_streams) {
         ReturnStatus status = stream.create_stream();
@@ -197,6 +199,12 @@ ReturnStatus IPOReceiveStream::destroy_stream()
     return (success) ? ReturnStatus::success : ReturnStatus::failure;
 }
 
+void IPOReceiveStream::start()
+{
+    m_state = State::WaitFirstPacket;
+    m_start_time = clock::now() + m_max_path_differential;
+}
+
 ReturnStatus IPOReceiveStream::get_next_chunk(IPOReceiveChunk* ipo_chunk)
 {
     /**
@@ -206,18 +214,23 @@ ReturnStatus IPOReceiveStream::get_next_chunk(IPOReceiveChunk* ipo_chunk)
      * means that we already have packets placed into memory buffer by the
      * hardware.
      *
-     * The start state is @ref State::WaitFirstPacket. Here we're waiting for a
+     * The initial state is @ref State::NotStarted. Calling @ref start method
+     * or @ref get_next_chunk will mark current time as stream start time.
+     *
+     * The next state is @ref State::WaitFirstPacket. Here we're waiting for a
      * first input packet. Once the packet received, we're initializing the
      * internal buffer start's position (@ref m_index) to point to the first
      * packet. The next state is @ref State::Running.
      *
      * In @ref State::Running state, we're transferring a contiguous array of
-     * received packets to the caller. A packet is transferred to the caller
-     * only after residing in a buffer for at least
-     * @ref m_max_path_differential. This should be enough for all late packets
-     * to arrive. @ref ext_packet_info::is_valid is used to mark packets that
-     * aren't processed yet. Once a packet transferred to the caller, this flag
-     * is reset.
+     * received packets to the caller. Packets arrived during the first @ref
+     * m_max_path_differential are skipped to make sure that the stream will be
+     * completely reconstructed. A packet is transferred to the caller only
+     * after residing in a buffer for at least @ref m_max_path_differential.
+     * This should be enough for all late packets to arrive. @ref
+     * ext_packet_info::is_valid is used to mark packets that aren't processed
+     * yet. Once a packet transferred to the caller from any substream, this
+     * flag is reset.
      *
      * If an array of received packets in a buffer is non-contiguous, we wait
      * for missed packet/packets arrival until the processing time of a first
@@ -226,7 +239,9 @@ ReturnStatus IPOReceiveStream::get_next_chunk(IPOReceiveChunk* ipo_chunk)
      *
      * If all the packets in a buffer were processed, we switch to @ref
      * State::Waiting state. The next arrived packet switches us back to @ref
-     * State::Running.
+     * State::Running. If the interval since the stream moved into
+     * State::Waiting is more than @ref m_sender_restart_threshold, then the
+     * first @ref m_max_path_differential are skipped as initial sync.
      */
     if (!ipo_chunk) {
         std::cerr << "Chunk must be non-null!" << std::endl;
@@ -234,6 +249,10 @@ ReturnStatus IPOReceiveStream::get_next_chunk(IPOReceiveChunk* ipo_chunk)
     }
 
     m_now = clock::now();
+    if (unlikely(m_state == State::NotStarted)) {
+        m_state = State::WaitFirstPacket;
+        m_start_time = m_now + m_max_path_differential;
+    }
     for (size_t i = 0; i < m_streams.size(); ++i) {
         auto& stream = m_streams.at(i);
         ReturnStatus status = stream.get_next_chunk(m_chunks.at(i));
@@ -258,7 +277,7 @@ ReturnStatus IPOReceiveStream::get_next_chunk(IPOReceiveChunk* ipo_chunk)
 
     // search for the end of dropped packets interval
     auto start_idx = m_index;
-    for (uint32_t iterations = 0; !m_ext_packet_info_arr[start_idx].is_valid; ++iterations) {
+    for (uint32_t iterations = 1; !m_ext_packet_info_arr[start_idx].is_valid; ++iterations) {
         ++start_idx;
         if (start_idx >= m_sequence_number_wrap_around) {
             start_idx = 0;
@@ -279,6 +298,26 @@ ReturnStatus IPOReceiveStream::get_next_chunk(IPOReceiveChunk* ipo_chunk)
     // actually skipping the dropped packets because the packet at the end of
     // skipped interval must be processed now
     m_index = start_idx;
+
+    // skip packets during initial sync
+    while (true) {
+        info = &m_ext_packet_info_arr[m_index];
+        if (!info->is_valid) {
+            // will skip not received packets on the next iteration
+            return ReturnStatus::success;
+        }
+        if (info->timestamp >= m_start_time) {
+            // sync is done
+            break;
+        }
+        m_next_packet_time = info->timestamp;
+        info->is_valid = false;
+        ++m_index;
+        if (m_index >= m_sequence_number_wrap_around) {
+            m_index = 0;
+        }
+    }
+    start_idx = m_index;
 
     size_t chunk_size = 0;
     // initialize completion content
@@ -348,19 +387,35 @@ void IPOReceiveStream::process_completion(size_t index, const ReceiveStream& str
         ext_packet_info& ext_info = m_ext_packet_info_arr[index_in_dest_arr];
 
         switch (m_state) {
+        case State::NotStarted:
+            assert(false && "invalid state");
+            break;
         case State::Running:
             // do nothing
             break;
         case State::WaitFirstPacket:
             m_index = index_in_dest_arr;
-            /* fall through */
+            m_last_processed_sequence_number = (sequence_number - m_num_of_packets_in_chunk) & get_sequence_number_mask();
+            m_state = State::Running;
+            m_next_packet_time = m_now;
+            break;
         case State::Waiting:
+            if (m_now - m_next_packet_time > m_sender_restart_threshold) {
+                // resetting input
+                handle_sender_restart();
+                m_index = index_in_dest_arr;
+                m_last_processed_sequence_number = (sequence_number - m_num_of_packets_in_chunk) & get_sequence_number_mask();
+                m_start_time = m_now + m_max_path_differential;
+            }
             m_state = State::Running;
             m_next_packet_time = m_now;
             break;
         }
-        // If we haven't received yet packet with this sequeence number...
-        if (!ext_info.is_valid) {
+        uint32_t seq_delta = (sequence_number - m_last_processed_sequence_number) & get_sequence_number_mask();
+        if (seq_delta == 0 || seq_delta & m_sequence_number_msb_mask) {
+            // sequence number is less than recently processed
+            handle_late_packet(index, sequence_number, packet_info);
+        } else if (!ext_info.is_valid || ext_info.sequence_number != sequence_number) {
             // packet with this sequence number is received for the first time
             handle_packet(index, sequence_number, packet_info);
         } else {
@@ -373,6 +428,13 @@ void IPOReceiveStream::process_completion(size_t index, const ReceiveStream& str
 void IPOReceiveStream::handle_corrupted_packet(size_t index, const ReceivePacketInfo& packet_info)
 {
     NOT_IN_USE(index);
+    NOT_IN_USE(packet_info);
+}
+
+void IPOReceiveStream::handle_late_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info)
+{
+    NOT_IN_USE(index);
+    NOT_IN_USE(sequence_number);
     NOT_IN_USE(packet_info);
 }
 
@@ -401,7 +463,11 @@ void IPOReceiveStream::handle_redundant_packet(size_t index, uint32_t sequence_n
 
 void IPOReceiveStream::complete_packet(uint32_t sequence_number)
 {
-    NOT_IN_USE(sequence_number);
+    m_last_processed_sequence_number = sequence_number;
+}
+
+void IPOReceiveStream::handle_sender_restart()
+{
 }
 
 uint32_t IPOReceiveStream::get_sequence_number_wrap_around(uint32_t buffer_elements) const

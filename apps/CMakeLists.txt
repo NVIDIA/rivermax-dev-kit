@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,6 +34,7 @@ set(RMAX_XTREAM_APPS
     "rmax_ipo_receiver"
     "rmax_xstream_generic_sender"
     "rmax_xstream_media_sender"
+    "rmax_latency"
     CACHE STRING "Rivermax eXtream applications (based on Rivermax Application Library)."
 )
 foreach(lib_dir ${RMAX_XTREAM_APPS})

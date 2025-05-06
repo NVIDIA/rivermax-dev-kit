@@ -23,6 +23,7 @@
 using namespace ral::lib::core;
 
 MediaChunk::MediaChunk(rmx_stream_id stream_id, size_t packets_in_chunk, bool use_hds) :
+    m_data_ptr(nullptr),
     m_length(packets_in_chunk),
     m_hds_on(use_hds),
     m_stream_id(stream_id)
@@ -111,4 +112,40 @@ ReturnStatus MediaChunk::cancel_unsent()
     default:
         return ReturnStatus::failure;
     }
+}
+
+ReturnStatus MediaChunk::mark_for_tracking(uint64_t token)
+{
+    rmx_status status = rmx_output_media_mark_chunk_for_tracking(&m_chunk, token);
+    switch (status) {
+    case RMX_OK:
+        return ReturnStatus::success;
+    default:
+        return ReturnStatus::failure;
+    }
+}
+
+ReturnStatus MediaChunk::poll_for_completion()
+{
+    rmx_status status = rmx_output_media_poll_for_completion(&m_chunk);
+    switch (status) {
+    case RMX_OK:
+        return ReturnStatus::success;
+    case RMX_BUSY:
+        return ReturnStatus::no_completion;
+    default:
+        return ReturnStatus::failure;
+    }
+}
+
+ReturnStatus MediaChunk::get_last_completion_info(uint64_t& timestamp, uint64_t& token)
+{
+    auto completion = rmx_output_media_get_last_completion(&m_chunk);
+    if (!completion) {
+        return ReturnStatus::failure;
+    }
+
+    token = rmx_output_get_completion_user_token(completion);
+    timestamp = rmx_output_get_completion_timestamp(completion);
+    return ReturnStatus::success;
 }

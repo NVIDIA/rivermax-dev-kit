@@ -31,15 +31,19 @@ GenericChunk::GenericChunk(rmx_stream_id stream_id, size_t packets_in_chunk) :
 
 ReturnStatus GenericChunk::apply_packets_layout()
 {
-    rmx_status status;
     for (auto& packet : m_packets) {
-        status = rmx_output_gen_append_packet_to_chunk(&m_chunk, packet.data(), packet.size());
+        rmx_status status = rmx_output_gen_append_packet_to_chunk(&m_chunk, packet.data(), packet.size());
         if (status != RMX_OK) {
+            if (status == RMX_SIGNAL) {
+                return ReturnStatus::signal_received;
+            }
+            
             std::cerr << "Failed to append a packet to a chunk of stream (" << m_stream_id <<
                 "), with status: " << status << std::endl;
             return ReturnStatus::failure;
         }
     }
+
     return ReturnStatus::success;
 }
 
@@ -71,7 +75,6 @@ void GenericChunk::set_commit_options(const std::unordered_set<rmx_output_commit
 ReturnStatus GenericChunk::commit_chunk(uint64_t time)
 {
     rmx_status status = rmx_output_gen_commit_chunk(&m_chunk, time);
-
     switch (status) {
     case RMX_OK:
         return ReturnStatus::success;
@@ -86,4 +89,41 @@ ReturnStatus GenericChunk::commit_chunk(uint64_t time)
     }
 }
 
+ReturnStatus GenericChunk::mark_for_tracking(uint64_t token)
+{
+    rmx_status status = rmx_output_gen_mark_chunk_for_tracking(&m_chunk, token);
+    switch (status) {
+    case RMX_OK:
+        return ReturnStatus::success;
+    default:
+        return ReturnStatus::failure;
+    }
+}
+
+ReturnStatus GenericChunk::poll_for_completion()
+{
+    rmx_status status = rmx_output_gen_poll_for_completion(&m_chunk);
+    switch (status) {
+    case RMX_OK:
+        return ReturnStatus::success;
+    case RMX_SIGNAL:
+        return ReturnStatus::signal_received;
+    case RMX_BUSY:
+        return ReturnStatus::no_completion;
+    default:
+        return ReturnStatus::failure;
+    }
+}
+
+ReturnStatus GenericChunk::get_last_completion_info(uint64_t& timestamp, uint64_t& token)
+{
+    auto completion = rmx_output_gen_get_last_completion(&m_chunk);
+    if (!completion) {
+        return ReturnStatus::failure;
+    }
+
+    token = rmx_output_get_completion_user_token(completion);
+    timestamp = rmx_output_get_completion_timestamp(completion);
+    return ReturnStatus::success;
+}
 

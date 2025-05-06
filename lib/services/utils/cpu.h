@@ -28,19 +28,17 @@ namespace services
 /**
 * @brief: Sets CPU affinity for the rivermax internal thread.
 *
-* @param [in] cpu_affinity: Vector of CPU numbers to assign for the thread.
+* @param [in] cpu_affinity: CPU number to assign for the thread.
 *
 * @return: Status of the operation.
 */
-ReturnStatus set_rivermax_thread_cpu_affinity(const std::vector<int>& cpu_affinity);
+ReturnStatus set_rivermax_thread_cpu_affinity(int cpu);
 /**
- * @brief: Sets CPU affinity for the current thread.
- *
- * @param [in] cpu_affinity: Vector of CPU numbers to assign for the thread.
- *
- * @return: Status of the operation.
- */
-ReturnStatus set_app_thread_cpu_affinity(const std::vector<int>& cpu_affinity);
+* @brief: Sets CPU affinity for the current thread.
+*
+* @param [in] cpu: A CPU core number to assign to the current thread.
+*/
+void set_current_thread_affinity(const int cpu);
 
 } // namespace services
 } // namespace lib

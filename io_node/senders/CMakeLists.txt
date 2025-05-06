@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,9 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         generic_sender_io_node.cpp
         media_sender_io_node.cpp
+        rtp_video_send_stream.cpp
     PUBLIC
         generic_sender_io_node.h
         media_sender_io_node.h
+        rtp_video_send_stream.h
 )

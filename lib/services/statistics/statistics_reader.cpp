@@ -18,7 +18,8 @@
 
 #include "rt_threads.h"
 #include "services/statistics/statistics_reader.h"
-#include "lib/services/utils/utils.h"
+#include "services/utils/utils.h"
+#include "services/utils/cpu.h"
 
 using namespace ral::lib::services;
 
@@ -56,7 +57,6 @@ StatisticsReader::StatisticsReader() :
     m_stats_consumer_created(false),
     m_thread_id(RMX_STATS_INVALID_THREAD_ID),
     m_session_id(DEFAULT_SESSION_ID),
-    m_cpu_affinity_mask(),
     m_cpu_core_affinity(CPU_NONE),
     m_update_time_sec(DEFAULT_UPDATE_TIME),
     m_statistics_handler_cb_map(s_statistics_handler_cb_map)
@@ -98,7 +98,7 @@ ReturnStatus StatisticsReader::init_stats_reader()
 void StatisticsReader::operator()()
 {
     std::cout << "Start StatisticsReader thread" << std::endl;
-    set_cpu_resources();
+    set_current_thread_affinity(m_cpu_core_affinity);
     
     ReturnStatus rc = init_stats_reader();
     if (rc == ReturnStatus::failure) {
@@ -125,15 +125,6 @@ void StatisticsReader::operator()()
         std::cerr << error.what() << std::endl;
         return;
     }
-}
-
-void StatisticsReader::set_cpu_resources()
-{
-    memset(&m_cpu_affinity_mask, 0, sizeof(m_cpu_affinity_mask));
-    if (m_cpu_core_affinity != CPU_NONE) {
-        RMAX_CPU_SET(m_cpu_core_affinity, &m_cpu_affinity_mask);
-    }
-    rt_set_thread_affinity(&m_cpu_affinity_mask);
 }
 
 ReturnStatus StatisticsReader::read_stats_msg()

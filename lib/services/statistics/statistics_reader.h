@@ -58,7 +58,6 @@ protected:
     /* If not equal UINT_MAX - filter statistics by session_id */
     uint32_t m_session_id;
     /** CPU affinity related */
-    rmax_cpu_set_t m_cpu_affinity_mask;
     int m_cpu_core_affinity;
     /** Reader related */
     /* Sleep duration in seconds before every cycle of statistics reading */
@@ -124,10 +123,6 @@ public:
      */
     void  set_cpu_core_affinity(int cpu_core_affinity) { m_cpu_core_affinity = cpu_core_affinity; }
 protected:
-    /**
-     * @brief: Sets cpu affinity.
-     */
-    virtual void set_cpu_resources();
     /**
      * @brief: Reads one statistic message in to m_stats_message data member.
      *

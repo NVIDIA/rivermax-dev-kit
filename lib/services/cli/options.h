@@ -60,6 +60,7 @@ class CLIOptStr
 public:
     static const char* LOCAL_IP;
     static const char* LOCAL_IPS;
+    static const char* SRC_IP;
     static const char* SRC_IPS;
     static const char* DST_IP;
     static const char* DST_IPS;

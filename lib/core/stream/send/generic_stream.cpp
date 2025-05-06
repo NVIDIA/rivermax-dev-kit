@@ -116,7 +116,7 @@ ReturnStatus GenericSendStream::get_next_chunk(std::shared_ptr<GenericChunk>& ch
         m_next_chunk_to_send_index++;
         m_next_chunk_to_send_index %= m_num_of_chunks;
     }
-    return ReturnStatus::failure;
+    return status;
 }
 
 ReturnStatus GenericSendStream::blocking_get_next_chunk(std::shared_ptr<GenericChunk>& chunk, size_t retries)
@@ -174,7 +174,7 @@ void GenericSendStream::initialize_chunks(const rmx_mem_region& mem_region)
 
 size_t GenericSendStream::get_memory_length() const
 {
-    return m_num_of_chunks * m_stream_settings.m_num_of_packets_in_chunk * MEM_SUBBLOCKS *
+    return m_num_of_chunks * m_stream_settings.m_num_of_packets_in_chunk *
            (m_stream_settings.m_packet_typical_payload_size +
            m_stream_settings.m_packet_typical_app_header_size);
 }

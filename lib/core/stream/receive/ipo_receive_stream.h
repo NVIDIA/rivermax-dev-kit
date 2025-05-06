@@ -265,6 +265,11 @@ private:
      */
     enum class State {
         /**
+         * Stream is not started yet.
+         * Switch to @ref State::WaitFirstPacket on @ref start call.
+         */
+        NotStarted,
+        /**
          * Waiting for the first input packet to initialize receiver.
          * Switch to @ref State::Running on a first packet.
          */
@@ -290,9 +295,12 @@ protected:
     const uint32_t m_num_of_packets_in_chunk;
 
     std::chrono::microseconds m_max_path_differential;
+    std::chrono::microseconds m_sender_restart_threshold{ std::chrono::milliseconds(100) };
 
+    uint32_t m_last_processed_sequence_number = 0;
     uint32_t m_sequence_number_wrap_around = 0;
-    State m_state = State::WaitFirstPacket;
+    uint32_t m_sequence_number_msb_mask = 0;
+    State m_state = State::NotStarted;
     std::vector<ReceiveStream> m_streams;
     std::vector<ReceiveChunk> m_chunks;
     byte_t* m_header_buffer = nullptr;
@@ -303,6 +311,7 @@ protected:
     size_t m_payload_stride_size = 0;
     size_t m_index = 0;
     clock::time_point m_next_packet_time;
+    clock::time_point m_start_time;
     clock::time_point m_now;
 public:
     /**
@@ -336,6 +345,10 @@ public:
      */
     ReturnStatus detach_flow();
     ReturnStatus destroy_stream() override;
+    /**
+     * @brief: Mark current time as stream start time.
+     */
+    virtual void start();
     /**
      * @brief: Receives next chunk from input stream.
      *
@@ -408,6 +421,14 @@ protected:
      */
     virtual void handle_corrupted_packet(size_t index, const ReceivePacketInfo& packet_info);
     /**
+     * @brief: Handles packet that arrived too late.
+     *
+     * @param [in] index: Redundant stream index (0-based).
+     * @param [in] sequence_number: RTP sequence number.
+     * @param [in] packet_info: Detailed packet information.
+     */
+    virtual void handle_late_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info);
+    /**
      * @brief: Handles received packet.
      *
      * This function is called only for the first packet, for redundant packets
@@ -439,6 +460,12 @@ protected:
      * @param [in] sequence_number: RTP sequence number.
      */
     virtual void complete_packet(uint32_t sequence_number);
+    /**
+     * @brief: Handles sender restart.
+     *
+     * This function is called once receiver detects that the sender restarted streaming.
+     */
+    virtual void handle_sender_restart();
     /**
      * @brief: Returns wrap-around value for sequence number.
      *

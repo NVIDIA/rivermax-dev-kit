@@ -22,15 +22,27 @@
 using namespace ral::apps;
 using namespace ral::lib::services;
 
+namespace {
+static const std::map<AllocatorTypeUI, AllocatorType> UI_ALLOCATOR_TYPE_MAP{
+    { AllocatorTypeUI::Auto,            AllocatorType::HugePageDefault },
+    { AllocatorTypeUI::HugePageDefault, AllocatorType::HugePageDefault },
+    { AllocatorTypeUI::Malloc,          AllocatorType::Malloc },
+    { AllocatorTypeUI::HugePage2MB,     AllocatorType::HugePage2MB },
+    { AllocatorTypeUI::HugePage512MB,   AllocatorType::HugePage512MB },
+    { AllocatorTypeUI::HugePage1GB,     AllocatorType::HugePage1GB }
+};
+}
+
 RmaxBaseApp::RmaxBaseApp(const std::string& app_description, const std::string& app_examples) :
     m_obj_init_status(ReturnStatus::obj_init_failure),
     m_app_settings(new AppSettings),
     m_rmax_apps_lib(ral::lib::RmaxAppsLibFacade()),
     m_cli_parser_manager(m_rmax_apps_lib.get_cli_parser_manager(
-        app_description + rmax_get_version_string(), app_examples, m_app_settings)),
+        app_description + rmx_get_version_string(), app_examples, m_app_settings)),
     m_signal_handler(m_rmax_apps_lib.get_signal_handler(true)),
     m_stats_reader(nullptr)
 {
+    memset(&m_local_address, 0, sizeof(m_local_address));
 }
 
 RmaxBaseApp::~RmaxBaseApp()
@@ -73,55 +85,58 @@ void RmaxBaseApp::initialize_common_default_app_settings()
     m_app_settings->session_id_stats = UINT_MAX;
 }
 
+ReturnStatus RmaxBaseApp::initialize_memory_allocators()
+{
+    const auto alloc_type_iter = UI_ALLOCATOR_TYPE_MAP.find(m_app_settings->allocator_type);
+    if (alloc_type_iter == UI_ALLOCATOR_TYPE_MAP.end()) {
+        std::cerr << "Unknown UI allocator type " << static_cast<int>(m_app_settings->allocator_type) << std::endl;
+        return ReturnStatus::failure;
+    }
+    AllocatorType allocator_type = alloc_type_iter->second;
+    AllocatorType header_allocator_type;
+    AllocatorType payload_allocator_type;
+    if (m_app_settings->gpu_id != INVALID_GPU_ID) {
+        header_allocator_type = allocator_type;
+        payload_allocator_type = AllocatorType::Gpu;
+    } else {
+        header_allocator_type = allocator_type;
+        payload_allocator_type = allocator_type;
+    }
+    m_header_allocator = m_rmax_apps_lib.get_memory_allocator(header_allocator_type, m_app_settings);
+    if (m_header_allocator == nullptr) {
+        std::cerr << "Failed to create header memory allocator" << std::endl;
+        return ReturnStatus::failure;
+    }
+    m_payload_allocator = m_rmax_apps_lib.get_memory_allocator(payload_allocator_type, m_app_settings);
+    if (m_payload_allocator == nullptr) {
+        std::cerr << "Failed to create payload memory allocator" << std::endl;
+        return ReturnStatus::failure;
+    }
+    return ReturnStatus::success;
+}
+
 ReturnStatus RmaxBaseApp::initialize(int argc, const char* argv[])
 {
+    ReturnStatus rc = m_cli_parser_manager->initialize();
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to initialize CLI manager" << std::endl;
+        return rc;
+    }
+
     initialize_common_default_app_settings();
     add_cli_options();
-    ReturnStatus rc = m_cli_parser_manager->parse_cli(argc, argv);
+    rc = m_cli_parser_manager->parse_cli(argc, argv);
     if (rc == ReturnStatus::failure || rc == ReturnStatus::success_cli_help) {
         return rc;
     }
+
     post_cli_parse_initialization();
 
-    AllocatorType type = AllocatorType::Malloc;
-    if (m_app_settings->gpu_id != INVALID_GPU_ID) {
-        switch (m_app_settings->allocator_type) {
-        case AllocatorTypeUI::Auto:
-        case AllocatorTypeUI::Gpu:
-            type = AllocatorType::Gpu;
-            break;
-        default:
-            std::cerr << "For GPU configuration allocator type must be 'gpu'" << std::endl;
-            return ReturnStatus::failure;
-        }
-    } else {
-        switch (m_app_settings->allocator_type) {
-        case AllocatorTypeUI::Auto:
-        case AllocatorTypeUI::HugePageDefault:
-            type = AllocatorType::HugePageDefault;
-            break;
-        case AllocatorTypeUI::Malloc:
-            type = AllocatorType::Malloc;
-            break;
-        case AllocatorTypeUI::HugePage2MB:
-            type = AllocatorType::HugePage2MB;
-            break;
-        case AllocatorTypeUI::HugePage512MB:
-            type = AllocatorType::HugePage512MB;
-            break;
-        case AllocatorTypeUI::HugePage1GB:
-            type = AllocatorType::HugePage1GB;
-            break;
-        case AllocatorTypeUI::Gpu:
-            std::cerr << "For non-GPU configuration allocator type must not be 'gpu'" << std::endl;
-            return ReturnStatus::failure;
-        }
-    }
-    m_mem_allocator = m_rmax_apps_lib.get_memory_allocator(type, m_app_settings);
-    if (m_mem_allocator == nullptr) {
-        std::cerr << "Failed to create memory allocator" << std::endl;
+    rc = initialize_memory_allocators();
+    if (rc == ReturnStatus::failure) {
+        std::cerr << "Failed to initialize memory allocators" << std::endl;
         m_obj_init_status = ReturnStatus::memory_allocation_failure;
-        return rc;
+        return m_obj_init_status;
     }
 
     rc = initialize_rivermax_resources();
@@ -152,11 +167,11 @@ ReturnStatus RmaxBaseApp::set_rivermax_clock()
 
 ReturnStatus RmaxBaseApp::initialize_connection_parameters()
 {
-    memset(&m_source_address, 0, sizeof(sockaddr_in));
-    m_source_address.sin_family = AF_INET;
-    int rc = inet_pton(AF_INET, m_app_settings->source_ip.c_str(), &m_source_address.sin_addr);
+    memset(&m_local_address, 0, sizeof(sockaddr_in));
+    m_local_address.sin_family = AF_INET;
+    int rc = inet_pton(AF_INET, m_app_settings->local_ip.c_str(), &m_local_address.sin_addr);
     if (rc != 1) {
-        std::cerr << "Failed to parse source network address: " << m_app_settings->source_ip << std::endl;
+        std::cerr << "Failed to parse local network address: " << m_app_settings->local_ip << std::endl;
         return ReturnStatus::failure;
     }
 

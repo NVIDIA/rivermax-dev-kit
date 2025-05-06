@@ -26,7 +26,14 @@ void ChecksumBufferWriter::write_buffer(IChunk& chunk, std::shared_ptr<MemoryUti
     for (size_t packet_index = 0; packet_index < app_chunk.get_length(); packet_index++) {
         auto& packet = app_chunk.get_packet(packet_index);
         for (auto& iov_elem : packet) {
-            /* Fill the data with a randomly repeating char. */
+            /*
+             * Fill the data with a randomly repeating char.
+             *
+             * Coverity warns about rand() usage for security or cryptography related usage
+             * This case is just to pick an arbitrary character and fill data with it so
+             * so we voluntarily silence coverity warning.
+             */
+            // coverity[dont_call]
             unsigned char data_char = rand() % 255;
             mem_utils->memory_set(reinterpret_cast<void*>(
                 reinterpret_cast<uint8_t*>(iov_elem.addr) + iov_elem.length), data_char, iov_elem.length);

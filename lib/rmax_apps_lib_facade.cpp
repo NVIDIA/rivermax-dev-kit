@@ -26,7 +26,6 @@ using namespace ral::lib::services;
 ral::lib::RmaxAppsLibFacade::RmaxAppsLibFacade() :
     m_rmax_lib_initialized(false),
     m_cli_parser_manager(nullptr),
-    m_mem_allocator(nullptr),
     m_signal_handler(nullptr)
 {
 }
@@ -37,13 +36,9 @@ ral::lib::RmaxAppsLibFacade::~RmaxAppsLibFacade()
 }
 
 std::shared_ptr<MemoryAllocator> ral::lib::RmaxAppsLibFacade::get_memory_allocator(
-    AllocatorType type, std::shared_ptr<AppSettings> app_settings)
+    AllocatorType type, std::shared_ptr<AppSettings> app_settings) const
 {
-    if (!m_mem_allocator) {
-        m_mem_allocator = MemoryAllocator::get_memory_allocator(type, app_settings);
-    }
-
-    return m_mem_allocator;
+    return MemoryAllocator::get_memory_allocator(type, app_settings);
 }
 
 std::shared_ptr<CLIParserManager> ral::lib::RmaxAppsLibFacade::get_cli_parser_manager(
@@ -70,8 +65,8 @@ std::shared_ptr<SignalHandler> ral::lib::RmaxAppsLibFacade::get_signal_handler(b
 ReturnStatus ral::lib::RmaxAppsLibFacade::validate_rivermax_version() const
 {
     std::stringstream app_version;
-    app_version << RMAX_MAJOR_VERSION << "." << RMAX_MINOR_VERSION
-        << "." << RMAX_PATCH_VERSION;
+    app_version << RMX_VERSION_MAJOR << "." << RMX_VERSION_MINOR
+        << "." << RMX_VERSION_PATCH;
 
     std::stringstream version_header;
     version_header <<
@@ -84,14 +79,14 @@ ReturnStatus ral::lib::RmaxAppsLibFacade::validate_rivermax_version() const
     return ReturnStatus::success;
 }
 
-ReturnStatus ral::lib::RmaxAppsLibFacade::initialize_rivermax(const std::vector<int>& cpu_affinity, bool enable_signal_handling)
+ReturnStatus ral::lib::RmaxAppsLibFacade::initialize_rivermax(int cpu, bool enable_signal_handling)
 {
     ReturnStatus rc = validate_rivermax_version();
     if (rc == ReturnStatus::rmax_version_incompatible) {
         return rc;
     }
 
-    rc = set_rivermax_thread_cpu_affinity(cpu_affinity);
+    rc = set_rivermax_thread_cpu_affinity(cpu);
     if (rc != ReturnStatus::success) {
         return rc;
     }

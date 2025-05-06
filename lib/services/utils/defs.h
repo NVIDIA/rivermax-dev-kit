@@ -138,6 +138,7 @@ typedef struct AppSettings
 {
     int sleep_between_operations_us;
     bool sleep_between_operations;
+    std::string local_ip;
     std::vector<std::string> local_ips;
     std::string source_ip;
     std::vector<std::string> source_ips;
@@ -157,6 +158,7 @@ typedef struct AppSettings
     size_t num_of_chunks_in_mem_block;
     size_t num_of_chunks;
     size_t num_of_packets_in_chunk;
+    bool num_of_packets_in_chunk_specified;
     size_t num_of_packets_in_mem_block;
     uint16_t packet_payload_size;
     uint16_t packet_app_header_size;
@@ -176,6 +178,14 @@ typedef struct AppSettings
  * This defines the callback type for time handling callback functions.
  */
 typedef std::function<uint64_t(void*)> time_handler_ns_cb_t;
+template <typename T, size_t S>
+void set_bitmap_bit(T (&bitmap)[S], size_t bit)
+{
+    constexpr auto bit_size = sizeof(T) * 8;
+    auto index = bit / bit_size;
+    auto offset = bit % bit_size;
+    bitmap[index] |= ((T)1) << offset;
+}
 
 } // namespace services
 } // namespace lib

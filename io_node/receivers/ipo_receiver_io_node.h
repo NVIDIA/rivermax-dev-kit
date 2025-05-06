@@ -40,6 +40,7 @@ struct IPORXStatistics {
     size_t rx_counter = 0;
     size_t rx_dropped = 0;
     size_t rx_corrupt_rtp_header = 0;
+    size_t rx_exceed_md = 0;
     size_t received_bytes = 0;
 
     /**
@@ -50,6 +51,7 @@ struct IPORXStatistics {
         rx_counter = 0;
         rx_dropped = 0;
         rx_corrupt_rtp_header = 0;
+        rx_exceed_md = 0;
         received_bytes = 0;
     }
 
@@ -95,7 +97,7 @@ private:
     std::vector<IPOPathStatistics> m_path_stats;
     std::vector<std::vector<uint8_t>> m_path_packets;
     bool m_initialized = false;
-    uint32_t m_last_sequence_number;
+    uint32_t m_last_sequence_number = 0;
 
 public:
     /**
@@ -142,6 +144,14 @@ private:
      */
     void handle_corrupted_packet(size_t index, const ReceivePacketInfo& packet_info) final;
     /**
+     * @brief: Handles packet that arrived too late.
+     *
+     * @param [in] index: Redundant stream index (0-based).
+     * @param [in] sequence_number: RTP sequence number.
+     * @param [in] packet_info: Detailed packet information.
+     */
+    virtual void handle_late_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info);
+    /**
      * @brief: Handles received packet.
      *
      * This function is called only for the first packet, for redundant packets
@@ -173,6 +183,12 @@ private:
      * @param [in] sequence_number: Sequence number.
      */
     void complete_packet(uint32_t sequence_number) final;
+    /**
+     * @brief: Handles sender restart.
+     *
+     * This function is called once receiver detects that the sender restarted streaming.
+     */
+    virtual void handle_sender_restart();
 
 protected:
     /**
@@ -320,6 +336,16 @@ private:
      * @return: Status of the operation.
      */
     ReturnStatus attach_flows();
+    /**
+     * @brief: Start all streams.
+     */
+    void start();
+    /**
+     * @brief: Wait for a first input packet.
+     *
+     * @return: Status code.
+     */
+     ReturnStatus wait_first_packet();
     /**
      * @brief: Detaches flows from receiver's streams.
      *

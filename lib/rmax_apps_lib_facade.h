@@ -40,8 +40,6 @@ private:
     bool m_rmax_lib_initialized;
     /* Command line manager */
     std::shared_ptr<CLIParserManager> m_cli_parser_manager;
-    /* Memory allocator */
-    std::shared_ptr<MemoryAllocator> m_mem_allocator;
     /* Application signal handler */
     std::shared_ptr<SignalHandler> m_signal_handler;
 public:
@@ -58,8 +56,8 @@ public:
      *
      * @return: Shared pointer to the memory allocator object.
      */
-    std::shared_ptr<MemoryAllocator> get_memory_allocator(
-        AllocatorType type, std::shared_ptr<AppSettings> app_settings);
+    std::shared_ptr<MemoryAllocator> get_memory_allocator(AllocatorType type,
+        std::shared_ptr<AppSettings> app_settings) const;
     /**
      * @brief: Factory method for CLI parser manager class.
      *
@@ -86,14 +84,14 @@ public:
     /**
      * @brief: Initializes Rivermax library.
      *
-     * @param [in] cpu_affinity: A set of CPU numbers to assign for running Rivermax internal threads.
+     * @param [in] cpu_affinity: CPU number to assign for running Rivermax internal threads.
      * @param [in] enable_signal_handling: Enable OS signal handling by Rivermax.
      *
      * @note: There is no need to run cleanup of Rivermax, it will be done implicitly.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus initialize_rivermax(const std::vector<int>& cpu_affinity, bool enable_signal_handling = true);
+    ReturnStatus initialize_rivermax(int cpu, bool enable_signal_handling = true);
 private:
     /**
      * @brief: Validates Rivermax library version.

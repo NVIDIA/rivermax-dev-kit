@@ -128,6 +128,42 @@ public:
      *          @ref ral::lib::services::ReturnStatus::signal_received - In case a signal was received during the operation.
      */
     ReturnStatus cancel_unsent();
+    /**
+     * @brief: Marks the chunk for completion tracking.
+     *
+     * @param [out] token: Arbitrary user token associated with the chunk.
+     *
+     * @warinig: To mark a chunk, call this function after @ref get_next_chunk
+     * but before committing it with @ref commit_chunk.
+     *
+     * @return Status code as defined by @ref rmx_status.
+     */
+    ReturnStatus mark_for_tracking(uint64_t token);
+    /**
+     * @brief: Polls for a new transmit completion of a chunk marked for completion tracking.
+     *
+     * @warning: When only some of the committed chunks were marked for tracking, this function may return
+     *          @ref ral::lib::services::ReturnStatus::no_completion even if the marked chunks are already transmitted,
+     *          but their status is not yet fetched from HW due to many preceeding non-marked completions.
+     *          In this use case the function must be called multiple times until ral::lib::services::ReturnStatus::success
+     *          is returned. Then the marked completion info can be read with @ref get_last_completion_info.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::no_completion - In case when no new completions are available.
+     */
+    ReturnStatus poll_for_completion();
+    /**
+     * @brief: Retrieves information of the last Tx completion obtained with @ref poll_for_completion.
+     *
+     * @param [out] timestamp: Time of completing the chunk transmit set by HW.
+     * @param [out] token: Token associated with the chunk when marking for trackinw with @ref mark_for_tracking.
+     *
+     * @return: Status of the operation:
+     *          @ref ral::lib::services::ReturnStatus::success - In case of success.
+     *          @ref ral::lib::services::ReturnStatus::failure - In case of incorrect or obsolete stream.
+     */
+    ReturnStatus get_last_completion_info(uint64_t& timestamp, uint64_t& token);
 };
 
 } // namespace core

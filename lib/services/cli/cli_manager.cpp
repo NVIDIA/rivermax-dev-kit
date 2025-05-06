@@ -30,9 +30,23 @@ CLIParserManager::CLIParserManager(
     const std::string& app_examples,
     std::shared_ptr<AppSettings> app_settings) :
     m_app_settings(app_settings),
-    m_parser(new CLI::App(app_description)),
+    m_app_description(app_description),
     m_app_examples(app_examples)
 {
+
+}
+
+ReturnStatus CLIParserManager::initialize()
+{
+    try {
+        m_parser = std::make_shared<CLI::App>(m_app_description);
+    }
+    catch (const CLI::BadNameString& error) {
+        std::cerr << "Failed to initialize CLI parser; error:" << error.get_exit_code() << std::endl;
+        return ReturnStatus::failure;
+    }
+
+    return ReturnStatus::success;
 }
 
 ReturnStatus CLIParserManager::parse_cli(int argc, const char* argv[])
@@ -56,9 +70,14 @@ CLI::Option* CLIParserManager::add_option(const std::string& option_name)
 {
     auto iter = CLIParserManager::s_cli_opt_fuctory.find(option_name);
     if (iter != CLIParserManager::s_cli_opt_fuctory.end()) {
-        return iter->second(m_parser, m_app_settings);
-    }
-    else {
+        try {
+            return iter->second(m_parser, m_app_settings);
+        }
+        catch (const CLI::BadNameString& error) {
+            std::cerr << "Failed to add CLI option [" << option_name << "]; error: " << error.get_exit_code() << std::endl;
+            return nullptr;
+        }
+    } else {
         return nullptr;
     }
 }

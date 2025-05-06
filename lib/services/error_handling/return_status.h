@@ -38,7 +38,8 @@ enum class ReturnStatus
     memory_allocation_failure,
     rmax_version_incompatible,
     rmax_version_unaligned,
-    no_free_chunks
+    no_free_chunks,
+    no_completion,
 };
 
 } // namespace services

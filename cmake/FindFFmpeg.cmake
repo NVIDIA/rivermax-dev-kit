@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2006 Matthias Kretz <kretz@kde.org>
 # SPDX-FileCopyrightText: 2008 Alexander Neundorf <neundorf@kde.org>
 # SPDX-FileCopyrightText: 2011 Michael Jansen <kde@michael-jansen.biz>
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 

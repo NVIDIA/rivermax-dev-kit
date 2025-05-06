@@ -13,35 +13,29 @@
 #include <iostream>
 #include <thread>
 
+#include <rivermax_api.h>
+#include <rivermax_affinity.h>
+
 #include "rt_threads.h"
-#include "rivermax_api.h"
 #include "cpu.h"
+#include "defs.h"
 
 using namespace ral::lib::services;
 
-ReturnStatus ral::lib::services::set_rivermax_thread_cpu_affinity(const std::vector<int>& cpu_affinity)
+ReturnStatus ral::lib::services::set_rivermax_thread_cpu_affinity(int cpu)
 {
-    auto n_cpus = static_cast<int>(std::thread::hardware_concurrency());
-    std::vector<uint64_t> cpu_mask((n_cpus + sizeof(uint64_t) - 1) / sizeof(uint64_t), 0);
-    bool affinity_restricted = false;
-
-    for (auto cpu : cpu_affinity) {
-        if (cpu == CPU_NONE) {
-            continue;
-        }
-        if (cpu >= n_cpus || cpu < 0) {
-            std::cerr << "Failed to mark CPU affinity to core " << cpu << std::endl;
-            return ReturnStatus::failure;
-        }
-        rmx_mark_cpu_for_affinity(cpu_mask.data(), cpu);
-        affinity_restricted = true;
-    }
-
-    if (!affinity_restricted) {
+    if (cpu == CPU_NONE) {
         return ReturnStatus::success;
     }
+    if (cpu < 0) {
+        std::cerr << "Failed to mark CPU affinity to core " << cpu << std::endl;
+        return ReturnStatus::failure;
+    }
 
-    rmx_status status = rmx_set_cpu_affinity(cpu_mask.data(), n_cpus);
+    constexpr size_t cores_per_mask = 8 * sizeof(uint64_t);
+    std::vector<uint64_t> cpu_mask(cpu / cores_per_mask + 1, 0);
+    rmx_mark_cpu_for_affinity(cpu_mask.data(), cpu);
+    rmx_status status = rmx_set_cpu_affinity(cpu_mask.data(), size_t(cpu) + 1);
     if (status != RMX_OK) {
         std::cerr << "Failed to initialize Rivermax CPU affinity: " << status << std::endl;
         return ReturnStatus::failure;
@@ -50,9 +44,9 @@ ReturnStatus ral::lib::services::set_rivermax_thread_cpu_affinity(const std::vec
     return ReturnStatus::success;
 }
 
-ReturnStatus ral::lib::services::set_app_thread_cpu_affinity(const std::vector<int>& cpu_affinity)
+void ral::lib::services::set_current_thread_affinity(const int cpu) 
 {
-    set_cpu_affinity(cpu_affinity);
-
-    return ReturnStatus::success;
+    if (cpu != CPU_NONE) {
+        rivermax::libs::set_affinity((size_t)cpu);
+    } 
 }

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -112,6 +112,7 @@ target_compile_options(rmax-apps-build INTERFACE
 target_compile_definitions(rmax-apps-build INTERFACE 
     ENABLE_DPCP 
     CONFIG_MERSENNE_TWISTER
+    $<$<BOOL:${RMAX_CUDA}>:CUDA_ENABLED>
 )
 
 target_compile_features(rmax-apps-build INTERFACE $<$<BOOL:${RMAX_CUDA}>:cxx_std_11>)
@@ -124,5 +125,6 @@ target_link_libraries(rmax-apps-build INTERFACE
     Threads::Threads 
     Rivermax::Rivermax
     $<$<BOOL:${RMAX_CUDA}>:CUDA::cuda_driver>
+    $<$<BOOL:${RMAX_CUDA}>:CUDA::cudart>
     $<$<BOOL:${RMAX_CUDA}>:$<$<NOT:$<BOOL:${RMAX_TEGRA}>>:CUDA::nvml>>
 )

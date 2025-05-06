@@ -114,23 +114,17 @@ ReturnStatus GenericSenderApp::run()
 
 ReturnStatus GenericSenderApp::initialize_rivermax_resources()
 {
-    std::vector<int> cpu_affinity;
-
-    if (m_app_settings->internal_thread_core != CPU_NONE) {
-        cpu_affinity.push_back(m_app_settings->internal_thread_core);
-    }
-
     rt_set_realtime_class();
-    return m_rmax_apps_lib.initialize_rivermax(cpu_affinity);
+    return m_rmax_apps_lib.initialize_rivermax(m_app_settings->internal_thread_core);
 }
 
 ReturnStatus GenericSenderApp::cleanup_rivermax_resources()
 {
     rmx_device_iface device_iface;
-    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_source_address.sin_addr);
+    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_local_address.sin_addr);
     if (status != RMX_OK) {
         char str[INET_ADDRSTRLEN];
-        const char* s = inet_ntop(AF_INET, &(m_source_address.sin_addr), str, INET_ADDRSTRLEN);
+        const char* s = inet_ntop(AF_INET, &(m_local_address.sin_addr), str, INET_ADDRSTRLEN);
         std::cerr << "Failed to get device: " << (s ? str : "unknown") << " with status: " << status << std::endl;
         return ReturnStatus::failure;
     }
@@ -172,7 +166,7 @@ ReturnStatus GenericSenderApp::allocate_app_memory()
     rmx_mem_region mreg;
 
     memset(&mreg, 0, sizeof(mreg));
-    mreg.addr = m_mem_allocator->allocate(length);
+    mreg.addr = m_payload_allocator->allocate(length);
     mreg.length = length;
     mreg.mkey = 0;
 
@@ -182,10 +176,10 @@ ReturnStatus GenericSenderApp::allocate_app_memory()
     }
 
     rmx_device_iface device_iface;
-    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_source_address.sin_addr);
+    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_local_address.sin_addr);
     if (status != RMX_OK) {
         char str[INET_ADDRSTRLEN];
-        const char* s = inet_ntop(AF_INET, &(m_source_address.sin_addr), str, INET_ADDRSTRLEN);
+        const char* s = inet_ntop(AF_INET, &(m_local_address.sin_addr), str, INET_ADDRSTRLEN);
         std::cerr << "Failed to get device: " << (s ? str : "unknown") << " with status: " << status << std::endl;
         return ReturnStatus::failure;
     }
@@ -246,7 +240,7 @@ void GenericSenderApp::initialize_sender_threads()
             sndr_indx,
             m_streams_per_thread[sndr_indx],
             sender_cpu_core,
-            m_mem_allocator->get_memory_utils())));
+            m_payload_allocator->get_memory_utils())));
         m_senders[sndr_indx]->initialize_send_flows(flows);
         m_senders[sndr_indx]->initialize_streams(flows_offset);
     }
@@ -256,7 +250,7 @@ void GenericSenderApp::distribute_memory_for_senders(const int mem_block_index)
 {
     auto& app_mem = m_mem_regions[mem_block_index];
     byte_t* pointer = nullptr;
-    rmax_mkey_id mkey = 0;
+    rmx_mkey_id mkey = 0;
     size_t length = 0;
     size_t offset = 0;
 

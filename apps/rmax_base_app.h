@@ -46,9 +46,11 @@ protected:
     /* Command line manager */
     std::shared_ptr<CLIParserManager> m_cli_parser_manager;
     /* Local NIC address */
-    sockaddr_in m_source_address;
-    /* Memory allocator */
-    std::shared_ptr<MemoryAllocator> m_mem_allocator;
+    sockaddr_in m_local_address;
+    /* Header memory allocator */
+    std::shared_ptr<MemoryAllocator> m_header_allocator;
+    /* Payload memory allocator */
+    std::shared_ptr<MemoryAllocator> m_payload_allocator;
     /* Application signal handler */
     std::shared_ptr<SignalHandler> m_signal_handler;
     /* Thread objects container */
@@ -96,6 +98,12 @@ protected:
      * It will be called as part of the @ref ral::apps::RmaxBaseApp::initialize process.
      */
     virtual void post_cli_parse_initialization() {};
+    /**
+     * @brief: Initializes memory allocators.
+     *
+     * @retun: Status of the operation.
+     */
+    virtual ReturnStatus initialize_memory_allocators();
     /**
      * @brief: Runs application initialization flow.
      *

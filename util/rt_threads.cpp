@@ -28,7 +28,8 @@
 #include <tchar.h>
 #include <ws2tcpip.h>
 #endif
-#include "rivermax_api.h"
+#include <rivermax_api.h>
+#include <rivermax_affinity.h>
 #include "rt_threads.h"
 
 using namespace std;
@@ -137,32 +138,6 @@ void signal_handler(const int signal_num)
 #if defined(_WIN32) || defined(_WIN64)
 
 HANDLE EventMgr::m_iocp = INVALID_HANDLE_VALUE;
-
-bool rt_set_thread_affinity(struct rmax_cpu_set_t *cpu_mask)
-{
-    DWORD_PTR ret;
-
-    for (int iter = 1; iter < RMAX_CPU_SETSIZE / RMAX_NCPUBITS; iter++) {
-        if (cpu_mask->rmax_bits[iter]) {
-            cerr << "Rivermax doesn't support setting thread affinity to CPUs beyond the first 64" << endl;
-        }
-    }
-
-    DWORD_PTR thread_affinity = static_cast<DWORD_PTR>(cpu_mask->rmax_bits[0]);
-    if (!thread_affinity)
-        return true;
-
-    HANDLE thread_handle = GetCurrentThread();
-    ret = SetThreadAffinityMask(thread_handle, thread_affinity);
-    if (!ret) {
-        cerr << "Failed setting CPU affinity, Error " << GetLastError() << endl;
-        return false;
-    } else {
-        cout << "Successfully set thread affinity using cpu mask: 0x" << hex << thread_affinity << ", previous mask: 0x" << hex << ret << dec << endl;
-    }
-
-    return true;
-}
 
 int rt_set_thread_priority(int prio)
 {
@@ -310,50 +285,6 @@ void color_reset(void *ctx)
     (void)ctx;
 
     std::cout << color_map[COLOR_RESET];
-}
-
-bool rt_set_thread_affinity(struct rmax_cpu_set_t *cpu_mask)
-{
-    /* set thread affinity */
-    int ret = 0;
-    cpu_set_t *cpu_set;
-    rmax_cpu_mask_t major;
-    size_t cpu_alloc_size;
-
-    cpu_set = CPU_ALLOC(RMAX_CPU_SETSIZE);
-    if (!cpu_set) {
-        cerr << "failed to allocate cpu_set for " << RMAX_CPU_SETSIZE << " CPUs" << endl;
-        return false;
-    }
-    cpu_alloc_size = CPU_ALLOC_SIZE(RMAX_CPU_SETSIZE);
-    CPU_ZERO_S(cpu_alloc_size, cpu_set);
-
-    /* Run through all rmax_cpu_mask_t blocks and add any set bit to cpu_set */
-    for (major = 0; major < RMAX_CPU_SETSIZE / RMAX_NCPUBITS; major++) {
-        rmax_cpu_mask_t current;
-        rmax_cpu_mask_t minor;
-
-        for (current = cpu_mask->rmax_bits[major], minor = 0; current; current >>= 1, minor++) {
-            if (current & 0x1) {
-                CPU_SET(major * RMAX_NCPUBITS + minor, cpu_set);
-            }
-        }
-    }
-
-    pthread_t thread_handle = pthread_self();
-
-    if (CPU_COUNT(cpu_set)) {
-        ret = pthread_setaffinity_np(thread_handle, cpu_alloc_size, cpu_set);
-        if (ret) {
-            cerr << "failed setting thread affinity, errno: " << errno << endl;
-        } else {
-            cout << "successfully set thread affinity using cpu set: 0x" << hex << cpu_set->__bits[0] << dec << endl;
-        }
-    }
-
-    CPU_FREE(cpu_set);
-
-    return ret ? false: true;
 }
 
 int rt_set_thread_priority(int prio)
@@ -598,10 +529,14 @@ int register_handler(PHANDLER_ROUTINE sig_handler)
 }
 #endif
 
-
-void set_cpu_affinity(const std::vector<int>& cpu_core_affinities)
+bool rt_set_thread_affinity(struct rmax_cpu_set_t *cpu_mask)
 {
-    rmax_cpu_set_t cpu_affinity_mask;
+    return (cpu_mask)? rivermax::libs::set_affinity(*cpu_mask): true;
+}
+
+void rt_set_thread_affinity(const std::vector<int>& cpu_core_affinities)
+{
+    rivermax::libs::Affinity::mask cpu_affinity_mask;
 
     memset(&cpu_affinity_mask, 0, sizeof(cpu_affinity_mask));
     for (auto cpu : cpu_core_affinities) {
@@ -609,7 +544,29 @@ void set_cpu_affinity(const std::vector<int>& cpu_core_affinities)
             RMAX_CPU_SET(cpu, &cpu_affinity_mask);
         }
     }
-    rt_set_thread_affinity(&cpu_affinity_mask);
+    rivermax::libs::set_affinity(cpu_affinity_mask);
+}
+
+bool rt_set_rivermax_thread_affinity(int cpu_core)
+{
+    if (cpu_core == CPU_NONE) {
+        return true;
+    }
+    if (cpu_core < 0) {
+        std::cerr << "Invalid CPU core number " << cpu_core << std::endl;
+        return false;
+    }
+
+    constexpr size_t cores_per_mask = 8 * sizeof(uint64_t);
+    std::vector<uint64_t> cpu_mask(cpu_core / cores_per_mask + 1, 0);
+    rmx_mark_cpu_for_affinity(cpu_mask.data(), cpu_core);
+    rmx_status status = rmx_set_cpu_affinity(cpu_mask.data(), size_t(cpu_core) + 1);
+    if (status != RMX_OK) {
+        std::cerr << "Failed to set Rivermax CPU affinity to core " << cpu_core << ": " << status << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 uint64_t default_time_handler(void*) /* XXX should be refactored and combined with media_sender's clock functions */
@@ -622,9 +579,10 @@ double time_to_rtp_timestamp(double time_ns, int sample_rate)
     double time_sec = time_ns / static_cast<double>(std::chrono::nanoseconds{ std::chrono::seconds{1} }.count());
     double timestamp = time_sec * static_cast<double>(sample_rate);
     double mask = 0x100000000;
-    // We decrease one tick from the timestamp to prevent cases where the timestamp
-    // lands up in the future due to calculation imprecision
-    timestamp = std::fmod(timestamp, mask) - 1;
+    // Decreasing RTP timestamp but not too much to have buffer both for delays
+    // and advances in transmission or calculation imprecision
+    timestamp -= 5;
+    timestamp = std::fmod(timestamp, mask);
     return timestamp;
 }
 

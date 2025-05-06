@@ -24,6 +24,7 @@
 
 #include "senders/generic_sender_io_node.h"
 #include "api/rmax_apps_lib_api.h"
+#include "services/utils/cpu.h"
 
 using namespace ral::io_node;
 using namespace ral::lib::core;
@@ -35,6 +36,7 @@ AppGenericSendStream::AppGenericSendStream(
     m_send_flows(send_flows),
     m_next_flow_to_send(0)
 {
+    memset(&m_mem_region, 0, sizeof(m_mem_region));
 }
 
 void AppGenericSendStream::assign_mem_region(const rmx_mem_region& mreg)
@@ -80,7 +82,7 @@ GenericSenderIONode::GenericSenderIONode(
     m_num_of_streams(num_of_streams),
     m_sleep_between_operations_us(app_settings->sleep_between_operations_us),
     m_print_parameters(app_settings->print_parameters),
-    m_network_address(FourTupleFlow(index, app_settings->source_ip, app_settings->source_port,
+    m_network_address(FourTupleFlow(index, app_settings->local_ip, app_settings->source_port,
          app_settings->destination_ip, app_settings->destination_port)),
     m_rate(app_settings->rate),
     m_num_of_chunks(app_settings->num_of_chunks),
@@ -95,6 +97,7 @@ GenericSenderIONode::GenericSenderIONode(
         : dynamic_cast<IBufferWriter*>(new GenericBufferWriter()))),
     m_mem_utils(mem_utils)
 {
+    memset(&m_mem_region, 0, sizeof(m_mem_region));
 }
 
 std::ostream& GenericSenderIONode::print(std::ostream& out) const
@@ -215,6 +218,9 @@ void GenericSenderIONode::operator()()
                 if (rc == ReturnStatus::no_free_chunks) {
                     continue;
                 }
+                if (rc != ReturnStatus::success) {
+                    break;
+                }
                 if (m_flows_in_stream[stream_index].size() > 1) {
                     auto flow = stream->get_next_flow_to_send();
                     commit_chunk->set_dest_address(flow->get_socket_address());
@@ -232,7 +238,7 @@ void GenericSenderIONode::operator()()
                             std::cerr << "Failed to send chunk of stream (" << stream->get_id() << ")" << std::endl;
                             break;
                         case ReturnStatus::signal_received:
-                            std::cerr << "Received signal when send chunk of stream (" << stream->get_id() << ")" << std::endl;
+                            std::cout << "Received signal when send chunk of stream (" << stream->get_id() << ")" << std::endl;
                             break;
                         default:
                             stream->set_next_flow_to_send();
@@ -285,7 +291,7 @@ ReturnStatus GenericSenderIONode::destroy_streams()
 
 void GenericSenderIONode::set_cpu_resources()
 {
-    set_cpu_affinity(std::vector<int>{m_cpu_core_affinity});
+    set_current_thread_affinity(m_cpu_core_affinity);
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }
 
@@ -293,7 +299,7 @@ inline void GenericSenderIONode::prepare_buffers()
 {
     for (auto& stream : m_streams) {
         for (size_t chunk_index = 0; chunk_index < stream->get_num_of_chunks(); chunk_index++) {
-            auto chunk = dynamic_cast<GenericSendStream*>(stream.get())->get_chunk(chunk_index);
+            auto chunk = stream.get()->get_chunk(chunk_index);
             m_buffer_writer->write_buffer(*chunk, m_mem_utils);
         }
     }

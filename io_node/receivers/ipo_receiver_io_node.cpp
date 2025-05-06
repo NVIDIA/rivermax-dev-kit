@@ -24,6 +24,7 @@
 
 #include "receivers/ipo_receiver_io_node.h"
 #include "api/rmax_apps_lib_api.h"
+#include "services/utils/cpu.h"
 
 #define BREAK_ON_FAILURE(rc) if (unlikely(rc == ReturnStatus::failure)) { break; }
 
@@ -78,8 +79,10 @@ void AppIPOReceiveStream::print_statistics(std::ostream& out, const std::chrono:
         }
         ss << m_path_stats[s_index].rx_dropped +  m_statistic.rx_dropped;
     }
-    ss << " |" << " lost: " << m_statistic.rx_dropped << " |"
-                << " bad RTP hdr: " << m_statistic.rx_corrupt_rtp_header << " | ";
+    ss << " |" << " lost: " << m_statistic.rx_dropped
+       << " |" << " exceed MD: " << m_statistic.rx_exceed_md
+       << " |" << " bad RTP hdr: " << m_statistic.rx_corrupt_rtp_header
+       << " | ";
     ss << std::fixed << std::setprecision(2);
     double bitrate_Mbps = m_statistic.get_bitrate_Mbps();
     if (bitrate_Mbps > 1000.) {
@@ -124,6 +127,13 @@ void AppIPOReceiveStream::handle_corrupted_packet(size_t index, const ReceivePac
     ++m_statistic.rx_corrupt_rtp_header;
 }
 
+void AppIPOReceiveStream::handle_late_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info)
+{
+    IPOReceiveStream::handle_late_packet(index, sequence_number, packet_info);
+
+    ++m_statistic.rx_exceed_md;
+}
+
 void AppIPOReceiveStream::handle_packet(size_t index, uint32_t sequence_number, const ReceivePacketInfo& packet_info)
 {
     IPOReceiveStream::handle_packet(index, sequence_number, packet_info);
@@ -163,6 +173,12 @@ void AppIPOReceiveStream::complete_packet(uint32_t sequence_number)
     }
     m_initialized = true;
     m_last_sequence_number = sequence_number;
+}
+
+void AppIPOReceiveStream::handle_sender_restart()
+{
+    std::cout << "Sender restart detected" << std::endl;
+    m_initialized = false;
 }
 
 bool AppIPOReceiveStream::get_sequence_number(const byte_t* header, size_t length, uint32_t& sequence_number) const
@@ -245,6 +261,24 @@ void IPOReceiverIONode::print_parameters()
     std::cout << receiver_parameters.str() << std::endl;
 }
 
+ReturnStatus IPOReceiverIONode::wait_first_packet()
+{
+    IPOReceiveChunk chunk(m_stream_settings.packet_app_header_size != 0);
+    ReturnStatus rc = ReturnStatus::success;
+    bool initialized = false;
+    while (likely(!initialized && rc != ReturnStatus::failure && SignalHandler::get_received_signal() < 0)) {
+        for (auto& stream : m_streams) {
+            rc = stream->get_next_chunk(&chunk);
+            BREAK_ON_FAILURE(rc);
+            if (chunk.get_completion_chunk_size() > 0) {
+                initialized = true;
+                break;
+            }
+        }
+    }
+    return rc;
+}
+
 void IPOReceiverIONode::operator()()
 {
     set_cpu_resources();
@@ -263,11 +297,20 @@ void IPOReceiverIONode::operator()()
     IPOReceiveChunk chunk(m_stream_settings.packet_app_header_size != 0);
     rc = ReturnStatus::success;
 
+    start();
+    rc = wait_first_packet();
+    if (rc == ReturnStatus::failure) {
+        std::cerr << "Error during waiting for a first packet" << std::endl;
+    }
+    // main receive loop
     auto start_time = std::chrono::high_resolution_clock::now();
     while (likely(rc != ReturnStatus::failure && SignalHandler::get_received_signal() < 0)) {
         for (auto& stream : m_streams) {
             rc = stream->get_next_chunk(&chunk);
-            BREAK_ON_FAILURE(rc);
+            if (unlikely(rc == ReturnStatus::failure)) {
+                std::cerr << "Error getting next chunk of packets" << std::endl;
+                break;
+            }
         }
 
         auto now = std::chrono::high_resolution_clock::now();
@@ -321,6 +364,13 @@ ReturnStatus IPOReceiverIONode::attach_flows()
     return ReturnStatus::success;
 }
 
+void IPOReceiverIONode::start()
+{
+    for (auto& stream : m_streams) {
+        stream->start();
+    }
+}
+
 ReturnStatus IPOReceiverIONode::detach_flows()
 {
     ReturnStatus rc;
@@ -353,6 +403,6 @@ ReturnStatus IPOReceiverIONode::destroy_streams()
 
 void IPOReceiverIONode::set_cpu_resources()
 {
-    set_cpu_affinity(std::vector<int>{m_cpu_core_affinity});
+    set_current_thread_affinity(m_cpu_core_affinity);
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }

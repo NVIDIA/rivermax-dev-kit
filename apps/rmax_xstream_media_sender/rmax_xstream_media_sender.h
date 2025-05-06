@@ -48,11 +48,6 @@ constexpr const char* APP_EXAMPLES = \
     "  2. rmax_xstream_media_sender --local-ip 1.2.3.4 --stream-type 1080p60 --dst-ip 234.5.6.7 --dst-port 2000\n"
     "  3. rmax_xstream_media_sender --local-ip 1.2.3.4 --stream-type 1080p60 --streams 10\n"
     "  4. rmax_xstream_media_sender --local-ip 1.2.3.4 --stream-type 1080p60 --threads 2 --streams 10 -a 1,2 -c 3\n";
-constexpr size_t HD_PACKETS_PER_FRAME_422_10B = 4320;
-// TODO: Remove this after adding full SDP parser and other parameters support.
-constexpr const char* VIDEO_2110_20_1080p60 = "1080p60";
-constexpr const char* VIDEO_2110_20_2160p60 = "2160p60";
-const std::unordered_set<const char*> SUPPORTED_STREAMS = { VIDEO_2110_20_1080p60, VIDEO_2110_20_2160p60 };
 /**
  * @brief: Media Sender application.
  *

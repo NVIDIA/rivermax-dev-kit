@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,10 @@ project(rmax-ral-apps
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/util) # standalone mode
     include(RmaxAppsBuild)
     add_subdirectory(util)
+endif()
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libs) # standalone mode
+    add_subdirectory(libs)
+    target_link_libraries(rivermax_libs_config INTERFACE rmax-apps-build)    
 endif()
 
 add_library(rmax-ral-build INTERFACE)

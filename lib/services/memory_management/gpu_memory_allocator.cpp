@@ -36,6 +36,9 @@ GpuMemoryAllocator::GpuMemoryAllocator(int gpu_id)
     : MemoryAllocator()
     , m_gpu_id(gpu_id)
 {
+    if (!set_gpu_device(m_gpu_id)) {
+        throw std::runtime_error("Failed to set GPU device!");
+    }
 }
 
 void* GpuMemoryAllocator::allocate(const size_t length)
@@ -65,5 +68,5 @@ std::shared_ptr<MemoryUtils> GpuMemoryAllocator::get_memory_utils()
 
 size_t GpuMemoryAllocator::get_page_size() const
 {
-    throw std::logic_error("Not implemented");
+    return gpu_query_alignment(m_gpu_id);
 }

@@ -26,6 +26,7 @@ using namespace ral::lib::services;
 
 const char* CLIOptStr::LOCAL_IP = "-l,--local-ip";
 const char* CLIOptStr::LOCAL_IPS = "-l,--local-ips";
+const char* CLIOptStr::SRC_IP = "-s,--src-ip";
 const char* CLIOptStr::SRC_IPS = "-s,--src-ips";
 const char* CLIOptStr::DST_IP = "-d,--dst-ip";
 const char* CLIOptStr::DST_IPS = "-d,--dst-ips";
@@ -57,7 +58,6 @@ static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
     { "hugepage-2m",    AllocatorTypeUI::HugePage2MB },
     { "hugepage-512m",  AllocatorTypeUI::HugePage512MB },
     { "hugepage-1g",    AllocatorTypeUI::HugePage1GB },
-    { "gpu",            AllocatorTypeUI::Gpu },
 };
 
 /**
@@ -76,7 +76,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         [](std::shared_ptr<CLI::App> parser, std::shared_ptr<AppSettings> app_settings)
         {
             return parser->add_option(CLIOptStr::LOCAL_IP,
-                                      app_settings->source_ip,
+                                      app_settings->local_ip,
                                       "Local IP of the NIC")->check(CLI::ValidIPV4)->required();
         }
     },
@@ -90,6 +90,16 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                             ->delimiter(',')
                             ->check(CLI::ValidIPV4)
                             ->required();
+        }
+    },
+    {
+        CLIOptStr::SRC_IP,
+        [](std::shared_ptr<CLI::App> parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::SRC_IP,
+                                      app_settings->source_ip,
+                                      "Source IP address")
+                            ->check(CLI::ValidIPV4)->required();
         }
     },
     {

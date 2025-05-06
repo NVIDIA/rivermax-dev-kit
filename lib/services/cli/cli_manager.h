@@ -40,6 +40,7 @@ public:
 private:
     std::shared_ptr<AppSettings> m_app_settings;
     std::shared_ptr<CLI::App> m_parser;
+    std::string m_app_description;
     std::string m_app_examples;
 public:
     /**
@@ -51,6 +52,17 @@ public:
      */
     CLIParserManager(const std::string& app_description, const std::string& app_examples,
                      std::shared_ptr<AppSettings> app_settings);
+
+    /**
+     * @brief: Initializes the CLI manager.
+     *
+     * During initialization, required ressources will be initialized
+     * and these may fail. Returned value will indicate how initialization went.
+     *
+     * @return: Status of operation
+     */
+    ReturnStatus initialize();
+
     /**
      * @brief: Returns CLI parser object.
      *

@@ -89,6 +89,8 @@ void ReceiveStreamSettings::stream_param_set_input_options(rmx_input_stream_para
 ReceiveStream::ReceiveStream(const ReceiveStreamSettings& settings) :
     ISingleStream(settings.m_local_addr),
     m_stream_settings(settings),
+    m_data_stride_size(0),
+    m_hdr_stride_size(0),
     m_buffer_elements(settings.m_capacity_in_packets),
     m_header_mem_block_id(settings.m_header_size ? 0 : 1),
     m_payload_mem_block_id(settings.m_header_size ? 1 : 0),

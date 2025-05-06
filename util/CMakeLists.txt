@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,6 +43,8 @@ target_sources(rmax-apps-util-reduced PRIVATE
 target_link_libraries(rmax-apps-util-reduced PUBLIC
     CLI::CLI
     rmax-apps-build
+    rivermax_libs_processor
+    $<$<BOOL:${RMAX_CUDA}>:rmax-api-apps-cuda>
 )
 
 add_library(${PROJECT_NAME} STATIC)
@@ -67,6 +69,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC
     CLI::CLI
     rmax-apps-build
+    rivermax_libs_processor
     $<$<BOOL:${RMAX_CUDA}>:rmax-api-apps-cuda>
 )
 

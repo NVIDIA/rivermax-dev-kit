@@ -91,63 +91,7 @@ void MediaSenderApp::post_cli_parse_initialization()
      *    * Use SDP parser
      *    * Generalize the code as service/core component in the library
     */
-    auto& s = m_app_settings;
-    m_app_settings->num_of_total_flows = m_app_settings->num_of_total_streams;
-
-    if (s->video_stream_type.compare(VIDEO_2110_20_1080p60) == 0) {
-        s->media.resolution = { FHD_WIDTH, FHD_HEIGHT };
-    } else if (s->video_stream_type.compare(VIDEO_2110_20_2160p60) == 0) {
-        s->media.resolution = { UHD_WIDTH, UHD_HEIGHT };
-    }
-
-    std::stringstream sdp;
-    sdp << "v=0\n"
-        << "o=- 1443716955 1443716955 IN IP4 " << s->source_ip << "\n"
-        << "s=SMPTE ST2110-20 narrow gap " << s->video_stream_type << "\n"
-        << "t=0 0\n"
-        << "m=video " << s->destination_port << " RTP/AVP 96\n"
-        << "c=IN IP4 " << s->destination_ip << "/64\n"
-        << "a=source-filter: incl IN IP4 " << s->destination_ip << " " << s->source_ip << "\n"
-        << "a=rtpmap:96 raw/90000\n"
-        << "a=fmtp:96 sampling=YCbCr-4:2:2; width="
-        << s->media.resolution.width << "; height=" << s->media.resolution.height << "; exactframerate=60; depth=10;"
-        << " TCS=SDR; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN;\n"
-        << "a=mediaclk:direct=0\n"
-        << "a=ts-refclk:localmac=40-a3-6b-a0-2b-d2";
-
-    s->media.sdp = sdp.str();
-    s->media.media_block_index = 0;
-    s->media.stream_type = StreamType::Video2110_20;
-    s->media.video_scan_type = VideoScanType::Progressive;
-    s->media.sample_rate = 90000;
-    s->media.frame_rate = { 60, 1 };
-    s->media.tp_mode = TPMode::TPN;
-    s->media.packets_in_frame_field = HD_PACKETS_PER_FRAME_422_10B * \
-        (s->media.resolution.width / FHD_WIDTH) * \
-        (s->media.resolution.height / FHD_HEIGHT);
-
-    s->num_of_memory_blocks = 1;
-    s->packet_payload_size = 1220;  // Including RTP header.
-
-    const size_t lines_in_chunk = 4;
-    s->media.packets_in_line = s->media.packets_in_frame_field / s->media.resolution.height;
-    s->num_of_packets_in_chunk = lines_in_chunk * s->media.packets_in_line;
-
-    s->media.frame_field_time_interval_ns = NS_IN_SEC / static_cast<double>(
-        s->media.frame_rate.num / s->media.frame_rate.denom);
-    s->media.lines_in_frame_field = s->media.resolution.height;
-
-    if (s->media.video_scan_type == VideoScanType::Interlaced) {
-        s->media.packets_in_frame_field /= 2;
-        s->media.lines_in_frame_field /= 2;
-        s->media.frame_field_time_interval_ns /= 2;
-    }
-
-    s->media.chunks_in_frame_field = static_cast<size_t>(std::ceil(
-        s->media.packets_in_frame_field / static_cast<double>(s->num_of_packets_in_chunk)));
-    s->media.frames_fields_in_mem_block = 1;
-    s->num_of_chunks_in_mem_block = s->media.frames_fields_in_mem_block * s->media.chunks_in_frame_field;
-    s->num_of_packets_in_mem_block = s->num_of_chunks_in_mem_block * s->num_of_packets_in_chunk;
+    compose_media_settings(*m_app_settings);
 }
 
 ReturnStatus MediaSenderApp::run()
@@ -173,14 +117,8 @@ ReturnStatus MediaSenderApp::run()
 
 ReturnStatus MediaSenderApp::initialize_rivermax_resources()
 {
-    std::vector<int> cpu_affinity;
-
-    if (m_app_settings->internal_thread_core != CPU_NONE) {
-        cpu_affinity.push_back(m_app_settings->internal_thread_core);
-    }
-
     rt_set_realtime_class();
-    return m_rmax_apps_lib.initialize_rivermax(cpu_affinity);
+    return m_rmax_apps_lib.initialize_rivermax(m_app_settings->internal_thread_core);
 }
 
 ReturnStatus MediaSenderApp::set_rivermax_clock()
@@ -230,7 +168,7 @@ void MediaSenderApp::initialize_sender_threads()
         int sender_cpu_core = m_app_settings->app_threads_cores[sndr_indx % m_app_settings->app_threads_cores.size()];
         auto network_address = FourTupleFlow(
             sndr_indx,
-            m_app_settings->source_ip,
+            m_app_settings->local_ip,
             m_app_settings->source_port,
             m_app_settings->destination_ip,
             m_app_settings->destination_port);
@@ -243,7 +181,7 @@ void MediaSenderApp::initialize_sender_threads()
             sndr_indx,
             m_streams_per_thread[sndr_indx],
             sender_cpu_core,
-            m_mem_allocator->get_memory_utils(),
+            m_payload_allocator->get_memory_utils(),
             MediaSenderApp::get_time_ns)));
         m_senders[sndr_indx]->initialize_memory();
         m_senders[sndr_indx]->initialize_send_flows(flows);
