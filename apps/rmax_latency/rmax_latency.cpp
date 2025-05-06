@@ -1,5 +1,5 @@
 /*
- * Copyright © 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -134,7 +134,10 @@ LatencyApp::LatencyApp(int argc, const char* argv[]) :
     m_receive_port{DEFAULT_RECEIVE_PORT},
     m_client{false},
     m_latency_mode{LatencyMode::PingPong},
-    m_tx_mreg{nullptr, 0, 0},
+    m_tx_header_mreg{nullptr, 0, 0},
+    m_is_tx_header_mreg_registered{false},
+    m_tx_payload_mreg{nullptr, 0, 0},
+    m_is_tx_payload_mreg_registered{false},
     m_rx_header_mreg{nullptr, 0, 0},
     m_rx_payload_mreg{nullptr, 0, 0},
     m_measure_interval_sec{DEFAULT_MEASURE_SEC},
@@ -237,15 +240,7 @@ ReturnStatus LatencyApp::run()
     }
 
     if (m_app_settings->gpu_id != INVALID_GPU_ID) {
-        if (m_client) {
-            std::cerr << "GPU-Direct is supported only on server (receive) side" << std::endl;
-            return ReturnStatus::failure;
-        }
-        if (m_latency_mode == LatencyMode::PingPong) {
-            std::cerr << "GPU-Direct is not supported in Ping-Pong mode" << std::endl;
-            return ReturnStatus::failure;
-        }
-        if ((m_latency_mode == LatencyMode::Frame) &&
+        if (((m_latency_mode == LatencyMode::Frame) || (m_latency_mode == LatencyMode::PingPong)) &&
             (m_app_settings->packet_payload_size <= RTP_HEADER_SIZE)) {
             std::cerr << "Packet length with GPU-Direct must be at least "
                       << RTP_HEADER_SIZE + 1 << " bytes" << std::endl;
@@ -301,11 +296,7 @@ ReturnStatus LatencyApp::set_rivermax_clock()
         return ReturnStatus::success;
     }
     std::cout << "Switching to PTP clock" << std::endl;
-    rmx_ptp_clock_params clock;
-    rmx_init_ptp_clock(&clock);
-    rmx_set_ptp_clock_device(&clock, &m_device_interface);
-    rmx_status status = rmx_use_ptp_clock(&clock);
-    return status == RMX_OK ? ReturnStatus::success : ReturnStatus::failure;
+    return set_rivermax_ptp_clock(&m_device_interface);
 }
 
 ReturnStatus LatencyApp::initialize_threads()
@@ -318,9 +309,13 @@ ReturnStatus LatencyApp::initialize_threads()
     node_settings.measure_interval = m_measure_interval_sec;
     node_settings.track_completions = !m_disable_ts;
     node_settings.percentiles = m_disable_percentile ? std::vector<double>{} : default_percentiles;
+    node_settings.gpu_direct_tx = m_client && gpu_direct_enabled();
+    node_settings.gpu_direct_rx = !m_client && gpu_direct_enabled();
 
     switch (get_latency_mode()) {
         case LatencyMode::PingPong:
+            node_settings.gpu_direct_tx = gpu_direct_enabled();
+            node_settings.gpu_direct_rx = gpu_direct_enabled();
             m_io_node = std::unique_ptr<LatencyIONode>(
                     new PingPongIONode(node_settings,
                                        m_header_allocator->get_memory_utils(),
@@ -391,41 +386,70 @@ ReturnStatus LatencyApp::init_app_device_iface(rmx_device_iface& device_iface)
 
 ReturnStatus LatencyApp::allocate_app_memory()
 {
-    size_t tx_memory_size;
+    size_t tx_header_size;
+    size_t tx_payload_size;
     size_t rx_header_size;
     size_t rx_payload_size;
 
-    if (m_io_node->query_memory_size(tx_memory_size, rx_header_size, rx_payload_size) !=
-            ReturnStatus::success) {
+    if (m_io_node->query_memory_size(tx_header_size, tx_payload_size,
+                                     rx_header_size, rx_payload_size) != ReturnStatus::success) {
         std::cout << "Error detecting stream memory requirements";
         return ReturnStatus::failure;
     }
 
-    std::cout << "Application requires " << tx_memory_size << " bytes of memory for Tx, ";
+    std::cout << "Application requires " << tx_payload_size << " bytes of memory for Tx and ";
+    std::cout << tx_header_size << " bytes for Tx separate headers ";
     std::cout << rx_payload_size << " bytes for Rx and ";
     std::cout << rx_header_size << " bytes for Rx separate headers" << std::endl;
 
-    if (tx_memory_size) {
-        m_tx_mreg.addr = allocate_and_align_header(tx_memory_size);
-        m_tx_mreg.length = tx_memory_size;
-        m_tx_mreg.mkey = 0;
+    rmx_mem_reg_params mem_registry;
+    rmx_init_mem_registry(&mem_registry, &m_device_interface);
 
-        if (!m_tx_mreg.addr) {
-            std::cerr << "Failed to allocate application Tx memory" << std::endl;
+    if (tx_header_size) {
+        m_tx_header_mreg.addr = allocate_and_align_header(tx_header_size);
+        m_tx_header_mreg.length = tx_header_size;
+        m_tx_header_mreg.mkey = 0;
+
+        if (!m_tx_header_mreg.addr) {
+            std::cerr << "Failed to allocate application Tx header memory" << std::endl;
             return ReturnStatus::failure;
         }
 
-        rmx_mem_reg_params mem_registry;
-        rmx_init_mem_registry(&mem_registry, &m_device_interface);
-        rmx_status status = rmx_register_memory(&m_tx_mreg, &mem_registry);
+        std::cout << "Allocated for Tx headers " << m_tx_header_mreg.length <<
+            " bytes at address " << static_cast<void *>(m_tx_header_mreg.addr) << std::endl;
+
+        rmx_status status = rmx_register_memory(&m_tx_header_mreg, &mem_registry);
         if (status != RMX_OK) {
-            std::cerr << "Failed to register payload memory with status: " << status << std::endl;
+            std::cerr << "Failed to register Tx header memory with status: " << status << std::endl;
+            return ReturnStatus::failure;
+        }
+        m_is_tx_header_mreg_registered = true;
+    }
+
+    if (tx_payload_size) {
+        /* if HDS for Tx stream is on, allocate payload in a separate storage */
+        if (tx_header_size) {
+            m_tx_payload_mreg.addr = allocate_and_align_payload(tx_payload_size);
+        } else {
+            m_tx_payload_mreg.addr = allocate_and_align_header(tx_payload_size);
+        }
+        m_tx_payload_mreg.length = tx_payload_size;
+        m_tx_payload_mreg.mkey = 0;
+
+        if (!m_tx_payload_mreg.addr) {
+            std::cerr << "Failed to allocate application Tx payload memory" << std::endl;
             return ReturnStatus::failure;
         }
 
-        std::cout << "Allocated for Tx " << m_tx_mreg.length <<
-            " bytes at address " << static_cast<void *>(m_tx_mreg.addr) <<
-            " with mkey: " << m_tx_mreg.mkey << std::endl;
+        std::cout << "Allocated for Tx payload " << m_tx_payload_mreg.length <<
+            " bytes at address " << static_cast<void *>(m_tx_payload_mreg.addr) << std::endl;
+
+        rmx_status status = rmx_register_memory(&m_tx_payload_mreg, &mem_registry);
+        if (status != RMX_OK) {
+            std::cerr << "Failed to register Tx payload memory with status: " << status << std::endl;
+            return ReturnStatus::failure;
+        }
+        m_is_tx_payload_mreg_registered = true;
     }
 
     if (rx_header_size) {
@@ -443,7 +467,12 @@ ReturnStatus LatencyApp::allocate_app_memory()
     }
 
     if (rx_payload_size) {
-        m_rx_payload_mreg.addr = allocate_and_align_payload(rx_payload_size);
+        /* if HDS for Rx stream is on, allocate payload in a separate storage */
+        if (rx_header_size) {
+            m_rx_payload_mreg.addr = allocate_and_align_payload(rx_payload_size);
+        } else {
+            m_rx_payload_mreg.addr = allocate_and_align_header(rx_payload_size);
+        }
         m_rx_payload_mreg.length = rx_payload_size;
         m_rx_payload_mreg.mkey = 0;
 
@@ -461,10 +490,18 @@ ReturnStatus LatencyApp::allocate_app_memory()
 
 void LatencyApp::unregister_app_memory()
 {
-    if (m_tx_mreg.addr) {
-        rmx_status status = rmx_deregister_memory(&m_tx_mreg, &m_device_interface);
+    if (m_is_tx_header_mreg_registered) {
+        rmx_status status = rmx_deregister_memory(&m_tx_header_mreg, &m_device_interface);
         if (status != RMX_OK) {
-            std::cerr << "Failed to de-register application memory with status: "
+            std::cerr << "Failed to de-register Tx header with status: "
+                << status << std::endl;
+        }
+    }
+
+    if (m_is_tx_payload_mreg_registered) {
+        rmx_status status = rmx_deregister_memory(&m_tx_payload_mreg, &m_device_interface);
+        if (status != RMX_OK) {
+            std::cerr << "Failed to de-register Tx payload memory with status: "
                 << status << std::endl;
         }
     }
@@ -472,7 +509,8 @@ void LatencyApp::unregister_app_memory()
 
 void LatencyApp::distribute_memory_for_streams()
 {
-    m_io_node->distribute_memory_for_streams(m_tx_mreg, m_rx_header_mreg, m_rx_payload_mreg);
+    m_io_node->distribute_memory_for_streams(m_tx_header_mreg, m_tx_payload_mreg,
+                                             m_rx_header_mreg, m_rx_payload_mreg);
 }
 
 uint64_t LatencyApp::get_time_ns(void* context)

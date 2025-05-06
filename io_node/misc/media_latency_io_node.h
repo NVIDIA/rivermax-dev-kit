@@ -1,5 +1,5 @@
 /*
- * Copyright © 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -60,7 +60,9 @@ protected:
     StreamDimensions m_receive_dim;
     uint32_t m_hw_queue_full_sleep_us;
     size_t m_send_data_stride_size;
+    size_t m_send_header_stride_size;
     std::unique_ptr<MediaStreamMemBlockset> m_send_mem_blockset;
+    std::vector<uint16_t>m_send_block_header_sizes;
     std::vector<uint16_t>m_send_block_payload_sizes;
 public:
     /**
@@ -96,9 +98,10 @@ public:
     }
     void initialize_send_stream() override;
     void initialize_receive_stream(const TwoTupleFlow& flow) override;
-    ReturnStatus query_memory_size(size_t& tx_memory_size,
+    ReturnStatus query_memory_size(size_t& tx_header_size, size_t& tx_payload_size,
                                    size_t& rx_header_size, size_t& rx_payload_size) override;
-    void distribute_memory_for_streams(rmx_mem_region& tx_mreg,
+    void distribute_memory_for_streams(rmx_mem_region& tx_header_mreg,
+                                       rmx_mem_region& tx_payload_mreg,
                                        rmx_mem_region& rx_header_mreg,
                                        rmx_mem_region& rx_payload_mreg) override;
     void print_parameters() override;
@@ -128,6 +131,14 @@ protected:
      * @return: True if reply is valid.
      */
     bool parse_receive_timing(ReceiveChunk& chunk, MediaRxLatencyReply& timing);
+    ReturnStatus try_process_one_completion(LatencyStats& tx_delay);
+private:
+    std::vector<uint64_t> m_commit_ts;
+    double m_start_send_time_ns;
+    uint64_t m_marked_token;
+    uint64_t m_handled_token;
+    double m_trs;
+    std::unique_ptr<MediaChunk> m_chunk_handler;
 };
 
 class MediaRxIONode: public GenericLatencyIONode

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -94,7 +94,6 @@ private:
     uint16_t m_packet_typical_app_header_size;
     bool m_use_checksum_header;
     rmx_mem_region m_mem_region;
-    rmax_cpu_set_t m_cpu_affinity_mask;
     int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
     std::unique_ptr<IBufferWriter> m_buffer_writer;

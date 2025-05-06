@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "core/stream/send/media_stream.h"
 #include "core/chunk/media_chunk.h"
@@ -155,11 +157,24 @@ ReturnStatus MediaStreamMemBlockset::set_block_layout(size_t idx, uint16_t data_
     return ReturnStatus::success;
 }
 
+MediaSendStream::MediaSendStream(const MediaStreamSettings& settings) :
+    ISendStream(settings.m_local_address),
+    m_stream_settings(settings)
+{
+    m_stream_settings.build(m_stream_settings, m_stream_params);
+    m_num_of_chunks = 0;
+}
+
 MediaSendStream::MediaSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks) :
     ISendStream(settings.m_local_address),
     m_stream_settings(settings)
 {
     m_stream_settings.build(m_stream_settings, m_stream_params);
+    assign_memory_blocks(mem_blocks);
+}
+
+void MediaSendStream::assign_memory_blocks(MediaStreamMemBlockset& mem_blocks)
+{
     m_num_of_chunks = mem_blocks.get_memory_block_count() * mem_blocks.get_chunks_per_block();
     rmx_output_media_assign_mem_blocks(&m_stream_params, mem_blocks.get_memory_blocks(),
             mem_blocks.get_memory_block_count());
@@ -196,6 +211,9 @@ ReturnStatus MediaSendStream::destroy_stream()
 
     do {
         status = rmx_output_media_destroy_stream(m_stream_id);
+        if (status == RMX_BUSY) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     } while (status == RMX_BUSY);
 
     if (status != RMX_OK) {

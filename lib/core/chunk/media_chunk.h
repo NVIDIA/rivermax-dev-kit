@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -164,6 +164,12 @@ public:
      *          @ref ral::lib::services::ReturnStatus::failure - In case of incorrect or obsolete stream.
      */
     ReturnStatus get_last_completion_info(uint64_t& timestamp, uint64_t& token);
+    /**
+     * @brief: Returns status of Header-Data-Split mode.
+     *
+     * @return: true if Header-Data-Split mode is enabled.
+     */
+    bool is_hds_on() const { return m_hds_on; }
 };
 
 } // namespace core

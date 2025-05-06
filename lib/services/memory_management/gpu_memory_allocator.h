@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -14,6 +14,7 @@
 #define RMAX_APPS_LIB_LIB_SERVICES_MEMORY_MANAGEMENT_GPU_MEMORY_ALLOCATOR_H_
 
 #include <cstddef>
+#include <memory>
 
 #include "services/memory_management/memory_allocator_interface.h"
 #include "services/error_handling/return_status.h"

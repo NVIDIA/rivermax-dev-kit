@@ -42,8 +42,8 @@ target_sources(rmax-apps-util-reduced PRIVATE
 )
 target_link_libraries(rmax-apps-util-reduced PUBLIC
     CLI::CLI
-    rmax-apps-build
     rivermax_libs_processor
+    rmax-apps-build
     $<$<BOOL:${RMAX_CUDA}>:rmax-api-apps-cuda>
 )
 
@@ -68,8 +68,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
     CLI::CLI
-    rmax-apps-build
     rivermax_libs_processor
+    rmax-apps-build
     $<$<BOOL:${RMAX_CUDA}>:rmax-api-apps-cuda>
 )
 

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -13,7 +13,12 @@
 #ifndef TESTS_UTIL_DEFS_H_
 #define TESTS_UTIL_DEFS_H_
 
+#include <cstdint>
+#include <string>
+
+#ifndef NOT_IN_USE
 #define NOT_IN_USE(a) ((void)(a))
+#endif
 
 #define SLEEP_THRESHOLD_MS (2)
 

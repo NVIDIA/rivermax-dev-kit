@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -82,10 +82,15 @@ class RTPVideoSendStream : public MediaSendStream
 {
 private:
     SendingStatistics m_send_stats;
-    const media_settings_t m_media_settings;
 public:
     /**
-     * @brief: RTPVideoSendStream constructor.
+     * @brief: RTPVideoSendStream constructor without assigning memory blocks.
+     *
+     * @param [in] settings: Stream parameters.
+     */
+    RTPVideoSendStream(const MediaStreamSettings& settings);
+    /**
+     * @brief: RTPVideoSendStream constructor with assigning memory blocks.
      *
      * @param [in] settings: Stream parameters.
      * @param [in] mem_blocks: Parameters of blocks allocated for output packets.

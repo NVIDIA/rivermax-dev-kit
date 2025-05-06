@@ -1,5 +1,5 @@
 /*
- * Copyright © 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -32,7 +32,9 @@ static constexpr int RTP_HEADER_CSRC_GRANULARITY_BYTES = 4;
 static constexpr size_t MEDIA_TX_REPLY_SIZE = 1200;
 static constexpr uint64_t WAIT_SERVER_RECEIVE_NSEC = std::chrono::nanoseconds{ std::chrono::milliseconds{ 10 } }.count();
 static constexpr uint64_t WAIT_SERVER_INACT_NSEC = std::chrono::nanoseconds{ std::chrono::milliseconds{ 20 } }.count();
-static constexpr int WAIT_SERVER_REPLY_USEC = std::chrono::microseconds{ std::chrono::milliseconds{ 50 } }.count();
+static constexpr int WAIT_SERVER_REPLY_USEC = std::chrono::microseconds{ std::chrono::milliseconds{ 100 } }.count();
+static constexpr size_t LAST_CHUNKS_SKIP_NUM = 1;
+
 
 MediaTxIONode::MediaTxIONode(
         const LatencyNodeSettings& settings,
@@ -43,53 +45,89 @@ MediaTxIONode::MediaTxIONode(
     m_app_settings(settings.app),
     m_receive_dim(StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1, 0, MEDIA_TX_REPLY_SIZE)),
     m_hw_queue_full_sleep_us(settings.app->hw_queue_full_sleep_us),
-    m_send_data_stride_size(0)
+    m_send_data_stride_size(0),
+    m_send_header_stride_size(0),
+    m_start_send_time_ns(0),
+    m_marked_token(0),
+    m_handled_token(0),
+    m_trs(0)
 {
 }
 
 void MediaTxIONode::initialize_send_stream()
 {
     m_app_settings->num_of_total_streams = 1;
+    m_app_settings->num_of_memory_blocks = 1;
+    m_app_settings->media.frames_fields_in_mem_block = 2;
     compose_media_settings(*m_app_settings);
+    m_app_settings->num_of_chunks = m_app_settings->num_of_chunks_in_mem_block *
+                                    m_app_settings->num_of_memory_blocks;
+    if (m_gpu_direct_tx && (m_app_settings->packet_app_header_size == 0)) {
+        m_app_settings->packet_app_header_size = RTP_HEADER_SIZE;
+        m_app_settings->packet_payload_size -= RTP_HEADER_SIZE;
+    }
     m_send_data_stride_size = align_up_pow2(m_app_settings->packet_payload_size,
+                                            get_cache_line_size());
+    m_send_header_stride_size = align_up_pow2(m_app_settings->packet_app_header_size,
                                             get_cache_line_size());
     auto network_address = TwoTupleFlow(0, m_network_address.get_source_ip(),
                                         m_network_address.get_source_port());
 
     MediaStreamSettings stream_settings(network_address, m_app_settings->media,
             m_app_settings->num_of_packets_in_chunk, m_app_settings->packet_payload_size,
-            m_send_data_stride_size);
+            m_send_data_stride_size, m_send_header_stride_size);
 
-    m_send_mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
-            new MediaStreamMemBlockset(1, 1, m_app_settings->num_of_chunks_in_mem_block));
-    m_send_mem_blockset->set_rivermax_to_allocate_memory();
-    m_send_block_payload_sizes.resize(m_app_settings->num_of_packets_in_mem_block,
-                                      m_app_settings->packet_payload_size);
-    m_send_mem_blockset->set_block_layout(0, m_send_block_payload_sizes.data(), nullptr);
     m_send_stream = std::shared_ptr<RTPVideoSendStream>(
-            new RTPVideoSendStream(stream_settings, *m_send_mem_blockset.get()));
+            new RTPVideoSendStream(stream_settings));
 }
 
-ReturnStatus MediaTxIONode::query_memory_size(size_t& tx_memory_size,
+ReturnStatus MediaTxIONode::query_memory_size(size_t& tx_header_size, size_t& tx_payload_size,
                                               size_t& rx_header_size, size_t& rx_payload_size)
 {
     if (m_receive_stream->query_buffer_size(rx_header_size, rx_payload_size) != ReturnStatus::success) {
         return ReturnStatus::failure;
     }
 
-    tx_memory_size = 0;
+    tx_header_size = m_send_header_stride_size * m_app_settings->num_of_packets_in_chunk *
+                     m_app_settings->num_of_chunks;
+    tx_payload_size = m_send_data_stride_size * m_app_settings->num_of_packets_in_chunk *
+                     m_app_settings->num_of_chunks;
     return ReturnStatus::success;
 };
 
-void MediaTxIONode::distribute_memory_for_streams(rmx_mem_region& tx_mreg,
+void MediaTxIONode::distribute_memory_for_streams(rmx_mem_region& tx_header_mreg,
+                                                  rmx_mem_region& tx_payload_mreg,
                                                   rmx_mem_region& rx_header_mreg,
                                                   rmx_mem_region& rx_payload_mreg)
 {
-    m_send_mem_region = tx_mreg;
+    m_send_header_region = tx_header_mreg;
+    m_send_payload_region = tx_payload_mreg;
     m_receive_header_region = rx_header_mreg;
     m_receive_payload_region = rx_payload_mreg;
     m_receive_stream->set_buffers(reinterpret_cast<byte_t*>(rx_header_mreg.addr),
                                   reinterpret_cast<byte_t*>(rx_payload_mreg.addr));
+    m_send_mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
+            new MediaStreamMemBlockset(1,
+                                       m_app_settings->packet_app_header_size == 0 ? 1 : 2,
+                                       m_app_settings->num_of_chunks_in_mem_block));
+
+    if (m_app_settings->packet_app_header_size) {
+        m_send_mem_blockset->set_block_memory(0, 0, tx_header_mreg.addr, tx_header_mreg.length,
+                                              tx_payload_mreg.mkey);
+        m_send_mem_blockset->set_block_memory(0, 1, tx_payload_mreg.addr, tx_payload_mreg.length,
+                                              tx_payload_mreg.mkey);
+        m_send_block_header_sizes.resize(m_app_settings->num_of_packets_in_mem_block,
+                                      m_app_settings->packet_app_header_size);
+    } else {
+        m_send_mem_blockset->set_block_memory(0, 0, tx_payload_mreg.addr, tx_payload_mreg.length,
+                                              tx_payload_mreg.mkey);
+    }
+    m_send_block_payload_sizes.resize(m_app_settings->num_of_packets_in_mem_block,
+                                      m_app_settings->packet_payload_size);
+    m_send_mem_blockset->set_block_layout(0, m_send_block_payload_sizes.data(),
+                                          m_app_settings->packet_app_header_size ?
+                                          m_send_block_header_sizes.data() : nullptr);
+    m_send_stream->assign_memory_blocks(*m_send_mem_blockset.get());
 }
 
 void MediaTxIONode::print_parameters()
@@ -187,153 +225,199 @@ void MediaTxIONode::wait_for_next_frame(uint64_t sleep_till_ns)
 {
     uint64_t time_now_ns = get_time_now_ns();
 
-    if (!m_app_settings->sleep_between_operations || sleep_till_ns <= time_now_ns) {
+    if (sleep_till_ns <= time_now_ns) {
         return;
     }
 
     size_t sleep_time_ns = sleep_till_ns - time_now_ns;
 
-    if (sleep_time_ns <= SLEEP_THRESHOLD_NS) {
-        return;
-    }
-
-    sleep_time_ns -= SLEEP_THRESHOLD_NS;
 #ifdef __linux__
-    std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_time_ns));
+    if (m_app_settings->sleep_between_operations) {
+        std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_time_ns));
+    } else {
+        while (get_time_now_ns() < sleep_till_ns);
+    }
 #else
-    sleep_till_ns -= sleep_time_ns;
     while (get_time_now_ns() < sleep_till_ns);
 #endif
 }
 
 void MediaTxIONode::send_receive()
 {
-
     ReturnStatus rc;
-
+    m_chunk_handler = std::unique_ptr<MediaChunk>(
+            new MediaChunk(m_send_stream->get_id(),
+                           m_app_settings->num_of_packets_in_chunk,
+                           m_send_stream->is_hds_on()));
     ReceiveChunk receive_chunk(m_receive_stream->get_id(), false);
     m_receive_stream->set_completion_moderation(1, 1, WAIT_SERVER_REPLY_USEC);
-
     uint64_t start_time_ns = get_time_now_ns();
-    double send_time_ns = 0;
-    double trs = m_send_stream->calculate_trs();
-    send_time_ns = m_send_stream->calculate_send_time_ns(start_time_ns);
-
-    const double start_send_time_ns = send_time_ns;
-    size_t sent_mem_block_counter = 0;
+    m_trs = m_send_stream->calculate_trs();
+    m_start_send_time_ns = m_send_stream->calculate_send_time_ns(start_time_ns);
+    size_t committed_frame_field_counter = 0;
+    size_t completed_frame_field_counter = 0;
     auto& media_settings = m_app_settings->media;
-    auto get_send_time_ns = [&]() { return (
-        start_send_time_ns
-        + media_settings.frame_field_time_interval_ns
-        * media_settings.frames_fields_in_mem_block
-        * sent_mem_block_counter);
-    };
-    uint64_t scheduled_time_ns;
-    uint64_t commit_timestamp_ns = 0;
-    size_t chunk_in_frame_counter;
-    rc = ReturnStatus::success;
-    std::unique_ptr<MediaChunk> chunk_handler =
-            std::unique_ptr<MediaChunk>(new MediaChunk(m_send_stream->get_id(),
-                                        m_app_settings->num_of_packets_in_chunk, 0));
 
-    uint64_t token = 0;
-    uint64_t last_done_token = 0;
+    /* scheduled send time of the first packet of the field that will be committed next */
+    auto get_send_time_of_next_field_ns = [&]() { return (
+        m_start_send_time_ns
+        + media_settings.frame_field_time_interval_ns
+        * committed_frame_field_counter);
+    };
+
+    /* expected time for all completions of the field, whose completions
+       will be polled next, to be ready */
+    auto get_finish_time_of_next_field_ns = [&]() { return (
+        m_start_send_time_ns
+        + media_settings.frame_field_time_interval_ns
+        * (completed_frame_field_counter + 1));
+    };
+
+    uint64_t scheduled_next_field_start_time_ns = get_send_time_of_next_field_ns();
+    uint64_t scheduled_next_field_complete_time_ns = get_finish_time_of_next_field_ns();
+
+    m_marked_token = 0;
+    m_handled_token = 0;
+    rc = ReturnStatus::success;
+
+    m_commit_ts.reserve(m_app_settings->media.frames_fields_in_mem_block *
+                       m_app_settings->media.chunks_in_frame_field);
 
     LatencyStats tx_delay("Tx latency", m_percentiles);
 
+    size_t chunk_in_field_counter = 0;
+    size_t completion_in_field_counter = 0;
     while (likely(rc == ReturnStatus::success && SignalHandler::get_received_signal() < 0)) {
-        chunk_in_frame_counter = 0;
-        send_time_ns = get_send_time_ns();
-        scheduled_time_ns = static_cast<uint64_t>(send_time_ns);
-        wait_for_next_frame(scheduled_time_ns);
-        do {
+        scheduled_next_field_start_time_ns = static_cast<uint64_t>(get_send_time_of_next_field_ns());
+        scheduled_next_field_complete_time_ns = static_cast<uint64_t>(get_finish_time_of_next_field_ns());
+
+        uint64_t ts_now = get_time_now_ns();
+
+        bool is_time_to_fetch_completions = (ts_now >= scheduled_next_field_complete_time_ns);
+        bool is_place_to_commit = (committed_frame_field_counter - completed_frame_field_counter) <
+                                  media_settings.frames_fields_in_mem_block;
+
+        if (!is_time_to_fetch_completions && !is_place_to_commit) {
+            wait_for_next_frame(scheduled_next_field_complete_time_ns);
+            continue;
+        }
+
+        if (is_time_to_fetch_completions) {
+            int fetch_budget = 10;
             do {
-                rc = m_send_stream->blocking_get_next_chunk(*chunk_handler, BLOCKING_CHUNK_RETRIES);
-            } while (unlikely(rc == ReturnStatus::no_free_chunks));
-            if (unlikely(rc != ReturnStatus::success)) {
-                break;
-            }
-
-            m_send_stream->prepare_chunk_to_send(*chunk_handler);
-            if (unlikely(chunk_in_frame_counter % media_settings.chunks_in_frame_field == 0)) {
-                commit_timestamp_ns = static_cast<uint64_t>(send_time_ns);
-            } else {
-                commit_timestamp_ns = 0;
-            }
-
-            /*
-             * WAR: the completion of the last chunk in the frame/field is delayed, so
-             * exclude the last chunk from latency measurement.
-             */
-            if (chunk_in_frame_counter < media_settings.chunks_in_frame_field - 1) {
-                rc = chunk_handler->mark_for_tracking(token++);
+                rc = try_process_one_completion(tx_delay);
+                if (rc == ReturnStatus::no_completion) {
+                    rc = ReturnStatus::success;
+                    break;
+                }
                 if (rc != ReturnStatus::success) {
-                    std::cerr << "Failed to mark a chunk for tracking" << std::endl;
+                    if (rc != ReturnStatus::signal_received) {
+                        std::cerr << "Tx completion timeout!" << std::endl;
+                    }
                     break;
                 }
-            }
-
-            do {
-                rc = m_send_stream->blocking_commit_chunk(*chunk_handler,
-                        commit_timestamp_ns, BLOCKING_CHUNK_RETRIES);
-            } while (unlikely(rc == ReturnStatus::hw_send_queue_full));
-            if (unlikely(rc != ReturnStatus::success)) {
-                break;
-            }
-            if ((chunk_in_frame_counter % media_settings.chunks_in_frame_field) == 0) {
-                send_time_ns += media_settings.frame_field_time_interval_ns;
-            }
-        } while (likely(rc != ReturnStatus::failure &&
-                        ++chunk_in_frame_counter < media_settings.chunks_in_frame_field));
-
-        if (unlikely(rc != ReturnStatus::success)) {
-            break;
-        }
-
-        sent_mem_block_counter++;
-
-        uint32_t packet_num = 0;
-        while (last_done_token != token) {
-            rc = chunk_handler->poll_for_completion();
-            if (rc == ReturnStatus::no_completion) {
-                if (get_time_now_ns() > send_time_ns + NS_IN_SEC) {
-                    std::cerr << "Tx completion timeout!" << std::endl;
+                completion_in_field_counter++;
+                if (--fetch_budget == 0) {
                     break;
-                } else {
-                    continue;
                 }
-            } else if (rc != ReturnStatus::success) {
-                break;
+            } while (completion_in_field_counter < media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM);
+            if (completion_in_field_counter == media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM) {
+                completed_frame_field_counter++;
+                completion_in_field_counter = 0;
             }
-            uint64_t tx_hw_timestamp;
-            uint64_t compl_token;
-            rc = chunk_handler->get_last_completion_info(tx_hw_timestamp, compl_token);
             if (rc != ReturnStatus::success) {
-                std::cerr << "Failed to get completion info for a sent chunk" << std::endl;
                 break;
             }
-            if (compl_token != last_done_token) {
-                std::cerr << "Out-of-order Tx completion (expected " << token - 1 << " got "
-                          << compl_token << ")" << std::endl;
-                break;
-            }
-            packet_num += static_cast<uint32_t>(m_app_settings->num_of_packets_in_chunk);
-            int64_t delta = tx_hw_timestamp -
-                            static_cast<int64_t>(scheduled_time_ns * 1.0 + ((packet_num - 1.0) * trs));
-            tx_delay.update(delta);
-            last_done_token++;
-        }
-        if (last_done_token != token) {
-            std::cerr << "Tx completion processing error!" << std::endl;
-            break;
         }
 
-        if (get_time_now_ns() > start_time_ns + m_measure_interval_sec * NS_IN_SEC) {
-            break;
+        if (is_place_to_commit) {
+            do {
+                rc = m_send_stream->get_next_chunk(*m_chunk_handler);
+                if (unlikely(rc != ReturnStatus::success)) {
+                    if (rc != ReturnStatus::signal_received) {
+                        std::cerr << "Failed to get a next chunk to send" << std::endl;
+                    }
+                    break;
+                }
+
+                m_send_stream->prepare_chunk_to_send(*m_chunk_handler);
+                uint64_t chunk_scheduled_time_ns = static_cast<uint64_t>(
+                        scheduled_next_field_start_time_ns +
+                        chunk_in_field_counter * m_app_settings->num_of_packets_in_chunk * m_trs);
+                m_commit_ts[m_marked_token % m_commit_ts.capacity()] = chunk_scheduled_time_ns;
+                uint64_t commit_timestamp_ns = 0;
+                if (unlikely(chunk_in_field_counter == 0)) {
+                    commit_timestamp_ns = chunk_scheduled_time_ns;
+                } else {
+                    commit_timestamp_ns = 0;
+                }
+
+                bool is_this_chunk_tracked =
+                    (chunk_in_field_counter < media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM);
+                if (is_this_chunk_tracked) {
+                    rc = m_chunk_handler->mark_for_tracking(m_marked_token);
+                    if (rc != ReturnStatus::success) {
+                        std::cerr << "Failed to mark a chunk for tracking" << std::endl;
+                        break;
+                    }
+                }
+
+                bool was_blocked = false;
+                do {
+                    rc = m_send_stream->commit_chunk(*m_chunk_handler, commit_timestamp_ns);
+                    if (unlikely(rc == ReturnStatus::hw_send_queue_full)) {
+                        was_blocked = true;
+                  }
+                } while (unlikely(rc == ReturnStatus::hw_send_queue_full));
+                if (unlikely(rc != ReturnStatus::success)) {
+                    if (rc != ReturnStatus::signal_received) {
+                        std::cerr << "Failed to commit a chunk" << std::endl;
+                    }
+                    break;
+                }
+                chunk_in_field_counter++;
+                if (is_this_chunk_tracked) {
+                    m_marked_token++;
+                }
+                if (was_blocked) {
+                    break;
+                }
+            } while (likely(rc == ReturnStatus::success &&
+                            chunk_in_field_counter < media_settings.chunks_in_frame_field));
+
+            if (chunk_in_field_counter == media_settings.chunks_in_frame_field) {
+                committed_frame_field_counter++;
+                chunk_in_field_counter = 0;
+            }
+
+            if (rc != ReturnStatus::success) {
+                std::cerr << "Sending test data failed, aborting test" << std::endl;
+                break;
+            }
+
+            if (get_time_now_ns() > start_time_ns + m_measure_interval_sec * NS_IN_SEC) {
+                break;
+            }
         }
     }
 
-    std::cout << "Tracked " << last_done_token << " chunks of "
+    while (m_handled_token != m_marked_token) {
+        if (get_time_now_ns() > scheduled_next_field_start_time_ns +
+                                media_settings.frame_field_time_interval_ns) {
+            std::cerr << "Tx completion timeout!" << std::endl;
+            break;
+        }
+
+        rc = try_process_one_completion(tx_delay);
+        if (rc != ReturnStatus::success && rc != ReturnStatus::no_completion) {
+            break;
+        }
+    }
+    if (m_handled_token != m_marked_token) {
+        std::cerr << "Tx completion processing error!" << std::endl;
+    }
+
+    std::cout << "Tracked " << m_handled_token << " chunks of "
               << m_app_settings->num_of_packets_in_chunk << " packets\n";
     std::cout <<  "Tx completion delay relative to scheduled packet send time.\n";
     tx_delay.calc_percentiles();
@@ -343,7 +427,6 @@ void MediaTxIONode::send_receive()
     std::this_thread::sleep_for(std::chrono::microseconds(WAIT_SERVER_REPLY_USEC));
 
     rc = m_receive_stream->get_next_chunk(receive_chunk);
-
     if (rc != ReturnStatus::success || receive_chunk.get_length() == 0) {
         std::cerr << "No reply from server"<< std::endl;
         return;
@@ -360,6 +443,35 @@ void MediaTxIONode::send_receive()
     }
 }
 
+ReturnStatus MediaTxIONode::try_process_one_completion(LatencyStats &tx_delay)
+{
+    ReturnStatus rc = m_chunk_handler->poll_for_completion();
+    if (rc == ReturnStatus::no_completion) {
+        return ReturnStatus::no_completion;
+    }
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed polling for Tx completion" << std::endl;
+        return rc;
+    }
+    uint64_t tx_hw_timestamp;
+    uint64_t compl_token;
+    rc = m_chunk_handler->get_last_completion_info(tx_hw_timestamp, compl_token);
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to get completion info for a sent chunk" << std::endl;
+        return rc;
+    }
+    if (compl_token != m_handled_token) {
+        std::cerr << "Out-of-order Tx completion (expected " << m_handled_token << " got "
+                  << compl_token << ")" << std::endl;
+        return ReturnStatus::failure;
+    }
+    int64_t delta = tx_hw_timestamp - m_commit_ts[m_handled_token % m_commit_ts.capacity()] -
+                    static_cast<uint64_t>((m_app_settings->num_of_packets_in_chunk - 1 )* m_trs);
+    tx_delay.update(delta);
+    m_handled_token++;
+    return ReturnStatus::success;
+}
+
 bool MediaTxIONode::parse_receive_timing(ReceiveChunk& chunk, MediaRxLatencyReply& timing)
 {
     ReceivePacketInfo packet_info = chunk.get_packet_info(0);
@@ -372,7 +484,6 @@ bool MediaTxIONode::parse_receive_timing(ReceiveChunk& chunk, MediaRxLatencyRepl
     const void *payload =
         static_cast<const rmx_input_completion_metadata *>(chunk.get_payload_ptr());
     m_header_mem_utils->memory_copy(&timing, payload, sizeof(timing));
-
     return true;
 }
 
@@ -389,6 +500,7 @@ MediaRxIONode::MediaRxIONode(
     m_app_settings(settings.app)
 {
     m_app_settings->num_of_total_streams = 1;
+    m_app_settings->media.frames_fields_in_mem_block = 1;
     compose_media_settings(*m_app_settings);
     m_receive_dim.header_size = m_app_settings->packet_app_header_size;
     m_receive_dim.payload_size = m_app_settings->packet_payload_size;
@@ -494,7 +606,14 @@ void MediaRxIONode::receive_send()
 
         rc = m_receive_stream->get_next_chunk(receive_chunk);
         if (rc != ReturnStatus::success) {
-            if (rc != ReturnStatus::signal_received) {
+            if (rc == ReturnStatus::signal_received) {
+                if (rx_latency.get_cnt())
+                {
+                    std::cout << "\nAll values are in nanoseconds.\n\n";
+                    rx_latency.calc_percentiles();
+                    std::cout << rx_latency << std::endl;
+                }
+            } else {
                 std::cerr << "Failed to get data chunk from Rx stream" << std::endl;
             }
             return;
@@ -513,13 +632,13 @@ void MediaRxIONode::receive_send()
                 if (now - last_packet_ts <= WAIT_SERVER_INACT_NSEC) {
                     continue;
                 }
-                std::cerr << "Receive stream stopped, received "
+                std::cout << "Receive stream stopped, received "
                           << measure_cnt << " packets" << std::endl;
                 measure_cnt = 0;
                 if (rx_latency.get_cnt()) {
                     std::cout << "\nAll values are in nanoseconds.\n\n";
                     rx_latency.calc_percentiles();
-                    std::cerr << rx_latency << std::endl;
+                    std::cout << rx_latency << std::endl;
                     rc = prepare_reply_chunk(commit_chunk);
                     if (rc != ReturnStatus::success) {
                         break;

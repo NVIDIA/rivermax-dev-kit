@@ -1,5 +1,5 @@
 /*
- * Copyright © 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -49,12 +49,15 @@ std::ostream& GenericLatencyIONode::print(std::ostream& out) const
     out << "+#############################################\n"
         << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
         << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
-        << "| Tx Memory address: " << m_send_mem_region.addr << "\n"
-        << "| Tx Memory length: " << m_send_mem_region.length << "[B]" << "\n"
-        << "| Tx Memory key: " << m_send_mem_region.mkey << "\n"
+        << "| Tx Header address: " << m_send_header_region.addr << "\n"
+        << "| Tx Header length: " << m_send_header_region.length << "[B]" << "\n"
+        << "| Tx Header key: " << m_send_header_region.mkey << "\n"
+        << "| Tx Payload address: " << m_send_payload_region.addr << "\n"
+        << "| Tx Payload length: " << m_send_payload_region.length << "[B]" << "\n"
+        << "| Tx Payload key: " << m_send_payload_region.mkey << "\n"
         << "| Rx Header address: " << m_receive_header_region.addr << "\n"
         << "| Rx Header length: " << m_receive_header_region.length << "[B]" << "\n"
-        << "| Rx Memory key: " << m_receive_payload_region.mkey << "\n"
+        << "| Rx Header key: " << m_receive_header_region.mkey << "\n"
         << "| Rx Payload address: " << m_receive_payload_region.addr << "\n"
         << "| Rx Payload length: " << m_receive_payload_region.length << "[B]" << "\n"
         << "| Rx Payload key: " << m_receive_payload_region.mkey << "\n"
@@ -64,33 +67,41 @@ std::ostream& GenericLatencyIONode::print(std::ostream& out) const
 
 void GenericLatencyIONode::initialize_send_stream()
 {
+    if (m_gpu_direct_tx && (m_send_dim.header_size == 0)) {
+        m_send_dim.header_size = RTP_HEADER_SIZE;
+        m_send_dim.payload_size -= RTP_HEADER_SIZE;
+    }
+
     GenericStreamSettings settings(m_network_address,
             true,
             pp_rate_t{0, 0},
             m_send_dim.num_of_chunks,
             m_send_dim.num_of_packets_in_chunk,
             static_cast<uint16_t>(m_send_dim.payload_size),
-            0);
+            static_cast<uint16_t>(m_send_dim.header_size));
 
         m_send_stream = std::shared_ptr<GenericSendStream>(new GenericSendStream(settings));
 }
 
-ReturnStatus GenericLatencyIONode::query_memory_size(size_t& tx_memory_size, size_t& rx_header_size,
-                                                     size_t& rx_payload_size)
+ReturnStatus GenericLatencyIONode::query_memory_size(size_t& tx_header_size, size_t& tx_payload_size,
+                                                     size_t& rx_header_size, size_t& rx_payload_size)
 {
     if (m_receive_stream->query_buffer_size(rx_header_size, rx_payload_size) != ReturnStatus::success) {
         return ReturnStatus::failure;
     }
 
-    tx_memory_size = m_send_stream->get_memory_length();
+    tx_header_size = m_send_stream->get_header_memory_length();
+    tx_payload_size = m_send_stream->get_payload_memory_length();
     return ReturnStatus::success;
 };
 
-void GenericLatencyIONode::distribute_memory_for_streams(rmx_mem_region& tx_mreg,
+void GenericLatencyIONode::distribute_memory_for_streams(rmx_mem_region& tx_header_mreg,
+                                                         rmx_mem_region& tx_payload_mreg,
                                                          rmx_mem_region& rx_header_mreg,
                                                          rmx_mem_region& rx_payload_mreg)
 {
-    m_send_mem_region = tx_mreg;
+    m_send_header_region = tx_header_mreg;
+    m_send_payload_region = tx_payload_mreg;
     m_receive_header_region = rx_header_mreg;
     m_receive_payload_region = rx_payload_mreg;
     m_receive_stream->set_buffers(reinterpret_cast<byte_t*>(rx_header_mreg.addr),
@@ -116,7 +127,11 @@ ReturnStatus GenericLatencyIONode::create_send_stream()
     rc = m_send_stream->create_stream();
 
     if (rc == ReturnStatus::success) {
-        m_send_stream->initialize_chunks(m_send_mem_region);
+        if (is_send_hds()) {
+            m_send_stream->initialize_chunks(m_send_header_region, m_send_payload_region);
+        } else {
+            m_send_stream->initialize_chunks(m_send_payload_region);
+        }
     }
 
     if (rc == ReturnStatus::failure) {
@@ -142,7 +157,7 @@ ReturnStatus GenericLatencyIONode::destroy_send_stream()
 
 void GenericLatencyIONode::initialize_receive_stream(const TwoTupleFlow& flow)
 {
-    if (m_gpu_direct && (m_receive_dim.header_size == 0)) {
+    if (m_gpu_direct_rx  && (m_receive_dim.header_size == 0)) {
         m_receive_dim.header_size = RTP_HEADER_SIZE;
         m_receive_dim.payload_size -= RTP_HEADER_SIZE;
     }
@@ -224,7 +239,15 @@ void PingPongIONode::prepare_send_buffer()
 {
     for (size_t chunk_index = 0; chunk_index < m_send_stream->get_num_of_chunks(); chunk_index++) {
         auto chunk = m_send_stream->get_chunk(chunk_index);
-        m_buffer_writer->write_buffer(*chunk, m_header_mem_utils);
+        for (size_t packet_index = 0; packet_index < chunk->get_length(); packet_index++) {
+            auto& packet = chunk->get_packet(packet_index);
+            m_header_mem_utils->memory_set(reinterpret_cast<void*>(packet[0].addr),
+                                           '0' + (packet_index % 9), packet[0].length);
+            if (packet.size() > 1) {
+                m_payload_mem_utils->memory_set(reinterpret_cast<void*>(packet[1].addr),
+                                                '0' + (packet_index % 9), packet[1].length);
+            }
+        }
     }
 }
 
@@ -452,7 +475,15 @@ void FrameIONode::prepare_send_buffer()
 {
     for (size_t chunk_index = 0; chunk_index < m_send_stream->get_num_of_chunks(); chunk_index++) {
         auto chunk = m_send_stream->get_chunk(chunk_index);
-        m_buffer_writer->write_buffer(*chunk, m_header_mem_utils);
+        for (size_t packet_index = 0; packet_index < chunk->get_length(); packet_index++) {
+            auto& packet = chunk->get_packet(packet_index);
+            m_header_mem_utils->memory_set(reinterpret_cast<void*>(packet[0].addr),
+                                           '0' + (packet_index % 9), packet[0].length);
+            if (packet.size() > 1) {
+                m_payload_mem_utils->memory_set(reinterpret_cast<void*>(packet[1].addr),
+                                                '0' + (packet_index % 9), packet[1].length);
+            }
+        }
     }
 }
 
@@ -482,7 +513,6 @@ bool FrameIONode::parse_receive_timing(ReceiveChunk& chunk, receive_timing& timi
         static_cast<const rmx_input_completion_metadata *>(chunk.get_payload_ptr());
 
     m_header_mem_utils->memory_copy(&timing, payload, sizeof(timing));
-
     return true;
 }
 

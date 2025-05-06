@@ -1,5 +1,5 @@
 /*
- * Copyright © 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -127,10 +127,12 @@ LatencyIONode::LatencyIONode(
         settings.app->destination_ip, settings.app->destination_port)),
     m_sleep_between_operations_us(settings.app->sleep_between_operations_us),
     m_print_parameters(settings.app->print_parameters),
-    m_send_mem_region{nullptr, 0, 0},
+    m_send_header_region{nullptr, 0, 0},
+    m_send_payload_region{nullptr, 0, 0},
     m_receive_header_region{nullptr, 0, 0},
     m_receive_payload_region{nullptr, 0, 0},
-    m_gpu_direct(settings.app->gpu_id != INVALID_GPU_ID),
+    m_gpu_direct_tx(settings.gpu_direct_tx),
+    m_gpu_direct_rx(settings.gpu_direct_rx),
     m_cpu_core_affinity(settings.app->app_threads_cores[0]),
     m_client_mode(settings.client_mode),
     m_measure_interval_sec(settings.measure_interval),

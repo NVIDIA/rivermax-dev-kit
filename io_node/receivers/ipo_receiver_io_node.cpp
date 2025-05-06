@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -261,6 +261,16 @@ void IPOReceiverIONode::print_parameters()
     std::cout << receiver_parameters.str() << std::endl;
 }
 
+ReturnStatus IPOReceiverIONode::sync_streams()
+{
+    ReturnStatus rc = ReturnStatus::success;
+    for (auto& stream : m_streams) {
+        rc = stream->sync_paths();
+        BREAK_ON_FAILURE(rc);
+    }
+    return rc;
+}
+
 ReturnStatus IPOReceiverIONode::wait_first_packet()
 {
     IPOReceiveChunk chunk(m_stream_settings.packet_app_header_size != 0);
@@ -297,6 +307,10 @@ void IPOReceiverIONode::operator()()
     IPOReceiveChunk chunk(m_stream_settings.packet_app_header_size != 0);
     rc = ReturnStatus::success;
 
+    rc = sync_streams();
+    if (rc == ReturnStatus::failure) {
+        std::cerr << "Error during initial sync" << std::endl;
+    }
     start();
     rc = wait_first_packet();
     if (rc == ReturnStatus::failure) {

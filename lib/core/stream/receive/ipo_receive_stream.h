@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -300,6 +300,7 @@ protected:
     uint32_t m_last_processed_sequence_number = 0;
     uint32_t m_sequence_number_wrap_around = 0;
     uint32_t m_sequence_number_msb_mask = 0;
+    uint32_t m_sequence_number_init_offset = 0;
     State m_state = State::NotStarted;
     std::vector<ReceiveStream> m_streams;
     std::vector<ReceiveChunk> m_chunks;
@@ -345,6 +346,12 @@ public:
      */
     ReturnStatus detach_flow();
     ReturnStatus destroy_stream() override;
+    /**
+     * @brief: Synchronize all stream paths.
+     *
+     * Empties input buffers in all paths.
+     */
+    ReturnStatus sync_paths();
     /**
      * @brief: Mark current time as stream start time.
      */

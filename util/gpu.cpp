@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -10,6 +10,7 @@
  * provided with the software product.
  */
 
+#include <cerrno>
 #ifdef CUDA_ENABLED
 
 #include <iostream>
@@ -31,11 +32,10 @@ void cuda_compare_checksum(unsigned int expected, unsigned char* data,
  * @warning This must be called before any other GPU functions call
  *
  * @param [in] gpu_id     : GPU id.
- * @param [in] init_config: GPU init config struct @ref gpu_init_config
  *
  * @return: Return status of the operation.
  */
-bool gpu_init(int gpu_id, gpu_init_config& init_config)
+bool gpu_init(int gpu_id)
 {
     int ret = -1;
     // nvidia-smi is the user's primary tool for identifying the ID of the GPU which is to be used by the Rivermax application.
@@ -55,11 +55,6 @@ bool gpu_init(int gpu_id, gpu_init_config& init_config)
     if (!verify_gpu_device_id(gpu_id)) {
         return false;
     }
-    if (init_config.flags & GPU_SET_MAX_CLOCK_FREQUENCY) {
-        if(!gpu_set_locked_clocks_max_freq(gpu_id)) {
-            return false;
-        }
-    }
 
     return true;
 }
@@ -69,15 +64,11 @@ bool gpu_init(int gpu_id, gpu_init_config& init_config)
  * @warning This must be called in the end of using GPU.
  *
  * @param [in] gpu_id     : GPU id.
- * @param [in] init_config: GPU init config @ref gpu_init_config.
  *
  * @return: Return status of the operation.
  */
-bool gpu_uninit(int gpu_id, gpu_init_config& init_config)
+bool gpu_uninit(int gpu_id)
 {
-    if (init_config.flags & GPU_SET_MAX_CLOCK_FREQUENCY) {
-        return gpu_reset_locked_clocks(gpu_id);
-    }
     return true;
 }
 
@@ -326,7 +317,7 @@ done:
         std::cout << "CUDA memory free finished with status " << cuda_free_mmap_status << std::endl;
         return nullptr;
     }
-    
+
     return (void*)dptr;
 }
 
@@ -465,12 +456,15 @@ bool set_gpu_device(int gpu_id)
  *
  * @param [in] gpu_id: GPU id
  *
- * @return: Return status of the operation.
+ * @return: Return status of the operation:
+ *           0       - in case of success,
+ *          -ENOTSUP - when locked clocks are not supported,
+ *          -EPERM   - in case of other errors.
  */
-bool gpu_set_locked_clocks_max_freq(int gpu_id)
+int gpu_set_locked_clocks_max_freq(int gpu_id)
 {
     nvmlReturn_t nvret = NVML_SUCCESS;
-    bool ret = false;
+    int ret = 0;
     uint32_t max_graphics_clock_freq = 0;
     uint32_t max_memory_clock_freq = 0;
 
@@ -478,50 +472,67 @@ bool gpu_set_locked_clocks_max_freq(int gpu_id)
     if (nvret != NVML_SUCCESS) {
         std::cerr << "Failed to init The NVIDIA Management Library (NVML) with error: "
             << nvret << std::endl;
-        return false;
+        return -EPERM;
     }
 
     nvmlDevice_t nvDevice;
     nvret = nvmlDeviceGetHandleByIndex(gpu_id, &nvDevice);
     if (nvret != NVML_SUCCESS) {
         std::cerr << "Failed to get nvmlDevice with error: " << nvret << std::endl;
-        goto end;
+        ret = -EPERM;
+        goto recover;
     }
 
     nvret = nvmlDeviceGetMaxClockInfo(nvDevice, NVML_CLOCK_GRAPHICS, &max_graphics_clock_freq);
     if (nvret != NVML_SUCCESS) {
         std::cerr << "Failed to get max graphics clock frequency with error: " << nvret << std::endl;
-        goto end;
+        ret = -EPERM;
+        goto recover;
     }
 
     nvret = nvmlDeviceGetMaxClockInfo(nvDevice, NVML_CLOCK_MEM, &max_memory_clock_freq);
     if (nvret != NVML_SUCCESS) {
         std::cerr << "Failed to get max memory clock frequency with error: " << nvret << std::endl;
-        goto end;
+        ret = -EPERM;
+        goto recover;
     }
 
     nvret = nvmlDeviceSetGpuLockedClocks(nvDevice, max_graphics_clock_freq, max_graphics_clock_freq);
     if (nvret != NVML_SUCCESS) {
-        std::cerr << "Failed to set gpu clock on max frequency with error: " << nvret << std::endl;
-        goto end;
+        if (nvret == NVML_ERROR_NOT_SUPPORTED) {
+            std::cout << "Warning! Setting locked gpu clock is not supported" << std::endl;
+            ret = -ENOTSUP;
+        } else {
+            std::cerr << "Failed to set gpu clock on max frequency with error: " << nvret << std::endl;
+            ret = -EPERM;
+        }
+        goto recover;
     }
 
     nvret = nvmlDeviceSetMemoryLockedClocks(nvDevice, max_memory_clock_freq, max_memory_clock_freq);
     if (nvret != NVML_SUCCESS) {
-        std::cerr << "Failed to set memory clock on max frequency with error: " << nvret << std::endl;
-        goto end;
+        if (nvret == NVML_ERROR_NOT_SUPPORTED) {
+            std::cout << "Warning! Setting locked memory clock is not supported" << std::endl;
+            ret = -ENOTSUP;
+        } else {
+            std::cerr << "Failed to set memory clock on max frequency with error: " << nvret << std::endl;
+            ret = -EPERM;
+        }
+        goto recover;
     }
-    ret = true;
 
-end:
-    if (!ret) {
-        gpu_reset_locked_clocks(gpu_id);
-    }
+    goto cleanup;
+
+recover:
+    nvmlDeviceResetGpuLockedClocks(nvDevice);
+    nvmlDeviceResetMemoryLockedClocks(nvDevice);
+
+cleanup:
     nvret = nvmlShutdown();
     if (nvret != NVML_SUCCESS) {
         std::cerr << "Failed to shutdown The NVIDIA Management Library (NVML) with error: "
             << nvret << std::endl;
-        return false;
+        return -EPERM;
     }
     return ret;
 }
@@ -531,41 +542,55 @@ end:
  *
  * @param [in] gpu_id: GPU id
  *
- * @return: Return status of the operation.
+ * @return: Return status of the operation:
+ *           0       - in case of success,
+ *          -ENOTSUP - when locked clocks are not supported,
+ *          -EPERM   - in case of other errors.
  */
-bool gpu_reset_locked_clocks(int gpu_id)
+int gpu_reset_locked_clocks(int gpu_id)
 {
     nvmlReturn_t nvret = NVML_SUCCESS;
-    bool ret = false;
+    int ret = 0;
 
     nvret = nvmlInit();
     if (nvret != NVML_SUCCESS) {
         std::cerr << "Failed to init The NVIDIA Management Library (NVML) with error: "
             << nvret << std::endl;
-        return false;
+        return -EPERM;
     }
 
     nvmlDevice_t nvDevice;
     nvret = nvmlDeviceGetHandleByIndex(gpu_id, &nvDevice);
     if (nvret != NVML_SUCCESS) {
         std::cerr << "Failed to get nvmlDevice with error: " << nvret << std::endl;
-        goto end;
+        ret = -EPERM;
+        goto cleanup;
     }
 
     nvret = nvmlDeviceResetGpuLockedClocks(nvDevice);
     if (nvret != NVML_SUCCESS) {
-        std::cerr << "Failed to reset gpu clock on default frequency with error: " << nvret << std::endl;
-        goto end;
+        if (nvret == NVML_ERROR_NOT_SUPPORTED) {
+            std::cout << "Warning! Resetting locked gpu clock is not supported" << std::endl;
+            ret = -ENOTSUP;
+        } else {
+            std::cerr << "Failed to reset gpu clock on default frequency with error: " << nvret << std::endl;
+            ret = -EPERM;
+        }
+        goto cleanup;
     }
 
     nvret = nvmlDeviceResetMemoryLockedClocks(nvDevice);
     if (nvret != NVML_SUCCESS) {
-        std::cerr << "Failed to reset memory clock on default frequency with error: " << nvret << std::endl;
-        goto end;
+        if (nvret == NVML_ERROR_NOT_SUPPORTED) {
+            std::cout << "Warning! Resetting locked gpu clock is not supported" << std::endl;
+            ret = -ENOTSUP;
+        } else {
+            std::cerr << "Failed to reset memory clock on default frequency with error: " << nvret << std::endl;
+            ret = -EPERM;
+        }
     }
-    ret = true;
 
-end:
+cleanup:
     nvret = nvmlShutdown();
     if (nvret != NVML_SUCCESS) {
         std::cerr << "Failed to shutdown The NVIDIA Management Library (NVML) with error: "

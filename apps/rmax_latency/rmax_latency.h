@@ -1,5 +1,5 @@
 /*
- * Copyright © 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -87,11 +87,17 @@ private:
     LatencyMode m_latency_mode;
     /* Transmitter-Receiver objects container */
     std::unique_ptr<LatencyIONode> m_io_node;
-    /* Transmit memory region */
-    rmx_mem_region m_tx_mreg;
-    /* Receive memory header region */
+    /* Transmit header memory region */
+    rmx_mem_region m_tx_header_mreg;
+    /* Transmit header memory registration status */
+    bool m_is_tx_header_mreg_registered;
+    /* Transmit payload memory region */
+    rmx_mem_region m_tx_payload_mreg;
+    /* Transmit payload memory registration status */
+    bool m_is_tx_payload_mreg_registered;
+    /* Receive header memory region */
     rmx_mem_region m_rx_header_mreg;
-    /* Receive memory payload region */
+    /* Receive payload memory region */
     rmx_mem_region m_rx_payload_mreg;
     /* Total measuring interval */
     size_t m_measure_interval_sec;

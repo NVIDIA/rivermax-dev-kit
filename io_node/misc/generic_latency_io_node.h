@@ -1,5 +1,5 @@
 /*
- * Copyright © 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -104,14 +104,19 @@ public:
     }
     void initialize_send_stream() override;
     void initialize_receive_stream(const TwoTupleFlow& flow) override;
-    ReturnStatus query_memory_size(size_t& tx_memory_size,
+    ReturnStatus query_memory_size(size_t& tx_header_size, size_t& tx_payload_size,
                                    size_t& rx_header_size, size_t& rx_payload_size) override;
-    void distribute_memory_for_streams(rmx_mem_region& tx_mreg,
+    void distribute_memory_for_streams(rmx_mem_region& tx_header_mreg,
+                                       rmx_mem_region& tx_payload_mreg,
                                        rmx_mem_region& rx_header_mreg,
                                        rmx_mem_region& rx_payload_mreg) override;
     void print_parameters() override;
     /**
-     * @brief: Returns true, if headers are received in separate memory, otherwise false.
+     * @brief: Returns true, if headers are sent from a separate memory, otherwise false.
+     */
+    bool is_send_hds() const { return m_send_dim.header_size != 0; }
+    /**
+     * @brief: Returns true, if headers are received into a separate memory, otherwise false.
      */
     bool is_receive_hds() const { return m_receive_dim.header_size != 0; }
 protected:

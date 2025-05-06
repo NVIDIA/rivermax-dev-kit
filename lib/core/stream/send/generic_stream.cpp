@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -13,8 +13,8 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
-#include <vector>
-#include <unordered_map>
+#include <chrono>
+#include <thread>
 
 #include "core/stream/send/generic_stream.h"
 #include "core/chunk/generic_chunk.h"
@@ -153,7 +153,8 @@ void GenericSendStream::initialize_chunks(const rmx_mem_region& mem_region)
     size_t num_of_sub_blocks = (m_stream_settings.m_packet_typical_app_header_size != 0) ? 2 : 1;
     GenericPacket packet(num_of_sub_blocks);
     for (size_t index = 0; index < m_num_of_chunks; index++) {
-        GenericChunk* chunk = new GenericChunk(m_stream_id, m_stream_settings.m_num_of_packets_in_chunk);
+        auto chunk = std::make_shared<ral::lib::core::GenericChunk>(
+                m_stream_id, m_stream_settings.m_num_of_packets_in_chunk);
         /* Initialize packets */
         for (size_t packet_idx = 0; packet_idx < m_stream_settings.m_num_of_packets_in_chunk; packet_idx++) {
             /* Initialize IO vector */
@@ -168,15 +169,53 @@ void GenericSendStream::initialize_chunks(const rmx_mem_region& mem_region)
             /* Only store packets here. They need to be registered by Rivermax after each get_next_chunk() */
             chunk->place_packet(packet_idx, packet);
         }
-        m_chunks.emplace_back(chunk);
+        m_chunks.emplace_back(std::move(chunk));
+    }
+}
+
+void GenericSendStream::initialize_chunks(const rmx_mem_region& header_region, const rmx_mem_region& payload_region)
+{
+    /* Initialize chunks */
+    size_t header_mem_offset = 0;
+    size_t payload_mem_offset = 0;
+    size_t num_of_sub_blocks = 2;
+    GenericPacket packet(num_of_sub_blocks);
+    for (size_t index = 0; index < m_num_of_chunks; index++) {
+        auto chunk = std::make_shared<ral::lib::core::GenericChunk>(
+                m_stream_id, m_stream_settings.m_num_of_packets_in_chunk);
+        /* Initialize packets */
+        for (size_t packet_idx = 0; packet_idx < m_stream_settings.m_num_of_packets_in_chunk; packet_idx++) {
+            /* Initialize IO vector */
+            packet[0].addr = reinterpret_cast<uint8_t*>(header_region.addr) + header_mem_offset;
+            packet[0].length = m_stream_settings.m_packet_typical_app_header_size;
+            packet[0].mkey = header_region.mkey;
+            header_mem_offset += packet[0].length;
+            packet[1].addr = reinterpret_cast<uint8_t*>(payload_region.addr) + payload_mem_offset;
+            packet[1].length = m_stream_settings.m_packet_typical_payload_size;
+            packet[1].mkey = payload_region.mkey;
+            payload_mem_offset += packet[1].length;
+            /* Only store packets here. They need to be registered by Rivermax after each get_next_chunk() */
+            chunk->place_packet(packet_idx, packet);
+        }
+        m_chunks.emplace_back(std::move(chunk));
     }
 }
 
 size_t GenericSendStream::get_memory_length() const
 {
+    return get_header_memory_length() + get_payload_memory_length();
+}
+
+size_t GenericSendStream::get_header_memory_length() const
+{
     return m_num_of_chunks * m_stream_settings.m_num_of_packets_in_chunk *
-           (m_stream_settings.m_packet_typical_payload_size +
-           m_stream_settings.m_packet_typical_app_header_size);
+           m_stream_settings.m_packet_typical_app_header_size;
+}
+
+size_t GenericSendStream::get_payload_memory_length() const
+{
+    return m_num_of_chunks * m_stream_settings.m_num_of_packets_in_chunk *
+           m_stream_settings.m_packet_typical_payload_size;
 }
 
 ReturnStatus GenericSendStream::create_stream()
@@ -199,6 +238,9 @@ ReturnStatus GenericSendStream::destroy_stream()
 
     do {
         status = rmx_output_gen_destroy_stream(m_stream_id);
+        if (status == RMX_BUSY) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     } while (status == RMX_BUSY);
 
     if (status != RMX_OK) {

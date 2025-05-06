@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -136,6 +136,8 @@ ReturnStatus IPOReceiveStream::create_stream()
 {
     m_sequence_number_wrap_around = get_sequence_number_wrap_around(m_num_of_packets_in_chunk);
     m_sequence_number_msb_mask = (get_sequence_number_mask() >> 1) + 1;
+    // a half of the maximum offset where the difference changes sign
+    m_sequence_number_init_offset = (get_sequence_number_mask() + 1ULL) / 4;
 
     for (auto& stream : m_streams) {
         ReturnStatus status = stream.create_stream();
@@ -197,6 +199,37 @@ ReturnStatus IPOReceiveStream::destroy_stream()
     }
 
     return (success) ? ReturnStatus::success : ReturnStatus::failure;
+}
+
+ReturnStatus IPOReceiveStream::sync_paths()
+{
+    using namespace std::chrono;
+    const auto end_time = steady_clock::now() + seconds(5);
+    bool all_streams_is_ready = false;
+    do {
+        all_streams_is_ready = true;
+        for (size_t i = 0; i < m_streams.size(); ++i) {
+            auto& stream = m_streams.at(i);
+            auto& chunk = m_chunks.at(i);
+            ReturnStatus status = stream.get_next_chunk(chunk);
+            if (status != ReturnStatus::success) {
+                if (status != ReturnStatus::signal_received) {
+                    std::cerr << "Failed to get data chunk from stream " << stream.get_id() << std::endl;
+                }
+                return status;
+            }
+            const auto comp = chunk.get_completion();
+            if (rmx_input_get_completion_flag(comp, RMX_INPUT_COMPLETION_FLAG_MORE)) {
+                all_streams_is_ready = false;
+                break;
+            }
+        }
+    } while (!all_streams_is_ready && end_time > steady_clock::now());
+    if (!all_streams_is_ready) {
+        std::cerr << "Failed to sync the streams!" << std::endl;
+        std::cerr << "Neither of the streams should have RMX_INPUT_COMPLETION_FLAG_MORE indicated in their completion flags" << std::endl;
+    }
+    return ReturnStatus::success;
 }
 
 void IPOReceiveStream::start()
@@ -395,7 +428,7 @@ void IPOReceiveStream::process_completion(size_t index, const ReceiveStream& str
             break;
         case State::WaitFirstPacket:
             m_index = index_in_dest_arr;
-            m_last_processed_sequence_number = (sequence_number - m_num_of_packets_in_chunk) & get_sequence_number_mask();
+            m_last_processed_sequence_number = (sequence_number - m_sequence_number_init_offset) & get_sequence_number_mask();
             m_state = State::Running;
             m_next_packet_time = m_now;
             break;
@@ -404,7 +437,7 @@ void IPOReceiveStream::process_completion(size_t index, const ReceiveStream& str
                 // resetting input
                 handle_sender_restart();
                 m_index = index_in_dest_arr;
-                m_last_processed_sequence_number = (sequence_number - m_num_of_packets_in_chunk) & get_sequence_number_mask();
+                m_last_processed_sequence_number = (sequence_number - m_sequence_number_init_offset) & get_sequence_number_mask();
                 m_start_time = m_now + m_max_path_differential;
             }
             m_state = State::Running;
@@ -413,7 +446,7 @@ void IPOReceiveStream::process_completion(size_t index, const ReceiveStream& str
         }
         uint32_t seq_delta = (sequence_number - m_last_processed_sequence_number) & get_sequence_number_mask();
         if (seq_delta == 0 || seq_delta & m_sequence_number_msb_mask) {
-            // sequence number is less than recently processed
+            // sequence number is less or equals to recently processed
             handle_late_packet(index, sequence_number, packet_info);
         } else if (!ext_info.is_valid || ext_info.sequence_number != sequence_number) {
             // packet with this sequence number is received for the first time

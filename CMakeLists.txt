@@ -39,7 +39,7 @@ endif()
 add_library(rmax-ral-build INTERFACE)
 target_sources(rmax-ral-build INTERFACE api/rmax_apps_lib_api.h)
 target_include_directories(rmax-ral-build INTERFACE ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(rmax-ral-build INTERFACE rmax-apps-build rmax-apps-util-reduced)
+target_link_libraries(rmax-ral-build INTERFACE rmax-apps-util-reduced rmax-apps-build)
 set_target_properties(rmax-ral-build PROPERTIES INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 foreach(lib_dir "lib" "io_node" "apps")

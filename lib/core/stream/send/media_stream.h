@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -231,12 +231,30 @@ protected:
     rmx_output_media_stream_params m_stream_params;
 public:
     /**
-     * @brief: MediaSendStream constructor.
+     * @brief: MediaSendStream constructor without pre-configured memory.
+     *
+     * Creates a MediaSendStream object with no asigned memory regions.
+     * Before creating a Rivermax stream with @ref create_stream need to
+     * assign memory blocks with @ref assign_memory_blocks.
+     *
+     * @param [in] settings: Stream parameters.
+     */
+    MediaSendStream(const MediaStreamSettings& settings);
+    /**
+     * @brief: MediaSendStream constructor with pre-configured memory.
+     *
+     * Creates a MediaSendStream object with asigned memory blocks.
      *
      * @param [in] settings: Stream parameters.
      * @param [in] mem_blocks: Parameters of blocks allocated for output packets.
      */
     MediaSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks);
+    /**
+     * @brief: Assigns memory blocks to the stream.
+     *
+     * @param [in] mem_blocks: Parameters of blocks allocated for output packets.
+     */
+    void assign_memory_blocks(MediaStreamMemBlockset& mem_blocks);
     std::ostream& print(std::ostream& out) const override;
     virtual ReturnStatus create_stream() override;
     virtual ReturnStatus destroy_stream() override;
@@ -246,6 +264,18 @@ public:
      * @return: Data stride size.
      */
     virtual size_t get_data_stride_size() const { return m_stream_settings.m_data_stride_size; }
+    /**
+     * @brief: Returns header stride size of the stream buffer attributes.
+     *
+     * @return: Header stride size.
+     */
+    virtual size_t get_app_hdr_stride_size() const { return m_stream_settings.m_app_hdr_stride_size; }
+    /**
+     * @brief: Returns status of Header-Data-Split mode.
+     *
+     * @return: true if Header-Data-Split mode is enabled.
+     */
+    bool is_hds_on() const { return m_stream_settings.m_app_hdr_stride_size != 0; }
     /**
      * @brief: Acquires the next free chunk of the stream.
      *

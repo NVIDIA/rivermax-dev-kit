@@ -1,5 +1,5 @@
 /*
- * Copyright © 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -106,6 +106,8 @@ struct LatencyNodeSettings {
     std::string receive_ip;
     uint16_t receive_port;
     bool client_mode;
+    bool gpu_direct_tx;
+    bool gpu_direct_rx;
     size_t measure_interval;
     bool track_completions;
     std::vector<double> percentiles;
@@ -128,10 +130,12 @@ protected:
     FourTupleFlow m_network_address;
     int m_sleep_between_operations_us;
     bool m_print_parameters;
-    rmx_mem_region m_send_mem_region;
+    rmx_mem_region m_send_header_region;
+    rmx_mem_region m_send_payload_region;
     rmx_mem_region m_receive_header_region;
     rmx_mem_region m_receive_payload_region;
-    bool m_gpu_direct;
+    bool m_gpu_direct_tx;
+    bool m_gpu_direct_rx;
     rmax_cpu_set_t m_cpu_affinity_mask;
     int m_cpu_core_affinity;
     bool m_client_mode;
@@ -192,14 +196,15 @@ public:
     /**
      * @brief: Requests memory sizes required for transmitter and receiver.
      */
-    virtual ReturnStatus query_memory_size(size_t& tx_memory_size,
+    virtual ReturnStatus query_memory_size(size_t& tx_header_size, size_t& tx_payload_size,
                                            size_t& rx_header_size, size_t& rx_payload_size) = 0;
     /**
      * @brief: Distributes the memory for streams.
      *
      * This method is responsible to distribute the memory of the sender/receiver streams.
      */
-    virtual void distribute_memory_for_streams(rmx_mem_region& tx_mreg,
+    virtual void distribute_memory_for_streams(rmx_mem_region& tx_header_mreg,
+                                               rmx_mem_region& tx_payload_mreg,
                                                rmx_mem_region& rx_header_mreg,
                                                rmx_mem_region& rx_payload_mreg) = 0;
     /**

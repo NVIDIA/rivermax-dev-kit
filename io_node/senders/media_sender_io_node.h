@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -60,7 +60,6 @@ private:
     FourTupleFlow m_network_address;
     int m_sleep_between_operations;
     bool m_print_parameters;
-    rmax_cpu_set_t m_cpu_affinity_mask;
     int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
     std::unique_ptr<IBufferWriter> m_buffer_writer;

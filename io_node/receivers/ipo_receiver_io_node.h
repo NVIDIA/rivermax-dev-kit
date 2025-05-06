@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -235,7 +235,6 @@ private:
 
     ipo_stream_settings_t m_stream_settings;
     std::vector<std::unique_ptr<AppIPOReceiveStream>> m_streams;
-    uint64_t m_cpu_affinity_mask[RMAX_CPU_SETSIZE / RMAX_NCPUBITS];
 
 public:
     /**
@@ -336,6 +335,12 @@ private:
      * @return: Status of the operation.
      */
     ReturnStatus attach_flows();
+    /**
+     * @brief: Sync all streams.
+     *
+     * Flushes input buffers of all streams.
+     */
+    ReturnStatus sync_streams();
     /**
      * @brief: Start all streams.
      */

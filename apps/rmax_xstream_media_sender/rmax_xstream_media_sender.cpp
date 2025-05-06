@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -91,6 +91,7 @@ void MediaSenderApp::post_cli_parse_initialization()
      *    * Use SDP parser
      *    * Generalize the code as service/core component in the library
     */
+    m_app_settings->media.frames_fields_in_mem_block = 1;
     compose_media_settings(*m_app_settings);
 }
 
@@ -165,7 +166,14 @@ void MediaSenderApp::initialize_sender_threads()
 {
     size_t streams_offset = 0;
     for (size_t sndr_indx = 0; sndr_indx < m_app_settings->num_of_threads; sndr_indx++) {
-        int sender_cpu_core = m_app_settings->app_threads_cores[sndr_indx % m_app_settings->app_threads_cores.size()];
+        int sender_cpu_core;
+        if (sndr_indx < m_app_settings->app_threads_cores.size()) {
+            sender_cpu_core = m_app_settings->app_threads_cores[sndr_indx];
+        } else {
+            std::cerr << "Warning: CPU afinity for Sender " << sndr_indx <<
+                         " is not set!!!" << std::endl;
+            sender_cpu_core = CPU_NONE;
+        }
         auto network_address = FourTupleFlow(
             sndr_indx,
             m_app_settings->local_ip,

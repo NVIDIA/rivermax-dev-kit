@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -175,11 +175,30 @@ public:
      */
     virtual void initialize_chunks(const rmx_mem_region& mem_region);
     /**
-     * @brief: Returns memory length needed for the stream.
+     * @brief: Initializes chunks layout using the specified header and payload memory regions.
+     *
+     * @param [in] header_region - Memory region for packets application headers.
+     * @param [in] payload_region - Memory region for packets payload.
+     */
+    virtual void initialize_chunks(const rmx_mem_region& header_region, const rmx_mem_region& payload_region);
+    /**
+     * @brief: Returns memory length needed for the stream including packet headers and payload.
      *
      * @return: Size in bytes of the memory length.
      */
     virtual size_t get_memory_length() const;
+    /**
+     * @brief: Returns memory length needed for packet application headers.
+     *
+     * @return: Size in bytes of the memory length.
+     */
+    virtual size_t get_header_memory_length() const;
+    /**
+     * @brief: Returns memory length needed for packet payloads.
+     *
+     * @return: Size in bytes of the memory length.
+     */
+    virtual size_t get_payload_memory_length() const;
     /**
      * @brief: Sends a chunk of the stream to the wire.
      *

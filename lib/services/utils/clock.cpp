@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -11,6 +11,8 @@
  */
 
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "rivermax_api.h"
 #include "clock.h"
@@ -47,5 +49,9 @@ ReturnStatus ral::lib::services::set_rivermax_ptp_clock(const rmx_device_iface* 
         return ReturnStatus::failure;
     }
 
-    return ReturnStatus::success;
+    while ((status = rmx_check_clock_steady()) == RMX_BUSY) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    return (status == RMX_OK) ? ReturnStatus::success : ReturnStatus::failure;
 }

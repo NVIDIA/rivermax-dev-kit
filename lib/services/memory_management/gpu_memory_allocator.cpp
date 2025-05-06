@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+ * Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
  *
  * This software product is a proprietary product of Nvidia Corporation and its affiliates
  * (the "Company") and all right, title, and interest in and to the software
@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <cstring>
 
 #include "gpu.h"
 
@@ -36,6 +37,16 @@ GpuMemoryAllocator::GpuMemoryAllocator(int gpu_id)
     : MemoryAllocator()
     , m_gpu_id(gpu_id)
 {
+    if (!gpu_init(gpu_id)) {
+        throw std::runtime_error("Failed to init GPU device");
+    }
+
+    int res = gpu_set_locked_clocks_max_freq(gpu_id);
+    bool set_freq_caused_failure = (res != 0) && (res != -ENOTSUP);
+    if (set_freq_caused_failure) {
+        throw std::runtime_error("Failed to set GPU clock!");
+    }
+
     if (!set_gpu_device(m_gpu_id)) {
         throw std::runtime_error("Failed to set GPU device!");
     }
@@ -59,6 +70,12 @@ GpuMemoryAllocator::~GpuMemoryAllocator()
     std::for_each(m_mem_blocks.begin()
                 , m_mem_blocks.end()
                 , [this](std::unique_ptr<mem_block_t>& mem_block){ m_imp->free_gpu(mem_block->pointer, mem_block->length); });
+
+    gpu_reset_locked_clocks(m_gpu_id);
+
+    if (!gpu_uninit(m_gpu_id)) {
+        std::cerr << "Failed to uninit GPU device" << std::endl;
+    }
 }
 
 std::shared_ptr<MemoryUtils> GpuMemoryAllocator::get_memory_utils()
