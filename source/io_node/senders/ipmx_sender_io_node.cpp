@@ -213,7 +213,7 @@ size_t IPMXStreamSender::prepare_sender_report_base(uint32_t ssrc, const TwoTupl
     m_report.sr.ssrc = htonl(ssrc);
     m_report.sr.length = htons(sizeof(m_report.sr) / sizeof(uint32_t) - 1);
     m_report.sr.info.ipmx_tag = htons(IPMX_TAG);
-    m_report.sr.info.length = htons(sizeof(m_report.sr.info) / sizeof(uint32_t) - 1);
+    m_report.sr.info.length = htons((sizeof(m_report.sr.info) + sizeof(m_report.sr.media)) / sizeof(uint32_t) - 1);
     std::strncpy((char *)(m_report.sr.info.ts_refclk), m_media_settings.refclk.c_str(),
                           sizeof(m_report.sr.info.ts_refclk) - 1);
     std::strncpy((char *)(m_report.sr.info.mediaclk), "direct=0",
