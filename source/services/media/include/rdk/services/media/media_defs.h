@@ -264,7 +264,7 @@ struct MediaSettings
     std::string sdp;
     uint32_t media_block_index = 0;
     FrameRate frame_rate;
-    Resolution resolution;
+    Resolution resolution = { FHD_WIDTH, FHD_HEIGHT };
     VideoSampling sampling_type = VideoSampling::YCbCr_4_2_2;
     ColorBitDepth bit_depth = ColorBitDepth::_10;
     VideoScanType video_scan_type = VideoScanType::Progressive;

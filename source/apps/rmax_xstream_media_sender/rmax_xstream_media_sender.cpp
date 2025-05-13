@@ -32,6 +32,8 @@ void MediaSenderSettings::init_default_values()
 {
     AppSettings::init_default_values();
     media.frames_fields_in_mem_block = 1;
+    media.resolution = { FHD_WIDTH, FHD_HEIGHT };
+    num_of_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
 }
 
 ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaSenderSettings>& settings) const
@@ -104,6 +106,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_BIT_DEPTH)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::DYNAMIC_FILE_LOADING)->needs(video_file);
+    m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
 
     return ReturnStatus::success;
 }
@@ -117,6 +120,18 @@ MediaSenderApp::MediaSenderApp(std::shared_ptr<ISettingsBuilder<MediaSenderSetti
 
 ReturnStatus MediaSenderApp::post_load_settings()
 {
+    uint32_t default_packets_in_chunk;
+
+    if (m_app_settings->media.resolution == Resolution(UHD_WIDTH, UHD_HEIGHT) ||
+        m_app_settings->media.resolution == Resolution(UHD_HEIGHT, UHD_WIDTH)) {
+        default_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_UHD;
+    } else {
+        default_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
+    }
+
+    if (m_app_settings->num_of_packets_in_chunk != default_packets_in_chunk) {
+        m_app_settings->num_of_packets_in_chunk_specified = true;
+    }
     auto rc = initialize_media_settings(*m_app_settings);
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to initialize media settings" << std::endl;

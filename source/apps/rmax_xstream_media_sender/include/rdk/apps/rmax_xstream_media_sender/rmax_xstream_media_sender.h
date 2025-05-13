@@ -39,6 +39,8 @@ namespace rmax_xstream_media_sender
 struct MediaSenderSettings : AppSettings
 {
 public:
+    static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD = 16;
+    static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_UHD = 32;
     void init_default_values() override;
 };
 
