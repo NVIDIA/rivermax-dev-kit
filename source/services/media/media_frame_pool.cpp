@@ -22,7 +22,8 @@ using namespace rivermax::dev_kit::services;
 
 MediaFramePool::MediaFramePool(size_t frame_count, size_t frame_size, MemoryAllocator& mem_allocator) :
     m_frame_size(frame_size),
-    m_frame_count(frame_count)
+    m_frame_count(frame_count),
+    m_memory_location(mem_allocator.get_memory_location())
 {
     m_total_memory_size = frame_count * frame_size;
     m_total_memory_size = mem_allocator.align_length(m_total_memory_size);
@@ -36,16 +37,18 @@ MediaFramePool::MediaFramePool(size_t frame_count, size_t frame_size, MemoryAllo
     m_all_frames.reserve(frame_count);
     for (size_t i = 0; i < frame_count; ++i) {
         byte_t* frame_memory = m_memory_block + (i * frame_size);
-        m_all_frames.emplace_back(frame_memory, frame_size);
+        m_all_frames.emplace_back(frame_memory, frame_size, m_memory_location);
         m_available_indices.push(i);
     }
 }
 
-MediaFramePool::MediaFramePool(size_t frame_count, size_t frame_size, byte_t* memory_block, size_t memory_size ) :
+MediaFramePool::MediaFramePool(size_t frame_count, size_t frame_size, byte_t* memory_block, size_t memory_size,
+    MemoryLocation memory_location) :
     m_memory_block(memory_block),
     m_frame_size(frame_size),
     m_frame_count(frame_count),
-    m_total_memory_size(frame_count * frame_size)
+    m_total_memory_size(frame_count * frame_size),
+    m_memory_location(memory_location)
 {
     if (!m_memory_block) {
         throw std::runtime_error("No memory provided for for MediaFramePool");
@@ -59,7 +62,7 @@ MediaFramePool::MediaFramePool(size_t frame_count, size_t frame_size, byte_t* me
     m_all_frames.reserve(frame_count);
     for (size_t index = 0; index < frame_count; ++index) {
         byte_t* frame_memory = memory_block + (index * frame_size);
-        m_all_frames.emplace_back(frame_memory, frame_size);
+        m_all_frames.emplace_back(frame_memory, frame_size, m_memory_location);
         m_available_indices.push(index);
     }
 }

@@ -75,6 +75,8 @@ private:
     std::atomic<bool> m_in_destruction{false};
     /* Flag to indicate if the pool is stopping */
     std::atomic<bool> m_stop{false};
+    /* Memory location used for allocation */
+    MemoryLocation m_memory_location;
 public:
     /**
      * @brief: Constructor.
@@ -84,17 +86,19 @@ public:
      * @param [in] mem_allocator: Memory allocator to use.
      */
     MediaFramePool(size_t frame_count, size_t frame_size, MemoryAllocator& mem_allocator);
-   /**
+    /**
      * @brief: Constructor for external memory.
      *
      * @param [in] frame_count: Number of frames in the pool.
      * @param [in] frame_size: Size of each frame in bytes.
      * @param [in] memory_block: Pointer to the external memory block.
      * @param [in] memory_size: Size of the external memory block in bytes.
+     * @param [in] memory_location: Memory location of the external memory block.
      *
      * @throws std::invalid_argument if the provided memory is insufficient.
      */
-    MediaFramePool(size_t frame_count, size_t frame_size, byte_t* memory_block, size_t memory_size);
+    MediaFramePool(size_t frame_count, size_t frame_size, byte_t* memory_block, size_t memory_size,
+        MemoryLocation memory_location = MemoryLocation::Host);
     /**
      * @brief: Destructor.
      */
@@ -127,6 +131,12 @@ public:
      * @brief: Stop the frame pool and release all waiting threads.
      */
     void stop();
+    /**
+     * @brief: Return the memory type used for allocation.
+     *
+     * @return: Memory type used for allocation.
+     */
+    MemoryLocation get_memory_location() const { return m_memory_location; }
 private:
    /**
      * @brief: Returns a frame back to the pool.
