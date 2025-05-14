@@ -31,6 +31,9 @@
 *.out
 *.app
 
+# Various Tools
+tags
+
 # CMake
 out
 CMakeLists.txt.user
