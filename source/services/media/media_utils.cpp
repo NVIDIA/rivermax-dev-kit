@@ -30,7 +30,18 @@ using BytesPerPixelRatio = std::pair<uint32_t, uint32_t>;
 using ColorDepthPixelRatioMap =
     std::unordered_map<VideoSampling, std::unordered_map<ColorBitDepth, BytesPerPixelRatio>>;
 /**
- * @brief: Map of video sampling type to pixel ratio for each color bit depth.
+ * @brief: Map of video sampling formats to bytes-per-pixel ratios for each color bit depth.
+ *
+ * This map defines the pixel format characteristics by storing the ratio of bytes to pixels
+ * for different video sampling types (RGB, YCbCr 4:4:4, YCbCr 4:2:2, YCbCr 4:2:0) and
+ * color bit depths (8-bit, 10-bit, 12-bit). The ratio is expressed as a pair {bytes, pixels}
+ * where the actual bytes-per-pixel value is calculated as bytes/pixels.
+ *
+ * For example:
+ * - RGB 8-bit: {3, 1} = 3 bytes per pixel (8 bits × 3 components ÷ 8 bits/byte)
+ * - YCbCr 4:2:2 10-bit: {5, 2} = 2.5 bytes per pixel (10 bits × 2 pixels with shared chroma)
+ *
+ * This is commonly referred to as the "pixel format stride" or "bytes per pixel" in video processing.
  */
 const ColorDepthPixelRatioMap COLOR_DEPTH_TO_PIXEL_RATIO = {
     {VideoSampling::RGB,
@@ -51,26 +62,111 @@ const ColorDepthPixelRatioMap COLOR_DEPTH_TO_PIXEL_RATIO = {
       {ColorBitDepth::_12, {9, 4}}}}
 };
 /**
- * @brief: Map of video sampling type and color bit depth to payload size.
+ * @brief: Map of SMPTE ST 2110-20 RTP packet payload sizes for different video format configurations.
+ *
+ * This map defines the complete RTP packet payload sizes (including ST 2110-20 RTP headers)
+ * for specific combinations of video sampling format, picture width, and color bit depth.
+ * The payload sizes are optimized for SMPTE ST 2110-20 professional video transport
+ * and include the @ref RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE.
+ *
+ * The map structure is: VideoSampling -> Width -> ColorBitDepth -> PayloadSize
+ * where PayloadSize = DataPayload + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE
+ *
+ * These values are determined based on ST 2110-20 standard requirements for
+ * efficient network transport and line-based video packetization.
  */
-const std::unordered_map<VideoSampling, std::unordered_map<ColorBitDepth, size_t>> COLOR_DEPTH_TO_PAYLOAD_SIZE = {
-    {VideoSampling::RGB,
-     {{ColorBitDepth::_8, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
-      {ColorBitDepth::_10, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
-      {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}}},
-    {VideoSampling::YCbCr_4_4_4,
-     {{ColorBitDepth::_8, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
-      {ColorBitDepth::_10, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
-      {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}}},
-    {VideoSampling::YCbCr_4_2_2,
-     {{ColorBitDepth::_8, 1280 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
-      {ColorBitDepth::_10, 1200 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
-      {ColorBitDepth::_12, 1080 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}}},
-    {VideoSampling::YCbCr_4_2_0,
-     {{ColorBitDepth::_8, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
-      {ColorBitDepth::_10, 1200 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
-      {ColorBitDepth::_12, 1080 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}}}
+const std::unordered_map<VideoSampling, std::unordered_map<uint16_t,
+std::unordered_map<ColorBitDepth, size_t>>> SMPTE_2110_RTP_PACKET_SIZE_MAP = {
+    {VideoSampling::RGB, {
+        {1920, {
+            {ColorBitDepth::_8,  1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {3840, {
+            {ColorBitDepth::_8,  1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {1080, {
+            {ColorBitDepth::_8,  1080 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1350 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1215 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {2160, {
+            {ColorBitDepth::_8,  1296 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1350 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1215 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }}
+    }},
+    {VideoSampling::YCbCr_4_4_4, {
+        {1920, {
+            {ColorBitDepth::_8,  1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {3840, {
+            {ColorBitDepth::_8,  1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {1080, {
+            {ColorBitDepth::_8,  1080 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1350 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1215 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {2160, {
+            {ColorBitDepth::_8,  1296 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1350 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1215 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }}
+    }},
+    {VideoSampling::YCbCr_4_2_2, {
+        {1920, {
+            {ColorBitDepth::_8,  1280 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1200 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {3840, {
+            {ColorBitDepth::_8,  1280 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1200 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {1080, {
+            {ColorBitDepth::_8,  1080 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1350 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1080 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {2160, {
+            {ColorBitDepth::_8,  1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1350 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1296 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }}
+    }},
+    {VideoSampling::YCbCr_4_2_0, {
+        {1920, {
+            {ColorBitDepth::_8,  1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1200 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {3840, {
+            {ColorBitDepth::_8,  1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1440 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {1080, {
+            {ColorBitDepth::_8,  810 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 675 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1215 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }},
+        {2160, {
+            {ColorBitDepth::_8,  1080 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_10, 1350 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE},
+            {ColorBitDepth::_12, 1215 + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE}
+        }}
+    }}
 };
+
 /**
  * @brief: Check if the given sampling type and bit depth are supported.
  *
@@ -110,8 +206,14 @@ static ReturnStatus initialize_common_media_settings(AppSettings& settings)
         uint32_t pixels = bytes_per_pixel_ratio.second;
         bytes_per_pixel = static_cast<float>(bytes) / static_cast<float>(pixels);
         s.media.bytes_per_frame = static_cast<uint32_t>(num_of_pixels * (bytes / static_cast<double>(pixels)));
+        if (SMPTE_2110_RTP_PACKET_SIZE_MAP.at(s.media.sampling_type).count(s.media.resolution.width) == 0) {
+            std::cerr << "Unsupported width/sampling/bit depth combination: " << s.media.resolution.width
+                << " for sampling: " << enum_to_string(s.media.sampling_type) << "\n";
+            return ReturnStatus::failure;
+        }
         s.packet_payload_size =
-            static_cast<uint16_t>(COLOR_DEPTH_TO_PAYLOAD_SIZE.at(s.media.sampling_type).at(s.media.bit_depth));
+            static_cast<uint16_t>(SMPTE_2110_RTP_PACKET_SIZE_MAP
+                .at(s.media.sampling_type).at(s.media.resolution.width).at(s.media.bit_depth));
     } else {
         std::cerr << "Unsupported sampling type or bit depth: " << enum_to_string(s.media.sampling_type) << ", "
                   << enum_to_string(s.media.bit_depth) << "bit \n";

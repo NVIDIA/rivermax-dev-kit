@@ -230,7 +230,9 @@ constexpr size_t VIDEO_TRO_DEFAULT_MODIFICATION = 2;
 /* Supported video resolutions */
 const std::vector<Resolution> SUPPORTED_VIDEO_RESOLUTIONS = {
     { FHD_WIDTH, FHD_HEIGHT },
-    { UHD_WIDTH, UHD_HEIGHT }
+    { UHD_WIDTH, UHD_HEIGHT },
+    { FHD_HEIGHT, FHD_WIDTH },
+    { UHD_HEIGHT, UHD_WIDTH }
 };
 /* Supported video frame rates */
 const std::vector<FrameRate> SUPPORTED_VIDEO_FRAME_RATES = {
