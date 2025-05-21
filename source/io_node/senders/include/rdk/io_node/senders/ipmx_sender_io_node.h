@@ -32,6 +32,7 @@
 #include "rdk/io_node/senders/generic_sender_io_node.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/media/ipmx.h"
+#include "rdk/services/utils/clock.h"
 
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
@@ -76,7 +77,6 @@ public:
         const TwoTupleFlow& src_address,
         const TwoTupleFlow& dst_address,
         const MediaSettings& media_settings,
-        time_handler_ns_cb_t get_wall_time_ns,
         size_t chunks_in_mem_block,
         size_t packets_in_chunk,
         uint16_t packet_payload_size,
@@ -91,6 +91,7 @@ public:
     bool can_sleep(uint64_t& max_wakeup_time) const;
     ReturnStatus commit_next_media_chunk();
     void print_report_stats();
+    void reset_report_stats();
     void init_media_chunk_handler();
     void set_report_chunk_handler(const std::shared_ptr<SharedMessageHandler>& report_handler);
     size_t get_sender_id() const { return m_sender_id; };
@@ -112,7 +113,6 @@ protected:
     std::unique_ptr<MediaStreamMemBlockset> m_mem_blockset;
     std::unique_ptr<TwoTupleFlow> m_report_dst_flow;
     std::shared_ptr<SharedMessageHandler> m_report_chunk_handler;
-    time_handler_ns_cb_t m_get_wall_time_ns;
     MediaSettings m_media_settings;
     size_t m_chunks_in_mem_block;
     size_t m_packets_in_chunk;
@@ -129,11 +129,19 @@ protected:
     uint64_t m_last_report_trigger_ts;
     uint64_t m_last_report_completion_ts;
     bool m_chunk_pending;
-    uint64_t m_period_sent_frames_cnt;
-    uint64_t m_period_report_delay_sum;
-    uint64_t m_period_report_delay_max;
-    uint64_t m_period_report_delay_min;
+    struct StreamTimingStats {
+        uint64_t sent_frames_cnt = 0;
+        int64_t chunk_tx_pos_min = 0;
+        int64_t chunk_tx_pos_max = 0;
+        int64_t report_delay_sum = 0;
+        int64_t report_delay_max = 0;
+        int64_t report_delay_min = 0;
+        uint64_t report_to_next_frame_min = 0;
+        uint32_t frame_send_timeouts = 0;
+        void reset() { *this = StreamTimingStats(); }
+    } m_stats;
     RTCPCompoundPacket m_report;
+    static constexpr uint64_t REPORT_SEND_SAFE_SLEEP_MARGIN = 10000;
     size_t m_report_size;
 };
 
@@ -165,8 +173,6 @@ private:
     size_t m_packets_in_chunk;
     size_t m_data_stride_size;
     size_t m_sender_report_buffer_size;
-    time_handler_ns_cb_t m_get_nic_time_ns;
-    time_handler_ns_cb_t m_get_wall_time_ns;
     rmx_mem_region m_report_mem_region;
     uint64_t m_start_send_time_ns;
 public:
@@ -178,16 +184,12 @@ public:
      * @param [in] app_settings: Application settings.
      * @param [in] index: Index of the sender.
      * @param [in] cpu_core_affinity: CPU core affinity the sender will run on.
-     * @param [in] nic_time_hanlder_cb: Time handle callback the IO node uses to get NIC time.
-     * @param [in] wall_time_hanlder_cb: Time handle callback the IO node uses to get wall time.
      */
     IPMXSenderIONode(
         const TwoTupleFlow& src_address,
         const std::vector<TwoTupleFlow>& dst_addresses,
         std::shared_ptr<AppSettings>& app_settings,
-        size_t index, int cpu_core_affinity,
-        time_handler_ns_cb_t nic_time_hanlder_cb,
-        time_handler_ns_cb_t wall_time_hanlder_cb);
+        size_t index, int cpu_core_affinity);
     virtual ~IPMXSenderIONode() = default;
     /**
      * @brief: Prints sender's parameters to a output stream.
@@ -294,18 +296,6 @@ private:
      * It should be called after @ref IPMXSenderIONode::initialize_streams.
      */
     inline void prepare_buffers();
-    /**
-     * @brief: Returns current NIC time in nanoseconds.
-     *
-     * @returns: Current time in nanoseconds.
-     */
-    uint64_t get_nic_time_now_ns() { return m_get_nic_time_ns(nullptr); }
-    /**
-     * @brief: Returns current wall time in nanoseconds.
-     *
-     * @returns: Current time in nanoseconds.
-     */
-    uint64_t get_wall_time_now_ns() { return m_get_wall_time_ns(nullptr); }
     /**
      * @brief: Waits until the specified time.
      *

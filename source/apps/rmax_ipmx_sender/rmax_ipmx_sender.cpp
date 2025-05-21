@@ -259,82 +259,10 @@ ReturnStatus IPMXSenderApp::init_device_iface(rmx_device_iface& device_iface)
     return ReturnStatus::success;
 }
 
-class TimeContext
-{
-private:
-    bool m_ref_clk_is_ptp;
-    uint64_t m_nic_t0_ns;
-    uint64_t m_wall_t0_ns;
-    TimeContext() :
-        m_ref_clk_is_ptp{false},
-        m_nic_t0_ns{0},
-        m_wall_t0_ns{0}
-    {};
-public:
-    static TimeContext& get()
-    {
-        static TimeContext tc;
-        return tc;
-    }
-
-    ReturnStatus init(bool ref_clk_is_ptp)
-    {
-        m_ref_clk_is_ptp = ref_clk_is_ptp;
-        rmx_status status = rmx_get_time(RMX_TIME_PTP, &m_nic_t0_ns);
-        if (status != RMX_OK) {
-            return ReturnStatus::failure;
-        }
-        auto tai_time_now = (std::chrono::system_clock::now() + std::chrono::seconds{ LEAP_SECONDS }).time_since_epoch();
-        m_wall_t0_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(tai_time_now).count();
-        return ReturnStatus::success;
-    }
-
-    uint64_t get_nic_time_ns()
-    {
-        uint64_t time_ns;
-        if (rmx_get_time(RMX_TIME_PTP, &time_ns) != RMX_OK) {
-            return 0;
-        }
-        return time_ns;
-    }
-
-    uint64_t get_wall_time_ns()
-    {
-        uint64_t nic_time_ns;
-        if (rmx_get_time(RMX_TIME_PTP, &nic_time_ns) != RMX_OK) {
-            return 0;
-        }
-        if (m_ref_clk_is_ptp) {
-            return nic_time_ns;
-        } else {
-            return m_wall_t0_ns + (nic_time_ns - m_nic_t0_ns);
-        }
-    }
-};
-
-uint64_t get_nic_time_ns_cb(void* context)
-{
-    NOT_IN_USE(context);
-    TimeContext& tc = TimeContext::get();
-    return tc.get_nic_time_ns();
-}
-
-uint64_t get_wall_time_ns_cb(void* context)
-{
-    NOT_IN_USE(context);
-    TimeContext& tc = TimeContext::get();
-    return tc.get_wall_time_ns();
-}
-
 ReturnStatus IPMXSenderApp::set_rivermax_clock()
 {
     std::cout << "Switching to PTP clock" << std::endl;
-    ReturnStatus rc = set_rivermax_ptp_clock(&m_device_interface);
-    if (rc != ReturnStatus::success) {
-        return rc;
-    }
-    TimeContext& tc = TimeContext::get();
-    return tc.init(m_app_settings->ref_clk_is_ptp);
+    return set_rivermax_ptp_clock(&m_device_interface);
 }
 
 void IPMXSenderApp::initialize_send_flows()
@@ -391,9 +319,7 @@ void IPMXSenderApp::initialize_sender_threads()
             flows,
             m_app_settings,
             sender_index,
-            sender_cpu_core,
-            get_nic_time_ns_cb,
-            get_wall_time_ns_cb));
+            sender_cpu_core));
         streams_offset += m_streams_per_thread[sender_index];
     }
 }

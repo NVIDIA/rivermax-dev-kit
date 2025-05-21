@@ -205,6 +205,7 @@ struct Resolution
 
 /* Time constants */
 constexpr size_t NS_IN_SEC = std::chrono::nanoseconds{ std::chrono::seconds{ 1 } }.count();
+constexpr size_t NS_IN_USEC = std::chrono::nanoseconds{ std::chrono::microseconds{ 1 } }.count();
 constexpr uint8_t LEAP_SECONDS = 37;
 /* Resolution constants */
 constexpr size_t FHD_WIDTH = 1920;
