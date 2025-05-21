@@ -276,12 +276,18 @@ protected:
      * @return: Status of the operation.
      */
     virtual ReturnStatus attach_flows() = 0;
-     /**
-      * @brief: Detaches flows from receiver's streams.
-      *
-      * @return: Status of the operation.
-      */
+    /**
+     * @brief: Detaches flows from receiver's streams.
+     *
+     * @return: Status of the operation.
+     */
     virtual ReturnStatus detach_flows() = 0;
+    /**
+     * @brief: Updates runtime parameters of receiver's streams.
+     *
+     * @return: Status of the operation.
+     */
+    virtual ReturnStatus update_streams_runtime_parameters();
     /**
      * @brief: Process a received chunk.
      *

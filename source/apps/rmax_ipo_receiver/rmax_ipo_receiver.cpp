@@ -26,10 +26,11 @@ void IPOReceiverSettings::init_default_values()
 {
     AppSettings::init_default_values();
     app_memory_alloc = true;
-    num_of_packets_in_chunk = DEFAULT_NUM_OF_PACKETS_IN_CHUNK;
     max_path_differential_us = 50000;
     is_extended_sequence_number = false;
-    max_chunk_size = 0;
+    num_of_packets_in_chunk = DEFAULT_NUM_OF_PACKETS_IN_RX_BUFFER;
+    min_packets_in_rx_chunk = 0;
+    max_packets_in_rx_chunk = 0;
 }
 
 ReturnStatus IPOReceiverSettingsValidator::validate(const std::shared_ptr<IPOReceiverSettings>& settings) const

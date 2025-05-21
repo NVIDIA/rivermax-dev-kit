@@ -222,7 +222,8 @@ void RTPReceiverIONode::initialize_streams(size_t start_id, const std::vector<Re
             {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
             m_app_settings.num_of_packets_in_chunk,
             m_app_settings.packet_payload_size,
-            m_app_settings.packet_app_header_size);
+            m_app_settings.packet_app_header_size,
+            0, m_app_settings.num_of_packets_in_chunk);
         m_streams.emplace_back(new AppRTPReceiveStream(stream_settings,
             m_is_extended_sequence_number,
             m_app_settings.packet_app_header_size != 0));

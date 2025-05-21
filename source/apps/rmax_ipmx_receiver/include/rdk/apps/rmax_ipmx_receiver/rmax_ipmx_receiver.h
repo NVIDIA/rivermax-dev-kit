@@ -86,6 +86,8 @@ public:
 struct IPMXReceiverSettings : AppSettings
 {
 public:
+    static constexpr uint32_t NUM_OF_RTP_PACKETS_IN_RX_BUFFER = 262144;
+    static constexpr uint32_t NUM_OF_RTCP_PACKETS_IN_RX_BUFFER_PER_STREAM = 2;
     void init_default_values() override;
 
     bool is_extended_sequence_number;

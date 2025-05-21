@@ -155,7 +155,7 @@ public:
      * @param [in] is_extended_sequence_number: Parse extended sequence number.
      * @param [in] devices: List of NICs to receive data.
      * @param [in] index: Receiver index.
-     * @param [in] cpu_core_affinity: CPU core affinity the sender will run on.
+     * @param [in] cpu_core_affinity: CPU core affinity the receiver will run on.
      * @param [in] memory_utils: Memory utilities.
      */
     IPOReceiverIONode(const AppSettings& app_settings,

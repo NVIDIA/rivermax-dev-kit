@@ -29,7 +29,9 @@ ReceiveStreamSettings::ReceiveStreamSettings(const TwoTupleFlow& local_addr,
         rmx_input_stream_params_type rx_type,
         rmx_input_timestamp_format ts_format,
         const std::unordered_set<rmx_input_option>& options,
-        size_t capacity_in_packets, size_t payload_size, size_t header_size) :
+        size_t capacity_in_packets, size_t payload_size, size_t header_size,
+        size_t min_packets_in_chunk, size_t max_packets_in_chunk,
+        int completion_moderation_timeout_usec) :
     IStreamSettings(s_build_steps),
     m_local_addr(local_addr),
     m_rx_type(rx_type),
@@ -37,7 +39,10 @@ ReceiveStreamSettings::ReceiveStreamSettings(const TwoTupleFlow& local_addr,
     m_options(options),
     m_capacity_in_packets(capacity_in_packets),
     m_payload_size(payload_size),
-    m_header_size(header_size)
+    m_header_size(header_size),
+    m_min_packets_in_chunk(min_packets_in_chunk),
+    m_max_packets_in_chunk(max_packets_in_chunk),
+    m_completion_moderation_timeout_usec(completion_moderation_timeout_usec)
 {
 }
 
@@ -97,7 +102,10 @@ ReceiveStream::ReceiveStream(const ReceiveStreamSettings& settings) :
     m_buffer_elements(settings.m_capacity_in_packets),
     m_header_mem_block_id(settings.m_header_size ? 0 : 1),
     m_payload_mem_block_id(settings.m_header_size ? 1 : 0),
-    m_header_block(nullptr), m_payload_block(nullptr)
+    m_header_block(nullptr), m_payload_block(nullptr),
+    m_min_packets_in_chunk(settings.m_min_packets_in_chunk),
+    m_max_packets_in_chunk(settings.m_max_packets_in_chunk),
+    m_completion_moderation_timeout_usec(settings.m_completion_moderation_timeout_usec)
 {
     m_stream_settings.build(m_stream_settings, m_stream_params);
     ReturnStatus status = initialize_memory_layout();
@@ -115,23 +123,6 @@ ReturnStatus ReceiveStream::create_stream()
     }
 
     m_stream_created = true;
-    return ReturnStatus::success;
-}
-
-ReturnStatus ReceiveStream::set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec)
-{
-    if (!m_stream_created) {
-        std::cerr << "Failed to set completion moderation, the stream was not created" << std::endl;
-        return ReturnStatus::failure;
-    }
-
-    rmx_status status = rmx_input_set_completion_moderation(m_stream_id, min_count, max_count, timeout_usec);
-    if (status != RMX_OK) {
-        std::cerr << "Failed to set expected packets count for stream: " << m_stream_id << ", with status: "
-            << status << std::endl;
-            return ReturnStatus::failure;
-    }
-
     return ReturnStatus::success;
 }
 
@@ -374,4 +365,27 @@ std::ostream& ReceiveStream::print(std::ostream& out) const
     out << "+**********************************************\n";
 
     return out;
+}
+
+ReturnStatus ReceiveStream::apply_runtime_parameters()
+{
+    return set_completion_moderation(m_min_packets_in_chunk, m_max_packets_in_chunk,
+        m_completion_moderation_timeout_usec);
+}
+
+ReturnStatus ReceiveStream::set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec)
+{
+    if (!m_stream_created) {
+        std::cerr << "Failed to set completion moderation, the stream was not created" << std::endl;
+        return ReturnStatus::failure;
+    }
+
+    rmx_status status = rmx_input_set_completion_moderation(m_stream_id, min_count, max_count, timeout_usec);
+    if (status != RMX_OK) {
+        std::cerr << "Failed to set completion moderation for stream: " << m_stream_id << ", with status: "
+            << status << std::endl;
+            return ReturnStatus::failure;
+    }
+
+    return ReturnStatus::success;
 }

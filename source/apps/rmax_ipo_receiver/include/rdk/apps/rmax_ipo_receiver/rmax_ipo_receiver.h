@@ -41,12 +41,13 @@ namespace rmax_ipo_receiver
 struct IPOReceiverSettings : AppSettings
 {
 public:
-    static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK = 262144;
+    static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_RX_BUFFER = 262144;
     void init_default_values() override;
 
     uint32_t max_path_differential_us;
     bool is_extended_sequence_number;
-    size_t max_chunk_size;
+    size_t min_packets_in_rx_chunk;
+    size_t max_packets_in_rx_chunk;
 };
 
 /**

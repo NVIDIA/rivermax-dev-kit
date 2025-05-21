@@ -249,6 +249,19 @@ void ReceiverIONodeBase::set_cpu_resources()
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }
 
+ReturnStatus ReceiverIONodeBase::update_streams_runtime_parameters()
+{
+    ReturnStatus status = ReturnStatus::success;
+    for (auto& stream : m_streams) {
+        status = stream->apply_runtime_parameters();
+        if (status != ReturnStatus::success) {
+            std::cerr << "Failed to update runtime parameters for stream " << stream->get_stream_name() << " of receiver " << get_index() << std::endl;
+            return status;
+        }
+    }
+    return ReturnStatus::success;
+}
+
 void ReceiverIONodeBase::print_statistics(
     std::ostream& out, const std::chrono::high_resolution_clock::duration& interval_duration) const
 {
@@ -338,6 +351,12 @@ void ReceiverIONodeBase::operator()()
     ReturnStatus rc = create_streams();
     if (rc == ReturnStatus::failure) {
         std::cerr << "Failed to create receiver (" << m_index << ") streams" << std::endl;
+        return;
+    }
+
+    rc = update_streams_runtime_parameters();
+    if (rc == ReturnStatus::failure) {
+        std::cerr << "Failed to update stream runtime parameters for receiver (" << m_index << ")" << std::endl;
         return;
     }
 

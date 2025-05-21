@@ -45,8 +45,9 @@ typedef struct ipo_stream_settings
 {
     uint16_t packet_payload_size = 0;
     uint16_t packet_app_header_size = 0;
-    size_t num_of_packets_in_chunk = 0;
-    size_t max_chunk_size = 0;
+    size_t capacity_in_packets = 0;
+    size_t min_packets_in_chunk = 0;
+    size_t max_packets_in_chunk = 0;
     std::unordered_set<rmx_input_option> stream_options;
     uint64_t max_path_differential_us = 0;
 
@@ -57,15 +58,17 @@ typedef struct ipo_stream_settings
     ipo_stream_settings(
             uint16_t packet_payload_size_,
             uint16_t packet_app_header_size_,
-            size_t num_of_packets_in_chunk_,
-            size_t max_chunk_size_,
+            size_t capacity_in_packets_,
+            size_t min_packets_in_chunk_,
+            size_t max_packets_in_chunk_,
             const std::unordered_set<rmx_input_option>& stream_options_,
             uint64_t max_path_differential_us_
     ) :
         packet_payload_size(packet_payload_size_),
         packet_app_header_size(packet_app_header_size_),
-        num_of_packets_in_chunk(num_of_packets_in_chunk_),
-        max_chunk_size(max_chunk_size_),
+        capacity_in_packets(capacity_in_packets_),
+        min_packets_in_chunk(min_packets_in_chunk_),
+        max_packets_in_chunk(max_packets_in_chunk_),
         stream_options(stream_options_),
         max_path_differential_us(max_path_differential_us_)
     {
@@ -188,6 +191,8 @@ public:
     ReturnStatus determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const override;
     ReturnStatus apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) override;
     ReturnStatus validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_respose) const override;
+    ReturnStatus apply_runtime_parameters() override;
+    ReturnStatus set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec) override;
     size_t get_header_stride_size() const override { return !m_streams.empty() ? m_streams[0].get_header_stride_size() : 0; }
     size_t get_payload_stride_size() const override { return !m_streams.empty() ? m_streams[0].get_payload_stride_size() : 0; }
     bool is_header_data_split_on() const override { return m_header_data_split; }

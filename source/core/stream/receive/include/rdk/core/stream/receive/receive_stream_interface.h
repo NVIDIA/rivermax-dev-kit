@@ -51,6 +51,37 @@ public:
      */
     virtual ReturnStatus detach_flows() = 0;
     /**
+     * @brief: Applies the runtime parameters of the stream.
+     *
+     * This method is responsible to update the stream runtime parameters with the values
+     * provided in @ref ReceiveStreamSettings.
+     *
+     * @return: Status of the operation.
+     *          @ref ReturnStatus::success - In case of success.
+     *          @ref ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     */
+    virtual ReturnStatus apply_runtime_parameters() = 0;
+    /**
+     * @brief: Configures completion moderation parameters.
+     *
+     * This method configures the rule for how many packets to receive
+     * or how long to wait before returning the next requested chunk.
+     *
+     * @param [in] min_count: A minimal number of packets to return.
+     * @param [in] max_count: A maximal number of packets to return.
+     * @param [in] timeout_us: A timeout in microseconds to wait for @p min_count of packets.
+     *
+     * @note: Setting @p timeout_us to 0 results in Rivermax busy-looping until
+     *        @p max_count packets are received.
+     * @note: To avoid Rivermax waiting for packets in a busy-loop, set both
+     *        @p min_count and @p max_count to 0.
+     *
+     * @return: Status of the operation:
+     *          @ref ReturnStatus::success - In case of success.
+     *          @ref ReturnStatus::failure - In case of failure, Rivermax status will be logged.
+     */
+    virtual ReturnStatus set_completion_moderation(size_t min_count, size_t max_count, int timeout_us) = 0;
+    /**
      * @brief: Returns next chunk from the stream.
      *
      * @param [out] chunk: A chunk received from the stream.

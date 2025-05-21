@@ -187,7 +187,6 @@ protected:
     ReturnStatus detach_flows() override { return process_flows(false); }
     ReturnStatus consume_chunk(std::unique_ptr<IReceiveDataConsumer>& data_consumer,
         const ReceiveChunk& chunk, IReceiveStream& stream) override;
-
 private:
     /**
      * @brief: Helper method for attaching or detaching flows to/from streams.

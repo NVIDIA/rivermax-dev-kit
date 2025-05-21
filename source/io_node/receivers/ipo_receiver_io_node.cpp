@@ -46,7 +46,7 @@ AppIPOReceiveStream::AppIPOReceiveStream(
 {
     m_statistic.path_stats.resize(paths.size());
     m_statistic_totals.path_stats.resize(paths.size());
-    m_path_packets.resize(settings.num_of_packets_in_chunk, std::vector<uint8_t>(paths.size(), 0));
+    m_path_packets.resize(settings.capacity_in_packets, std::vector<uint8_t>(paths.size(), 0));
 }
 
 ReturnStatus AppIPOReceiveStream::get_next_chunk(ReceiveChunk& chunk)
@@ -242,9 +242,10 @@ IPOReceiverIONode::IPOReceiverIONode(
     m_stream_settings.stream_options.insert(RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET);
     m_stream_settings.packet_payload_size = m_app_settings.packet_payload_size;
     m_stream_settings.packet_app_header_size = m_app_settings.packet_app_header_size;
-    m_stream_settings.num_of_packets_in_chunk = m_app_settings.num_of_packets_in_chunk;
-    m_stream_settings.max_chunk_size = DEFAULT_MAX_CHUNK_SIZE;
+    m_stream_settings.capacity_in_packets = m_app_settings.num_of_packets_in_chunk;
     m_stream_settings.max_path_differential_us = max_path_differential_us;
+    m_stream_settings.min_packets_in_chunk = 0;
+    m_stream_settings.max_packets_in_chunk = DEFAULT_MAX_CHUNK_SIZE;
 }
 
 void IPOReceiverIONode::initialize_streams(size_t start_id, const std::vector<std::vector<ReceiveFlow>>& flows)

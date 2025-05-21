@@ -177,7 +177,8 @@ void GenericLatencyIONode::initialize_receive_stream(const TwoTupleFlow& flow)
         {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
         m_receive_dim.num_of_chunks * m_receive_dim.num_of_packets_in_chunk,
         m_receive_dim.payload_size,
-        m_receive_dim.header_size);
+        m_receive_dim.header_size,
+        0, m_receive_dim.num_of_chunks * m_receive_dim.num_of_packets_in_chunk);
 
     std::cout << "Init receive stream with " << m_receive_dim.num_of_chunks *
                                                 m_receive_dim.num_of_packets_in_chunk

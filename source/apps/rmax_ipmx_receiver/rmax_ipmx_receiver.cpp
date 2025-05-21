@@ -49,7 +49,7 @@ void IPMXReceiverSettings::init_default_values()
 {
     AppSettings::init_default_values();
     app_memory_alloc = true;
-    num_of_packets_in_chunk = NUM_OF_PACKETS_IN_CHUNK_DEFAULT;
+    num_of_packets_in_chunk = IPMXReceiverSettings::NUM_OF_RTP_PACKETS_IN_RX_BUFFER;
     is_extended_sequence_number = false;
     rtcp_thread_core = INVALID_CORE_NUMBER;
 }
@@ -187,8 +187,12 @@ void IPMXReceiverApp::initialize_rtcp_ionode_settings()
     m_rtcp_receiver_settings.header_data_split = false;
     m_rtcp_receiver_settings.packet_app_header_size = 0;
     m_rtcp_receiver_settings.packet_payload_size = PACKET_PAYLOAD_SIZE_DEFAULT;
-    m_rtcp_receiver_settings.num_of_chunks_in_mem_block = 2 * m_app_settings->num_of_total_streams;
-    m_rtcp_receiver_settings.num_of_packets_in_chunk = 1;
+    m_rtcp_receiver_settings.num_of_memory_blocks = 1;
+    m_rtcp_receiver_settings.num_of_chunks_in_mem_block = 1;
+    m_rtcp_receiver_settings.num_of_chunks = 1;
+    m_rtcp_receiver_settings.num_of_packets_in_chunk =
+        IPMXReceiverSettings::NUM_OF_RTCP_PACKETS_IN_RX_BUFFER_PER_STREAM *
+        m_app_settings->num_of_total_streams;
     m_rtcp_receiver_settings.num_of_packets_in_chunk_specified = 1;
     m_rtcp_receiver_settings.num_of_packets_in_mem_block =
         m_rtcp_receiver_settings.num_of_chunks_in_mem_block *
@@ -290,7 +294,8 @@ void IPMXReceiverApp::initialize_rtp_streams(RTPReceiverIONode& node, size_t sta
             {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
             m_app_settings->num_of_packets_in_chunk,
             m_app_settings->packet_payload_size,
-            m_app_settings->packet_app_header_size);
+            m_app_settings->packet_app_header_size,
+            0, m_app_settings->num_of_packets_in_chunk);
         auto stream = std::make_unique<AppRTPReceiveStream>(stream_settings,
             m_is_extended_sequence_number,
             m_app_settings->packet_app_header_size != 0);
@@ -309,7 +314,8 @@ void IPMXReceiverApp::initialize_rtcp_stream(RTPReceiverIONode& node, const std:
         {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
         m_rtcp_receiver_settings.num_of_packets_in_chunk,
         m_rtcp_receiver_settings.packet_payload_size,
-        m_rtcp_receiver_settings.packet_app_header_size);
+        m_rtcp_receiver_settings.packet_app_header_size,
+        0, m_rtcp_receiver_settings.num_of_packets_in_chunk);
     auto stream = std::make_unique<AppRTPReceiveStream>(stream_settings, false, false, false);
     streams.push_back(std::move(stream));
     node.assign_streams(0, m_rtcp_flows, streams);

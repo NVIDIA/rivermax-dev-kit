@@ -56,12 +56,17 @@ public:
      * @param [in] payload_size: Packet payload size in bytes.
      * @param [in] header_size: Packet application header size in bytes
      *             (value > 0 specifies that a separate memory is used for headers).
+     * @param [in] min_chunk_size: Minimum chunk size in packets.
+     * @param [in] max_chunk_size: Maximum chunk size in packets.
+     * @param [in] completion_moderation_timeout_usec: Completion moderation timeout in microseconds.
      */
     ReceiveStreamSettings(const TwoTupleFlow& local_addr,
         rmx_input_stream_params_type rx_type,
         rmx_input_timestamp_format ts_format,
         const std::unordered_set<rmx_input_option>& options,
-        size_t capacity_in_packets, size_t payload_size, size_t header_size);
+        size_t capacity_in_packets, size_t payload_size, size_t header_size,
+        size_t min_packets_in_chunk = 0, size_t max_packets_in_chunk = 0,
+        int completion_moderation_timeout_usec = 0);
 
     TwoTupleFlow m_local_addr;
     rmx_input_stream_params_type m_rx_type;
@@ -70,6 +75,10 @@ public:
     size_t m_capacity_in_packets;
     size_t m_payload_size;
     size_t m_header_size;
+    size_t m_min_packets_in_chunk;
+    size_t m_max_packets_in_chunk;
+    int m_completion_moderation_timeout_usec;
+
 protected:
     /**
      * @brief: Initializes the input stream descriptor structure.
@@ -142,22 +151,11 @@ public:
     ReturnStatus determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const override;
     ReturnStatus apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) override;
     ReturnStatus validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_respose) const override;
+    ReturnStatus apply_runtime_parameters() override;
+    ReturnStatus set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec) override;
     size_t get_header_stride_size() const override { return m_header_stride_size; }
     size_t get_payload_stride_size() const override { return m_data_stride_size; }
     bool is_header_data_split_on() const override { return m_stream_settings.m_header_size != 0; }
-    /**
-     * @brief: Configures a rule, how many packets to receive, or how much time to wait before
-     *         returning the next requested chunk.
-     *
-     * @param [in] min_count: A minimal number of packets to return.
-     * @param [in] max_count: A maximal number of packets to return.
-     * @param [in] timeout_usec: A timeout in usec to wait for @p min_count of packets.
-     *
-     * @return: Status of the operation:
-     *          @ref ReturnStatus::success - In case of success.
-     *          @ref ReturnStatus::failure - In case of failure, Rivermax status will be logged.
-     */
-    ReturnStatus set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec);
     /**
      * @brief: Attaches a flow to the stream.
      *
@@ -239,6 +237,9 @@ protected:
     std::unordered_set<ReceiveFlow> m_flows;
     rmx_mem_region* m_header_block;
     rmx_mem_region* m_payload_block;
+    size_t m_min_packets_in_chunk;
+    size_t m_max_packets_in_chunk;
+    int m_completion_moderation_timeout_usec;
 };
 
 } // namespace core

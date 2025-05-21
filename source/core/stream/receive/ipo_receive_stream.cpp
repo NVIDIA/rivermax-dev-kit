@@ -36,15 +36,15 @@ IPOReceiveStream::IPOReceiveStream(const ipo_stream_settings_t& settings,
     m_use_ext_seqn(use_ext_seqn),
     m_header_data_split(settings.packet_app_header_size > 0),
     m_pkt_info_enabled(settings.stream_options.count(RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET) != 0),
-    m_num_of_packets_in_chunk(static_cast<uint32_t>(settings.num_of_packets_in_chunk)),
+    m_num_of_packets_in_chunk(static_cast<uint32_t>(settings.capacity_in_packets)),
     m_max_path_differential(std::chrono::microseconds(settings.max_path_differential_us))
 {
     if (m_paths.size() == 0) {
         throw std::runtime_error("Must be at least one path");
     }
 
-    m_ext_packet_info_arr.resize(settings.num_of_packets_in_chunk);
-    m_packet_info_arr.resize(settings.num_of_packets_in_chunk);
+    m_ext_packet_info_arr.resize(settings.capacity_in_packets);
+    m_packet_info_arr.resize(settings.capacity_in_packets);
     initialize_substreams();
 
     ReturnStatus status = initialize_memory_layout();
@@ -63,9 +63,10 @@ void IPOReceiveStream::initialize_substreams()
                 RMX_INPUT_APP_PROTOCOL_PACKET,
                 RMX_INPUT_TIMESTAMP_RAW_NANO,
                 {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
-                m_settings.num_of_packets_in_chunk,
+                m_settings.capacity_in_packets,
                 m_settings.packet_payload_size,
-                m_settings.packet_app_header_size);
+                m_settings.packet_app_header_size,
+                0, m_settings.max_packets_in_chunk);
 
         if (m_use_ext_seqn) {
             settings.m_options.insert(RMX_INPUT_STREAM_RTP_EXT_SEQN_PLACEMENT_ORDER);
@@ -213,11 +214,36 @@ ReturnStatus IPOReceiveStream::create_stream()
             return status;
         }
         m_chunks.emplace_back(stream.get_id(), m_header_data_split);
-        stream.set_completion_moderation(0, m_settings.max_chunk_size, 0);
     }
 
     m_stream_created = true;
 
+    return ReturnStatus::success;
+}
+
+ReturnStatus IPOReceiveStream::apply_runtime_parameters()
+{
+    ReturnStatus status;
+    for (auto& stream : m_streams) {
+        status = stream.apply_runtime_parameters();
+        if (status != ReturnStatus::success) {
+            std::cerr << "Failed to update runtime parameters for stream " << stream.get_id() << std::endl;
+            return status;
+        }
+    }
+    return ReturnStatus::success;
+}
+
+ReturnStatus IPOReceiveStream::set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec)
+{
+    ReturnStatus status;
+    for (auto& stream : m_streams) {
+        status = stream.set_completion_moderation(min_count, max_count, timeout_usec);
+        if (status != ReturnStatus::success) {
+            std::cerr << "Failed to update runtime parameters for stream " << stream.get_id() << std::endl;
+            return status;
+        }
+    }
     return ReturnStatus::success;
 }
 

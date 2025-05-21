@@ -186,7 +186,8 @@ void MediaTxIONode::initialize_receive_stream(const TwoTupleFlow& flow)
         RMX_INPUT_TIMESTAMP_SYNCED,
         {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
         m_receive_dim.num_of_chunks * m_receive_dim.num_of_packets_in_chunk,
-        m_receive_dim.payload_size, 0);
+        m_receive_dim.payload_size, 0,
+        0, m_receive_dim.num_of_chunks * m_receive_dim.num_of_packets_in_chunk);
 
     m_receive_stream = std::shared_ptr<ReceiveStream>(new ReceiveStream(settings));
 }
