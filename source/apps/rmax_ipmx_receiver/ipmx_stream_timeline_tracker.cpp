@@ -43,8 +43,13 @@ IPMXStreamTimelineTracker::IPMXStreamTimelineTracker(uint32_t ipmx_stream_id) :
 
 void IPMXStreamTimelineTracker::print_stream_new_info(std::ostream& out)
 {
-    auto& ss = m_shared_report_state.read();
-    auto& media = ss.last_report.media.video;
+    IPMXSenderReportState current_report_state;
+    ReturnStatus status = m_report_queue.retrieve_latest(current_report_state);
+    if (status != ReturnStatus::success) {
+        out << "IPMX Stream " << m_ipmx_stream_id << ": no Sender Report available" << std::endl;
+        return;
+    }
+    auto& media = current_report_state.last_report.media.video;
     float fps = media.rate_num;
     if (media.rate_denom) {
         fps /= media.rate_denom;
@@ -55,10 +60,10 @@ void IPMXStreamTimelineTracker::print_stream_new_info(std::ostream& out)
         << media.width << "x" << media.height << (media.is_interlaced ? 'i' : 'p')
         << " " << fps << "fps " << std::to_string(media.bit_depth) << "bpp "
         << media.sampling_format << "\n"
-        << "refclk=" << ss.last_report.ts_refclk << "\n"
-        << "mediaclk=" << ss.last_report.mediaclk << "\n"
+        << "refclk=" << current_report_state.last_report.ts_refclk << "\n"
+        << "mediaclk=" << current_report_state.last_report.mediaclk << "\n"
         << "color=" << media.colorimetry << " " << "tcs=" << media.tcs << "\n"
-        << "cname=" << ss.last_report.cname << "\n" << std::endl;
+        << "cname=" << current_report_state.last_report.cname << "\n" << std::endl;
     out.precision(old_prec);
 }
 
@@ -85,7 +90,7 @@ void IPMXStreamTimelineTracker::consume_rtcp_packet(const byte_t* data, const Re
     auto prev_info_block_version =  m_local_report_state.last_report.info_block_version;
 
     m_local_report_state.update(m_ipmx_stream_id, data, info);
-    m_shared_report_state.update(m_local_report_state);
+    m_report_queue.add_version(m_local_report_state.last_report.rtp_ts, m_local_report_state);
 
     bool is_first_report = m_local_report_state.stats.is_last_report_valid &&
                            !is_prev_report_valid;
@@ -117,70 +122,54 @@ void IPMXStreamTimelineTracker::IPMXDataClockState::update(uint32_t ipmx_stream_
     const IPMXSenderReportState& report_state, uint32_t rtp_timestamp, uint64_t receiver_timestamp,
     bool need_update_stats)
 {
-    ReturnStatus status = ReturnStatus::success;
+    bool is_first_update = (stats.frames_received == 0);
 
-    if ((!report_state.stats.is_last_report_valid) ||
-        is_before(report_state.last_report.rtp_ts, rtp_timestamp)) {
-        stats.frames_missing_send_report++;
-        std::cerr << "IPMX Stream " << ipmx_stream_id << ": " << "no SR available" << std::endl;
-        status = ReturnStatus::failure;
+    last_frame.tx_ntp_timestamp = report_state.last_report.ntp_ts;
+    last_frame.tx_rtp_timestamp = rtp_timestamp;
+    last_frame.rx_timestamp = receiver_timestamp;
+    last_frame.clock_diff = receiver_timestamp - report_state.last_report.ntp_ts;
+    stats.frames_received++;
+
+    if (is_first_update) {
+        first_frame = last_frame;
+        prev_stats_frame = last_frame;
     }
 
-    if (status == ReturnStatus::success) {
-        if (is_before(rtp_timestamp, report_state.last_report.rtp_ts)) {
-            stats.frames_bad_rtp_time++;
-            std::cerr << "IPMX Stream " << ipmx_stream_id << ": "
-                      << "frame RTP is below RTP in the last SR" << std::endl;
-            status = ReturnStatus::failure;
-        }
+    if ((static_cast<int64_t>(receiver_timestamp - report_state.stats.last_report_rx_ts) >
+        stats.sender_report_to_data_max) || is_first_update) {
+        stats.sender_report_to_data_max =
+            static_cast<int64_t>(receiver_timestamp - report_state.stats.last_report_rx_ts);
     }
 
-    if (status == ReturnStatus::success) {
-        bool is_first_update = (stats.frames_received == 0);
+    if ((static_cast<int64_t>(receiver_timestamp - report_state.stats.last_report_rx_ts) <
+        stats.sender_report_to_data_min) ||
+        is_first_update) {
+        stats.sender_report_to_data_min =
+            static_cast<int64_t>(receiver_timestamp - report_state.stats.last_report_rx_ts);
+    }
 
-        last_frame.tx_ntp_timestamp = report_state.last_report.ntp_ts;
-        last_frame.tx_rtp_timestamp = rtp_timestamp;
-        last_frame.rx_timestamp = receiver_timestamp;
-        last_frame.clock_diff = receiver_timestamp - report_state.last_report.ntp_ts;
-        stats.frames_received++;
+    if (need_update_stats) {
+        int64_t delay_change = last_frame.clock_diff - prev_stats_frame.clock_diff;
+        int64_t time_passed = last_frame.rx_timestamp - prev_stats_frame.rx_timestamp;
+        stats.clock_drift_last_period = delay_change;
+        stats.clock_ratio_ppm_last_period = (delay_change * 1.0e6) / time_passed;
+        int64_t delay_change_since_start = last_frame.clock_diff - first_frame.clock_diff;
+        int64_t time_passed_since_start = last_frame.rx_timestamp - first_frame.rx_timestamp;
+        stats.clock_drift_since_start = delay_change_since_start;
+        stats.clock_ratio_ppm_since_start = (delay_change_since_start * 1.0e6) / time_passed_since_start;
 
-        if (is_first_update) {
-            first_frame = last_frame;
-            prev_stats_frame = last_frame;
-        }
-
-        if ((static_cast<int64_t>(receiver_timestamp - report_state.stats.last_report_rx_ts) >
-            stats.sender_report_to_data_max) ||
-            is_first_update) {
-            stats.sender_report_to_data_max =
-                static_cast<int64_t>(receiver_timestamp - report_state.stats.last_report_rx_ts);
-        }
-
-        if ((static_cast<int64_t>(receiver_timestamp - report_state.stats.last_report_rx_ts) <
-            stats.sender_report_to_data_min) ||
-            is_first_update) {
-            stats.sender_report_to_data_min =
-                static_cast<int64_t>(receiver_timestamp - report_state.stats.last_report_rx_ts);
-        }
-
-        if (need_update_stats) {
-            int64_t delay_change = last_frame.clock_diff - prev_stats_frame.clock_diff;
-            int64_t time_passed = last_frame.rx_timestamp - prev_stats_frame.rx_timestamp;
-            stats.clock_drift_last_period = delay_change;
-            stats.clock_ratio_ppm_last_period = (delay_change * 1.0e6) / time_passed;
-            int64_t delay_change_since_start = last_frame.clock_diff - first_frame.clock_diff;
-            int64_t time_passed_since_start = last_frame.rx_timestamp - first_frame.rx_timestamp;
-            stats.clock_drift_since_start = delay_change_since_start;
-            stats.clock_ratio_ppm_since_start = (delay_change_since_start * 1.0e6) / time_passed_since_start;
-
-            prev_stats_frame = last_frame;
-        }
+        prev_stats_frame = last_frame;
     }
 }
 
 void IPMXStreamTimelineTracker::notify_data_frame(uint32_t rtp_timestamp, uint64_t receiver_timestamp)
 {
-    IPMXSenderReportState report_state = m_shared_report_state.read();
+    IPMXSenderReportState report_state;
+    ReturnStatus status = m_report_queue.retrieve_by_tag(rtp_timestamp, report_state);
+    if (status != ReturnStatus::success) {
+        std::cerr << "IPMX Stream " << m_ipmx_stream_id << ": no Sender Report available" << std::endl;
+        return;
+    }
     bool need_update_stats = static_cast<int64_t>(m_local_clock_state.last_frame.rx_timestamp -
                              m_local_clock_state.prev_stats_frame.rx_timestamp) >=
                              (m_stats_update_interval_ms - 1) *
@@ -207,7 +196,7 @@ void IPMXStreamTimelineTracker::print_clock_new_info(std::ostream& out)
         << cs.stats.clock_ratio_ppm_last_period << "ppm\n"
         << "clock drift (total) " << cs.stats.clock_drift_since_start << "ns, "
         << cs.stats.clock_ratio_ppm_since_start << "ppm\n"
-        << "SR to data delay min " << cs.stats.sender_report_to_data_min / 1000 << "us, max "
+        << "Sender Report to Data delay min " << cs.stats.sender_report_to_data_min / 1000 << "us, max "
         << cs.stats.sender_report_to_data_max / 1000 << "us" << std::endl;
     out.precision(old_prec);
 }

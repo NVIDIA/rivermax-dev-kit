@@ -24,6 +24,7 @@
 
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/static_rcu.h"
+#include "rdk/services/utils/tagged_version_storage.h"
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/media/ipmx.h"
 #include "rdk/core/chunk/receive_chunk.h"
@@ -124,9 +125,9 @@ protected:
     uint32_t m_ipmx_stream_id;
     IPMXSenderReportState m_local_report_state;
     IPMXDataClockState m_local_clock_state;
-    static constexpr int RCU_NUM_VERSIONS = 4;
-    StaticRCU<IPMXSenderReportState, RCU_NUM_VERSIONS> m_shared_report_state;
-    StaticRCU<IPMXDataClockState, RCU_NUM_VERSIONS> m_shared_clock_state;
+    static constexpr int NUM_OF_UPDATES_TO_KEEP = 4;
+    TaggedVersionStorage<IPMXSenderReportState, uint32_t, NUM_OF_UPDATES_TO_KEEP> m_report_queue;
+    StaticRCU<IPMXDataClockState, NUM_OF_UPDATES_TO_KEEP> m_shared_clock_state;
     std::atomic<bool> m_new_report_version_available;
     std::atomic<bool> m_new_clock_stats_available;
     uint32_t m_stats_update_interval_ms;
