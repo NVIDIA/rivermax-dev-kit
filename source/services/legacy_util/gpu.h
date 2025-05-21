@@ -34,7 +34,7 @@ constexpr const char* CUDA_DEVICE_ORDER = "CUDA_DEVICE_ORDER";
 constexpr const char* CUDA_PCI_BUS_ID_DEVICE_ORDER = "PCI_BUS_ID";
 
 /**
- * @brief BAR1 Memory allocation information for a device
+ * @brief: BAR1 Memory allocation information for a device
  *
  */
 typedef struct gpu_bar1_memory_info {

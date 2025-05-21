@@ -257,10 +257,10 @@ ReturnStatus IPMXStreamSender::notify_report_completion(uint64_t completion_time
     int64_t report_delay = m_last_report_completion_ts - m_last_report_trigger_ts;
 
 #ifdef SEND_REPORT_DEBUG
-    std::cout << "SR" << m_id << " delay " << report_delay << std:: endl;
+    std::cout << "Sender Report" << m_id << " delay " << report_delay << std:: endl;
 #endif
     if (m_committed_reports <= m_finished_reports) {
-        std::cerr << "Unsolicited Send Report completion" << std::endl;
+        std::cerr << "Unsolicited Sender Report completion" << std::endl;
         return ReturnStatus::failure;
     }
 
@@ -499,7 +499,7 @@ void IPMXStreamSender::print_report_stats()
     if (m_stats.sent_frames_cnt) {
         avg_delay = m_stats.report_delay_sum / m_stats.sent_frames_cnt;
     }
-    std::cout << "Stream " << m_stream_number << " SR delay (ns) avg " << avg_delay <<
+    std::cout << "Stream " << m_stream_number << " Sender Report delay (ns) avg " << avg_delay <<
                  " min " << m_stats.report_delay_min <<
                  " max " << m_stats.report_delay_max << std::endl;
 }

@@ -458,7 +458,7 @@ bool set_gpu_device(int gpu_id)
 
 #ifndef TEGRA_ENABLED
 /**
- * @brief Set GPU and memory clocks to locked on max frequency
+ * @brief: Sets GPU and memory clocks to locked on max frequency
  *
  * @param [in] gpu_id: GPU id
  *
@@ -544,7 +544,7 @@ cleanup:
 }
 
 /**
- * @brief Reset GPU and memory clocks to locked on default frequency
+ * @brief: Reset GPU and memory clocks to locked on default frequency
  *
  * @param [in] gpu_id: GPU id
  *
@@ -655,7 +655,7 @@ end:
 }
 
 /**
- * @brief Verify that BAR1 has enough memory to allocate.
+ * @brief: Verify that BAR1 has enough memory to allocate.
  *
  * @param [in] gpu_id: GPU id
  * @param [in] size  : size to compare with free size on BAR1
