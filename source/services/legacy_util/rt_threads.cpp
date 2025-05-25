@@ -476,14 +476,14 @@ int EventMgr::wait_for_notification(rmx_stream_id stream_id)
         ev.events = EPOLLIN | EPOLLOUT;
 
         const int timeout_ms = 100;
-        while (!g_s_signal_received.load(std::memory_order_acquire)) {
-            if (0 > epoll_pwait(m_epoll_fd, &ev, 1, timeout_ms, nullptr)) {
-                if (EINTR != errno) {
-                    std::cout << "Failed to get an event with epoll_pwait, errno: "
-                              << errno << std::endl;
-                    close(m_epoll_fd);
-                    exit(-1);
-                }
+        int ret = 0;
+        while (ret < 1 && !g_s_signal_received.load(std::memory_order_acquire)) {
+            ret = epoll_pwait(m_epoll_fd, &ev, 1, timeout_ms, nullptr);
+            if (ret < 0 && EINTR != errno) {
+                std::cout << "Failed to get an event with epoll_pwait, errno: "
+                          << errno << std::endl;
+                close(m_epoll_fd);
+                exit(-1);
             }
         }
         return 0;
