@@ -80,6 +80,7 @@ std::string rivermax::dev_kit::services::ptp_to_string(uint64_t timestamp)
     auto tp_system = std::chrono::time_point_cast<std::chrono::system_clock::duration>(tp);
     auto time = std::chrono::system_clock::to_time_t(tp_system);
     std::ostringstream oss;
+    oss.imbue(std::locale::classic());
     oss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
     oss << "." << std::setw (9) << std::setfill ('0') << nsec;
     return oss.str();

@@ -51,6 +51,7 @@ size_t SDPManager::generate_ntp_id(size_t offset_seconds)
     auto now_ntp =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) + 2208988800U + offset_seconds;
     std::ostringstream oss;
+    oss.imbue(std::locale::classic());
     oss << std::setw(10) << std::setfill('0') << now_ntp;
 
     return std::stoul(oss.str());
