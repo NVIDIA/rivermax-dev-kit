@@ -33,8 +33,8 @@ FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/b514bdc898e2951020cbdca1304b75f5950d1f59.zip
 )
-# For Windows: Prevent overriding the parent project's compiler/linker settings:
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(gtest_force_shared_crt ON CACHE INTERNAL "For Windows: Prevent overriding the parent project's compiler/linker settings" FORCE)
+set(INSTALL_GTEST OFF CACHE INTERNAL "Disable installation targets of GoogleTest.")
 FetchContent_MakeAvailable(googletest)
 
 add_subdirectory(services)
