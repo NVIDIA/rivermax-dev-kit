@@ -29,6 +29,6 @@ FetchContent_Declare(
     URL https://github.com/ibc/libsdptransform/archive/a6476c5e9411f37c5798ec72b00a53d19b9a3f95.zip
     # Update the CMakeLists.txt to fit our needs, this is temporary until we will have a fork of the project.
     PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/libsdptransform_CMakeLists.txt CMakeLists.txt
+        ${CMAKE_CURRENT_LIST_DIR}/libsdptransform/CMakeLists.txt CMakeLists.txt
 )
 FetchContent_MakeAvailable(sdptransform)

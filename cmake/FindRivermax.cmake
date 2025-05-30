@@ -53,7 +53,7 @@ set(INCLUDE_PATH_SUFFIXES mellanox Rivermax/include mellanox/Rivermax/include)
 set(LIBRARY_PATH_SUFFIXES Rivermax/lib mellanox/Rivermax/lib)
 
 include(FindPackageHandleStandardArgs)
-include(RmaxUtilities)
+include(RivermaxDevKitUtilities)
 
 # Check if Rivermax target already exists, and exit if it does
 if (TARGET Rivermax::Rivermax)

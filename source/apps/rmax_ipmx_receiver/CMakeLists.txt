@@ -16,4 +16,13 @@
 
 project(rmax_ipmx_receiver)
 
-setup_rivermax_dev_kit_app(APP_NAME ${PROJECT_NAME} EXTRA_LIB_SOURCES ipmx_stream_timeline_tracker.cpp)
+create_rdk_app_library(
+    NAME ${PROJECT_NAME}
+    SOURCES 
+        ${PROJECT_NAME}.cpp 
+        ipmx_stream_timeline_tracker.cpp
+)
+create_rdk_app_executable(
+    NAME ${PROJECT_NAME}
+    SOURCES ${PROJECT_NAME}_main.cpp
+)

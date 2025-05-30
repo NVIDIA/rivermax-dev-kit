@@ -16,4 +16,11 @@
 
 project(rmax_ipmx_sender)
 
-setup_rivermax_dev_kit_app(APP_NAME ${PROJECT_NAME})
+create_rdk_app_library(
+    NAME ${PROJECT_NAME}
+    SOURCES ${PROJECT_NAME}.cpp
+)
+create_rdk_app_executable(
+    NAME ${PROJECT_NAME}
+    SOURCES ${PROJECT_NAME}_main.cpp
+)

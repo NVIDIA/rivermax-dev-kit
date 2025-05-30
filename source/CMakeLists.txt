@@ -16,18 +16,23 @@
 
 include(RivermaxDevKitBuild)
 
-add_library(${PROJECT_NAME} STATIC)
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE include)
+target_link_libraries(${PROJECT_NAME} INTERFACE
+    rivermax-dev-kit-core
+    rivermax-dev-kit-services
+    rivermax-dev-kit-io-node
+    rivermax-dev-kit-apps
+)
 
-target_sources(${PROJECT_NAME} PRIVATE facade.cpp)
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_link_libraries(${PROJECT_NAME}
+add_library(rivermax-dev-kit-facade STATIC)
+target_sources(rivermax-dev-kit-facade PRIVATE facade.cpp)
+target_include_directories(rivermax-dev-kit-facade PUBLIC include)
+target_link_libraries(rivermax-dev-kit-facade
     PRIVATE
         rivermax-dev-kit-build
     PUBLIC
-        rivermax-dev-kit-core
         rivermax-dev-kit-services
-        rivermax-dev-kit-io-node
-        rivermax-dev-kit-apps
 )
 
 set(RIVERMAX_DEV_KIT_MODULES

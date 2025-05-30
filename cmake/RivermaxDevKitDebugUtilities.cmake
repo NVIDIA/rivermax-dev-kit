@@ -14,7 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: Rename this file to RivermaxDevKitDebugUtilities.cmake
+#[=======================================================================[.rst:
+RivermaxDevKitDebugUtilities
+---------------------------
+
+This is a module of Debug utilities used by Rivermax CMAKE infrastructure
+#]=======================================================================]
 
 include_guard(GLOBAL)
 

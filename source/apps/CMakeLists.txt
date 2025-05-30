@@ -14,31 +14,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
 include(RivermaxDevKitAppSetup)
 
 project(rivermax-dev-kit-apps)
 
-add_library(${PROJECT_NAME} STATIC)
+# Create umbrella library to contain all RDK applications
+add_library(${PROJECT_NAME} INTERFACE)
 
-target_sources(${PROJECT_NAME}
+# Create base library to build an RDK application
+add_library(rivermax-dev-kit-app-base STATIC)
+target_sources(rivermax-dev-kit-app-base
     PRIVATE
         rmax_base_memory_strategy.cpp
         rmax_receiver_base.cpp
         rmax_base_app.cpp
 )
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        rivermax-dev-kit-build
+target_include_directories(rivermax-dev-kit-app-base PUBLIC include)
+target_link_libraries(rivermax-dev-kit-app-base
     PUBLIC
+        rivermax-dev-kit-build
         rivermax-dev-kit-core
         rivermax-dev-kit-services
         rivermax-dev-kit-io-node
-        rivermax-dev-kit
+        rivermax-dev-kit-facade
 )
 
+# Process all RDK applications
 set(RIVERMAX_DEV_KIT_APP_COMPONENTS
     rmax_ipmx_receiver
     rmax_ipmx_sender

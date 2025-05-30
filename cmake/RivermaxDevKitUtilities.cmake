@@ -17,8 +17,8 @@
 # TODO: Rename this file to RivermaxDevKitUtilities.cmake
 
 #[=======================================================================[.rst:
-RmaxUtilities
--------------
+RivermaxDevKitUtilities
+-----------------------
 
 This is a module of utilities used by Rivermax CMAKE infrastructure
 #]=======================================================================]
