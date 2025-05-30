@@ -13,15 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#------------------------------------------------------------------------------
-# Command-line options
-#
-#   These options are set ON via command line e.g.:
-#       $ cmake -DRMAX_CUDA=ON
-#
-option(RMAX_CUDA     "Enables CUDA"   OFF)
-option(RMAX_TEGRA    "Enables TEGRA"  OFF)
-#------------------------------------------------------------------------------
 
 project(rivermax-dev-kit-services-legacy-util)
 add_library(${PROJECT_NAME} STATIC)

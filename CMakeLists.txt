@@ -16,6 +16,17 @@
 
 cmake_minimum_required(VERSION 3.19)
 
+#------------------------------------------------------------------------------
+# Command-line options
+#
+#   These options are set ON via command line e.g.:
+#       $ cmake -DRMAX_LINK_STATIC=ON
+#
+option(RMAX_LINK_STATIC "Link against static Rivermax library" OFF)
+option(RMAX_CUDA        "Enables CUDA"   OFF)
+option(RMAX_TEGRA       "Enables TEGRA"  OFF)
+#------------------------------------------------------------------------------
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -26,8 +37,6 @@ project(rivermax-dev-kit
     HOMEPAGE_URL https://github.com/NVIDIA/rivermax-dev-kit
     LANGUAGES CXX C
 )
-
-find_package(Rivermax REQUIRED)
 
 enable_testing()
 

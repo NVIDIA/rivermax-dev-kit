@@ -33,6 +33,7 @@ elseif(RMAX_TEGRA)
 endif()
 
 add_library(rivermax-dev-kit-build INTERFACE)
+
 if (MSVC)
     # Reconsider not to remove the following optimization
     foreach(lang_name C CXX)
@@ -107,25 +108,33 @@ else()
         -Wnon-virtual-dtor
     )
 endif()
+
 target_compile_options(rivermax-dev-kit-build INTERFACE
     $<$<COMPILE_LANGUAGE:CXX,C>:${RMAX_C_CXX_FLAGS}>
     $<$<COMPILE_LANGUAGE:CXX>:${RMAX_CXX_FLAGS}>
     $<$<COMPILE_LANGUAGE:CUDA>:-m64>
 )
+
 target_compile_definitions(rivermax-dev-kit-build INTERFACE
     ENABLE_DPCP
     CONFIG_MERSENNE_TWISTER
     $<$<BOOL:${RMAX_CUDA}>:CUDA_ENABLED>
     $<$<BOOL:${RMAX_TEGRA}>:TEGRA_ENABLED>
 )
+
 target_compile_features(rivermax-dev-kit-build INTERFACE $<$<BOOL:${RMAX_CUDA}>:cxx_std_11>)
+
+find_package(Rivermax REQUIRED LINK_STATIC ${RMAX_LINK_STATIC})
 find_package(Threads REQUIRED)
+
 target_link_libraries(rivermax-dev-kit-build INTERFACE
+    Rivermax::Include
     Threads::Threads
     $<$<BOOL:${RMAX_CUDA}>:CUDA::cuda_driver>
     $<$<BOOL:${RMAX_CUDA}>:CUDA::cudart>
     $<$<BOOL:${RMAX_CUDA}>:$<$<NOT:$<BOOL:${RMAX_TEGRA}>>:CUDA::nvml>>
 )
+
 set_target_properties(rivermax-dev-kit-build PROPERTIES INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 if (CMAKE_CUDA_COMPILER)

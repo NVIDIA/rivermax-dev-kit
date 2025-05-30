@@ -14,24 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function(setup_rivermax_dev_kit_app)
-    # This function sets up a Rivermax Dev Kit application by creating a static library
-    # and an executable. It accepts the following arguments:
-    #
-    # APP_NAME: The name of the application. This will be used to name the library
-    #           and executable.
-    # EXTRA_LIB_SOURCES: (Optional) Additional source files to include in the library.
-    #
-    # Example usage:
-    # setup_rivermax_dev_kit_app(
-    #     APP_NAME MyApp
-    #     EXTRA_LIB_SOURCES extra_source1.cpp extra_source2.cpp
-    # )
-    #
-    # This will create:
-    # - A static library named MyApp_lib with sources MyApp.cpp and extra_source1.cpp, extra_source2.cpp.
-    # - An executable named MyApp with the main source MyApp_main.cpp.
+# TODO: Move this file to cmake in the root of rivermax-dev-kit
 
+#[=======================================================================[.rst:
+.. command:: setup_rivermax_dev_kit_app
+
+  This function sets up a Rivermax Dev Kit application by creating a static library
+  and an executable. It accepts the following arguments:
+
+  ``APP_NAME``
+    The name of the application. This will be used to name the library
+    and executable.
+  ``EXTRA_LIB_SOURCES``
+    (Optional) Additional source files to include in the library.
+
+  Example usage:
+
+  .. code-block:: cmake
+
+    setup_rivermax_dev_kit_app(
+        APP_NAME MyApp
+        EXTRA_LIB_SOURCES extra_source1.cpp extra_source2.cpp
+    )
+
+  This will create:
+
+  - A static library named MyApp_lib with sources MyApp.cpp and extra_source1.cpp, extra_source2.cpp.
+  - An executable named MyApp with the main source MyApp_main.cpp.
+#]=======================================================================]
+function(setup_rivermax_dev_kit_app)
     set(options)
     set(one_value_args APP_NAME)
     set(multi_value_args EXTRA_LIB_SOURCES)
@@ -51,7 +62,6 @@ function(setup_rivermax_dev_kit_app)
         PUBLIC
             rivermax-dev-kit-apps
     )
-    target_link_libraries(rivermax-dev-kit-apps PUBLIC ${APP_LIB_NAME})
 
     add_executable(${ARGS_APP_NAME} ${APP_MAIN_SOURCE})
 

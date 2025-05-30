@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO: Rename this file to RivermaxDevKitDebugUtilities.cmake
+
 include_guard(GLOBAL)
 
 if(RMAX_DEBUG_TOOLS)
@@ -26,6 +28,15 @@ if(RMAX_DEBUG_TOOLS)
     endif()
 endif()
 
+#[=======================================================================[.rst:
+.. command:: print_target_properties
+
+  Print properties of a target.
+
+  .. code-block:: cmake
+
+    print_target_properties(<target>)
+#]=======================================================================]
 function(print_target_properties target)
     if(NOT RMAX_DEBUG_TOOLS)
         message(WARNING "Command line option `RMAX_DEBUG_TOOLS` shall be set to print properties.")
@@ -54,6 +65,15 @@ function(print_target_properties target)
     endforeach()
 endfunction()
 
+#[=======================================================================[.rst:
+.. command:: PrintLinkLibraries
+
+  Print the linked libraries of a target.
+
+  .. code-block:: cmake
+
+    PrintLinkLibraries(<target>)
+#]=======================================================================]
 function(PrintLinkLibraries target)
     get_target_property(interf_libs ${target} INTERFACE_LINK_LIBRARIES)
     get_target_property(imported_libs ${target} IMPORTED_LINK_INTERFACE_LIBRARIES)
