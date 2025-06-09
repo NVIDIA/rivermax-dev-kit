@@ -46,7 +46,7 @@ public:
     GpuMemoryUtils();
     ~GpuMemoryUtils() = default;
 
-    MemoryLocation get_memory_location() const override { return MemoryLocation::Gpu; }
+    MemoryLocation get_memory_location() const override { return MemoryLocation::GPU; }
     ReturnStatus memory_set(void* dst, int value, size_t count) const override;
     ReturnStatus memory_copy(void* dst, const void* src, size_t count) const override;
     ReturnStatus memory_copy_from(void* dst, const void* src,
@@ -72,7 +72,7 @@ public:
     ~GpuMemoryAllocator();
     void* allocate(const size_t length) override;
     std::shared_ptr<MemoryUtils> get_memory_utils() override;
-    MemoryLocation get_memory_location() const override { return MemoryLocation::Gpu; }
+    MemoryLocation get_memory_location() const override { return MemoryLocation::GPU; }
     size_t get_page_size() const override;
 private:
     int m_gpu_id;

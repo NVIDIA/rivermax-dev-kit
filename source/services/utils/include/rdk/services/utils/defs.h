@@ -62,8 +62,8 @@ enum class AllocatorTypeUI {
     HugePage2MB,
     HugePage512MB,
     HugePage1GB,
-    Gpu,
-    GpuHostPinned,
+    GPU,
+    GPUHostPinned,
 };
 
 /**

@@ -35,7 +35,7 @@ static const std::map<AllocatorTypeUI, AllocatorType> UI_ALLOCATOR_TYPE_MAP{
     { AllocatorTypeUI::HugePage512MB,   AllocatorType::HugePage512MB },
     { AllocatorTypeUI::HugePage1GB,     AllocatorType::HugePage1GB },
 #ifdef CUDA_ENABLED
-    { AllocatorTypeUI::GpuHostPinned,      AllocatorType::GpuHostPinned }
+    { AllocatorTypeUI::GPUHostPinned,      AllocatorType::GPUHostPinned }
 #endif
 };
 }
@@ -79,7 +79,7 @@ ReturnStatus RmaxBaseApp::initialize_memory_allocators()
     AllocatorType payload_allocator_type;
     if (m_app_settings->gpu_id != INVALID_GPU_ID) {
         header_allocator_type = allocator_type;
-        payload_allocator_type = AllocatorType::Gpu;
+        payload_allocator_type = AllocatorType::GPU;
     } else {
         header_allocator_type = allocator_type;
         payload_allocator_type = allocator_type;

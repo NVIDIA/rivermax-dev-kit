@@ -89,7 +89,7 @@ static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
     { "hugepage-512m",  AllocatorTypeUI::HugePage512MB },
     { "hugepage-1g",    AllocatorTypeUI::HugePage1GB },
 #ifdef CUDA_ENABLED
-    { "gpuhostpinned",     AllocatorTypeUI::GpuHostPinned },
+    { "gpuhostpinned",     AllocatorTypeUI::GPUHostPinned },
 #endif
 };
 /**

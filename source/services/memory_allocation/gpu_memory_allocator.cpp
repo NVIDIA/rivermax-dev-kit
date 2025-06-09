@@ -63,7 +63,7 @@ ReturnStatus GpuMemoryUtils::memory_copy_from(void* dst, const void* src,
         case MemoryLocation::Host:
             direction = gpu_memcpy_direction::gpuMemcpyHostToDevice;
             break;
-        case MemoryLocation::Gpu:
+        case MemoryLocation::GPU:
             direction = gpu_memcpy_direction::gpuMemcpyDeviceToDevice;
             break;
         default:
@@ -83,7 +83,7 @@ ReturnStatus GpuMemoryUtils::memory_copy_to(void* dst, const void* src,
         case MemoryLocation::Host:
             direction = gpu_memcpy_direction::gpuMemcpyDeviceToHost;
             break;
-        case MemoryLocation::Gpu:
+        case MemoryLocation::GPU:
             direction = gpu_memcpy_direction::gpuMemcpyDeviceToDevice;
             break;
         default:
@@ -103,7 +103,7 @@ ReturnStatus GpuMemoryUtils::memory_copy_2D(void* dst, size_t dst_padded_width,
         case MemoryLocation::Host:
             direction = gpu_memcpy_direction::gpuMemcpyHostToDevice;
             break;
-        case MemoryLocation::Gpu:
+        case MemoryLocation::GPU:
             direction = gpu_memcpy_direction::gpuMemcpyDeviceToDevice;
             break;
         default:

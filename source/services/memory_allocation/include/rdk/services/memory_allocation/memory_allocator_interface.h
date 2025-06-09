@@ -51,15 +51,15 @@ enum class AllocatorType {
     HugePage2MB,
     HugePage512MB,
     HugePage1GB,
-    Gpu,
-    GpuHostPinned
+    GPU,
+    GPUHostPinned
 };
 /**
  * @brief: Memory locations supported.
  */
 enum class MemoryLocation {
     Host,
-    Gpu
+    GPU
 };
 /**
  * @brief: Memory block representation.

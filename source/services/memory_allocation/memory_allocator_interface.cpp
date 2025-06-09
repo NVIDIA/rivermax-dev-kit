@@ -85,7 +85,7 @@ mem_allocator_factory_map_t MemoryAllocator::s_mem_allocator_factory = \
         }
     },
     {
-        AllocatorType::Gpu,
+        AllocatorType::GPU,
         [](std::shared_ptr<AppSettings> app_settings)
         {
             if (app_settings->gpu_id != INVALID_GPU_ID) {
@@ -96,7 +96,7 @@ mem_allocator_factory_map_t MemoryAllocator::s_mem_allocator_factory = \
             }
      },
      {
-        AllocatorType::GpuHostPinned,
+        AllocatorType::GPUHostPinned,
         [](std::shared_ptr<AppSettings> app_settings) {
             NOT_IN_USE(app_settings);
             return std::shared_ptr<MemoryAllocator>(new GpuHostPinnedMemoryAllocator);
@@ -119,7 +119,7 @@ ReturnStatus MemoryUtils::memory_copy(void* dst, const void* src, size_t count) 
 ReturnStatus MemoryUtils::memory_copy_from(void* dst, const void* src,
                                            size_t count, MemoryLocation src_location) const
 {
-    if(src_location == MemoryLocation::Gpu) {
+    if(src_location == MemoryLocation::GPU) {
         bool status = gpu_memcpy(dst, src, count, gpu_memcpy_direction::gpuMemcpyDeviceToHost);
         return (status) ? ReturnStatus::success : ReturnStatus::failure;
     }
@@ -130,7 +130,7 @@ ReturnStatus MemoryUtils::memory_copy_from(void* dst, const void* src,
 ReturnStatus MemoryUtils::memory_copy_to(void* dst, const void* src,
                                          size_t count, MemoryLocation dst_location) const
 {
-    if(dst_location == MemoryLocation::Gpu) {
+    if(dst_location == MemoryLocation::GPU) {
         bool status = gpu_memcpy(dst, src, count, gpu_memcpy_direction::gpuMemcpyHostToDevice);
         return (status) ? ReturnStatus::success : ReturnStatus::failure;
     }
@@ -143,7 +143,7 @@ ReturnStatus MemoryUtils::memory_copy_2D(void* dst, size_t dst_padded_width,
     MemoryLocation src_location) const
 {
     bool status;
-    if(src_location == MemoryLocation::Gpu) {
+    if(src_location == MemoryLocation::GPU) {
         status = gpu_memcopy_2D(dst, dst_padded_width, src, src_padded_width, width, height,
             gpu_memcpy_direction::gpuMemcpyDeviceToHost);
     } else {
