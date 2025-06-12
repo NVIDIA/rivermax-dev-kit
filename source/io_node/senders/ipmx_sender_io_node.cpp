@@ -493,15 +493,24 @@ ReturnStatus IPMXStreamSender::commit_next_media_chunk()
     return status;
 }
 
-void IPMXStreamSender::print_report_stats()
+void IPMXStreamSender::print_report_stats(std::ostream& os)
 {
     uint64_t avg_delay = 0;
     if (m_stats.sent_frames_cnt) {
         avg_delay = m_stats.report_delay_sum / m_stats.sent_frames_cnt;
     }
-    std::cout << "Stream " << m_stream_number << " Sender Report delay (ns) avg " << avg_delay <<
-                 " min " << m_stats.report_delay_min <<
-                 " max " << m_stats.report_delay_max << std::endl;
+
+    os << "| " << std::setw(6) << m_stream_number
+       << " | " << std::setw(11) << m_stats.sent_frames_cnt
+       << " | " << std::setw(8) << m_stats.frame_send_timeouts
+       << " | " << std::setw(11) << m_stats.chunk_tx_pos_max - m_stats.chunk_tx_pos_min
+       << " | " << std::setw(13) << m_stats.chunk_tx_pos_min
+       << " | " << std::setw(13) << m_stats.chunk_tx_pos_max
+       << " | " << std::setw(16) << m_stats.report_delay_min
+       << " | " << std::setw(16) << avg_delay
+       << " | " << std::setw(16) << m_stats.report_delay_max
+       << " | " << std::setw(15) << m_stats.report_to_next_frame_min / NS_IN_USEC
+       << " |";
 }
 
 void IPMXStreamSender::reset_report_stats()
@@ -597,6 +606,19 @@ size_t IPMXSenderIONode::initialize_memory(void* pointer, rmx_mkey_id mkey)
     return tx_buffer_len;
 }
 
+constexpr const char* REPORT_TABLE_COLUMNS = "\n"
+    "Report Table Columns:\n"
+    "  Stream - stream number\n"
+    "  Frames Sent - number of media frames sent in the last statistics period\n"
+    "  Timeouts - number of media frames not sent on time\n"
+    "  Jitter [ns] - jitter of transmission of the first chunk in the media frame (max latency - min latency)\n"
+    "  Lat. Min [ns] - minimum latency of transmission of the first chunk in the media frame\n"
+    "  Lat. Max [ns] - maximum latency of transmission of the first chunk in the media frame\n"
+    "  SR Pos. Min [ns] - minimum position of sender report in the media frame\n"
+    "  SR Pos. Avg [ns] - average position of sender report in the media frame\n"
+    "  SR Pos. Max [ns] - maximum position of sender report in the media frame\n"
+    "  SR to Next [us] - time from transmit completion of a Sender Report to start of the next media frame\n\n";
+
 void IPMXSenderIONode::print_parameters()
 {
     if (!m_print_parameters) {
@@ -608,6 +630,11 @@ void IPMXSenderIONode::print_parameters()
     for (auto& stream_sender : m_stream_senders) {
         sender_parameters << stream_sender.get_media_stream();
     }
+
+    if (m_index == 0) {
+        sender_parameters << REPORT_TABLE_COLUMNS;
+    }
+
     std::cout << sender_parameters.str() << std::endl;
 }
 
@@ -743,11 +770,23 @@ void IPMXSenderIONode::operator()()
         }
 
         if (time_now > last_stats_update_time + NS_IN_SEC) {
+            std::ostringstream oss;
+            oss << "+--------+-------------+----------+-------------+---------------+"
+                   "---------------+------------------+------------------+------------------+"
+                   "-----------------+\n";
+            oss << "| Stream | Frames Sent | Timeouts | Jitter [ns] | Lat. Min [ns] |"
+                   " Lat. Max [ns] | SR Pos. Min [ns] | SR Pos. Avg [ns] | SR Pos. Max [ns] |"
+                   " SR to Next [us] |\n";
+            oss << "+--------+-------------+----------+-------------+---------------+"
+                   "---------------+------------------+------------------+------------------+"
+                   "-----------------+\n";
             for (auto& stream_sender : m_stream_senders) {
-                stream_sender.print_report_stats();
+                stream_sender.print_report_stats(oss);
                 stream_sender.reset_report_stats();
+                oss << "\n";
             }
             last_stats_update_time = time_now;
+            std::cout << oss.str() << std::endl;
         }
     }
 

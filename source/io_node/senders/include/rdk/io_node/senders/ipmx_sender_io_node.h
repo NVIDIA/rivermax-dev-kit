@@ -90,7 +90,7 @@ public:
     bool is_report_for_current_frame_sent() const;
     bool can_sleep(uint64_t& max_wakeup_time) const;
     ReturnStatus commit_next_media_chunk();
-    void print_report_stats();
+    void print_report_stats(std::ostream& os);
     void reset_report_stats();
     void init_media_chunk_handler();
     void set_report_chunk_handler(const std::shared_ptr<SharedMessageHandler>& report_handler);
