@@ -26,7 +26,7 @@
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/services/cli/options.h"
-#include "rdk/services/cpu/affinity/affinity.h"
+#include "rdk/services/cpu/cpu.h"
 #include "rdk/services/utils/gpu_manager.h"
 
 using namespace rivermax::dev_kit::services;

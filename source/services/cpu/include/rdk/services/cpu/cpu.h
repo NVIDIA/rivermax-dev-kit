@@ -19,6 +19,6 @@
 #ifndef RDK_SERVICES_CPU_CPU_H_
 #define RDK_SERVICES_CPU_CPU_H_
 
-#include "rdk/services/cpu/affinity/affinity.h"
+#include "rdk/services/cpu/cpu_utils.h"
 
 #endif /* RDK_SERVICES_CPU_CPU_H_ */

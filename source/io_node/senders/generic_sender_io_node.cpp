@@ -28,7 +28,7 @@
 #include "rt_threads.h"
 
 #include "rdk/io_node/senders/generic_sender_io_node.h"
-#include "rdk/services/cpu/affinity/affinity.h"
+#include "rdk/services/cpu/cpu.h"
 #include "rdk/services/error_handling/error_handling.h"
 
 using namespace rivermax::dev_kit::io_node;

@@ -18,4 +18,3 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         affinity_tests.cpp
 )
-target_link_libraries(${PROJECT_NAME} PRIVATE rivermax-dev-kit-services-cpu)

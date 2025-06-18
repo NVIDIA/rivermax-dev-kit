@@ -16,7 +16,11 @@
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+project(rivermax-dev-kit-services-sdp)
+
 include(FetchSdptransform)
+
+add_library(${PROJECT_NAME} OBJECT)
 
 target_sources(${PROJECT_NAME}
     PRIVATE
@@ -26,4 +30,10 @@ target_sources(${PROJECT_NAME}
         sdp_defs.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_link_libraries(${PROJECT_NAME} PUBLIC sdptransform)
+target_link_libraries(${PROJECT_NAME} 
+    PRIVATE
+        rivermax-dev-kit-build
+    PUBLIC
+        sdptransform
+        rivermax-dev-kit-services-utils
+)

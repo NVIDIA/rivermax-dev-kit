@@ -24,6 +24,10 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         rivermax-dev-kit-services-cpu
         rivermax-dev-kit-services-legacy-util
+        rivermax-dev-kit-services-error-handling
+        rivermax-dev-kit-services-utils
+        rivermax-dev-kit-services-sdp
+        rivermax-dev-kit-services-statistics
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 

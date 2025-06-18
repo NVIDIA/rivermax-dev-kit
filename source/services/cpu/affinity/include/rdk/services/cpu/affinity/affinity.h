@@ -20,11 +20,6 @@
 #define RDK_SERVICES_CPU_AFFINITY_AFFINITY_H_
 
 #include "rdk/services/cpu/affinity/rivermax_affinity.h"
-#ifdef __linux__
-#include "rdk/services/cpu/affinity/linux/linux.h"
-#elif defined(_WIN32) || defined(_WIN64)
-#include "rdk/services/cpu/affinity/windows/windows.h"
-#endif
-#include "rdk/services/cpu/affinity/affinity_utils.h"
+#include "rdk/services/cpu/affinity/rivermax_os_affinity.h"
 
 #endif /* RDK_SERVICES_CPU_AFFINITY_AFFINITY_H_ */

@@ -20,7 +20,10 @@ include(GoogleTest)
 
 add_executable(${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Rivermax::Include rivermax-dev-kit-utests-utils)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+        rivermax-dev-kit-services-cpu-affinity
+        Rivermax::Include
+        rivermax-dev-kit-utests-utils)
 
 string(TOLOWER "${CMAKE_SYSTEM_NAME}" os_specific_dir)
 add_subdirectory(${os_specific_dir})

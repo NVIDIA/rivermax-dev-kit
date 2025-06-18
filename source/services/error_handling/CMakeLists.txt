@@ -14,8 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+project(rivermax-dev-kit-services-error-handling)
+
+add_library(${PROJECT_NAME} OBJECT)
+
 target_sources(${PROJECT_NAME}
     PRIVATE
         signal_handler.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE rivermax-dev-kit-build)

@@ -24,7 +24,7 @@
 #include "rt_threads.h"
 
 #include "rdk/services/utils/utils.h"
-#include "rdk/services/cpu/affinity/affinity.h"
+#include "rdk/services/cpu/cpu.h"
 #include "rdk/services/statistics/statistics_reader.h"
 
 using namespace rivermax::dev_kit::services;

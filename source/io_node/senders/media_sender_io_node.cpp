@@ -29,7 +29,7 @@
 
 #include "rdk/io_node/senders/media_sender_io_node.h"
 #include "rdk/services/error_handling/error_handling.h"
-#include "rdk/services/cpu/affinity/affinity.h"
+#include "rdk/services/cpu/cpu.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;

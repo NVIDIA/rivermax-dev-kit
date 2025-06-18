@@ -14,12 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+project(rivermax-dev-kit-services-cpu-affinity)
+
+add_library(${PROJECT_NAME} STATIC)
+
 target_sources(${PROJECT_NAME}
     PRIVATE
         rivermax_affinity.cpp
-        affinity_utils.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+        Rivermax::Include
+    PRIVATE 
+        rivermax-dev-kit-build
+)
 
 string(TOLOWER "${CMAKE_SYSTEM_NAME}" os_specific_dir)
 add_subdirectory(${os_specific_dir})

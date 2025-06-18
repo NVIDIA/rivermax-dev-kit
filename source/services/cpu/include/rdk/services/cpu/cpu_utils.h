@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_CPU_AFFINITY_AFFINITY_UTILS_H_
-#define RDK_SERVICES_CPU_AFFINITY_AFFINITY_UTILS_H_
+#ifndef RDK_SERVICES_CPU_CPU_UTILS_H_
+#define RDK_SERVICES_CPU_CPU_UTILS_H_
 
 namespace rivermax
 {
@@ -48,4 +48,4 @@ void set_current_thread_affinity(const int cpu);
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_CPU_AFFINITY_AFFINITY_UTILS_H_ */
+#endif /* RDK_SERVICES_CPU_CPU_UTILS_H_ */

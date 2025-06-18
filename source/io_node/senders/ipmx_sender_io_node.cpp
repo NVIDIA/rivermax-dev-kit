@@ -32,7 +32,7 @@
 
 #include "rdk/io_node/senders/ipmx_sender_io_node.h"
 #include "rdk/services/error_handling/error_handling.h"
-#include "rdk/services/cpu/affinity/affinity.h"
+#include "rdk/services/cpu/cpu.h"
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/media/media.h"
 #include "rdk/services/utils/enum_utils.h"

@@ -28,7 +28,7 @@ endif()
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         rivermax-dev-kit-build
-        rivermax-dev-kit-services-cpu
+        rivermax-dev-kit-services-cpu-affinity
     PUBLIC
         Rivermax::Include
         CLI::CLI

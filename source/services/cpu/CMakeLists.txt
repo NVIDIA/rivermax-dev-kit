@@ -16,9 +16,19 @@
 
 project(rivermax-dev-kit-services-cpu)
 
-add_library(${PROJECT_NAME} STATIC)
+add_library(${PROJECT_NAME} OBJECT)
 
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        cpu_utils.cpp
+)
 target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_link_libraries(${PROJECT_NAME} PRIVATE Rivermax::Include rivermax-dev-kit-build)
+target_link_libraries(${PROJECT_NAME} 
+    PUBLIC
+        rivermax-dev-kit-services-cpu-affinity
+    PRIVATE
+        Rivermax::Rivermax
+        rivermax-dev-kit-build
+)
 
 add_subdirectory(affinity)

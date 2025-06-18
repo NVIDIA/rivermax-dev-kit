@@ -22,7 +22,7 @@
 
 #include <rivermax_api.h>
 
-#include "rdk/services/cpu/affinity/affinity_utils.h"
+#include "rdk/services/cpu/cpu_utils.h"
 #include "rdk/services/cpu/affinity/rivermax_affinity.h"
 
 bool rivermax::dev_kit::services::set_rivermax_thread_cpu_affinity(int cpu)
