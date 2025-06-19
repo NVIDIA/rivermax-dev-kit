@@ -492,6 +492,11 @@ ReturnStatus IPOReceiveStream::get_next_chunk(ReceiveChunk& chunk)
             // break the loop now otherwise return arrays will be non-contiguous
             break;
         }
+        // TODO: the check: m_settings.max_packets_in_chunk > 0 is to be removed
+        // when settings validation is properly implemented
+        if (m_settings.max_packets_in_chunk > 0 && chunk_size >= m_settings.max_packets_in_chunk) {
+            break;
+        }
     }
 
     ipo_chunk.set_completion_chunk_size(chunk_size);
