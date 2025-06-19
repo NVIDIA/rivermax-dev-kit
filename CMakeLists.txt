@@ -20,9 +20,8 @@ cmake_minimum_required(VERSION 3.19)
 # Command-line options
 #
 #   These options are set ON via command line e.g.:
-#       $ cmake -DRMAX_LINK_STATIC=ON
+#       $ cmake -DRMAX_CUDA=ON
 #
-option(RMAX_LINK_STATIC "Link against static Rivermax library" OFF)
 option(RMAX_CUDA        "Enables CUDA"   OFF)
 option(RMAX_TEGRA       "Enables TEGRA"  OFF)
 #------------------------------------------------------------------------------

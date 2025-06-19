@@ -61,7 +61,34 @@ if (TARGET Rivermax::Rivermax)
     return()
 endif()
 
-message(WARNING "Looking for Rivermax library.")
+# Store original find_package arguments
+set(_rivermax_quiet ${Rivermax_FIND_QUIETLY})
+set(_rivermax_required ${Rivermax_FIND_REQUIRED})
+set(_rivermax_version ${Rivermax_FIND_VERSION})
+
+# Try CONFIG mode first, preserving version requirements
+if(NOT _rivermax_quiet)
+    message(STATUS "Looking for Rivermax library.")
+endif()
+if(_rivermax_version)
+    find_package(Rivermax ${_rivermax_version} QUIET CONFIG)
+else()
+    find_package(Rivermax QUIET CONFIG)
+endif()
+
+if(Rivermax_FOUND)
+    if(NOT _rivermax_quiet)
+        message(STATUS "Found Rivermax ${Rivermax_VERSION} using config mode")
+    endif()
+    return()
+else()
+    message(WARNING "Looking for Rivermax library using legacy module mode.")
+endif()
+
+# Restore original find_package arguments
+set(Rivermax_FIND_QUIETLY ${_rivermax_quiet})
+set(Rivermax_FIND_REQUIRED ${_rivermax_required})
+set(Rivermax_FIND_VERSION ${_rivermax_version})
 
 # Find Rivermax library
 find_library(Rivermax_LIBRARY NAMES rivermax PATH_SUFFIXES ${LIBRARY_PATH_SUFFIXES})
@@ -72,7 +99,7 @@ if (Rivermax_INCLUDE_DIR AND Rivermax_LIBRARY)
     set(Rivermax_VERSION ${Rivermax_VERSION} CACHE INTERNAL "")
 
     # if user requested static library via LINK_STATIC option
-    if (Rivermax_FIND_LINK_STATIC) 
+    if (Rivermax_FIND_LINK_STATIC)
         if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
             set(Rivermax_STATIC_NAME rivermax_static.lib)
         else()

@@ -124,7 +124,7 @@ target_compile_definitions(rivermax-dev-kit-build INTERFACE
 
 target_compile_features(rivermax-dev-kit-build INTERFACE $<$<BOOL:${RMAX_CUDA}>:cxx_std_11>)
 
-find_package(Rivermax REQUIRED LINK_STATIC ${RMAX_LINK_STATIC})
+find_package(Rivermax REQUIRED)
 find_package(Threads REQUIRED)
 
 target_link_libraries(rivermax-dev-kit-build INTERFACE
