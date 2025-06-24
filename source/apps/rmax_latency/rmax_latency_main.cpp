@@ -27,7 +27,7 @@ using namespace rivermax::dev_kit::apps::rmax_latency;
  */
 static constexpr const char* APP_DESCRIPTION = "NVIDIA Rivermax latency measurement application";
 
-static constexpr const char* APP_USAGE_MESSAGE =
+static constexpr const char* APP_EXAMPLES =
 R"EOF(The latency measurement tool implements the following measurement modes:
   Ping-Pong mode - sending a single packet from Client to Server and back, using Rivermax Tx Generic API.
     In this mode packet round-trip time is measured, as well as the following internal Rivermax latencies:
@@ -90,12 +90,12 @@ Examples:
   client: rmax_latency -l 1.2.3.4 -d 224.2.3.4 -p 2000 -r 224.2.3.5 -o 2000 -i1 -a2 -c -m10 --mode frame -C100 -K20
   server: rmax_latency -l 1.2.3.5 -d 224.2.3.5 -p 2000 -r 224.2.3.4 -o 2000 -i1 -a2 --mode frame -C100 -K20
   3. Media Latency mode
-  client: rmax_latency -l 1.2.3.4 -d 224.2.3.4 -p 2000 -r 224.2.3.5 -o 2000 -i1 -a2 -c -m10 --mode media -x 1080p60 -K4
-  server: rmax_latency -l 1.2.3.5 -d 224.2.3.5 -p 2000 -r 224.2.3.4 -o 2000 -i1 -a2 --mode media -x 1080p60;
+  client: rmax_latency -l 1.2.3.4 -d 224.2.3.4 -p 2000 -r 224.2.3.5 -o 2000 -i1 -a2 -c -m10 --mode media --vr 1920x1080 --vfr 60 -K4
+  server: rmax_latency -l 1.2.3.5 -d 224.2.3.5 -p 2000 -r 224.2.3.4 -o 2000 -i1 -a2 --mode media --vr 1920x1080 --vfr 60
 )EOF";
 
 int main(int argc, const char* argv[])
 {
     return common_cli_main<LatencyApp, LatencyCLISettingsBuilder, LatencySettingsValidator>(
-        argc, argv, APP_DESCRIPTION, APP_USAGE_MESSAGE);
+        argc, argv, APP_DESCRIPTION, APP_EXAMPLES);
 }
