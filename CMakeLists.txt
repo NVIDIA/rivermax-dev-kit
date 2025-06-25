@@ -24,6 +24,7 @@ cmake_minimum_required(VERSION 3.19)
 #
 option(RMAX_CUDA        "Enables CUDA"   OFF)
 option(RMAX_TEGRA       "Enables TEGRA"  OFF)
+option(RMAX_LINK_STATIC "Link against static Rivermax library" OFF)
 #------------------------------------------------------------------------------
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)

@@ -16,11 +16,12 @@
 
 project(rmax_rtp_receiver)
 
-create_rdk_app_library(
-    NAME ${PROJECT_NAME}
+create_rdk_app_objects(
+    NAME ${PROJECT_NAME}_obj
     SOURCES ${PROJECT_NAME}.cpp
 )
 create_rdk_app_executable(
     NAME ${PROJECT_NAME}
     SOURCES ${PROJECT_NAME}_main.cpp
+    LIBRARIES ${PROJECT_NAME}_obj
 )

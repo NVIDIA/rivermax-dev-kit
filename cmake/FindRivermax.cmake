@@ -83,6 +83,9 @@ if(Rivermax_FOUND)
     return()
 else()
     message(WARNING "Looking for Rivermax library using legacy module mode.")
+    if(RMAX_LINK_STATIC)
+        message(FATAL_ERROR "Static library requested, but legacy module mode does not support it.")
+    endif()
 endif()
 
 # Restore original find_package arguments
@@ -110,20 +113,20 @@ if (Rivermax_INCLUDE_DIR AND Rivermax_LIBRARY)
     endif()
 endif()
 
-# On Windows, find WindOF2
+# On Windows, find WinOF2
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-    list(APPEND Rivermax_FIND_COMPONENTS WindOF2)
+    list(APPEND Rivermax_FIND_COMPONENTS WinOF2)
     list(APPEND CMAKE_PREFIX_PATH $ENV{ProgramW6432}\\Mellanox)
     find_file(WinOF2_BUILD_FILE NAMES build_id.txt PATH_SUFFIXES MLNX_WinOF2)
     mark_as_advanced(WinOF2_BUILD_FILE)
     if (WinOF2_BUILD_FILE)
-        set(Rivermax_WindOF2_FOUND TRUE)
+        set(Rivermax_WinOF2_FOUND TRUE)
         file(STRINGS "${WinOF2_BUILD_FILE}" Rivermax_WinOF2_VERSION REGEX "^Version:[ \t]*[0-9\.]+" )
         string(REGEX REPLACE "^Version:[ \t]*([0-9\.]+)" "\\1" Rivermax_WinOF2_VERSION "${Rivermax_WinOF2_VERSION}")
-        message(STATUS "WindOF2 version ${Rivermax_WinOF2_VERSION} found!")
+        message(STATUS "WinOF2 version ${Rivermax_WinOF2_VERSION} found!")
         mark_as_advanced(Rivermax_WinOF2_VERSION)
     else()
-        unset(Rivermax_WindOF2_FOUND)
+        unset(Rivermax_WinOF2_FOUND)
     endif()
 
 # On Linux, find DPCP

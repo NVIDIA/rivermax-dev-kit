@@ -15,9 +15,12 @@
 # limitations under the License.
 
 #[=======================================================================[.rst:
-.. command:: create_rdk_app_library
+.. command:: create_rdk_app_objects
 
-    This function creates an RDK application library. It accepts the following arguments:
+    This function creates an RDK application library of compiled objects that
+    can be linked with any other software component.
+
+    It accepts the following arguments:
 
     ``NAME``
       The name of the library.
@@ -28,42 +31,46 @@
 
     .. code-block:: cmake
 
-      create_rdk_app_library(
-          NAME MyApp
+      create_rdk_app_objects(
+          NAME MyApp_obj
           SOURCES MyApp.cpp extra_source1.cpp extra_source2.cpp
       )
 
-    This will create a static library named MyApp_lib with sources MyApp.cpp and extra_source1.cpp, extra_source2.cpp.
+    This will create a object library named MyApp_obj with sources 
+    MyApp.cpp and extra_source1.cpp, extra_source2.cpp.
 #]=======================================================================]
-function(create_rdk_app_library)
+function(create_rdk_app_objects)
     set(options)
     set(one_value_args NAME)
     set(multi_value_args SOURCES)
     cmake_parse_arguments(ARGS "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
     if(NOT ARGS_NAME)
-        message(FATAL_ERROR "NAME argument is required for create_rdk_app_library")
+        message(FATAL_ERROR "NAME argument is required for create_rdk_app_objects")
     endif()
 
     # Create the library target
-    add_library(${ARGS_NAME} STATIC)
+    add_library(${ARGS_NAME} OBJECT)
     target_sources(${ARGS_NAME} PRIVATE ${ARGS_SOURCES})
     target_include_directories(${ARGS_NAME} PUBLIC include)
     target_link_libraries(${ARGS_NAME} PRIVATE rivermax-dev-kit-app-base)
 
     # Add to the umbrella library of all the applications
-    target_link_libraries(rivermax-dev-kit-apps INTERFACE ${ARGS_NAME}_lib)
+    target_link_libraries(rivermax-dev-kit-apps INTERFACE ${ARGS_NAME})
 endfunction()
 
 #[=======================================================================[.rst:
 .. command:: create_rdk_app_executable
 
-  This function creates an RDK application executable and links it with its library. It accepts the following arguments:
+  This function creates an RDK application executable and links it with its library. 
+  It accepts the following arguments:
 
   ``NAME``
     The name of the executable.
   ``SOURCES``
     (Optional) Source files to include in the executable.
+  ``LIBRARIES``
+    (Optional) Libraries to link with the executable.
 
   Example usage:
 
@@ -72,14 +79,16 @@ endfunction()
     create_rdk_app_executable(
         NAME MyApp
         SOURCES MyApp_main.cpp
+        LIBRARIES MyApp_lib
     )
 
-  This will create an executable named MyApp with the main source MyApp_main.cpp, linked with the library MyApp_lib.
+  This will create an executable named MyApp with the main source 
+  MyApp_main.cpp, linked with the library MyApp_lib.
 #]=======================================================================]
 function(create_rdk_app_executable)
     set(options)
     set(one_value_args NAME)
-    set(multi_value_args SOURCES)
+    set(multi_value_args SOURCES LIBRARIES)
     cmake_parse_arguments(ARGS "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
     if(NOT ARGS_NAME)
@@ -87,12 +96,11 @@ function(create_rdk_app_executable)
     endif()
 
     # Create the executable target
-    add_executable(${ARGS_NAME}_executable)
-    set_target_properties(${ARGS_NAME}_executable PROPERTIES OUTPUT_NAME ${ARGS_NAME})
-    target_sources(${ARGS_NAME}_executable PRIVATE ${ARGS_SOURCES})
-    target_link_libraries(${ARGS_NAME}_executable
+    add_executable(${ARGS_NAME})
+    target_sources(${ARGS_NAME} PRIVATE ${ARGS_SOURCES})
+    target_link_libraries(${ARGS_NAME}
         PRIVATE
             rivermax-dev-kit-app-base
-            ${ARGS_NAME}
+            ${ARGS_LIBRARIES}
     )
 endfunction()
