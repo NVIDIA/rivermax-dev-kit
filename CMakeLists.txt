@@ -28,7 +28,6 @@ option(RMAX_LINK_STATIC "Link against static Rivermax library" OFF)
 #------------------------------------------------------------------------------
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(rivermax-dev-kit
@@ -37,6 +36,7 @@ project(rivermax-dev-kit
     HOMEPAGE_URL https://github.com/NVIDIA/rivermax-dev-kit
     LANGUAGES CXX C
 )
+include(RivermaxDevKitBuild)
 
 enable_testing()
 
