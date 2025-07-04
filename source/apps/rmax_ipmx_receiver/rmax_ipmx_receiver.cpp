@@ -29,6 +29,8 @@
 
 using namespace rivermax::dev_kit::apps::rmax_ipmx_receiver;
 
+constexpr std::chrono::nanoseconds IPMXReceiverApp::STATS_POLLING_PERIOD;
+
 ReturnStatus RTCPChunkConsumer::consume_chunk(const ReceiveChunk& chunk,
     const IReceiveStream& stream, size_t& consumed_packets)
 {

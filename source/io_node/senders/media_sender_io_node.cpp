@@ -35,6 +35,9 @@ using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
+constexpr size_t MediaSenderIONode::DEFAULT_NUMBER_OF_MEM_BLOCKS;
+constexpr size_t MediaSenderIONode::DEFAULT_PRINT_TIME_INTERVAL_MS;
+
 static void replace_all(
     std::string& source_str, const std::string& outer_prefix_str, const std::string& inner_prefix_str,
     const std::string& new_str, const char* suffix_str, std::string::size_type start_replacement_location = 0)
