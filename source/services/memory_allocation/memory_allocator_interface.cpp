@@ -163,15 +163,15 @@ void* MemoryAllocatorImp::allocate_new(const size_t length)
     return mem_ptr;
 }
 
-ReturnStatus MemoryAllocatorImp::free_new(void* mem_ptr)
+ReturnStatus MemoryAllocatorImp::free_new(void** mem_ptr)
 {
     if (mem_ptr == nullptr) {
-        std::cerr << "Failed to free the pointer at address " << mem_ptr << std::endl;
+        std::cerr << "Failed to free the pointer - null pointer provided" << std::endl;
         return ReturnStatus::failure;
     }
 
-    delete[] static_cast<byte_t*>(mem_ptr);
-    mem_ptr = nullptr;
+    delete[] static_cast<byte_t*>(*mem_ptr);
+    *mem_ptr = nullptr;
 
     return ReturnStatus::success;
 }
@@ -282,7 +282,7 @@ void* LinuxMemoryAllocatorImp::allocate_huge_pages(size_t length, size_t alignme
 ReturnStatus LinuxMemoryAllocatorImp::free_huge_pages(void* mem_ptr, size_t length)
 {
     if (mem_ptr == nullptr) {
-        std::cerr << "Failed to free the pointer at address " << mem_ptr << std::endl;
+        std::cerr << "Failed to free the pointer - null pointer provided" << std::endl;
         return ReturnStatus::failure;
     }
     if (munmap(mem_ptr, length)) {
@@ -408,7 +408,7 @@ ReturnStatus WindowsMemoryAllocatorImp::free_huge_pages(void* mem_ptr, size_t le
 {
     NOT_IN_USE(length);
     if (mem_ptr == nullptr) {
-        std::cerr << "Failed to free the pointer at address " << mem_ptr << std::endl;
+        std::cerr << "Failed to free the pointer - null pointer provided" << std::endl;
         return ReturnStatus::failure;
     }
 

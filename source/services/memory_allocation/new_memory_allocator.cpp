@@ -35,7 +35,7 @@ NewMemoryAllocator::~NewMemoryAllocator()
 {
     ReturnStatus rc;
     for (auto& mem_block : m_mem_blocks) {
-        rc = m_imp->free_new(mem_block->pointer);
+        rc = m_imp->free_new(&mem_block->pointer);
         if (rc == ReturnStatus::failure) {
             std::cerr << "Failed to free memory using C++ delete[] operator" << std::endl;
         }

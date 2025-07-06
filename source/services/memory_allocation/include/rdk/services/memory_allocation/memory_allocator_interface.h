@@ -213,7 +213,7 @@ public:
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus free_new(void* mem_ptr);
+    virtual ReturnStatus free_new(void** mem_ptr);
     /**
      * @brief: Returns new memory utils.
      *
