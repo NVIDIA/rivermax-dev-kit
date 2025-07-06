@@ -145,6 +145,7 @@ LatencyIONode::LatencyIONode(
     m_get_time_ns_cb(std::move(time_handler_cb)),
     m_percentiles(settings.percentiles)
 {
+    memset(&m_cpu_affinity_mask, 0, sizeof(m_cpu_affinity_mask));
 }
 
 void LatencyIONode::set_cpu_resources()
