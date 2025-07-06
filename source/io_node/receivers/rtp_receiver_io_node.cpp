@@ -70,6 +70,10 @@ ReturnStatus AppRTPReceiveStream::get_next_chunk(ReceiveChunk& chunk)
         header_ptr = reinterpret_cast<const byte_t*>(chunk.get_payload_ptr());
         stride_size = get_payload_stride_size();
     }
+    if (unlikely(!header_ptr)) {
+        std::cerr << "Failed to get header pointer for RTP receive stream" <<std::endl;
+        return ReturnStatus::failure;
+    }
     for (uint32_t stride_index = 0; stride_index < chunk.get_length(); ++stride_index, header_ptr += stride_size) {
         auto info = chunk.get_packet_info(stride_index);
         size_t len = info.get_packet_sub_block_size(0);

@@ -749,6 +749,11 @@ void FrameIONode::parse_packet_headers(ReceiveChunk& chunk, bool& has_last_packe
         header_ptr = static_cast<const uint8_t*>(chunk.get_payload_ptr());
         stride_size = m_receive_stream->get_payload_stride_size();
     }
+    if (unlikely(header_ptr == nullptr)) {
+        std::cerr << "Error, no header pointer in the chunk" << std::endl;
+        valid = false;
+        return;
+    }
     auto strides_cnt = chunk.get_length();
     auto packets_in_frame = m_receive_dim.num_of_chunks * m_receive_dim.num_of_packets_in_chunk;
     valid = true;

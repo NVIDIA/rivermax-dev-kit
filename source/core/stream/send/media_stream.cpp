@@ -120,6 +120,10 @@ void MediaStreamMemBlockset::set_block_memory(size_t idx, size_t sub_block_idx, 
 {
     auto& block = m_blocks[idx];
     rmx_mem_region* region = rmx_output_media_get_sub_block(&block, sub_block_idx);
+    if (!region) {
+        std::cerr << "Failed to get sub-block for index: " << idx << ", sub-block: " << sub_block_idx << std::endl;
+        return;
+    }
     region->addr = block_memory_start;
     region->length = block_memory_size;
     region->mkey = memory_key;
@@ -139,6 +143,10 @@ void MediaStreamMemBlockset::set_dup_block_memory(size_t idx, size_t sub_block_i
 {
     auto& block = m_blocks[idx];
     rmx_mem_multi_key_region* multiregion = rmx_output_media_get_dup_sub_block(&block, sub_block_idx);
+    if (!multiregion) {
+        std::cerr << "Failed to get multi-key sub-block for index: " << idx << ", sub-block: " << sub_block_idx << std::endl;
+        return;
+    }
     multiregion->addr = block_memory_start;
     multiregion->length = block_memory_size;
     for (size_t i = 0; i < RMX_MAX_DUP_STREAMS; i++) {

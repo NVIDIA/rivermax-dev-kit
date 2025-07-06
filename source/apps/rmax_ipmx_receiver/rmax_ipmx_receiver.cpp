@@ -36,6 +36,8 @@ ReturnStatus RTCPChunkConsumer::consume_chunk(const ReceiveChunk& chunk,
 {
     size_t stride_size = stream.get_payload_stride_size();
     const byte_t* packet_ptr = reinterpret_cast<const byte_t*>(chunk.get_payload_ptr());
+    assert(packet_ptr != nullptr);
+
     for (uint32_t stride_index = 0; stride_index < chunk.get_length(); ++stride_index) {
         const ReceivePacketInfo& info = chunk.get_packet_info(stride_index);
         size_t len = info.get_packet_sub_block_size(0);

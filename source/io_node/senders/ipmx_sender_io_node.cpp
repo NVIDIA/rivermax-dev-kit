@@ -89,7 +89,11 @@ ReturnStatus SharedMessageHandler::commit_message(const rmx_mem_region& mreg, si
         }
         return status;
     }
-    m_chunk_handle->mark_for_tracking(sender_id);
+    status = m_chunk_handle->mark_for_tracking(sender_id);
+    if (status != ReturnStatus::success) {
+        std::cerr << "Sender " << sender_id << " failed to mark a chunk for tracking" << std::endl;
+        return status;
+    }
     m_chunk_handle->commit_chunk(0);
     m_pending_message_count++;
     return ReturnStatus::success;
