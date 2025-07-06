@@ -36,14 +36,15 @@
 #define CK_CUDA(func) do {                                             \
     cudaError_t status = (func);                                       \
     if (status != 0) {                                                 \
-        SAMPLE_THROW_ERROR("Cuda Runtime Failure: ", status);           \
+        SAMPLE_THROW_ERROR("Cuda Runtime Failure: " <<                 \
+            cudaGetErrorString(status), status);                       \
     }                                                                  \
 } while(0)
 
 #define CK_CUDA_DRV_API(func) do {                                     \
     CUresult status = (func);                                          \
     if (status != 0) {                                                 \
-        SAMPLE_THROW_ERROR("Cuda Driver API Failure", status);          \
+        SAMPLE_THROW_ERROR("Cuda Driver API Failure", status);         \
     }                                                                  \
 } while(0)
 
