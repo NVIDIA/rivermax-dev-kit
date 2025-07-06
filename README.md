@@ -275,6 +275,14 @@ Each CLI application is designed to showcase specific features and capabilities 
 
 In addition to being available as CLI interfaces, these applications are also accessible as software APIs within the `apps` module. This allows developers to integrate the same functionality directly into their own applications, providing flexibility for both standalone usage and embedded development.
 
+## Examples
+
+The Rivermax Dev Kit includes a set of examples that demonstrate how to use its various modules and APIs. These examples serve as practical tutorials and reference implementations for developers looking to integrate the Rivermax Dev Kit into their applications, covering different aspects of the development kit and showcasing various use cases.
+
+The source code for these examples is located in the `examples/` directory. Examples are automatically built alongside the main project and can be found in `<build-dir>/examples` after compilation.
+
+For detailed information about individual examples, usage instructions, and implementation details, see the [examples README](examples/README.md).
+
 ## Documentation
 
 The Rivermax Dev Kit includes comprehensive documentation that can be generated using Doxygen and CMake. This documentation includes comprehensive details about the API, its modules, and components, providing a clear reference for developers.
