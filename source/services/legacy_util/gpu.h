@@ -108,7 +108,7 @@ int gpu_reset_locked_clocks(int gpu_id);
 bool gpu_query_bar1_memory_info(int gpu_id, gpu_bar1_memory_info& mem_info);
 bool gpu_verify_allocated_bar1_size(int gpu_id, size_t size);
 void* cudaAllocateMmap(int gpu_id, size_t size, size_t align);
-bool cudaFreeMmap(uint64_t* ptr, size_t size);
+CUresult cudaFreeMmap(uint64_t* ptr, size_t size);
 #else // TEGRA_ENABLED
 static inline int gpu_set_locked_clocks_max_freq(int gpu_id)
 {
@@ -134,6 +134,8 @@ static inline bool gpu_verify_allocated_bar1_size(int gpu_id, size_t size)
 }
 #endif
 #else // !CUDA_ENABLED
+
+using CUresult = int;
 
 struct gpu_stream
 {
@@ -270,11 +272,11 @@ static inline void* cudaAllocateMmap(int gpu_id, size_t size, size_t align)
     return nullptr;
 }
 
-static inline bool cudaFreeMmap(uint64_t* ptr, size_t size)
+static inline CUresult cudaFreeMmap(uint64_t* ptr, size_t size)
 {
     NOT_IN_USE(ptr);
     NOT_IN_USE(size);
-    return false;
+    return 0;
 }
 
 static inline bool verify_gpu_device_id(int gpu)

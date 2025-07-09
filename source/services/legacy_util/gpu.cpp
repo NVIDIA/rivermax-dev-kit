@@ -180,21 +180,21 @@ void* gpu_allocate_memory(int gpu_id, size_t size, size_t align)
  */
 bool gpu_free_memory(void* ptr, size_t size)
 {
-    cudaError_t cuda_err = cudaSuccess;
-
 #ifdef TEGRA_ENABLED
     NOT_IN_USE(size);
-    cuda_err = cudaFreeHost (ptr);
-#else
-    //cuda_err = cudaFree (ptr);
-    return cudaFreeMmap((uint64_t*)&ptr, size);
-#endif
-    if (cuda_err != cudaSuccess) {
+    cudaError_t cuda_err = cudaFreeHost (ptr);
+    if (cuda_err != cudaSuccess && cuda_err != cudaErrorCudartUnloading) {
         std::cerr << "Failed to free GPU memory, ret " << cuda_err << std::endl;
         return false;
     }
-
-    return true;
+#else
+     CUresult cuda_err = cudaFreeMmap((uint64_t*)&ptr, size);
+     if (cuda_err != CUDA_SUCCESS && cuda_err != CUDA_ERROR_DEINITIALIZED) {
+        std::cerr << "Failed to free GPU memory, ret " << cuda_err << std::endl;
+        return false;
+     }
+#endif
+    return true;    
 }
 
 size_t gpu_query_alignment(int gpu_id)
@@ -319,20 +319,18 @@ void* cudaAllocateMmap(int gpu_id, size_t size, size_t align)
 
 done:
     if (status != CUDA_SUCCESS) {
-        bool cuda_free_mmap_status;
-
-        cuda_free_mmap_status = cudaFreeMmap((uint64_t*)&dptr, size);
-        std::cout << "CUDA memory free finished with status " << cuda_free_mmap_status << std::endl;
+        CUresult free_status = cudaFreeMmap((uint64_t*)&dptr, size);
+        std::cout << "CUDA memory free finished with status " << free_status << std::endl;
         return nullptr;
     }
 
     return (void*)dptr;
 }
 
-bool cudaFreeMmap(uint64_t *ptr, size_t size)
+CUresult cudaFreeMmap(uint64_t *ptr, size_t size)
 {
     if (!ptr) {
-        return true;
+        return CUDA_SUCCESS;
     }
     std::cout << "CUDA cudaFreeMmap " << std::hex << *ptr << std::dec << std::endl;
     CUdeviceptr dptr = *(CUdeviceptr*)ptr;
@@ -346,19 +344,14 @@ bool cudaFreeMmap(uint64_t *ptr, size_t size)
     // va range will result in a fault (until it is re-mapped).
     status = cuMemUnmap(dptr, size);
     if (status != CUDA_SUCCESS) {
-        std::cout << "CUDA cuMemUnmap failed " << status << std::endl;
-        return false;
+        return status;
     }
     // Free the virtual address region.  This allows the virtual address region
     // to be reused by future cuMemAddressReserve calls.  This also allows the
     // virtual address region to be used by other allocation made through
     // Operating system calls like malloc & mmap.
     status = cuMemAddressFree(dptr, size);
-    if (status != CUDA_SUCCESS) {
-        std::cout << "CUDA cuMemAddressFree failed " << status << std::endl;
-        return false;
-    }
-    return true;
+    return status;
 }
 #endif
 
@@ -541,7 +534,7 @@ bool gpu_create_stream(gpu_stream* stream)
 bool gpu_destroy_stream(gpu_stream stream)
 {
     cudaError_t cuda_result = cudaStreamDestroy(stream.cuda_stream);
-    if (cuda_result != cudaSuccess) {
+    if (cuda_result != cudaSuccess && cuda_result != cudaErrorCudartUnloading) {
         std::cerr << "Failed to destroy CUDA stream: "
             << cudaGetErrorString(cuda_result) << std::endl;
         return false;
@@ -838,7 +831,7 @@ bool gpu_free_host_pinned_memory(void* ptr)
     }
 
     cudaError_t error = cudaFreeHost(ptr);
-    if (error != cudaSuccess) {
+    if (error != cudaSuccess && error != cudaErrorCudartUnloading) {
         std::cerr << "Failed to free GPU host pinned memory with error: "
                   << cudaGetErrorString(error) << std::endl;
         return false;
