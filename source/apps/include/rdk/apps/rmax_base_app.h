@@ -57,8 +57,8 @@ protected:
     RivermaxDevKitFacade& m_rivermax_dev_kit;
     /* Handle to Rivermax library */
     std::shared_ptr<void> m_rivermax_lib_handle = nullptr;
-    /* Stream per thread distribution */
     std::unordered_map<size_t, size_t> m_streams_per_thread;
+    /* Stream per thread distribution */
     /* Local NIC address */
     sockaddr_in m_local_address;
     /* Header memory allocator */

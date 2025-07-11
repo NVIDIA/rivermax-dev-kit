@@ -74,6 +74,8 @@ const char* CLIOptStr::VIDEO_RESOLUTION = "--vr,--video-resolution";
 const char* CLIOptStr::VIDEO_FRAME_RATE = "--vfr,--video-frame-rate";
 const char* CLIOptStr::VIDEO_SAMPLING = "--vs,--video-sampling";
 const char* CLIOptStr::VIDEO_BIT_DEPTH = "--vbd,--video-bit-depth";
+const char* CLIOptStr::ALPHA_BIT_DEPTH = "--abd,--alpha-bit-depth";
+const char* CLIOptStr::ENABLE_ALPHA = "--enable-alpha";
 const char* CLIOptStr::VIDEO_FILE = "--vf,--video-file";
 const char* CLIOptStr::DYNAMIC_FILE_LOADING = "--dfl,--dynamic-file-loading";
 
@@ -528,11 +530,31 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
             return parser->add_option(CLIOptStr::VIDEO_BIT_DEPTH,
-                                      app_settings->media.bit_depth,
+                                      app_settings->media.color_bit_depth,
                                       "Video bit depth")
                                       ->transform(CLI::CheckedTransformer(create_mapping_vector(
                                                   SUPPORTED_VIDEO_BIT_DEPTHS), CLI::ignore_case))
-                                      ->default_val(enum_to_string(ColorBitDepth::_10));
+                                      ->default_val(enum_to_string(VideoBitDepth::_10));
+        }
+    },
+    {
+        CLIOptStr::ALPHA_BIT_DEPTH,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::ALPHA_BIT_DEPTH,
+                                      app_settings->media.alpha_bit_depth,
+                                      "Alpha channel bit depth")
+                                      ->transform(CLI::CheckedTransformer(create_mapping_vector(
+                                                  SUPPORTED_VIDEO_BIT_DEPTHS), CLI::ignore_case));
+        }
+    },
+    {
+        CLIOptStr::ENABLE_ALPHA,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_flag(CLIOptStr::ENABLE_ALPHA,
+                                      app_settings->media.enable_alpha,
+                                      "Enable Alpha channel with default bit depth of main video");
         }
     },
     {

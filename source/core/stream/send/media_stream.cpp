@@ -30,22 +30,20 @@
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
-MediaStreamSettings::MediaStreamSettings(const TwoTupleFlow& local_address,
+MediaStreamSettings::MediaStreamSettings(const TwoTupleFlow& source_address,
+            const TwoTupleFlow& destination_address,
             const MediaSettings& media_settings,
-            size_t packets_per_chunk, uint16_t packet_payload_size,
-            size_t data_stride_size, size_t app_header_stride_size,
             uint8_t dscp, uint8_t pcp, uint8_t ecn) :
         IStreamSettings(s_build_steps),
-        m_local_address(local_address),
+        m_source_address(source_address),
+        m_destination_address(destination_address),
         m_media_settings(media_settings),
-        m_packets_per_chunk(packets_per_chunk),
-        m_packet_payload_size(packet_payload_size),
-        m_data_stride_size(data_stride_size),
-        m_app_header_stride_size(app_header_stride_size),
         m_dscp(dscp),
         m_pcp(pcp),
         m_ecn(ecn)
 {
+    m_sdp = m_media_settings.media_calc->compose_media_sdp(source_address.get_ip(), source_address.get_port(),
+        destination_address.get_ip(), destination_address.get_port());
 }
 
 IStreamSettings<MediaStreamSettings, rmx_output_media_stream_params>::SetterSequence MediaStreamSettings::s_build_steps{
@@ -66,21 +64,21 @@ void MediaStreamSettings::stream_param_init(rmx_output_media_stream_params& desc
 
 void MediaStreamSettings::stream_param_set_sdp(rmx_output_media_stream_params& descr)
 {
-    rmx_output_media_set_sdp(&descr, m_media_settings.sdp.c_str());
-    rmx_output_media_set_idx_in_sdp(&descr, m_media_settings.media_block_index);
+    rmx_output_media_set_sdp(&descr, m_sdp.c_str());
+    rmx_output_media_set_idx_in_sdp(&descr, m_media_settings.sdp_media_block_index);
 }
 
 void MediaStreamSettings::stream_param_set_packets_per_chunk(rmx_output_media_stream_params& descr)
 {
-    rmx_output_media_set_packets_per_chunk(&descr, m_packets_per_chunk);
+    rmx_output_media_set_packets_per_chunk(&descr, m_media_settings.packets_in_chunk);
 }
 
 void MediaStreamSettings::stream_param_set_stride_sizes(rmx_output_media_stream_params& descr)
 {
-    if (m_app_header_stride_size) {
-        rmx_output_media_set_stride_size(&descr, 0, m_app_header_stride_size);
+    if (m_media_settings.app_header_stride_size) {
+        rmx_output_media_set_stride_size(&descr, 0, m_media_settings.app_header_stride_size);
     }
-    rmx_output_media_set_stride_size(&descr, m_app_header_stride_size ? 1 : 0, m_data_stride_size);
+    rmx_output_media_set_stride_size(&descr, m_media_settings.app_header_stride_size ? 1 : 0, m_media_settings.data_stride_size);
 }
 
 void MediaStreamSettings::stream_param_set_packets_per_frame(rmx_output_media_stream_params& descr)
@@ -171,7 +169,7 @@ ReturnStatus MediaStreamMemBlockset::set_block_layout(size_t idx, uint16_t data_
 }
 
 MediaSendStream::MediaSendStream(const MediaStreamSettings& settings) :
-    ISendStream(settings.m_local_address),
+    ISendStream(settings.m_source_address),
     m_stream_settings(settings)
 {
     m_stream_settings.build(m_stream_settings, m_stream_params);
@@ -179,7 +177,7 @@ MediaSendStream::MediaSendStream(const MediaStreamSettings& settings) :
 }
 
 MediaSendStream::MediaSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks) :
-    ISendStream(settings.m_local_address),
+    ISendStream(settings.m_source_address),
     m_stream_settings(settings)
 {
     m_stream_settings.build(m_stream_settings, m_stream_params);
@@ -227,7 +225,7 @@ std::ostream& MediaSendStream::print(std::ostream& out) const
 
     out << "| SDP file: " << "\n"
         << "---------------------------------------------------------------------------------------" << "\n"
-        << m_stream_settings.m_media_settings.sdp << "\n"
+        << m_stream_settings.m_sdp << "\n"
         << "---------------------------------------------------------------------------------------" << "\n"
         << "+**********************************************\n";
 

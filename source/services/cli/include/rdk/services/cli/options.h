@@ -106,6 +106,8 @@ public:
     static const char* VIDEO_FRAME_RATE;
     static const char* VIDEO_SAMPLING;
     static const char* VIDEO_BIT_DEPTH;
+    static const char* ALPHA_BIT_DEPTH;
+    static const char* ENABLE_ALPHA;
     static const char* VIDEO_FILE;
     static const char* DYNAMIC_FILE_LOADING;
 };

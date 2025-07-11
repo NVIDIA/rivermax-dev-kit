@@ -96,11 +96,12 @@ enum class VideoSampling
     Unknown
 };
 /**
- * @brief: Enum class for color bit depth.
+ * @brief: Enum class for video bit depth
  *
  * This corresponds to the <depth> field in "a=fmtp" attribute in SDP as per SMPTE ST 2110-20.
+ * This attribute is applicable to the main video essence as well as to key/alpha channel.
  */
-enum class ColorBitDepth
+enum class VideoBitDepth
 {
     _8,
     _10,

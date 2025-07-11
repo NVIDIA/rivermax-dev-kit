@@ -26,6 +26,7 @@
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/services/utils/defs.h"
 #include "rdk/core/stream/send/media_stream.h"
+#include "rdk/services/media/media_defs.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::core;
@@ -66,7 +67,7 @@ void RtpVideoSendStream::prepare_chunk_to_send(MediaChunk& chunk)
     uint64_t stride = 0;
     byte_t* current_packet_pointer;
 
-    auto& media = m_stream_settings.m_media_settings;
+    const SMPTE_2110_20_MediaSettings& media = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_stream_settings.m_media_settings);
     while (stride < chunk_length && m_send_stats.packet_counter < media.packets_in_frame_field) {
         current_packet_pointer = header_pointer + (stride * header_stride_size);
         build_2110_20_rtp_header(current_packet_pointer);
@@ -109,9 +110,9 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
     buffer[12] = (m_send_stats.rtp_sequence >> 24) & 0xff;  // High 16 bits of Extended Sequence Number.
     buffer[13] = (m_send_stats.rtp_sequence >> 16) & 0xff;  // Low 16 bits of Extended Sequence Number.
-    *(uint16_t*)&buffer[14] = htons(m_stream_settings.m_packet_payload_size - 20);  // SRD Length.
+    *(uint16_t*)&buffer[14] = htons(m_stream_settings.m_media_settings.packet_payload_size - 20);  // SRD Length.
 
-    auto& media = m_stream_settings.m_media_settings;
+    const SMPTE_2110_20_MediaSettings& media = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_stream_settings.m_media_settings);
     uint16_t number_of_rows = media.resolution.height;
     if (media.video_scan_type == VideoScanType::Interlaced) {
         number_of_rows /= 2;
@@ -122,7 +123,7 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     buffer[16] |= (m_send_stats.rtp_interlace_field_indicator << 7);
 
     *(uint16_t*)&buffer[18] = htons(m_send_stats.srd_offset);  // SRD Offset.
-    uint16_t group_size = (uint16_t)((m_stream_settings.m_packet_payload_size - 20) / 2.5);
+    uint16_t group_size = (uint16_t)((m_stream_settings.m_media_settings.packet_payload_size - 20) / 2.5);
     m_send_stats.srd_offset = (m_send_stats.srd_offset + group_size) %
             (group_size * media.packets_in_line);
 
@@ -146,7 +147,7 @@ double RtpVideoSendStream::calculate_trs()
     double t_frame_ns;
     double r_active;
     uint32_t packets_in_frame;
-    auto& media = m_stream_settings.m_media_settings;
+    const SMPTE_2110_20_MediaSettings& media = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_stream_settings.m_media_settings);
 
     if (media.video_scan_type == VideoScanType::Progressive) {
         t_frame_ns = media.frame_field_time_interval_ns;
@@ -184,7 +185,7 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
 {
     double send_time_ns = static_cast<double>(time_now_ns + NS_IN_SEC);
     double t_frame_ns;
-    auto& media = m_stream_settings.m_media_settings;
+    const SMPTE_2110_20_MediaSettings& media = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_stream_settings.m_media_settings);
 
     if (media.video_scan_type == VideoScanType::Progressive) {
         t_frame_ns = media.frame_field_time_interval_ns;

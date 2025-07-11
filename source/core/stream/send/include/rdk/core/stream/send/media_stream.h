@@ -52,27 +52,20 @@ public:
     /**
      * @brief: MediaSendStream constructor.
      *
-     * @param [in] local_address: Network address of the stream.
+     * @param [in] source_address: Network address of the source.
+     * @param [in] destination_address: Network address of the destination.
      * @param [in] media_settings: Parameters of SMPTE-2110 media.
-     * @param [in] packets_per_chunk: Number of packets in each chunk.
-     * @param [in] packet_payload_size: Packet payload size in bytes.
-     * @param [in] data_stride_size: Number of bytes in Rivermax stride for data.
-     * @param [in] app_header_stride_size: Number of bytes in Rivermax stride for headers.
      * @param [in] dscp: DSCP value.
      * @param [in] pcp: PCP value.
      * @param [in] ecn: ECN value.
      */
-    MediaStreamSettings(const TwoTupleFlow& local_address, const MediaSettings& media_settings,
-            size_t packets_per_chunk, uint16_t packet_payload_size,
-            size_t data_stride_size, size_t app_header_stride_size = 0,
+    MediaStreamSettings(const TwoTupleFlow& source_address, const TwoTupleFlow& destination_address, const MediaSettings& media_settings,
             uint8_t dscp = 0, uint8_t pcp = 0, uint8_t ecn = 0);
     virtual ~MediaStreamSettings() = default;
-    TwoTupleFlow m_local_address;
-    MediaSettings m_media_settings;
-    size_t m_packets_per_chunk;
-    uint16_t m_packet_payload_size;
-    size_t m_data_stride_size;
-    size_t m_app_header_stride_size;
+    TwoTupleFlow m_source_address;
+    TwoTupleFlow m_destination_address;
+    const MediaSettings& m_media_settings;
+    std::string m_sdp;
     uint8_t m_dscp;
     uint8_t m_pcp;
     uint8_t m_ecn;
@@ -277,19 +270,19 @@ public:
      *
      * @return: Data stride size.
      */
-    virtual size_t get_data_stride_size() const { return m_stream_settings.m_data_stride_size; }
+    virtual size_t get_data_stride_size() const { return m_stream_settings.m_media_settings.data_stride_size; }
     /**
      * @brief: Returns header stride size of the stream buffer attributes.
      *
      * @return: Header stride size.
      */
-    virtual size_t get_app_header_stride_size() const { return m_stream_settings.m_app_header_stride_size; }
+    virtual size_t get_app_header_stride_size() const { return m_stream_settings.m_media_settings.app_header_stride_size; }
     /**
      * @brief: Returns status of Header-Data-Split mode.
      *
      * @return: true if Header-Data-Split mode is enabled.
      */
-    bool is_hds_on() const { return m_stream_settings.m_app_header_stride_size != 0; }
+    bool is_hds_on() const { return m_stream_settings.m_media_settings.app_header_stride_size != 0; }
     /**
      * @brief: Acquires the next free chunk of the stream.
      *

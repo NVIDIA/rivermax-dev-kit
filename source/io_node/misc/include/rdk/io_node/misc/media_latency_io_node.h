@@ -30,6 +30,7 @@
 #include "rdk/io_node/misc/generic_latency_io_node.h"
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/core/stream/send/generic_stream.h"
+#include "rdk/services/media/media_defs.h"
 
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
@@ -63,6 +64,7 @@ class MediaTxIONode: public LatencyIONode
 {
 protected:
     std::shared_ptr<AppSettings> m_app_settings;
+    const SMPTE_2110_20_MediaSettings& m_media_settings;
     std::shared_ptr<RtpVideoSendStream> m_send_stream;
     std::shared_ptr<ReceiveStream> m_receive_stream;
     StreamDimensions m_receive_dim;
@@ -77,12 +79,14 @@ public:
      * @brief: MediaLatencyIONode constructor.
      *
      * @param [in] settings: Latency measurement settings.
+     * @param [in] media_settings: SMPTE 2110-20 media settings configuration.
      * @param [in] header_mem_utils: Header Memory utilities.
      * @param [in] payload_mem_utils: Payload Memory utilities.
      * @param [in] time_handler_cb: Timer handler.
      */
     MediaTxIONode(
         const LatencyNodeSettings& settings,
+        const SMPTE_2110_20_MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb);
@@ -156,12 +160,14 @@ public:
      * @brief: FrameIONode constructor.
      *
      * @param [in] settings: Latency measurement settings.
+     * @param [in] media_settings: SMPTE 2110-20 media settings configuration.
      * @param [in] header_mem_utils: Header Memory utilities.
      * @param [in] payload_mem_utils: Payload Memory utilities.
      * @param [in] time_handler_cb: Timer handler.
      */
     MediaRxIONode(
         const LatencyNodeSettings& settings,
+        const SMPTE_2110_20_MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb);
@@ -184,6 +190,7 @@ public:
     }
 protected:
     std::shared_ptr<AppSettings> m_app_settings;
+    const SMPTE_2110_20_MediaSettings& m_media_settings;
 
     void prepare_send_buffer() override {}
     void send_receive() override {} /* This class cannot be a client */

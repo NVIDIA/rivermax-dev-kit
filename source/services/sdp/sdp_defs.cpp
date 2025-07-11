@@ -43,7 +43,7 @@ constexpr EnumNameArray<VideoSampling> EnumMapper<VideoSampling>::names = {
     "ICtCp-4:4:4", "ICtCp-4:2:2", "ICtCp-4:2:0", "RGB", "XYZ", "KEY"
 };
 template <>
-constexpr EnumNameArray<ColorBitDepth> EnumMapper<ColorBitDepth>::names = {
+constexpr EnumNameArray<VideoBitDepth> EnumMapper<VideoBitDepth>::names = {
     "8", "10", "12", "16", "16f"
 };
 template <>

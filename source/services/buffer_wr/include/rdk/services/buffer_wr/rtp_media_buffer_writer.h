@@ -108,7 +108,6 @@ class RTPMediaBufferWriter;
 typedef std::unordered_map<
     MediaBufferFactoryKey,
     std::function<std::unique_ptr<RTPMediaBufferWriter>(const MediaSettings& media_settings,
-        size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)>,
         MediaBufferFactoryKeyHash> rtp_media_buffer_writer_factory_map_t;
 
@@ -125,10 +124,7 @@ typedef std::unordered_map<
 class RTPMediaBufferWriter : public IBufferWriter
 {
 protected:
-    MediaSettings m_media_settings;
-    size_t m_app_header_stride_size = 0;
-    size_t m_data_stride_size = 0;
-    uint16_t m_packet_payload_size = 0;
+    const MediaSettings& m_media_settings;
     uint32_t m_ssrc = 0;
     RTPStreamSendStats m_send_data;
 private:
@@ -145,9 +141,6 @@ public:
      * @param [in] type: Stream type.
      * @param [in] contains_payload: Flag indicating whether the buffer contains payload.
      * @param [in] media_settings: Media settings.
-     * @param [in] app_header_stride_size: Size of the application header stride.
-     * @param [in] data_stride_size: Size of the data stride.
-     * @param [in] packet_payload_size: Size of the packet payload.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
      *
@@ -155,7 +148,6 @@ public:
      */
     static std::unique_ptr<RTPMediaBufferWriter> get_rtp_media_buffer_writer(
         MediaType type, bool contains_payload, const MediaSettings& media_settings,
-        size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     ReturnStatus write_buffer(void* payload_ptr, size_t length_in_strides) override;
     ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
@@ -178,14 +170,10 @@ protected:
      * @brief: Constructor for @ref RTPMediaBufferWriter.
      *
      * @param [in] media_settings: Media settings.
-     * @param [in] app_header_stride_size: Size of the application header stride.
-     * @param [in] data_stride_size: Size of the data stride.
-     * @param [in] packet_payload_size: Size of the packet payload.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
      */
     RTPMediaBufferWriter(const MediaSettings& media_settings,
-        size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     /**
      * @brief: Builds the complete RTP header.
@@ -226,7 +214,7 @@ protected:
      *
      * @return: true if Header-Data-Split mode is enabled.
      */
-    inline bool is_hds_on() const { return m_app_header_stride_size > 0; }
+    inline bool is_hds_on() const { return m_media_settings.app_header_stride_size > 0; }
 };
 
 } // namespace services

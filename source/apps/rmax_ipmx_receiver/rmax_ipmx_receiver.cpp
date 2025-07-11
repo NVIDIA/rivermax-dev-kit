@@ -192,7 +192,6 @@ void IPMXReceiverApp::initialize_rtcp_ionode_settings()
     m_rtcp_receiver_settings.header_data_split = false;
     m_rtcp_receiver_settings.packet_app_header_size = 0;
     m_rtcp_receiver_settings.packet_payload_size = PACKET_PAYLOAD_SIZE_DEFAULT;
-    m_rtcp_receiver_settings.num_of_memory_blocks = 1;
     m_rtcp_receiver_settings.num_of_chunks_in_mem_block = 1;
     m_rtcp_receiver_settings.num_of_chunks = 1;
     m_rtcp_receiver_settings.num_of_packets_in_chunk =

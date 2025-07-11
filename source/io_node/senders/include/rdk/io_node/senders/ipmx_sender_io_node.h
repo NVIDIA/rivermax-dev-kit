@@ -76,11 +76,7 @@ public:
         size_t sender_id,
         const TwoTupleFlow& src_address,
         const TwoTupleFlow& dst_address,
-        const MediaSettings& media_settings,
-        size_t chunks_in_mem_block,
-        size_t packets_in_chunk,
-        uint16_t packet_payload_size,
-        size_t data_stride_size);
+        const MediaSettings& media_settings);
     uint64_t calculate_send_time_ns(uint64_t earliest_start_time_ns);
     void set_initial_timestamps(uint64_t send_start_time, uint64_t report_trigger_time);
     ReturnStatus commit_sender_report();
@@ -113,11 +109,7 @@ protected:
     std::unique_ptr<MediaStreamMemBlockset> m_mem_blockset;
     std::unique_ptr<TwoTupleFlow> m_report_dst_flow;
     std::shared_ptr<SharedMessageHandler> m_report_chunk_handler;
-    MediaSettings m_media_settings;
-    size_t m_chunks_in_mem_block;
-    size_t m_packets_in_chunk;
-    uint16_t m_packet_payload_size;
-    size_t m_data_stride_size;
+    const MediaSettings& m_media_settings;
     uint64_t m_start_send_time_ns;
     uint64_t m_committed_reports;
     uint64_t m_finished_reports;
@@ -163,15 +155,12 @@ private:
     std::shared_ptr<GenericSendStream> m_rtcp_stream;
     std::shared_ptr<SharedMessageHandler> m_report_handler;
     std::shared_ptr<GenericChunk> m_rtcp_chunk_handle;
-    MediaSettings m_media_settings;
+    const MediaSettings& m_media_settings;
     size_t m_index;
     int m_sleep_between_operations;
     bool m_print_parameters;
+    uint32_t m_stats_report_interval_ms;
     int m_cpu_core_affinity;
-    uint16_t m_packet_payload_size;
-    size_t m_chunks_in_mem_block;
-    size_t m_packets_in_chunk;
-    size_t m_data_stride_size;
     size_t m_sender_report_buffer_size;
     rmx_mem_region m_report_mem_region;
     uint64_t m_start_send_time_ns;
@@ -182,6 +171,7 @@ public:
      * @param [in] src_address: Source address of network flow.
      * @param [in] dst_addresses: Destination addresses of network flows.
      * @param [in] app_settings: Application settings.
+     * @param [in] media_settings: Media settings.
      * @param [in] index: Index of the sender.
      * @param [in] cpu_core_affinity: CPU core affinity the sender will run on.
      */
@@ -189,6 +179,7 @@ public:
         const TwoTupleFlow& src_address,
         const std::vector<TwoTupleFlow>& dst_addresses,
         std::shared_ptr<AppSettings>& app_settings,
+        const MediaSettings& media_settings,
         size_t index, int cpu_core_affinity);
     virtual ~IPMXSenderIONode() = default;
     /**

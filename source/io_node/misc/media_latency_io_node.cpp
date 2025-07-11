@@ -31,6 +31,7 @@
 #include "rdk/io_node/misc/media_latency_io_node.h"
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/media/media.h"
+#include "rdk/services/media/video_calc.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/core/stream/send/generic_stream.h"
 
@@ -46,11 +47,13 @@ static constexpr size_t LAST_CHUNKS_SKIP_NUM = 1;
 
 MediaTxIONode::MediaTxIONode(
         const LatencyNodeSettings& settings,
+        const SMPTE_2110_20_MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb
     ) : LatencyIONode(settings, std::move(header_mem_utils), std::move(payload_mem_utils), std::move(time_handler_cb)),
     m_app_settings(settings.app),
+    m_media_settings(media_settings),
     m_receive_dim(StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1, 0, MEDIA_TX_REPLY_SIZE)),
     m_hw_queue_full_sleep_us(settings.app->hw_queue_full_sleep_us),
     m_send_data_stride_size(0),
@@ -64,30 +67,12 @@ MediaTxIONode::MediaTxIONode(
 
 ReturnStatus MediaTxIONode::initialize_send_stream()
 {
-    m_app_settings->num_of_total_streams = 1;
-    m_app_settings->num_of_memory_blocks = 1;
-    m_app_settings->media.frames_fields_in_mem_block = 2;
-    auto rc = initialize_media_settings(*m_app_settings);
-    if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to initialize media settings" << std::endl;
-        return rc;
-    }
-    m_app_settings->num_of_chunks = m_app_settings->num_of_chunks_in_mem_block *
-                                    m_app_settings->num_of_memory_blocks;
-    if (m_gpu_direct_tx && (m_app_settings->packet_app_header_size == 0)) {
-        m_app_settings->packet_app_header_size = RTP_HEADER_SIZE;
-        m_app_settings->packet_payload_size -= RTP_HEADER_SIZE;
-    }
-    m_send_data_stride_size = align_up_pow2(m_app_settings->packet_payload_size,
-                                            get_cache_line_size());
-    m_send_header_stride_size = align_up_pow2(m_app_settings->packet_app_header_size,
-                                            get_cache_line_size());
+    m_send_data_stride_size = m_media_settings.data_stride_size;
+    m_send_header_stride_size = m_media_settings.app_header_stride_size;
     auto network_address = TwoTupleFlow(0, m_network_address.get_source_ip(),
                                         m_network_address.get_source_port());
 
-    MediaStreamSettings stream_settings(network_address, m_app_settings->media,
-            m_app_settings->num_of_packets_in_chunk, m_app_settings->packet_payload_size,
-            m_send_data_stride_size, m_send_header_stride_size);
+    MediaStreamSettings stream_settings(network_address, m_send_flow, m_media_settings);
     m_send_stream = std::shared_ptr<RtpVideoSendStream>(new RtpVideoSendStream(stream_settings));
     return ReturnStatus::success;
 }
@@ -99,10 +84,12 @@ ReturnStatus MediaTxIONode::query_memory_size(size_t& tx_header_size, size_t& tx
         return ReturnStatus::failure;
     }
 
-    tx_header_size = m_send_header_stride_size * m_app_settings->num_of_packets_in_chunk *
-                     m_app_settings->num_of_chunks;
-    tx_payload_size = m_send_data_stride_size * m_app_settings->num_of_packets_in_chunk *
-                     m_app_settings->num_of_chunks;
+    tx_header_size = m_send_header_stride_size * m_media_settings.packets_in_chunk *
+                     m_media_settings.chunks_in_frame_field *
+                     m_media_settings.frames_fields_in_mem_block;
+    tx_payload_size = m_send_data_stride_size * m_media_settings.packets_in_chunk *
+                     m_media_settings.chunks_in_frame_field *
+                     m_media_settings.frames_fields_in_mem_block;
     return ReturnStatus::success;
 };
 
@@ -119,24 +106,27 @@ void MediaTxIONode::distribute_memory_for_streams(rmx_mem_region& tx_header_mreg
                                   reinterpret_cast<byte_t*>(rx_payload_mreg.addr));
     m_send_mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
             new MediaStreamMemBlockset(1,
-                                       m_app_settings->packet_app_header_size == 0 ? 1 : 2,
-                                       m_app_settings->num_of_chunks_in_mem_block));
+                                       m_media_settings.packet_app_header_size == 0 ? 1 : 2,
+                                       m_media_settings.chunks_in_mem_block));
 
-    if (m_app_settings->packet_app_header_size) {
+    if (m_media_settings.packet_app_header_size) {
         m_send_mem_blockset->set_block_memory(0, 0, tx_header_mreg.addr, tx_header_mreg.length,
                                               tx_payload_mreg.mkey);
         m_send_mem_blockset->set_block_memory(0, 1, tx_payload_mreg.addr, tx_payload_mreg.length,
                                               tx_payload_mreg.mkey);
-        m_send_block_header_sizes.resize(m_app_settings->num_of_packets_in_mem_block,
-                                      m_app_settings->packet_app_header_size);
+        m_send_block_header_sizes.resize(m_media_settings.packets_in_chunk *
+            m_media_settings.chunks_in_mem_block,
+            m_media_settings.packet_app_header_size);
     } else {
-        m_send_mem_blockset->set_block_memory(0, 0, tx_payload_mreg.addr, tx_payload_mreg.length,
-                                              tx_payload_mreg.mkey);
+      m_send_mem_blockset->set_block_memory(0, 0, tx_payload_mreg.addr,
+                                            tx_payload_mreg.length,
+                                            tx_payload_mreg.mkey);
     }
-    m_send_block_payload_sizes.resize(m_app_settings->num_of_packets_in_mem_block,
-                                      m_app_settings->packet_payload_size);
+    m_send_block_payload_sizes.resize(m_media_settings.packets_in_chunk *
+        m_media_settings.chunks_in_mem_block,
+        m_media_settings.packet_payload_size);
     m_send_mem_blockset->set_block_layout(0, m_send_block_payload_sizes.data(),
-                                          m_app_settings->packet_app_header_size ?
+                                          m_media_settings.packet_app_header_size ?
                                           m_send_block_header_sizes.data() : nullptr);
     m_send_stream->assign_memory_blocks(*m_send_mem_blockset.get());
 }
@@ -259,7 +249,7 @@ void MediaTxIONode::send_receive()
     ReturnStatus rc;
     m_chunk_handler = std::unique_ptr<MediaChunk>(
             new MediaChunk(m_send_stream->get_id(),
-                           m_app_settings->num_of_packets_in_chunk,
+                           m_media_settings.packets_in_chunk,
                            m_send_stream->is_hds_on()));
     ReceiveChunk receive_chunk(m_receive_stream->get_id(), false);
     m_receive_stream->set_completion_moderation(1, 1, WAIT_SERVER_REPLY_USEC);
@@ -268,12 +258,11 @@ void MediaTxIONode::send_receive()
     m_start_send_time_ns = m_send_stream->calculate_send_time_ns(start_time_ns);
     size_t committed_frame_field_counter = 0;
     size_t completed_frame_field_counter = 0;
-    auto& media_settings = m_app_settings->media;
 
     /* scheduled send time of the first packet of the field that will be committed next */
     auto get_send_time_of_next_field_ns = [&]() { return (
         m_start_send_time_ns
-        + media_settings.frame_field_time_interval_ns
+        + m_media_settings.frame_field_time_interval_ns
         * committed_frame_field_counter);
     };
 
@@ -281,7 +270,7 @@ void MediaTxIONode::send_receive()
        will be polled next, to be ready */
     auto get_finish_time_of_next_field_ns = [&]() { return (
         m_start_send_time_ns
-        + media_settings.frame_field_time_interval_ns
+        + m_media_settings.frame_field_time_interval_ns
         * (completed_frame_field_counter + 1));
     };
 
@@ -292,8 +281,8 @@ void MediaTxIONode::send_receive()
     m_handled_token = 0;
     rc = ReturnStatus::success;
 
-    m_commit_ts.reserve(m_app_settings->media.frames_fields_in_mem_block *
-                       m_app_settings->media.chunks_in_frame_field);
+    m_commit_ts.reserve(m_media_settings.frames_fields_in_mem_block *
+                       m_media_settings.chunks_in_frame_field);
 
     LatencyStats tx_delay("Tx latency", m_percentiles);
 
@@ -307,7 +296,7 @@ void MediaTxIONode::send_receive()
 
         bool is_time_to_fetch_completions = (ts_now >= scheduled_next_field_complete_time_ns);
         bool is_place_to_commit = (committed_frame_field_counter - completed_frame_field_counter) <
-                                  media_settings.frames_fields_in_mem_block;
+                                  m_media_settings.frames_fields_in_mem_block;
 
         if (!is_time_to_fetch_completions && !is_place_to_commit) {
             wait_for_next_frame(scheduled_next_field_complete_time_ns);
@@ -332,8 +321,8 @@ void MediaTxIONode::send_receive()
                 if (--fetch_budget == 0) {
                     break;
                 }
-            } while (completion_in_field_counter < media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM);
-            if (completion_in_field_counter == media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM) {
+            } while (completion_in_field_counter < m_media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM);
+            if (completion_in_field_counter == m_media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM) {
                 completed_frame_field_counter++;
                 completion_in_field_counter = 0;
             }
@@ -355,7 +344,7 @@ void MediaTxIONode::send_receive()
                 m_send_stream->prepare_chunk_to_send(*m_chunk_handler);
                 uint64_t chunk_scheduled_time_ns = static_cast<uint64_t>(
                         scheduled_next_field_start_time_ns +
-                        chunk_in_field_counter * m_app_settings->num_of_packets_in_chunk * m_trs);
+                        chunk_in_field_counter * m_media_settings.packets_in_chunk * m_trs);
                 m_commit_ts[m_marked_token % m_commit_ts.capacity()] = chunk_scheduled_time_ns;
                 uint64_t commit_timestamp_ns = 0;
                 if (unlikely(chunk_in_field_counter == 0)) {
@@ -365,7 +354,7 @@ void MediaTxIONode::send_receive()
                 }
 
                 bool is_this_chunk_tracked =
-                    (chunk_in_field_counter < media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM);
+                    (chunk_in_field_counter < m_media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM);
                 if (is_this_chunk_tracked) {
                     rc = m_chunk_handler->mark_for_tracking(m_marked_token);
                     if (rc != ReturnStatus::success) {
@@ -395,9 +384,9 @@ void MediaTxIONode::send_receive()
                     break;
                 }
             } while (likely(rc == ReturnStatus::success &&
-                            chunk_in_field_counter < media_settings.chunks_in_frame_field));
+                            chunk_in_field_counter < m_media_settings.chunks_in_frame_field));
 
-            if (chunk_in_field_counter == media_settings.chunks_in_frame_field) {
+            if (chunk_in_field_counter == m_media_settings.chunks_in_frame_field) {
                 committed_frame_field_counter++;
                 chunk_in_field_counter = 0;
             }
@@ -415,7 +404,7 @@ void MediaTxIONode::send_receive()
 
     while (m_handled_token != m_marked_token) {
         if (get_time_now_ns() > scheduled_next_field_start_time_ns +
-                                media_settings.frame_field_time_interval_ns) {
+                                m_media_settings.frame_field_time_interval_ns) {
             std::cerr << "Tx completion timeout!" << std::endl;
             break;
         }
@@ -430,7 +419,7 @@ void MediaTxIONode::send_receive()
     }
 
     std::cout << "Tracked " << m_handled_token << " chunks of "
-              << m_app_settings->num_of_packets_in_chunk << " packets\n";
+              << m_media_settings.packets_in_chunk << " packets\n";
     std::cout <<  "Tx completion delay relative to scheduled packet send time.\n";
     tx_delay.calc_percentiles();
     std::cout << "\nAll values are in nanoseconds.\n\n";
@@ -480,7 +469,7 @@ ReturnStatus MediaTxIONode::try_process_one_completion(LatencyStats &tx_delay)
         return ReturnStatus::failure;
     }
     int64_t delta = tx_hw_timestamp - m_commit_ts[m_handled_token % m_commit_ts.capacity()] -
-                    static_cast<uint64_t>((m_app_settings->num_of_packets_in_chunk - 1 )* m_trs);
+                    static_cast<uint64_t>((m_media_settings.packets_in_chunk - 1 )* m_trs);
     tx_delay.update(delta);
     m_handled_token++;
     return ReturnStatus::success;
@@ -503,6 +492,7 @@ bool MediaTxIONode::parse_receive_timing(ReceiveChunk& chunk, MediaRxLatencyRepl
 
 MediaRxIONode::MediaRxIONode(
         const LatencyNodeSettings& settings,
+        const SMPTE_2110_20_MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t get_time_ns_cb
@@ -511,19 +501,18 @@ MediaRxIONode::MediaRxIONode(
                 StreamDimensions(DEFAULT_NUM_OF_SEND_CHUNKS, 1, 0, MEDIA_TX_REPLY_SIZE),
                 StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1, 0, DEFAULT_RESPONSE_SIZE),
                 std::move(header_mem_utils), std::move(payload_mem_utils), std::move(get_time_ns_cb)),
-    m_app_settings(settings.app)
+    m_app_settings(settings.app),
+    m_media_settings(media_settings)
 {
-    m_app_settings->num_of_total_streams = 1;
-    m_app_settings->media.frames_fields_in_mem_block = 1;
-    auto rc = initialize_media_settings(*m_app_settings);
+    ReturnStatus rc = ReturnStatus::success;
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to initialize media settings" << std::endl;
         throw std::runtime_error("Failed to initialize media settings");
     }
-    m_receive_dim.header_size = m_app_settings->packet_app_header_size;
-    m_receive_dim.payload_size = m_app_settings->packet_payload_size;
-    m_receive_dim.num_of_chunks = m_app_settings->num_of_chunks_in_mem_block;
-    m_receive_dim.num_of_packets_in_chunk = m_app_settings->num_of_packets_in_chunk;
+    m_receive_dim.header_size = m_media_settings.packet_app_header_size;
+    m_receive_dim.payload_size = m_media_settings.packet_payload_size;
+    m_receive_dim.num_of_chunks = m_media_settings.chunks_in_frame_field;
+    m_receive_dim.num_of_packets_in_chunk = m_media_settings.packets_in_chunk;
 }
 
 void MediaRxIONode::compose_reply(std::shared_ptr<GenericChunk> commit_chunk, const LatencyStats& stats,
@@ -591,10 +580,10 @@ uint64_t MediaRxIONode::calc_next_frame_start(uint64_t last_pkt_ts)
     double send_time_ns = static_cast<double>(last_pkt_ts);
     double t_frame_ns;
 
-    if (m_app_settings->media.video_scan_type == VideoScanType::Progressive) {
-        t_frame_ns = m_app_settings->media.frame_field_time_interval_ns;
+    if (m_media_settings.video_scan_type == VideoScanType::Progressive) {
+        t_frame_ns = m_media_settings.frame_field_time_interval_ns;
     } else {
-        t_frame_ns = m_app_settings->media.frame_field_time_interval_ns * 2;
+        t_frame_ns = m_media_settings.frame_field_time_interval_ns * 2;
     }
 
     uint64_t N = static_cast<uint64_t>(send_time_ns / t_frame_ns) + 1;
@@ -617,7 +606,8 @@ void MediaRxIONode::receive_send()
     uint64_t measure_cnt = 0;
     double tro;
     double trs;
-    calculate_tro_trs(m_app_settings->media, tro, trs);
+
+    m_media_settings.media_calc->calculate_tro_trs(tro, trs);
 
     while (rc != ReturnStatus::failure && rc != ReturnStatus::signal_received &&
                   SignalHandler::get_received_signal() < 0) {
@@ -704,7 +694,7 @@ void MediaRxIONode::receive_send()
                     dropped_pkt_cnt += sequence_number - (last_seq_num + 1);
                 }
                 uint32_t pkt_idx_in_frame = sequence_number - frame_first_seq_num;
-                if (pkt_idx_in_frame >= m_app_settings->media.packets_in_frame_field) {
+                if (pkt_idx_in_frame >= m_media_settings.packets_in_frame_field) {
                     std::cerr << "Invalid packet index in frame " << pkt_idx_in_frame << std::endl;
                     rx_latency.reset();
                     rx_state = RxState::syncing;

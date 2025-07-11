@@ -1,0 +1,119 @@
+/*
+ * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
+ * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef RDK_SERVICES_MEDIA_VIDEO_CALC_H_
+#define RDK_SERVICES_MEDIA_VIDEO_CALC_H_
+
+#include <cstddef>
+#include <chrono>
+#include <cstdint>
+#include <vector>
+#include <unordered_map>
+#include <functional>
+#include <memory>
+
+#include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/sdp/sdp.h"
+#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_calc.h"
+
+namespace rivermax
+{
+namespace dev_kit
+{
+namespace services
+{
+
+/**
+ * @brief: SMPTE 2110-20 video media settings calculator.
+ *
+ * This class implements the media settings calculator for SMPTE 2110-20 video streams.
+ * It provides methods to calculate video-specific media settings and compose SDP descriptions
+ * according to the SMPTE 2110-20 standard.
+ */
+class ST_2110_20_MediaSettingsCalculator : public MediaSettingsCalculator
+{
+public:
+    /**
+     * @brief: ST_2110_20_MediaSettingsCalculator constructor.
+     *
+     * @param [in] media_settings: Reference to the media settings to configure.
+     * @param [in] extra_parameters: Optional vector of format-specific parameters.
+     */
+    ST_2110_20_MediaSettingsCalculator(MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters = {}) :
+        MediaSettingsCalculator(media_settings, extra_parameters) {}
+    /**
+     * @brief: Virtual destructor.
+     */
+    virtual ~ST_2110_20_MediaSettingsCalculator() = default;
+    /**
+     * @brief: Calculates media settings for SMPTE 2110-20 video.
+     *
+     * This method performs all necessary calculations to configure the media settings
+     * for a SMPTE 2110-20 video stream, including timing, packetization, and memory layout.
+     *
+     * @return: Status of the calculation operation.
+     */
+    virtual ReturnStatus calculate_media_settings() override;
+    /**
+     * @brief: Composes SDP description for SMPTE 2110-20 video.
+     *
+     * This method generates a Session Description Protocol (SDP) description string
+     * for the SMPTE 2110-20 video stream with the specified network parameters.
+     *
+     * @param [in] source_ip: Source IP address for the stream.
+     * @param [in] source_port: Source port number for the stream.
+     * @param [in] destination_ip: Destination IP address for the stream.
+     * @param [in] destination_port: Destination port number for the stream.
+     *
+     * @return: SDP description string for the video stream.
+     */
+    virtual std::string compose_media_sdp(const std::string& source_ip, const uint16_t source_port,
+        const std::string& destination_ip, const uint16_t destination_port) override;
+    /**
+     * @brief: Gets the media type name.
+     *
+     * @return: String representation of the SMPTE 2110-20 video media type.
+     */
+    virtual std::string get_media_type_name() const override;
+    /**
+     * @brief: Calculates TRO and TRS based on SMPTE 2110-21 standard.
+     *
+     * This method is responsible to calculate TRO and TRS based on the SMPTE 2110-21 standard
+     * using the instance's media settings.
+     *
+     * @param [out] tro: The calculated TRO.
+     * @param [out] trs: The calculated TRS.
+     */
+    void calculate_tro_trs(double& tro, double& trs) override;
+    /**
+     * @brief: Check if the given sampling type and bit depth are supported.
+     *
+     * @param [in] sampling: The video sampling type.
+     * @param [in] bit_depth: The color bit depth.
+     *
+     * @return: True if the sampling type and bit depth are supported, false otherwise.
+     */
+    static bool is_bit_depth_supported(VideoSampling sampling, VideoBitDepth bit_depth);
+};
+
+} // namespace services
+} // namespace dev_kit
+} // namespace rivermax
+
+#endif /* RDK_SERVICES_MEDIA_VIDEO_CALC_H_ */

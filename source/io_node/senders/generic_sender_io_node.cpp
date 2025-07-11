@@ -82,7 +82,6 @@ GenericSenderIONode::GenericSenderIONode(
     std::shared_ptr<AppSettings> app_settings,
     size_t index, size_t num_of_streams, int cpu_core_affinity,
     std::shared_ptr<MemoryUtils> mem_utils) :
-    m_media_settings(app_settings->media),
     m_index(index),
     m_num_of_streams(num_of_streams),
     m_sleep_between_operations_us(app_settings->sleep_between_operations_us),

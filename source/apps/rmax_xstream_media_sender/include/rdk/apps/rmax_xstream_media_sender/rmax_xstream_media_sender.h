@@ -20,6 +20,9 @@
 #define RDK_APPS_RMAX_XSTREAM_MEDIA_SENDER_RMAX_XSTREAM_MEDIA_SENDER_H_
 
 #include "rdk/apps/rmax_base_app.h"
+#include <memory>
+#include <functional>
+#include <unordered_map>
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;
@@ -41,7 +44,11 @@ struct MediaSenderSettings : AppSettings
 public:
     static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD = 16;
     static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_UHD = 32;
+    static constexpr uint32_t DEFAULT_FIELDS_IN_MEM_BLOCK = 10;
     void init_default_values() override;
+    std::unordered_set<SMPTEStandard> enabled_media_types;
+    std::vector<std::unique_ptr<MediaSettings>>media_type_configs;
+    std::vector<std::pair<const MediaSettings&, size_t>> media_types_to_nodes;
 };
 
 /**
@@ -98,6 +105,13 @@ private:
     size_t m_num_paths_per_stream = 1;
     /* Network send flows */
     std::vector<TwoTupleFlow> m_flows;
+    /**
+     * @brief: Media type configuration function map.
+     *
+     * This static map contains functions for configuring different media types.
+     * Each SMPTEStandard enum value maps to a function that configures that specific media type.
+     */
+    static const std::unordered_map<SMPTEStandard, std::function<void(MediaSenderApp*)>> s_media_type_config_map;
 public:
     /**
      * @brief: MediaSenderApp class constructor.
@@ -107,6 +121,15 @@ public:
     MediaSenderApp(std::shared_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder);
     virtual ~MediaSenderApp() = default;
     ReturnStatus run() override;
+    /**
+     * @brief: Initializes media types configuration.
+     *
+     * This method is responsible for initializing the configuration of different media types
+     * that will be used by the sender application.
+     *
+     * @return: Status of the operation.
+     */
+    ReturnStatus initialize_media_types();
     ReturnStatus initialize() override;
     /**
      * @brief: Sets the frame provider for the specified stream index.
@@ -126,6 +149,39 @@ private:
     ReturnStatus initialize_memory_strategy() override;
     ReturnStatus set_rivermax_clock() override;
     ReturnStatus initialize_connection_parameters() final;
+
+    /**
+     * @brief: Configures video types processing.
+     *
+     * This method is responsible for configuring video media types processing
+     * for the sender application.
+     */
+    void configure_video_types();
+    /**
+     * @brief: Configures audio types processing.
+     *
+     * This method is responsible for configuring audio media types processing
+     * for the sender application.
+     */
+    void configure_audio_types();
+    /**
+     * @brief: Configures ancillary types processing.
+     *
+     * This method is responsible for configuring ancillary media types processing
+     * for the sender application.
+     */
+    void configure_ancillary_types();
+    /**
+     * @brief: Distributes streams across threads.
+     *
+     * This method is responsible for distributing streams across threads based on
+     * the number of threads and minimum streams per thread requirements.
+     *
+     * @param [in] num_of_threads: Number of threads to distribute streams across.
+     * @param [in] min_streams_per_thread: Minimum number of streams per thread.
+     * @param [in] media_settings: Media settings configuration.
+     */
+    void distribute_streams_across_threads(size_t num_of_threads, size_t min_streams_per_thread, const MediaSettings& media_settings);
     /**
      * @brief: Initializes network send flows.
      *
@@ -144,7 +200,7 @@ private:
      * In future development, this can be extended to different
      * streams per thread distribution policies.
      */
-    void distribute_work_for_threads();
+    void configure_media_types_processing();
     /**
      * @brief: Initializes sender threads.
      *

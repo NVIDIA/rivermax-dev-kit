@@ -47,10 +47,8 @@ struct SRDHeader {
  };
 
  RTPVideoMockBufferWriter::RTPVideoMockBufferWriter(const MediaSettings& media_settings,
-    size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-    RTPMediaBufferWriter(media_settings, app_header_stride_size, data_stride_size,
-        packet_payload_size, std::move(header_mem_utils), std::move(payload_mem_utils))
+    RTPMediaBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils))
 {
     set_stream_properties();
 }
@@ -71,17 +69,18 @@ void RTPVideoMockBufferWriter::reset_in_frame_state()
 
 inline void RTPVideoMockBufferWriter::update_in_frame_state()
 {
-    m_send_data.srd_offset = (m_send_data.srd_offset + m_media_settings.pixels_per_packet) %
-        (m_media_settings.resolution.width);
-    if (!((m_send_data.packet_counter + 1) % m_media_settings.packets_in_line)) {
+    auto& video_settings = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    m_send_data.srd_offset = (m_send_data.srd_offset + video_settings.pixels_per_packet) %
+        (video_settings.resolution.width);
+    if (!((m_send_data.packet_counter + 1) % video_settings.packets_in_line)) {
         // Prepare line number for next iteration:
-        m_send_data.line_number = (m_send_data.line_number + 1) % m_media_settings.lines_in_frame_field;
+        m_send_data.line_number = (m_send_data.line_number + 1) % video_settings.lines_in_frame_field;
     }
-    if (++m_send_data.packet_counter == m_media_settings.packets_in_frame_field) {
+    if (++m_send_data.packet_counter == video_settings.packets_in_frame_field) {
         // ST2210-20: the timestamp SHOULD be the same for each packet of the frame/field.
-        m_send_data.rtp_timestamp += static_cast<uint32_t>(m_media_settings.ticks_per_frame);
+        m_send_data.rtp_timestamp += static_cast<uint32_t>(video_settings.ticks_per_frame);
         m_send_data.packet_counter = 0;
-        if (m_media_settings.video_scan_type == VideoScanType::Interlaced) {
+        if (video_settings.video_scan_type == VideoScanType::Interlaced) {
             m_send_data.rtp_interlace_field_indicator = !m_send_data.rtp_interlace_field_indicator;
         }
 
@@ -99,13 +98,13 @@ size_t RTPVideoMockBufferWriter::build_rtp_header_2110_20_extension(byte_t* buff
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     |F|     SRD Row Number          |C|         SRD Offset          |
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
-
+    auto& video_settings = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
     uint16_t extended_sequence_number = htons(static_cast<uint16_t>(m_send_data.rtp_sequence >> 16));
     memcpy(buffer, &extended_sequence_number, sizeof(extended_sequence_number));
     SRDHeader *srd = reinterpret_cast<SRDHeader*>(buffer + RTP_HEADER_EXT_SEQ_NUM_SIZE);
-    srd->srd_length = htons(static_cast<uint16_t>(m_media_settings.raw_packet_payload_size));
+    srd->srd_length = htons(static_cast<uint16_t>(video_settings.raw_packet_payload_size));
 
-    srd->set_srd_row_number(m_send_data.line_number % m_media_settings.lines_in_frame_field);
+    srd->set_srd_row_number(m_send_data.line_number % video_settings.lines_in_frame_field);
     srd->f = m_send_data.rtp_interlace_field_indicator;
     srd->set_srd_offset(m_send_data.srd_offset);
     srd->c = 0;
@@ -166,13 +165,13 @@ ReturnStatus RTPVideoBufferWriter::write_buffer(void* header_ptr, void* payload_
     }
 
     for (size_t i = 0; i < packets_to_process; i++) {
-        byte_t* current_packet_pointer = header_pointer + (i * m_app_header_stride_size);
+        byte_t* current_packet_pointer = header_pointer + (i * m_media_settings.app_header_stride_size);
         build_rtp_header(current_packet_pointer);
         update_in_frame_state();
     }
 
     byte_t* frame_ptr = m_current_frame->data->get() + (m_current_frame->data->get_size() - m_data_left_in_frame);
-    auto status = m_payload_mem_utils->memory_copy_2D(payload_pointer, m_data_stride_size,
+    auto status = m_payload_mem_utils->memory_copy_2D(payload_pointer, m_media_settings.data_stride_size,
         frame_ptr, m_media_settings.raw_packet_payload_size,
         m_media_settings.raw_packet_payload_size, packets_to_process, m_current_frame->data->get_memory_location());
 

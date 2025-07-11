@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+#include <iomanip>
+#include <sstream>
 #include <thread>
 #include <cstddef>
 #include <vector>
@@ -25,17 +27,18 @@
 #include <cstring>
 
 #include <rivermax_api.h>
+#include "rdk/services/media/media_defs.h"
 #include "rt_threads.h"
 
 #include "rdk/io_node/senders/media_sender_io_node.h"
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/cpu/cpu.h"
+#include "rdk/services/media/media.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
-constexpr size_t MediaSenderIONode::DEFAULT_NUMBER_OF_MEM_BLOCKS;
 constexpr size_t MediaSenderIONode::DEFAULT_PRINT_TIME_INTERVAL_MS;
 
 static void replace_all(
@@ -83,39 +86,34 @@ static inline void replace_all(
 
 MediaSenderIONode::MediaSenderIONode(
         const FourTupleFlow& network_address,
-        std::shared_ptr<AppSettings> app_settings,
+        const AppSettings& app_settings,
+        const MediaSettings& media_settings,
         size_t index, size_t num_of_streams, int cpu_core_affinity,
         IONodeMemoryUtils& memory_utils,
         time_handler_ns_cb_t time_hanlder_cb) :
     m_stream_packs(num_of_streams),
-    m_media_settings(app_settings->media),
-    m_video_file(app_settings->video_file),
+    m_media_settings(media_settings),
+    m_video_file(app_settings.video_file),
     m_index(index),
     m_network_address(network_address),
-    m_sleep_between_operations(app_settings->sleep_between_operations),
-    m_print_parameters(app_settings->print_parameters),
+    m_sleep_between_operations(app_settings.sleep_between_operations),
+    m_print_parameters(app_settings.print_parameters),
+    m_stats_report_interval_ms(app_settings.stats_report_interval_ms),
     m_cpu_core_affinity(cpu_core_affinity),
-    m_hw_queue_full_sleep_us(app_settings->hw_queue_full_sleep_us),
+    m_hw_queue_full_sleep_us(app_settings.hw_queue_full_sleep_us),
     m_memory_utils(memory_utils),
-    m_num_of_memory_blocks(app_settings->num_of_memory_blocks),
-    m_num_of_chunks_in_mem_block(app_settings->num_of_chunks_in_mem_block),
-    m_packet_header_size(app_settings->packet_app_header_size),
-    m_packet_payload_size(app_settings->packet_payload_size),
-    m_num_of_packets_in_chunk(app_settings->num_of_packets_in_chunk),
-    m_num_of_packets_in_mem_block(app_settings->num_of_packets_in_mem_block),
-    m_app_header_stride_size(align_up_pow2(m_packet_header_size, get_cache_line_size())),
-    m_data_stride_size(align_up_pow2(m_packet_payload_size, get_cache_line_size())),
+    m_num_of_mem_blocks(DEFAULT_NUMBER_OF_MEM_BLOCKS),
+    m_block_header_memory_size(0),
+    m_block_payload_memory_size(0),
     m_header_total_memory_size(0),
     m_payload_total_memory_size(0),
-    m_block_payload_memory_size(0),
-    m_block_header_memory_size(0),
     m_dscp(0), m_pcp(0), m_ecn(0),
     m_get_time_ns_cb(std::move(time_hanlder_cb)),
-    m_gpu_enabled(app_settings->gpu_id != INVALID_GPU_ID),
-    m_dynamic_video_file_load(app_settings->dynamic_video_file_load)
+    m_gpu_enabled(app_settings.gpu_id != INVALID_GPU_ID),
+    m_dynamic_video_file_load(app_settings.dynamic_video_file_load),
+    m_synchronizer(nullptr)
 {
     m_stream_packs.resize(num_of_streams);
-    m_num_of_memory_blocks = DEFAULT_NUMBER_OF_MEM_BLOCKS;
     initialize_memory_layout();
 }
 
@@ -150,58 +148,45 @@ void MediaSenderIONode::initialize_send_flows(const std::vector<TwoTupleFlow>& f
 
 void MediaSenderIONode::initialize_streams()
 {
-    // TODO: Update this when adding SDP parser.
-    std::string sender_sdp = m_media_settings.sdp;
-    constexpr size_t flow_index = 0;  // For now, there is one flow per stream.
+    constexpr size_t flow_index = 0;  // For now, there is one flow per Tx stream.
     std::string destination_ip;
     uint16_t destination_port;
-    std::string stream_sdp;
     size_t stream_idx = 0;
 
     for (auto& stream_pack : m_stream_packs) {
-        stream_sdp = sender_sdp;
-        destination_ip = stream_pack.flows[flow_index].get_ip();
-        destination_port = stream_pack.flows[flow_index].get_port();
-
-        // Update destination IP and port in the SDP file:
-        replace_all(stream_sdp, "c=IN IP4 ", destination_ip, "/");
-        replace_all(stream_sdp, "incl IN IP4 ", destination_ip, " ");
-        replace_all(stream_sdp, "m=video ", std::to_string(destination_port), " ");
+        auto& destination_flow = stream_pack.flows[flow_index];
+        destination_ip = destination_flow.get_ip();
+        destination_port = destination_flow.get_port();
 
         auto network_address = TwoTupleFlow(
             stream_idx++,
             m_network_address.get_source_ip(),
             m_network_address.get_source_port());
-        m_media_settings.sdp = stream_sdp;
 
-        MediaStreamSettings stream_settings(network_address, m_media_settings,
-            m_num_of_packets_in_chunk, m_packet_payload_size, m_data_stride_size,
-            m_app_header_stride_size, m_dscp, m_pcp, m_ecn);
+        MediaStreamSettings stream_settings(network_address, destination_flow, m_media_settings,
+            m_dscp, m_pcp, m_ecn);
 
-        stream_pack.stream = std::unique_ptr<RtpVideoSendStream>(
-                new RtpVideoSendStream(stream_settings));
-        stream_pack.buffer_writer = std::unique_ptr<RTPVideoMockBufferWriter>(
-            new RTPVideoMockBufferWriter(stream_settings.m_media_settings,
-                stream_settings.m_app_header_stride_size, stream_settings.m_data_stride_size,
-                stream_settings.m_packet_payload_size,
-                m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils()));
+        stream_pack.stream = std::make_unique<RtpVideoSendStream>(stream_settings);
+        stream_pack.buffer_writer = std::make_unique<RTPVideoMockBufferWriter>(m_media_settings,
+            m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
     }
-    m_media_settings.sdp = std::move(sender_sdp);
 }
 
 ReturnStatus MediaSenderIONode::initialize_memory_layout()
 {
     determine_memory_layout_for_single_block(m_block_header_memory_size, m_block_payload_memory_size);
+
     if (!m_video_file.empty() && !m_dynamic_video_file_load) {
-        auto rc = get_number_of_mem_blocks_per_file(m_num_of_memory_blocks);
+
+        auto rc = get_number_of_mem_blocks_per_file(m_num_of_mem_blocks);
         if (rc != ReturnStatus::success) {
             std::cerr << "Failed to get number of memory blocks per file" << std::endl;
             return rc;
         }
     }
 
-    m_header_total_memory_size = m_block_header_memory_size * m_num_of_memory_blocks * m_stream_packs.size();
-    m_payload_total_memory_size = m_block_payload_memory_size * m_num_of_memory_blocks * m_stream_packs.size();
+    m_header_total_memory_size = m_block_header_memory_size * m_num_of_mem_blocks * m_stream_packs.size();
+    m_payload_total_memory_size = m_block_payload_memory_size * m_num_of_mem_blocks * m_stream_packs.size();
     return ReturnStatus::success;
 }
 
@@ -279,7 +264,7 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     }
 
     ReturnStatus rc;
-    for (size_t i = 0; i < m_num_of_memory_blocks; ++i) {
+    for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
         rc = fill_memblock_from_file(payload_memory_ptr, m_block_payload_memory_size,
             header_offset, input_file);
         if (rc != ReturnStatus::success) {
@@ -309,7 +294,7 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     MediaStreamMemBlockset& mem_blockset, uint8_t* header_memory_ptr,
     uint8_t* payload_memory_ptr, const HeaderPayloadMemoryLayout& io_node_memory_layout)
 {
-    for (size_t i = 0; i < m_num_of_memory_blocks; ++i) {
+    for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
         if (is_hds_on()) {
             mem_blockset.set_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
                 io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
@@ -329,7 +314,7 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
 
 ReturnStatus MediaSenderIONode::initialize_mem_blockset(MediaStreamMemBlockset& mem_blockset)
 {
-    for (size_t i = 0; i < m_num_of_memory_blocks; ++i) {
+    for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
         if (is_hds_on()) {
             mem_blockset.set_block_layout(i, m_mem_block_payload_sizes.data(), m_mem_block_header_sizes.data());
         } else {
@@ -341,16 +326,16 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(MediaStreamMemBlockset& 
 
 ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents()
 {
-    if (m_packet_header_size) {
-        m_mem_block_header_sizes.resize(m_num_of_packets_in_mem_block, m_packet_header_size);
+    if (m_media_settings.packet_app_header_size) {
+        m_mem_block_header_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_app_header_size);
     }
-    m_mem_block_payload_sizes.resize(m_num_of_packets_in_mem_block, m_packet_payload_size);
+    m_mem_block_payload_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_payload_size);
 
     for (auto& stream_pack : m_stream_packs) {
         stream_pack.mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
-                new MediaStreamMemBlockset(m_num_of_memory_blocks,
+                new MediaStreamMemBlockset(m_num_of_mem_blocks,
                                            is_hds_on() ? 2 : 1,
-                                           m_num_of_chunks_in_mem_block));
+                                           m_media_settings.chunks_in_mem_block));
         stream_pack.mem_blockset->set_rivermax_to_allocate_memory();
         initialize_mem_blockset(*stream_pack.mem_blockset);
         MediaMemoryLayoutResponse memory_layout(*stream_pack.mem_blockset.get());
@@ -366,22 +351,22 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents()
 ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents(
     const HeaderPayloadMemoryLayout& memory_layout)
 {
-    if (m_packet_header_size) {
-        m_mem_block_header_sizes.resize(m_num_of_packets_in_mem_block, m_packet_header_size);
+    if (m_media_settings.packet_app_header_size) {
+        m_mem_block_header_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_app_header_size);
     }
-    m_mem_block_payload_sizes.resize(m_num_of_packets_in_mem_block, m_packet_payload_size);
+    m_mem_block_payload_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_payload_size);
 
     uint8_t* header_memory_ptr = static_cast<uint8_t*>(memory_layout.header_memory_ptr);
     uint8_t* payload_memory_ptr = static_cast<uint8_t*>(memory_layout.payload_memory_ptr);
 
-    size_t header_memory_for_stream_size = m_num_of_memory_blocks * m_block_header_memory_size;
-    size_t payload_memory_for_stream_size = m_num_of_memory_blocks * m_block_payload_memory_size;
+    size_t header_memory_for_stream_size = m_num_of_mem_blocks * m_block_header_memory_size;
+    size_t payload_memory_for_stream_size = m_num_of_mem_blocks * m_block_payload_memory_size;
 
     for (auto& stream_pack : m_stream_packs) {
         stream_pack.mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
-                new MediaStreamMemBlockset(m_num_of_memory_blocks,
+                new MediaStreamMemBlockset(m_num_of_mem_blocks,
                                            is_hds_on() ? 2 : 1,
-                                           m_num_of_chunks_in_mem_block));
+                                           m_media_settings.chunks_in_mem_block));
         ReturnStatus rc;
         if (!m_video_file.empty() && !m_dynamic_video_file_load) {
             rc = initialize_mem_blockset(*stream_pack.mem_blockset, header_memory_ptr,
@@ -465,13 +450,42 @@ void MediaSenderIONode::operator()()
         send_time_ns = stream_pack.stream->calculate_send_time_ns(time_now_ns);
         stream_pack.buffer_writer->set_first_packet_timestamp(send_time_ns);
     }
+
+    if (m_synchronizer) {
+
+        auto start_time_checker = [&](uint64_t proposed_time) {
+            if (proposed_time - send_time_ns < 1000) {
+                return 0;
+            }
+            int skip_frames = 0;
+            uint64_t new_start_time;
+            do {
+                skip_frames++;
+                new_start_time = send_time_ns + m_media_settings.frame_field_time_interval_ns * skip_frames;
+            } while (proposed_time > new_start_time);
+            return static_cast<int>(new_start_time - proposed_time);
+        };
+    
+        uint64_t coordinated_start_time_ns = 0;
+        rc = m_synchronizer->request(send_time_ns, start_time_checker, coordinated_start_time_ns);
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to request coordinated start time" << std::endl;
+            return;
+        }
+        std::ostringstream oss;
+        oss << "Coordinated start time: requested " << static_cast<uint64_t>(send_time_ns) << " [ns], consensus:" << static_cast<uint64_t>(coordinated_start_time_ns) << " [ns]\n";
+        std::cout << oss.str();
+        send_time_ns = coordinated_start_time_ns;
+    }
+
     const double start_send_time_ns = send_time_ns;
-    size_t sent_mem_block_counter = 0;
+    size_t sent_field_counter = 0;
+    size_t sent_field_counter_prev = 0;
     auto get_send_time_ns = [&]() { return (
         start_send_time_ns
         + m_media_settings.frame_field_time_interval_ns
         * m_media_settings.frames_fields_in_mem_block
-        * sent_mem_block_counter);
+        * sent_field_counter);
     };
     uint64_t commit_timestamp_ns = 0;
     size_t chunk_in_frame_counter;
@@ -494,6 +508,9 @@ void MediaSenderIONode::operator()()
                 stream_pack.chunk_handler->get_length());
         };
     }
+
+    uint64_t last_update_interval = 0;
+    uint64_t last_update_time = start_send_time_ns;
 
     while (likely(rc != ReturnStatus::failure && SignalHandler::get_received_signal() < 0)) {
         chunk_in_frame_counter = 0;
@@ -529,7 +546,25 @@ void MediaSenderIONode::operator()()
         } while (likely(rc == ReturnStatus::success &&
                         ++chunk_in_frame_counter < m_media_settings.chunks_in_frame_field));
 
-        sent_mem_block_counter++;
+        sent_field_counter++;
+
+        uint64_t time_now = get_time_now_ns();
+        if (m_stats_report_interval_ms > 0 && (time_now - start_send_time_ns) / (m_stats_report_interval_ms * NS_IN_MSEC) > last_update_interval) {
+            std::ostringstream oss;
+            uint64_t bytes_sent = (sent_field_counter - sent_field_counter_prev) * m_media_settings.packets_in_frame_field * m_stream_packs.size() *
+                (m_media_settings.packet_app_header_size + m_media_settings.packet_payload_size + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
+            float mbps = (bytes_sent * 8.0 * 1000) / (time_now - last_update_time);
+            oss << " Sender: " << std::setw(3) << m_index
+                << "   Streams: " << std::setw(3) << m_stream_packs.size()
+                << "   Type: " << std::setw(12) << std::left << m_media_settings.media_calc->get_media_type_name()
+                << "   Frames sent: " << std::setw(3) << std::right << sent_field_counter - sent_field_counter_prev
+                << "   Bytes sent: " << std::setw(12) << bytes_sent
+                << "   Mbps: " << std::setw(12) << std::fixed << std::setprecision(3) << mbps << std::endl;
+            std::cout << oss.str();
+            sent_field_counter_prev = sent_field_counter;
+            last_update_time = time_now;
+            last_update_interval++;
+        }
     }
 
     rc = destroy_streams();
@@ -550,7 +585,7 @@ ReturnStatus MediaSenderIONode::create_streams()
             return rc;
         }
         stream_pack.chunk_handler = std::unique_ptr<MediaChunk>(
-                new MediaChunk(stream_pack.stream->get_id(), m_num_of_packets_in_chunk,
+                new MediaChunk(stream_pack.stream->get_id(), m_media_settings.packets_in_chunk,
                                stream_pack.stream->is_hds_on()));
     }
 
@@ -616,11 +651,11 @@ void MediaSenderIONode::wait_for_next_frame(uint64_t sleep_till_ns)
 void MediaSenderIONode::determine_memory_layout_for_single_block(
     size_t& block_header_memory_size, size_t& block_payload_memory_size)
 {
-    size_t num_of_strides_per_mem_block = m_num_of_packets_in_chunk * m_num_of_chunks_in_mem_block;
-    size_t payload_memory_size = m_data_stride_size * num_of_strides_per_mem_block;
+    size_t num_of_strides_per_mem_block = m_media_settings.packets_in_chunk * m_media_settings.chunks_in_mem_block;
+    size_t payload_memory_size = m_media_settings.data_stride_size * num_of_strides_per_mem_block;
 
     if (is_hds_on()) {
-        block_header_memory_size = m_app_header_stride_size * num_of_strides_per_mem_block;
+        block_header_memory_size = m_media_settings.app_header_stride_size * num_of_strides_per_mem_block;
         block_payload_memory_size = payload_memory_size;
     } else {
         block_header_memory_size = 0;
@@ -646,8 +681,6 @@ ReturnStatus MediaSenderIONode::set_frame_provider(size_t stream_index,
     m_stream_packs[stream_index].frame_provider = std::move(frame_provider);
     std::unique_ptr<RTPMediaBufferWriter> buffer_writer = RTPMediaBufferWriter::get_rtp_media_buffer_writer(
         media_type, contains_payload, m_media_settings,
-        m_app_header_stride_size, m_data_stride_size,
-        m_packet_payload_size,
         m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
     if (buffer_writer) {
         m_stream_packs[stream_index].buffer_writer = std::move(buffer_writer);
@@ -674,10 +707,10 @@ ReturnStatus MediaSenderIONode::get_number_of_mem_blocks_per_file(size_t& number
 
     size_t mem_block_payload_size_in_bytes = 0;
     if (is_hds_on()) {
-        mem_block_payload_size_in_bytes = m_packet_payload_size * m_media_settings.packets_in_frame_field *
+        mem_block_payload_size_in_bytes = m_media_settings.packet_payload_size * m_media_settings.packets_in_frame_field *
         m_media_settings.frames_fields_in_mem_block;
     } else {
-        mem_block_payload_size_in_bytes = (m_packet_payload_size - m_media_settings.protocol_header_size) *
+        mem_block_payload_size_in_bytes = (m_media_settings.packet_payload_size - m_media_settings.protocol_header_size) *
         m_media_settings.packets_in_frame_field * m_media_settings.frames_fields_in_mem_block;
     }
 
@@ -701,7 +734,7 @@ ReturnStatus MediaSenderIONode::fill_memblock_from_file(byte_t* block_memory_buf
     }
 
     auto temp_buffer = std::make_unique<byte_t[]>(block_memory_size);
-    size_t packet_size = m_packet_payload_size - header_offset;
+    size_t packet_size = m_media_settings.packet_payload_size - header_offset;
     size_t mem_block_payload_size_in_bytes = packet_size * m_media_settings.packets_in_frame_field *
         m_media_settings.frames_fields_in_mem_block;
     size_t total_bytes_read = 0;
@@ -726,7 +759,7 @@ ReturnStatus MediaSenderIONode::fill_memblock_from_file(byte_t* block_memory_buf
             break;
         }
         total_bytes_read += bytes_read;
-        cur_data_ptr += m_data_stride_size;
+        cur_data_ptr += m_media_settings.data_stride_size;
     }
     mem_utils->memory_copy(block_memory_buffer, temp_buffer.get(), block_memory_size);
 

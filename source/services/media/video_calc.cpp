@@ -1,0 +1,279 @@
+/*
+ * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
+ * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <cstdint>
+#include <unordered_map>
+
+#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/video_calc.h"
+#include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/utils/defs.h"
+#include "rdk/services/sdp/sdp_defs.h"
+#include "rt_threads.h"
+
+//using namespace rivermax::dev_kit::core;
+using namespace rivermax::dev_kit::services;
+
+using BytesPerPixelRatio = std::pair<uint32_t, uint32_t>;
+using VideoDepthPixelRatioMap =
+    std::unordered_map<VideoSampling, std::unordered_map<VideoBitDepth, BytesPerPixelRatio>>;
+/**
+ * @brief: Map of video sampling formats to bytes-per-pixel ratios for each color bit depth.
+ *
+ * This map defines the pixel format characteristics by storing the ratio of bytes to pixels
+ * for different video sampling types (RGB, YCbCr 4:4:4, YCbCr 4:2:2, YCbCr 4:2:0, KEY) and
+ * video bit depths (8-bit, 10-bit, 12-bit). The ratio is expressed as a pair {bytes, pixels}
+ * where the actual bytes-per-pixel value is calculated as bytes/pixels.
+ * 
+ * The KEY sampling type is used for alpha channel in video.
+ *
+ * For example:
+ * - RGB 8-bit: {3, 1} = 3 bytes per pixel (8 bits × 3 components ÷ 8 bits/byte)
+ * - YCbCr 4:2:2 10-bit: {5, 2} = 2.5 bytes per pixel (10 bits × 2 pixels with shared chroma)
+ * - KEY 10-bit: {4, 5} = 0.8 bytes per pixel (10 bits × 4 pixels)
+ *
+ * This is commonly referred to as the "pixel format stride" or "bytes per pixel" in video processing.
+ */
+const VideoDepthPixelRatioMap VIDEO_DEPTH_TO_PIXEL_RATIO = {
+    {VideoSampling::RGB,
+     {{VideoBitDepth::_8, {3, 1}},
+      {VideoBitDepth::_10, {15, 4}},
+      {VideoBitDepth::_12, {9, 2}}}},
+    {VideoSampling::YCbCr_4_4_4,
+     {{VideoBitDepth::_8, {3, 1}},
+      {VideoBitDepth::_10, {15, 4}},
+      {VideoBitDepth::_12, {9, 2}}}},
+    {VideoSampling::YCbCr_4_2_2,
+     {{VideoBitDepth::_8, {4, 2}},
+      {VideoBitDepth::_10, {5, 2}},
+      {VideoBitDepth::_12, {6, 2}}}},
+    {VideoSampling::YCbCr_4_2_0,
+     {{VideoBitDepth::_8, {6, 4}},
+      {VideoBitDepth::_10, {15, 8}},
+      {VideoBitDepth::_12, {9, 4}}}},
+     {VideoSampling::KEY,
+      {{VideoBitDepth::_8, {1, 1}},
+      {VideoBitDepth::_10, {5, 4}},
+      {VideoBitDepth::_12, {3, 2}}}}
+   };
+namespace rivermax
+{
+namespace dev_kit
+{
+namespace services
+{
+
+bool ST_2110_20_MediaSettingsCalculator::is_bit_depth_supported(VideoSampling sampling, VideoBitDepth bit_depth)
+{
+    auto sampling_it = VIDEO_DEPTH_TO_PIXEL_RATIO.find(sampling);
+    if (sampling_it != VIDEO_DEPTH_TO_PIXEL_RATIO.end()) {
+        return sampling_it->second.find(bit_depth) != sampling_it->second.end();
+    }
+    return false;
+}
+
+void ST_2110_20_MediaSettingsCalculator::calculate_tro_trs(double& tro, double& trs)
+{
+    double t_frame_ns;
+    double r_active;
+    double tro_default_multiplier;
+
+    auto& video_settings = dynamic_cast<SMPTE_2110_20_MediaSettings&>(m_media_settings);
+
+    if (video_settings.video_scan_type == VideoScanType::Progressive) {
+        t_frame_ns = video_settings.frame_field_time_interval_ns;
+    } else {
+        t_frame_ns = video_settings.frame_field_time_interval_ns * 2;
+    }
+
+    if (video_settings.video_scan_type == VideoScanType::Progressive) {
+        r_active = (1080.0 / 1125.0);
+        if (video_settings.resolution.height >= FHD_HEIGHT) { // As defined by SMPTE 2110-21 6.3.2
+            tro_default_multiplier = (43.0 / 1125.0);
+        } else {
+            tro_default_multiplier = (28.0 / 750.0);
+        }
+    } else {
+        if (video_settings.resolution.height >= FHD_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
+            r_active = (1080.0 / 1125.0);
+            tro_default_multiplier = (22.0 / 1125.0);
+        } else if (video_settings.resolution.height >= 576) {
+            r_active = (576.0 / 625.0);
+            tro_default_multiplier = (26.0 / 625.0);
+        } else {
+            r_active = (487.0 / 525.0);
+            tro_default_multiplier = (20.0 / 525.0);
+        }
+    }
+
+    uint32_t packets_in_frame;
+
+    if (video_settings.video_scan_type == VideoScanType::Progressive) {
+        packets_in_frame = video_settings.packets_in_frame_field;
+    } else {
+        packets_in_frame = video_settings.packets_in_frame_field * 2;
+    }
+
+    trs = (t_frame_ns * r_active) / packets_in_frame;
+    tro = (tro_default_multiplier * t_frame_ns) - (VIDEO_TRO_DEFAULT_MODIFICATION * trs);
+}
+
+ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
+{
+    auto& video_settings = dynamic_cast<SMPTE_2110_20_MediaSettings&>(m_media_settings);
+
+    if (!is_bit_depth_supported(video_settings.sampling_type, video_settings.bit_depth)) {
+        std::cerr << "Unsupported width/sampling/bit depth combination: " << video_settings.resolution.width
+            << " for sampling: " << enum_to_string(video_settings.sampling_type) << "\n";
+        return ReturnStatus::failure;
+    }
+
+    uint32_t pixels_in_frame = video_settings.resolution.width * video_settings.resolution.height;
+    auto bytes_per_pixel_ratio = VIDEO_DEPTH_TO_PIXEL_RATIO.at(video_settings.sampling_type).at(video_settings.bit_depth);
+    uint32_t bytes_in_pgroup = bytes_per_pixel_ratio.first;
+    uint32_t pixels_in_pgroup = bytes_per_pixel_ratio.second;
+    uint32_t pgroups_in_line = (video_settings.resolution.width + pixels_in_pgroup - 1) / pixels_in_pgroup;
+
+    float bytes_per_pixel = static_cast<float>(bytes_in_pgroup) / static_cast<float>(pixels_in_pgroup);
+    video_settings.bytes_per_frame = bytes_in_pgroup * pgroups_in_line * video_settings.resolution.height;
+
+    uint32_t pgroups_in_packet = 0;
+    for (uint32_t pkt_cnt = 1; pkt_cnt <= pgroups_in_line; pkt_cnt++) {
+        if (pgroups_in_line % pkt_cnt != 0) {
+            continue;
+        }
+        pgroups_in_packet = pgroups_in_line / pkt_cnt;
+        if (pgroups_in_packet * bytes_in_pgroup <= 1440) {
+            break;
+        }
+    }
+
+    video_settings.packets_in_line = pgroups_in_line / pgroups_in_packet;
+    video_settings.packet_payload_size = pgroups_in_packet * bytes_in_pgroup + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
+
+    video_settings.protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
+    video_settings.raw_packet_payload_size = pgroups_in_packet * bytes_in_pgroup;
+    if (video_settings.header_data_split) {
+        video_settings.packet_app_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
+        video_settings.packet_payload_size -= RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
+    }
+
+    video_settings.pixels_per_packet = pgroups_in_packet * pixels_in_pgroup;
+    video_settings.packets_in_frame_field = video_settings.packets_in_line * video_settings.resolution.height;
+
+    std::cout << "using sampling type: " << enum_to_string(video_settings.sampling_type);
+    std::cout << " and bit depth: " << enum_to_string(video_settings.bit_depth) << std::endl;
+    std::cout << "resolution: " << video_settings.resolution.width << "x" << video_settings.resolution.height << std::endl;
+    std::cout << "bytes in pgroup: " << bytes_in_pgroup << std::endl;
+    std::cout << "pixels in pgroup: " << pixels_in_pgroup << std::endl;
+    std::cout << "bytes_per_pixel: " << bytes_per_pixel << std::endl;
+    std::cout << "pixels in frame: " << pixels_in_frame << std::endl;
+    std::cout << "bytes in frame: " << video_settings.bytes_per_frame << std::endl;
+    std::cout << "packet payload size: " << video_settings.packet_payload_size << std::endl;
+    std::cout << "pgroups in line: " << pgroups_in_line << std::endl;
+    std::cout << "packets in line: " << video_settings.packets_in_line << std::endl;
+    std::cout << "packets in frame: " << video_settings.packets_in_frame_field << std::endl;
+
+    bool chunk_size_applied = false;
+    if (video_settings.packets_in_chunk) {
+        if (video_settings.packets_in_frame_field % video_settings.packets_in_chunk == 0) {
+            chunk_size_applied = true;
+            std::cout << "Using custom chunk size: " << video_settings.packets_in_chunk << std::endl;
+        } else {
+            std::cout << "Custom chunk size (" << video_settings.packets_in_chunk
+                << ") is ignored: must be divisor of packets in field ("
+                << video_settings.packets_in_frame_field << ")" << std::endl;
+        }
+    }
+
+    if (!chunk_size_applied) {
+        constexpr size_t lines_in_chunk = 4;
+        video_settings.packets_in_chunk = lines_in_chunk * video_settings.packets_in_line;
+    }
+
+    video_settings.frame_field_time_interval_ns =
+        NS_IN_SEC / static_cast<double>(video_settings.frame_rate.num) / video_settings.frame_rate.denom;
+    video_settings.lines_in_frame_field = video_settings.resolution.height;
+
+    video_settings.ticks_per_frame =
+        (video_settings.sample_rate / (video_settings.frame_rate.num / static_cast<double>(video_settings.frame_rate.denom)));
+
+    if (video_settings.video_scan_type == VideoScanType::Interlaced) {
+        video_settings.packets_in_frame_field /= 2;
+        video_settings.lines_in_frame_field /= 2;
+    }
+
+    video_settings.chunks_in_frame_field =
+        static_cast<size_t>(std::ceil(video_settings.packets_in_frame_field / static_cast<double>(video_settings.packets_in_chunk)));
+    video_settings.chunks_in_mem_block = video_settings.frames_fields_in_mem_block * video_settings.chunks_in_frame_field;
+    video_settings.packets_in_mem_block = video_settings.chunks_in_mem_block * video_settings.packets_in_chunk;
+
+    video_settings.app_header_stride_size = align_up_pow2(video_settings.packet_app_header_size, get_cache_line_size());
+    video_settings.data_stride_size = align_up_pow2(video_settings.packet_payload_size, get_cache_line_size());
+
+    return ReturnStatus::success;
+}
+
+std::string ST_2110_20_MediaSettingsCalculator::compose_media_sdp(
+    const std::string& source_ip, const uint16_t source_port,
+    const std::string& destination_ip, const uint16_t destination_port)
+{
+    auto& video_settings = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+
+    auto session_description = SessionDescription::Builder(source_ip)
+        .set_session_id(SDPManager::generate_ntp_id())
+        .set_session_version(SDPManager::generate_ntp_id() + 1)
+        .set_session_name("SMPTE ST2110-20")
+        .build();
+
+    auto time_description = TimeDescription::Builder().build();
+
+    auto media_description = SMPTE2110_20_MediaDescription::Builder(
+        destination_port, TransportProtocol::RTP_AVP, "96", destination_ip)
+        .set_source_filter(SourceFilterAttribute::Builder(destination_ip, source_ip).build())
+        .set_smpte_standard_number(video_settings.smpte_standard_number)
+        .set_sampling(video_settings.sampling_type)
+        .set_width(video_settings.resolution.width)
+        .set_height(video_settings.resolution.height)
+        .set_exact_frame_rate(video_settings.frame_rate)
+        .set_depth(video_settings.bit_depth)
+        .set_video_scan_type(video_settings.video_scan_type)
+        .set_colorimetry(video_settings.colorimetry)
+        .set_timestamp_ref_clock(video_settings.ref_clk_is_ptp ? TimestampRefClock::PTP : TimestampRefClock::LocalMAC)
+        .set_timestamp_ref_clock_ptp_traceable(video_settings.ref_clk_is_ptp && video_settings.refclk_id.empty())
+        .set_timestamp_ref_clock_local_mac(video_settings.refclk_id)
+        .set_extra_format_specific_parameters(m_extra_parameters)
+        .build();
+
+    return SDPManager::Builder(std::move(session_description), std::move(time_description))
+        .add_media_description(std::move(media_description))
+        .build()->to_string();
+}
+
+std::string ST_2110_20_MediaSettingsCalculator::get_media_type_name() const
+{
+    auto& video_settings = dynamic_cast<SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    if (video_settings.sampling_type == VideoSampling::KEY) {
+        return "Video (Key)";
+    }
+    return "Video";
+}
+
+} // namespace services
+} // namespace dev_kit
+} // namespace rivermax

@@ -23,15 +23,17 @@
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/media/media.h"
 
+using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::apps::rmax_ipmx_sender;
 
 void IPMXSenderSettings::init_default_values()
 {
     AppSettings::init_default_values();
-    media.frames_fields_in_mem_block = MIN_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP;
+    media.frames_fields_in_mem_block = DEFAULT_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP;
     ref_clk_is_ptp = false;
     app_memory_alloc = true;
     register_memory = true;
+    enabled_media_types.insert(SMPTEStandard::ST_2110_20_Video);
 }
 
 ReturnStatus IPMXSenderSettingsValidator::validate(const std::shared_ptr<IPMXSenderSettings>& settings) const
@@ -134,7 +136,7 @@ ReturnStatus IPMXSenderApp::initialize()
     }
 
     try {
-        assign_streams_to_threads();
+        configure_media_types_processing();
         initialize_send_flows();
         initialize_sender_threads();
         rc = allocate_app_memory();
@@ -267,28 +269,90 @@ ReturnStatus IPMXSenderApp::set_rivermax_clock()
 
 void IPMXSenderApp::initialize_send_flows()
 {
-    auto rc = initialize_media_settings(*m_app_settings, {{"IPMX", "", true}});
-    if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to initialize media settings" << std::endl;
-        return;
+    constexpr bool dest_port_iteration = false;
+    auto ip_vec = CLI::detail::split(m_app_settings->destination_ip, '.');
+    auto ip_prefix_str = std::string(ip_vec[0] + "." + ip_vec[1] + "." + ip_vec[2] + ".");
+    auto ip_last_octet = std::stoi(ip_vec[3]);
+    size_t flow_index = 0;
+    std::ostringstream ip;
+    uint16_t port;
+
+    size_t total_num_of_flows = 0;
+    for (const auto& node : m_ipmx_sender_settings->media_types_to_nodes) {
+        total_num_of_flows += node.second;
     }
+    m_stream_dst_addresses.reserve(total_num_of_flows);
 
-    auto ip_octets = CLI::detail::split(m_app_settings->destination_ip, '.');
-    auto ip_prefix = std::string(ip_octets[0] + "." + ip_octets[1] + "." + ip_octets[2] + ".");
-    auto ip_last_octet = std::stoi(ip_octets[3]);
-    m_stream_dst_addresses.reserve(m_app_settings->num_of_total_flows);
-
-    for (size_t flow_index = 0; flow_index < m_app_settings->num_of_total_flows; flow_index++) {
-        std::ostringstream ip;
-        uint16_t port;
-        ip << ip_prefix << (ip_last_octet + flow_index) % IP_OCTET_LEN;
-        port = m_app_settings->destination_port;
-        m_stream_dst_addresses.push_back(TwoTupleFlow(flow_index, ip.str(), port));
+    for (const auto& node : m_ipmx_sender_settings->media_types_to_nodes) {
+        auto& media_type_config = node.first;
+        auto& num_of_streams = node.second;
+        for (size_t i = 0; i < num_of_streams; i++) {
+            if (dest_port_iteration) {
+                ip << m_app_settings->destination_ip;
+                port = m_app_settings->destination_port + static_cast<uint16_t>(flow_index);
+            } else {
+                ip << ip_prefix_str << (ip_last_octet + flow_index) % IP_OCTET_LEN;
+                port = m_app_settings->destination_port;
+            }
+            m_stream_dst_addresses.push_back(TwoTupleFlow(flow_index, ip.str(), port));
+            ip.str("");
+            flow_index++;
+        }
     }
 }
 
-void IPMXSenderApp::assign_streams_to_threads()
+void IPMXSenderApp::configure_video_types()
 {
+    static const std::vector<FormatSpecificParameter> extra_ipmx_parameters = {{"IPMX", "", true}};
+
+    size_t num_of_video_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
+    if (num_of_video_threads < m_app_settings->num_of_threads) {
+        std::cout << "The number of video threads is limited to the number of streams ("
+            << num_of_video_threads << ")" << std::endl;
+    }
+    size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_video_threads;
+
+    m_ipmx_sender_settings->media_types_to_nodes.clear();
+
+    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
+    video_settings->media_calc = IMediaSettingsCalcFactory::get_media_settings_calculator(SMPTEStandard::ST_2110_20_Video, *video_settings, extra_ipmx_parameters);
+    video_settings->header_data_split = m_app_settings->header_data_split;
+    if (m_app_settings->num_of_packets_in_chunk_specified) {
+        video_settings->packets_in_chunk = m_app_settings->num_of_packets_in_chunk;
+    }
+    video_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
+    video_settings->resolution = m_app_settings->media.resolution;
+    video_settings->frame_rate = m_app_settings->media.frame_rate;
+    video_settings->sampling_type = m_app_settings->media.sampling_type;
+    video_settings->bit_depth = m_app_settings->media.color_bit_depth;
+    video_settings->media_calc->calculate_media_settings();
+
+    video_settings->ref_clk_is_ptp = m_app_settings->ref_clk_is_ptp;
+    if (m_app_settings->ref_clk_is_ptp) {
+        video_settings->refclk_id = "";
+    } else {
+        video_settings->refclk_id = m_app_settings->local_mac;
+    }
+
+    for (size_t idx = 0; idx < num_of_video_threads; idx++) {
+        size_t num_of_streams_in_cur_thread;
+        if (min_number_streams_per_thread * num_of_video_threads + idx < m_app_settings->num_of_total_streams) {
+            num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
+        } else {
+            num_of_streams_in_cur_thread = min_number_streams_per_thread;
+        }
+        m_ipmx_sender_settings->media_types_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
+    }
+    m_ipmx_sender_settings->media_type_configs.push_back(std::move(video_settings));
+}
+
+void IPMXSenderApp::configure_media_types_processing()
+{
+    for (const auto media_type : m_ipmx_sender_settings->enabled_media_types) {
+        if (media_type == SMPTEStandard::ST_2110_20_Video) {
+            configure_video_types();
+        }
+    }
     m_streams_per_thread.reserve(m_app_settings->num_of_threads);
     for (int stream = 0; stream < m_app_settings->num_of_total_streams; stream++) {
         m_streams_per_thread[stream % m_app_settings->num_of_threads]++;
@@ -318,6 +382,7 @@ void IPMXSenderApp::initialize_sender_threads()
             src_address,
             flows,
             m_app_settings,
+            m_ipmx_sender_settings->media_types_to_nodes[sender_index].first,
             sender_index,
             sender_cpu_core));
         streams_offset += m_streams_per_thread[sender_index];

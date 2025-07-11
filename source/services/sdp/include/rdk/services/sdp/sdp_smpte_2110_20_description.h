@@ -144,7 +144,7 @@ public:
          *
          * @return: Reference to the builder object.
          */
-        Builder& set_depth(ColorBitDepth depth) { return set(m_instance->m_depth, depth); }
+        Builder& set_depth(VideoBitDepth depth) { return set(m_instance->m_depth, depth); }
         /**
          * @brief: Sets the width.
          *
@@ -392,7 +392,7 @@ private:
     size_t m_payload_type = 96;
     size_t m_media_format = 96;
     VideoSampling m_sampling = VideoSampling::YCbCr_4_2_2;
-    ColorBitDepth m_depth = ColorBitDepth::_10;
+    VideoBitDepth m_depth = VideoBitDepth::_10;
     size_t m_width = 1920;
     size_t m_height = 1080;
     std::string m_exact_frame_rate = "60";

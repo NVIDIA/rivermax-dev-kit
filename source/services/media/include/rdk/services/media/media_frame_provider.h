@@ -250,7 +250,7 @@ protected:
  */
 class NullFrameProvider : public IFrameProvider {
 protected:
-    MediaSettings m_media_settings;
+    const MediaSettings& m_media_settings;
     FrameMetadata m_cached_metadata;
     size_t m_cached_frame_size;
     float m_frame_not_available_probability;

@@ -46,14 +46,10 @@ public:
      * @brief: Constructor for RTPVideoMockBufferWriter.
      *
      * @param [in] media_settings: Media settings.
-     * @param [in] app_header_stride_size: Size of the application header stride.
-     * @param [in] data_stride_size: Size of the data stride.
-     * @param [in] packet_payload_size: Size of the packet payload.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
      */
     RTPVideoMockBufferWriter(const MediaSettings& media_settings,
-        size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     /**
      * @brief: Destructor for RTPVideoMockBufferWriter.
@@ -94,17 +90,12 @@ public:
      * @brief: Constructor for RTPVideoBufferWriter.
      *
      * @param [in] media_settings: Media settings.
-     * @param [in] app_header_stride_size: Size of the application header stride.
-     * @param [in] data_stride_size: Size of the data stride.
-     * @param [in] packet_payload_size: Size of the packet payload.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
      */
     RTPVideoBufferWriter(const MediaSettings& media_settings,
-        size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-        RTPVideoMockBufferWriter(media_settings, app_header_stride_size, data_stride_size,
-            packet_payload_size, std::move(header_mem_utils), std::move(payload_mem_utils)) {}
+        RTPVideoMockBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils)) {}
     /**
      * @brief: Destructor for RTPVideoBufferWriter.
      */

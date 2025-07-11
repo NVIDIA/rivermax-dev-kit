@@ -30,9 +30,11 @@
 #include "rdk/io_node/common/io_node_memory_utils.h"
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/io_node/common/chunk_buffer_writer_interface.h"
+#include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/media_frame_provider.h"
 #include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
 #include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/services/utils/synchronizer.h"
 
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
@@ -73,36 +75,30 @@ private:
         std::unique_ptr<RTPMediaBufferWriter> buffer_writer;
         std::shared_ptr<IFrameProvider> frame_provider;
     };
-    static constexpr size_t DEFAULT_NUMBER_OF_MEM_BLOCKS = 10;
     static constexpr size_t DEFAULT_PRINT_TIME_INTERVAL_MS = 1000;
     std::vector<MediaStreamPack> m_stream_packs;
-    MediaSettings m_media_settings;
+    const MediaSettings& m_media_settings;
     std::string m_video_file;
     size_t m_index;
     FourTupleFlow m_network_address;
     int m_sleep_between_operations;
     bool m_print_parameters;
+    uint32_t m_stats_report_interval_ms;
     int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
     IONodeMemoryUtils& m_memory_utils;
-    size_t m_num_of_memory_blocks;
-    size_t m_num_of_chunks_in_mem_block;
-    uint16_t m_packet_header_size;
-    uint16_t m_packet_payload_size;
-    size_t m_num_of_packets_in_chunk;
-    size_t m_num_of_packets_in_mem_block;
-    size_t m_app_header_stride_size;
-    size_t m_data_stride_size;
+    size_t m_num_of_mem_blocks;
+    size_t m_block_header_memory_size;
+    size_t m_block_payload_memory_size;
     size_t m_header_total_memory_size;
     size_t m_payload_total_memory_size;
-    size_t m_block_payload_memory_size;
-    size_t m_block_header_memory_size;
     std::vector<uint16_t> m_mem_block_header_sizes;
     std::vector<uint16_t> m_mem_block_payload_sizes;
     uint8_t m_dscp, m_pcp, m_ecn;
     time_handler_ns_cb_t m_get_time_ns_cb;
     bool m_gpu_enabled;
     bool m_dynamic_video_file_load;
+    std::shared_ptr<ISynchronizer> m_synchronizer;
     std::chrono::milliseconds m_print_interval_ms = std::chrono::milliseconds(DEFAULT_PRINT_TIME_INTERVAL_MS);
 public:
     /**
@@ -118,7 +114,8 @@ public:
      */
     MediaSenderIONode(
         const FourTupleFlow& network_address,
-        std::shared_ptr<AppSettings> app_settings,
+        const AppSettings& app_settings,
+        const MediaSettings& media_settings,
         size_t index, size_t num_of_streams, int cpu_core_affinity,
         IONodeMemoryUtils& memory_utils,
         time_handler_ns_cb_t time_hanlder_cb);
@@ -201,6 +198,9 @@ public:
      */
     ReturnStatus set_frame_provider(size_t stream_index, std::shared_ptr<IFrameProvider> frame_provider,
         MediaType media_type = MediaType::Video, bool contains_payload = true);
+
+    void set_synchronizer(const std::shared_ptr<ISynchronizer>& synchronizer) { m_synchronizer = synchronizer; }
+    static constexpr size_t DEFAULT_NUMBER_OF_MEM_BLOCKS = 1;
 private:
     /**
      * @brief: Creates sender's streams.
@@ -252,7 +252,7 @@ private:
      *
      * @return: true if Header-Data-Split mode is enabled.
      */
-    bool is_hds_on() const { return m_packet_header_size != 0; }
+    bool is_hds_on() const { return m_media_settings.packet_app_header_size != 0; }
     /**
      * @brief: Applies memory layout to subcomponents (streams) for Rivermax internal allocation.
      *
@@ -379,7 +379,7 @@ private:
      *
      * @return: Commit timestamp in nanoseconds.
      */
-     inline uint64_t get_commit_timestamp_ns(bool first_chunk_in_frame, double send_time_ns, size_t stream_id) const;
+    inline uint64_t get_commit_timestamp_ns(bool first_chunk_in_frame, double send_time_ns, size_t stream_id) const;
 };
 
 inline uint64_t MediaSenderIONode::get_commit_timestamp_ns(

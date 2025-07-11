@@ -34,13 +34,16 @@ namespace apps
 {
 namespace rmax_ipmx_sender
 {
-constexpr size_t MIN_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP = 2;
+constexpr size_t DEFAULT_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP = 10;
 /**
  * @brief: Configuration settings for Rivermax IPMX Sender.
  */
 struct IPMXSenderSettings : AppSettings
 {
 public:
+    std::unordered_set<SMPTEStandard> enabled_media_types;
+    std::vector<std::unique_ptr<MediaSettings>> media_type_configs;
+    std::vector<std::pair<const MediaSettings&, size_t>> media_types_to_nodes;
     void init_default_values() override;
 };
 
@@ -90,8 +93,8 @@ private:
     /* Application settings pointer */
     std::shared_ptr<IPMXSenderSettings> m_ipmx_sender_settings;
     std::vector<std::unique_ptr<IPMXSenderIONode>> m_senders;
-    std::vector<TwoTupleFlow> m_stream_dst_addresses;
     rmx_device_iface m_device_interface;
+    std::vector<TwoTupleFlow> m_stream_dst_addresses;
     rmx_mem_region m_mem_region;
 public:
     /**
@@ -158,6 +161,9 @@ private:
      * to the senders of the application.
      */
     void distribute_memory_to_senders();
+
+    void configure_video_types();
+
     /**
      * @brief: Assigns streams to the worker threads.
      *
@@ -165,7 +171,7 @@ private:
      * Several streams are assigned to the same thread (almost evenly),
      * if the amount of the threads is smaller than of the streams.
      */
-    void assign_streams_to_threads();
+    void configure_media_types_processing();
     /**
      * @brief: Initializes sender threads.
      *
@@ -177,7 +183,7 @@ private:
     /**
      * @brief: Initializes NIC device interface.
      *
-     * @param [in] device_iface: Device interface to cionfigure.
+     * @param [in] device_iface: Device interface to configure.
      *
      * @return: Return status of the operation.
      */

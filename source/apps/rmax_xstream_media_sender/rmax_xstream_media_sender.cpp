@@ -16,7 +16,10 @@
  * limitations under the License.
  */
 
+#include "rdk/services/media/media_defs.h"
 #include "rt_threads.h"
+#include <functional>
+#include <unordered_map>
 
 #include "rdk/apps/rmax_xstream_media_sender/rmax_xstream_media_sender.h"
 #include "rdk/apps/rmax_base_memory_strategy.h"
@@ -31,9 +34,11 @@ using namespace rivermax::dev_kit::apps::rmax_xstream_media_sender;
 void MediaSenderSettings::init_default_values()
 {
     AppSettings::init_default_values();
-    media.frames_fields_in_mem_block = 1;
+    media.frames_fields_in_mem_block = MediaSenderSettings::DEFAULT_FIELDS_IN_MEM_BLOCK;
     media.resolution = { FHD_WIDTH, FHD_HEIGHT };
     num_of_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
+    /* Before enabling other media types, video is enabled by default */
+    enabled_media_types.insert(SMPTEStandard::ST_2110_20_Video);
 }
 
 ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaSenderSettings>& settings) const
@@ -105,6 +110,10 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_BIT_DEPTH)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ALPHA_BIT_DEPTH)
+        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ALPHA)
+        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::DYNAMIC_FILE_LOADING)->needs(video_file);
     m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
 
@@ -122,6 +131,12 @@ ReturnStatus MediaSenderApp::post_load_settings()
 {
     uint32_t default_packets_in_chunk;
 
+    if (m_app_settings->media.enable_alpha) {
+        if (m_app_settings->media.alpha_bit_depth == VideoBitDepth::Unknown) {
+            m_app_settings->media.alpha_bit_depth = m_app_settings->media.color_bit_depth;
+        }
+    }
+
     if (m_app_settings->media.resolution == Resolution(UHD_WIDTH, UHD_HEIGHT) ||
         m_app_settings->media.resolution == Resolution(UHD_HEIGHT, UHD_WIDTH)) {
         default_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_UHD;
@@ -129,14 +144,12 @@ ReturnStatus MediaSenderApp::post_load_settings()
         default_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
     }
 
+    m_app_settings->num_of_total_flows = m_app_settings->num_of_total_streams;
+
     if (m_app_settings->num_of_packets_in_chunk != default_packets_in_chunk) {
         m_app_settings->num_of_packets_in_chunk_specified = true;
     }
-    auto rc = initialize_media_settings(*m_app_settings);
-    if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to initialize media settings" << std::endl;
-    }
-    return rc;
+    return ReturnStatus::success;
 }
 
 ReturnStatus MediaSenderApp::initialize_app_settings()
@@ -167,7 +180,7 @@ ReturnStatus MediaSenderApp::initialize()
     }
 
     try {
-        distribute_work_for_threads();
+        configure_media_types_processing();
         configure_network_flows();
         initialize_sender_threads();
         rc = configure_memory_layout();
@@ -269,63 +282,158 @@ void MediaSenderApp::configure_network_flows()
     std::ostringstream ip;
     uint16_t port;
 
-    m_flows.reserve(m_app_settings->num_of_total_flows);
-    while (flow_index != m_app_settings->num_of_total_flows) {
-        if (dest_port_iteration) {
-            ip << m_app_settings->destination_ip;
-            port = m_app_settings->destination_port + static_cast<uint16_t>(flow_index);
-        } else {
-            ip << ip_prefix_str << (ip_last_octet + flow_index) % IP_OCTET_LEN;
-            port = m_app_settings->destination_port;
-        }
+    size_t total_num_of_flows = 0;
+    for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
+        total_num_of_flows += node.second;
+    }
+    m_flows.reserve(total_num_of_flows);
 
-        m_flows.push_back(TwoTupleFlow(flow_index, ip.str(), port));
-        ip.str("");
-        flow_index++;
+    for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
+        auto& media_type_config = node.first;
+        auto& num_of_streams = node.second;
+        for (size_t i = 0; i < num_of_streams; i++) {
+            if (dest_port_iteration) {
+                ip << m_app_settings->destination_ip;
+                port = m_app_settings->destination_port + static_cast<uint16_t>(flow_index);
+            } else {
+                ip << ip_prefix_str << (ip_last_octet + flow_index) % IP_OCTET_LEN;
+                port = m_app_settings->destination_port;
+            }
+            m_flows.push_back(TwoTupleFlow(flow_index, ip.str(), port));
+            ip.str("");
+            flow_index++;
+        }
     }
 }
 
-void MediaSenderApp::distribute_work_for_threads()
+void MediaSenderApp::configure_video_types()
 {
-    m_app_settings->num_of_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
-    m_streams_per_thread.reserve(m_app_settings->num_of_threads);
-    for (int stream = 0; stream < m_app_settings->num_of_total_streams; stream++) {
-        m_streams_per_thread[stream % m_app_settings->num_of_threads]++;
+    size_t num_of_video_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
+    if (num_of_video_threads < m_app_settings->num_of_threads) {
+        std::cout << "The number of video threads is limited to the number of streams ("
+            << num_of_video_threads << ")" << std::endl;
+    }
+    size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_video_threads;
+
+    m_media_sender_settings->media_types_to_nodes.clear();
+
+    bool alpha_enabled = m_app_settings->media.alpha_bit_depth != VideoBitDepth::Unknown;
+
+    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
+    video_settings->media_calc = IMediaSettingsCalcFactory::get_media_settings_calculator(SMPTEStandard::ST_2110_20_Video, *video_settings);
+    video_settings->header_data_split = m_app_settings->header_data_split;
+    video_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
+    video_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
+    video_settings->resolution = m_app_settings->media.resolution;
+    video_settings->frame_rate = m_app_settings->media.frame_rate;
+    video_settings->sampling_type = m_app_settings->media.sampling_type;
+    video_settings->bit_depth = m_app_settings->media.color_bit_depth;
+    video_settings->media_calc->calculate_media_settings();
+
+    for (size_t idx = 0; idx < num_of_video_threads; idx++) {
+        size_t num_of_streams_in_cur_thread;
+        if (min_number_streams_per_thread * num_of_video_threads + idx < m_app_settings->num_of_total_streams) {
+            num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
+        } else {
+            num_of_streams_in_cur_thread = min_number_streams_per_thread;
+        }
+        m_media_sender_settings->media_types_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
+    }
+    m_media_sender_settings->media_type_configs.push_back(std::move(video_settings));
+
+    if (alpha_enabled) {
+        auto alpha_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
+        alpha_settings->media_calc = IMediaSettingsCalcFactory::get_media_settings_calculator(SMPTEStandard::ST_2110_20_Video, *alpha_settings);
+        alpha_settings->header_data_split = m_app_settings->header_data_split;
+        alpha_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
+        alpha_settings->resolution = m_app_settings->media.resolution;
+        alpha_settings->frame_rate = m_app_settings->media.frame_rate;
+        alpha_settings->sampling_type = VideoSampling::KEY;
+        alpha_settings->bit_depth = m_app_settings->media.alpha_bit_depth;
+        alpha_settings->colorimetry = Colorimetry::ALPHA;
+        alpha_settings->smpte_standard_number = SMPTEStandardNumber::ST2110_20_2021;
+        alpha_settings->media_calc->calculate_media_settings();
+
+        for (size_t idx = 0; idx < num_of_video_threads; idx++) {
+            size_t num_of_streams_in_cur_thread;
+            if (min_number_streams_per_thread * num_of_video_threads + idx < m_app_settings->num_of_total_streams) {
+                num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
+            } else {
+                num_of_streams_in_cur_thread = min_number_streams_per_thread;
+            }
+            m_media_sender_settings->media_types_to_nodes.push_back(
+                {*alpha_settings,
+                 num_of_streams_in_cur_thread});
+        }
+        m_media_sender_settings->media_type_configs.push_back(std::move(alpha_settings));
+    }
+}
+
+void MediaSenderApp::configure_audio_types()
+{
+    // TODO: add a media type configuration entry for audio.
+}
+
+void MediaSenderApp::configure_ancillary_types()
+{
+    // TODO: add a media type configuration entry for ancillary.
+}
+
+const std::unordered_map<SMPTEStandard, std::function<void(MediaSenderApp*)>> MediaSenderApp::s_media_type_config_map = {
+    {SMPTEStandard::ST_2110_20_Video, [](MediaSenderApp* app) { app->configure_video_types(); }},
+    {SMPTEStandard::ST_2110_30_Audio, [](MediaSenderApp* app) { app->configure_audio_types(); }},
+    {SMPTEStandard::ST_2110_40_Ancillary, [](MediaSenderApp* app) { app->configure_ancillary_types(); }}
+};
+
+void MediaSenderApp::configure_media_types_processing()
+{
+    for (const auto& media_type : m_media_sender_settings->enabled_media_types) {
+        auto it = s_media_type_config_map.find(media_type);
+        if (it != s_media_type_config_map.end()) {
+            it->second(this);
+        }
     }
 }
 
 void MediaSenderApp::initialize_sender_threads()
 {
     size_t streams_offset = 0;
-    for (size_t sndr_indx = 0; sndr_indx < m_app_settings->num_of_threads; sndr_indx++) {
+    size_t sender_idx = 0;
+    auto synchronizer = std::make_shared<Synchronizer>(m_media_sender_settings->media_types_to_nodes.size());
+    for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
+        auto& media_type_config = node.first;
+        auto num_of_streams = node.second;
         int sender_cpu_core;
-        if (sndr_indx < m_app_settings->app_threads_cores.size()) {
-            sender_cpu_core = m_app_settings->app_threads_cores[sndr_indx];
+        if (sender_idx < m_app_settings->app_threads_cores.size()) {
+            sender_cpu_core = m_app_settings->app_threads_cores[sender_idx];
         } else {
-            std::cerr << "Warning: CPU afinity for Sender " << sndr_indx <<
+            std::cerr << "Warning: CPU affinity for Sender " << sender_idx <<
                          " is not set!!!" << std::endl;
             sender_cpu_core = CPU_NONE;
         }
         auto network_address = FourTupleFlow(
-            sndr_indx,
+            sender_idx,
             m_app_settings->local_ip,
             m_app_settings->source_port,
             m_app_settings->destination_ip,
             m_app_settings->destination_port);
         auto flows = std::vector<TwoTupleFlow>(
             m_flows.begin() + streams_offset,
-            m_flows.begin() + streams_offset + m_streams_per_thread[sndr_indx]);
-        m_senders.push_back(std::unique_ptr<MediaSenderIONode>(new MediaSenderIONode(
+            m_flows.begin() + streams_offset + num_of_streams);
+        m_senders.push_back(std::make_unique<MediaSenderIONode>(
             network_address,
-            m_app_settings,
-            sndr_indx,
-            m_streams_per_thread[sndr_indx],
+            *m_app_settings,
+            media_type_config,
+            sender_idx,
+            num_of_streams,
             sender_cpu_core,
             *m_memory_utils,
-            MediaSenderApp::get_time_ns)));
-        m_senders[sndr_indx]->initialize_send_flows(flows);
-        m_senders[sndr_indx]->initialize_streams();
-        streams_offset += m_streams_per_thread[sndr_indx];
+            MediaSenderApp::get_time_ns));
+        m_senders[sender_idx]->initialize_send_flows(flows);
+        m_senders[sender_idx]->initialize_streams();
+        m_senders[sender_idx]->set_synchronizer(synchronizer);
+        streams_offset += num_of_streams;
+        sender_idx++;
     }
 }
 
@@ -357,13 +465,19 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
     std::shared_ptr<IFrameProvider> frame_provider;
     ReturnStatus rc;
     bool contains_payload = true;
-    for (size_t sender_index = 0; sender_index < m_app_settings->num_of_threads; sender_index++) {
-        const size_t streams_in_thread = m_streams_per_thread[sender_index];
-        for(size_t stream_index = 0; stream_index < streams_in_thread; stream_index++) {
+    size_t sender_index = 0;
+    for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
+        auto& media_type_config = node.first;
+        auto num_of_streams = node.second;
+        for(size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
             if (m_app_settings->video_file.empty() || !(m_app_settings->dynamic_video_file_load)) {
-                frame_provider = std::make_shared<NullFrameProvider>(m_app_settings->media);
+                frame_provider = std::make_shared<NullFrameProvider>(media_type_config);
                 contains_payload = false;
             } else {
+                if (media_type_config.get_media_type() != SMPTEStandard::ST_2110_20_Video) {
+                    std::cerr << "Video file is not supported for other media types" << std::endl;
+                    return ReturnStatus::failure;
+                }
                 auto media_file_frame_provider = std::make_shared<MediaFileFrameProvider>(
                     m_app_settings->video_file, MediaType::Video,
                     m_app_settings->media.bytes_per_frame, *m_header_allocator, true);
@@ -382,6 +496,7 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
                 return rc;
             }
         }
+        sender_index++;
     }
     return ReturnStatus::success;
 }

@@ -91,7 +91,6 @@ public:
 class GenericSenderIONode
 {
 private:
-    MediaSettings m_media_settings;
     std::vector<std::unique_ptr<AppGenericSendStream>> m_streams;
     size_t m_index;
     size_t m_num_of_streams;

@@ -40,13 +40,9 @@ struct RTPHeader {
 };
 
 RTPMediaBufferWriter::RTPMediaBufferWriter(const MediaSettings& media_settings,
-    size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
     IBufferWriter(std::move(header_mem_utils), std::move(payload_mem_utils)),
     m_media_settings(media_settings),
-    m_app_header_stride_size(app_header_stride_size),
-    m_data_stride_size(data_stride_size),
-    m_packet_payload_size(packet_payload_size),
     m_ssrc(DEFAULT_SSRC) // Simulated SSRC.
 {
     set_stream_properties();
@@ -61,7 +57,7 @@ ReturnStatus RTPMediaBufferWriter::write_buffer(void* payload_ptr, size_t length
     byte_t* current_payload_pointer;
 
     while (stride < length_in_strides && m_send_data.packet_counter < m_media_settings.packets_in_frame_field) {
-        current_packet_pointer = header_pointer + (stride * m_data_stride_size);
+        current_packet_pointer = header_pointer + (stride * m_media_settings.data_stride_size);
         current_payload_pointer = (current_packet_pointer + m_media_settings.protocol_header_size);
         build_rtp_header(current_packet_pointer);
         fill_packet(current_payload_pointer);
@@ -85,8 +81,8 @@ ReturnStatus RTPMediaBufferWriter::write_buffer(void* header_ptr, void* payload_
     byte_t* current_payload_pointer;
 
     while (stride < length_in_strides && m_send_data.packet_counter < m_media_settings.packets_in_frame_field) {
-        current_packet_pointer = header_pointer + (stride * m_app_header_stride_size);
-        current_payload_pointer = (payload_pointer + (stride * m_data_stride_size));
+        current_packet_pointer = header_pointer + (stride * m_media_settings.app_header_stride_size);
+        current_payload_pointer = (payload_pointer + (stride * m_media_settings.data_stride_size));
         build_rtp_header(current_packet_pointer);
         fill_packet(current_payload_pointer);
         update_in_frame_state();
@@ -134,35 +130,31 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
     {
         {MediaType::Video, false},
         [](const MediaSettings& media_settings,
-            size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
-            return std::unique_ptr<RTPMediaBufferWriter>(new RTPVideoMockBufferWriter(media_settings, app_header_stride_size, data_stride_size,
-                packet_payload_size, std::move(header_mem_utils), std::move(payload_mem_utils)));
+            return std::unique_ptr<RTPMediaBufferWriter>(new RTPVideoMockBufferWriter(media_settings,
+                std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },
     {
         {MediaType::Video, true},
         [](const MediaSettings& media_settings,
-            size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
-            return std::unique_ptr<RTPMediaBufferWriter>(new RTPVideoBufferWriter(media_settings, app_header_stride_size, data_stride_size,
-                packet_payload_size, std::move(header_mem_utils), std::move(payload_mem_utils)));
+            return std::unique_ptr<RTPMediaBufferWriter>(new RTPVideoBufferWriter(media_settings,
+                std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },
 };
 
 std::unique_ptr<RTPMediaBufferWriter> RTPMediaBufferWriter::get_rtp_media_buffer_writer(
     MediaType type, bool contains_payload, const MediaSettings& media_settings,
-    size_t app_header_stride_size, size_t data_stride_size, uint16_t packet_payload_size,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
 {
     auto key = MediaBufferFactoryKey(type, contains_payload);
     auto iter = RTPMediaBufferWriter::s_rtp_media_buffer_writer_factory.find(key);
     if (iter != RTPMediaBufferWriter::s_rtp_media_buffer_writer_factory.end()) {
-        return iter->second(media_settings, app_header_stride_size, data_stride_size,
-            packet_payload_size, std::move(header_mem_utils), std::move(payload_mem_utils));
+        return iter->second(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils));
     } else {
         return nullptr;
     }

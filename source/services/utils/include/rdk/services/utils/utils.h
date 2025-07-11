@@ -23,5 +23,6 @@
 #include "rdk/services/utils/enum_utils.h"
 #include "rdk/services/utils/gpu_manager.h"
 #include "rdk/services/utils/clock.h"
+#include "rdk/services/utils/synchronizer.h"
 
 #endif /* RDK_SERVICES_UTILS_UTILS_H_ */

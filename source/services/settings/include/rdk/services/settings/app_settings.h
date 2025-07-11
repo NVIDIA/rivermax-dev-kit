@@ -63,7 +63,6 @@ struct AppSettings
     std::vector<int> app_threads_cores;
     bool print_parameters;
     PacketPacingRate rate;
-    size_t num_of_memory_blocks;
     size_t num_of_chunks_in_mem_block;
     size_t num_of_chunks;
     size_t num_of_packets_in_chunk;
@@ -76,7 +75,7 @@ struct AppSettings
     int gpu_id;
     bool lock_gpu_clocks;
     AllocatorTypeUI allocator_type;
-    MediaSettings media;
+    AppMediaSettings media;
     bool ref_clk_is_ptp;
     uint32_t session_id_stats;
     bool register_memory;

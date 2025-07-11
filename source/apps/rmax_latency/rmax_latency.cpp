@@ -19,9 +19,12 @@
 #include <cassert>
 
 #include "rdk/apps/rmax_latency/rmax_latency.h"
+#include "rdk/services/media/media_calc.h"
+#include "rdk/services/media/media_defs.h"
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/media/media.h"
 
+using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::apps::rmax_latency;
 
 constexpr const char* MODE_PINGPONG = "pp";
@@ -157,6 +160,7 @@ ReturnStatus LatencyCLISettingsBuilder::add_cli_options(std::shared_ptr<LatencyS
 LatencyApp::LatencyApp(std::shared_ptr<ISettingsBuilder<LatencySettings>> settings_builder) :
     RmaxBaseApp(),
     m_settings_builder(std::move(settings_builder)),
+    m_media_settings{},
     m_tx_header_mreg{nullptr, 0, 0},
     m_is_tx_header_mreg_registered{false},
     m_tx_payload_mreg{nullptr, 0, 0},
@@ -306,18 +310,29 @@ ReturnStatus LatencyApp::initialize_threads()
                     TwoTupleFlow(0, m_app_settings->local_ip, m_latency_settings->receive_port));
             break;
         case LatencyMode::Media:
+            m_media_settings.frames_fields_in_mem_block = MediaSettings::MIN_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP;
+            m_media_settings.resolution = m_app_settings->media.resolution;
+            m_media_settings.frame_rate = m_app_settings->media.frame_rate;
+            m_media_settings.bit_depth = m_app_settings->media.color_bit_depth;
+            m_media_settings.ref_clk_is_ptp = true;
+            auto media_settings_calculator = IMediaSettingsCalcFactory::get_media_settings_calculator(
+                SMPTEStandard::ST_2110_20_Video, m_media_settings);
+            m_media_settings.media_calc = media_settings_calculator;
+            media_settings_calculator->calculate_media_settings();
             if (m_latency_settings->client) {
                 if (m_app_settings->num_of_packets_in_chunk != LatencySettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK) {
                     m_app_settings->num_of_packets_in_chunk_specified = true;
                 }
                 m_io_node = std::unique_ptr<LatencyIONode>(
                         new MediaTxIONode(node_settings,
+                                          m_media_settings,
                                           m_header_allocator->get_memory_utils(),
                                           m_payload_allocator->get_memory_utils(),
                                           LatencyApp::get_time_ns));
             } else {
                 m_io_node = std::unique_ptr<LatencyIONode>(
                         new MediaRxIONode(node_settings,
+                                          m_media_settings,
                                           m_header_allocator->get_memory_utils(),
                                           m_payload_allocator->get_memory_utils(),
                                           LatencyApp::get_time_ns));
