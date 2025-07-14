@@ -22,8 +22,9 @@ Additionally, it includes SW APIs for application-level modules to enhance funct
 
 ### Software Stack
 
-The Rivermax Dev Kit integrates seamlessly into the Rivermax software stack:<br><br>
-<img src="docs/images/sw_stack.png" alt="Software Stack" title="Software Stack" width="75%"/><br>
+The Rivermax Dev Kit integrates seamlessly into the Rivermax software stack:
+
+<img src="docs/images/sw_stack.png" alt="Software Stack" title="Software Stack" width="75%"/>
 
 ## Getting Started
 
@@ -119,7 +120,7 @@ add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/source/app.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE <rivermax-dev-kit-target>)
 ```
 
-Replace `<GIT_HASH/GIT_TAG>` with the appropriate commit hash or tag for the Rivermax Dev Kit repository.<br>
+Replace `<GIT_HASH/GIT_TAG>` with the appropriate commit hash or tag for the Rivermax Dev Kit repository.  
 Replace `<rivermax-dev-kit-target>` with the appropriate target name for the Rivermax Dev Kit module you want to link against.
 
 ## Development
@@ -154,13 +155,16 @@ On Windows, one should take the following steps:
 On Linux, one should take the following steps:
 
 1. Download the latest version of CMake installation bash-script e.g.:
-```sh
-wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh -O cmake.sh
-```
+
+    ```sh
+    wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh -O cmake.sh
+    ```
+
 2. Install CMake by running the script with the following command-line arguments:
-```sh
-sudo sh cmake.sh --prefix=/usr/local/ --exclude-subdir
-```
+
+    ```sh
+    sudo sh cmake.sh --prefix=/usr/local/ --exclude-subdir
+    ```
 
 > There is an alternative method of installing CMake, which is via python pip: `pip3 install cmake`
 
@@ -229,19 +233,33 @@ Rivermax Dev Kit leverages CMake for its build system, offering flexibility in c
 
 1. Initialize build environment in an output directory `<build-dir>` of your choice:
 
-```sh
-cmake -B <build-dir> -DCMAKE_BUILD_TYPE=Release
-```
-To compile with CUDA support, add `-DRMAX_CUDA=ON` to `cmake` command-line. `nvcc`
-must be in `PATH`; you can add it using `export PATH=$PATH:/usr/local/cuda/bin/` on Linux, or
-`set PATH=%PATH%;<CUDA_INSTALL_DIR>\bin` on Windows.
+    ```sh
+    cmake -B <build-dir> -DCMAKE_BUILD_TYPE=Release
+    ```
+
+    >To compile with CUDA support, add `-DRMAX_CUDA=ON` to `cmake` command-line. `nvcc`
+    >must be in `PATH`; you can add it using `export PATH=$PATH:/usr/local/cuda/bin/` on Linux, or
+    >`set PATH=%PATH%;<CUDA_INSTALL_DIR>\bin` on Windows.
 
 2. After the build environment is set in output directory `<build-dir>`,
    build Rivermax Dev Kit with the following command-line:
 
-```sh
+    ```sh
+    cmake --build <build-dir> --config Release --parallel
+    ```
+
+#### Dynamic and Static Linking
+
+The preferred method for linking with Rivermax is dynamic linking. This approach ensures optimal compatibility and ease of integration. However, if dynamic linking presents challenges in your environment, Rivermax also supports static linking.
+
+To enable static linking by default, add the `RMAX_LINK_STATIC` flag during the CMake configuration phase:
+
+```bash
+cmake -B <build-dir> -DCMAKE_BUILD_TYPE=Release -DRMAX_LINK_STATIC=ON
 cmake --build <build-dir> --config Release --parallel
 ```
+
+> Replace `<build-dir>` with your desired build directory.
 
 #### Command Line Arguments
 
@@ -274,11 +292,13 @@ To build the documentation, ensure that Doxygen version 1.9.8 or later is instal
 For Linux, you can install Doxygen using the following commands:
 
 - **Debian/Ubuntu-based systems**:
+
     ```sh
     sudo apt install doxygen
     ```
 
 - **RHEL/CentOS/Fedora-based systems**:
+
     ```sh
     sudo dnf install doxygen
     ```
@@ -294,7 +314,6 @@ cmake --build <build-dir> --target rivermax_dev_kit_docs
 ### Accessing Documentation
 
 Once the documentation is built, you can view it by opening the `index.html` file located in the `<build-dir>/docs/doxygen/html` directory. Use any web browser to explore the generated HTML documentation.
-
 
 ## Supported Platforms
 
