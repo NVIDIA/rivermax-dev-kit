@@ -24,6 +24,8 @@
 #include <vector>
 #include <memory>
 
+#include <rivermax_api.h>
+
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/media/media_defs.h"
 
@@ -85,6 +87,7 @@ struct AppSettings
     uint32_t stats_report_interval_ms;
     std::string video_file;
     bool dynamic_video_file_load;
+    rmx_input_stream_params_type rx_stream_type;
 public:
     /**
      * @brief: Default destructor.

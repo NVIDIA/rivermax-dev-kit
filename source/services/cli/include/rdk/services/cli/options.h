@@ -101,6 +101,7 @@ public:
     static const char* STATS_CORE;
     static const char* STATS_SESSION_ID;
     static const char* STATS_REPORT_INTERVAL;
+    static const char* RX_STREAM_TYPE;
     static const char* VIDEO_RESOLUTION;
     static const char* VIDEO_FRAME_RATE;
     static const char* VIDEO_SAMPLING;

@@ -124,6 +124,7 @@ ReturnStatus IPMXReceiverCLISettingsBuilder::add_cli_options(std::shared_ptr<IPM
 #endif
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
     m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
+    m_cli_parser_manager->add_option(CLIOptStr::RX_STREAM_TYPE);
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
     m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
@@ -293,7 +294,7 @@ void IPMXReceiverApp::initialize_rtp_streams(RTPReceiverIONode& node, size_t sta
     streams.reserve(flows.size());
     for (size_t id = start_id; id < start_id + flows.size(); ++id) {
         ReceiveStreamSettings stream_settings(TwoTupleFlow(id, m_app_settings->local_ip, 0),
-            RMX_INPUT_APP_PROTOCOL_PACKET,
+            m_app_settings->rx_stream_type,
             RMX_INPUT_TIMESTAMP_SYNCED,
             {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
             m_app_settings->num_of_packets_in_chunk,
@@ -313,7 +314,7 @@ void IPMXReceiverApp::initialize_rtcp_stream(RTPReceiverIONode& node, const std:
 {
     std::vector<std::unique_ptr<IReceiveStream>> streams;
     ReceiveStreamSettings stream_settings(TwoTupleFlow(0, m_app_settings->local_ip, 0),
-        RMX_INPUT_APP_PROTOCOL_PACKET,
+        m_rtcp_receiver_settings.rx_stream_type,
         RMX_INPUT_TIMESTAMP_SYNCED,
         {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
         m_rtcp_receiver_settings.num_of_packets_in_chunk,

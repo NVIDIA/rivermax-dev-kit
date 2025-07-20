@@ -91,6 +91,7 @@ ReturnStatus RTPReceiverCLISettingsBuilder::add_cli_options(std::shared_ptr<RTPR
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
     m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
+    m_cli_parser_manager->add_option(CLIOptStr::RX_STREAM_TYPE);
     m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
     CLI::App_p parser = m_cli_parser_manager->get_parser();

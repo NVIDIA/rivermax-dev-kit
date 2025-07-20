@@ -21,6 +21,8 @@
 #include <map>
 #include <vector>
 
+#include <rivermax_api.h>
+
 #include "CLI/CLI.hpp"
 #include "rt_threads.h"
 
@@ -67,6 +69,7 @@ const char* CLIOptStr::ENABLE_STATS_READER = "--esr,--enable-stats-reader";
 const char* CLIOptStr::STATS_CORE = "-R,--statistics-core";
 const char* CLIOptStr::STATS_SESSION_ID = "-P,--session-id-stats";
 const char* CLIOptStr::STATS_REPORT_INTERVAL = "-I,--stats-interval";
+const char* CLIOptStr::RX_STREAM_TYPE = "-R,--rx-stream-type";
 const char* CLIOptStr::VIDEO_RESOLUTION = "--vr,--video-resolution";
 const char* CLIOptStr::VIDEO_FRAME_RATE = "--vfr,--video-frame-rate";
 const char* CLIOptStr::VIDEO_SAMPLING = "--vs,--video-sampling";
@@ -92,6 +95,17 @@ static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
     { "gpuhostpinned",     AllocatorTypeUI::GPUHostPinned },
 #endif
 };
+
+/**
+ * @brief: RX stream types mapping to string.
+ *
+ * Maps string representations to rmx_input_stream_params_type enum values.
+ */
+static const std::map<std::string, rmx_input_stream_params_type> UI_RX_STREAM_TYPES{
+    { "raw",          RMX_INPUT_RAW_PACKET },
+    { "app-protocol", RMX_INPUT_APP_PROTOCOL_PACKET }
+};
+
 /**
  * @brief: Create a string to Enum mapping vector.
  *
@@ -460,6 +474,17 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                                       app_settings->stats_report_interval_ms,
                                       "Display statistics interval, ms",
                                       true)->check(CLI::NonNegativeNumber);
+        }
+    },
+    {
+        CLIOptStr::RX_STREAM_TYPE,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::RX_STREAM_TYPE,
+                                      app_settings->rx_stream_type,
+                                      "RX stream type (raw, app-protocol)")
+                                      ->transform(CLI::CheckedTransformer(UI_RX_STREAM_TYPES, CLI::ignore_case))
+                                      ->default_val(RMX_INPUT_APP_PROTOCOL_PACKET);
         }
     },
     {

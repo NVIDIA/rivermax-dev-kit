@@ -46,7 +46,8 @@ AppRTPReceiveStream::AppRTPReceiveStream(const ReceiveStreamSettings& settings,
     m_is_header_data_split(header_data_split),
     m_is_header_processing_enabled(process_headers)
 {
-    m_packet_parser = std::make_unique<MediaPacketParser>(false);
+    bool include_network_headers = (m_stream_settings.m_rx_type == RMX_INPUT_RAW_PACKET);
+    m_packet_parser = std::make_unique<MediaPacketParser>(include_network_headers);
 }
 
 void AppRTPReceiveStream::set_frame_start_handler(std::unique_ptr<IRTPEventHandler> event_handler)
@@ -213,7 +214,7 @@ void RTPReceiverIONode::initialize_streams(size_t start_id, const std::vector<Re
     m_data_consumers.reserve(flows.size());
     for (size_t id = start_id; id < start_id + m_flows.size(); ++id) {
         ReceiveStreamSettings stream_settings(TwoTupleFlow(id, m_devices[0], 0),  // Currently supporting receiving on one device.
-            RMX_INPUT_APP_PROTOCOL_PACKET,
+            m_app_settings.rx_stream_type,
             RMX_INPUT_TIMESTAMP_RAW_NANO,
             {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
             m_app_settings.num_of_packets_in_chunk,

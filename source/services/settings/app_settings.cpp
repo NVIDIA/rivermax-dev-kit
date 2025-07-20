@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <rivermax_api.h>
 #include "rt_threads.h"
 
 #include "rdk/services/utils/defs.h"
@@ -57,4 +58,5 @@ void AppSettings::init_default_values()
     statistics_reader_core = INVALID_CORE_NUMBER;
     stats_report_interval_ms = STATS_REPORT_INTERVAL_MS_DEFAULT;
     dynamic_video_file_load = false;
+    rx_stream_type = RMX_INPUT_APP_PROTOCOL_PACKET;
 }
