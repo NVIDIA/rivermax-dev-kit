@@ -225,6 +225,8 @@ constexpr size_t RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE = \
     RTP_HEADER_SIZE + RTP_SINGLE_SRD_HEADER_SIZE;
 constexpr uint32_t RTP_SEQUENCE_NUMBER_MASK_16BIT = 0xFFFF;
 constexpr uint32_t RTP_SEQUENCE_NUMBER_MASK_32BIT = 0xFFFFFFFF;
+constexpr uint8_t RTP_VERSION_MASK = 0xC0;
+constexpr uint8_t RTP_VERSION_2 = 0x80;
 /* Video constants */
 constexpr size_t VIDEO_TRO_DEFAULT_MODIFICATION = 2;
 /* Supported video resolutions */

@@ -29,6 +29,7 @@
 #include "rt_threads.h"
 
 #include "rdk/io_node/receivers/rtp_receiver_io_node.h"
+#include "rdk/services/protocol/media_packet_parser.h"
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/cpu/affinity/affinity.h"
 #include "rdk/core/data_handler/receive_data_consumer_interface.h"
@@ -45,6 +46,7 @@ AppRTPReceiveStream::AppRTPReceiveStream(const ReceiveStreamSettings& settings,
     m_is_header_data_split(header_data_split),
     m_is_header_processing_enabled(process_headers)
 {
+    m_packet_parser = std::make_unique<MediaPacketParser>(false);
 }
 
 void AppRTPReceiveStream::set_frame_start_handler(std::unique_ptr<IRTPEventHandler> event_handler)
@@ -190,17 +192,7 @@ void AppRTPReceiveStream::process_packet_header(const byte_t* header, size_t len
 
 bool AppRTPReceiveStream::get_sequence_number(const byte_t* header, size_t length, uint32_t& sequence_number) const
 {
-    if (length < 4 || (header[0] & 0xC0) != 0x80) {
-        return false;
-    }
-
-    sequence_number = header[3] | header[2] << 8;
-    if (m_is_extended_sequence_number) {
-        uint8_t cc = 0x0F & header[0];
-        uint8_t offset = cc * RTP_HEADER_CSRC_GRANULARITY_BYTES;
-        sequence_number |= (header[offset + 12] << 24) | (header[offset + 13] << 16);
-    }
-    return true;
+    return m_packet_parser->get_sequence_number(header, length, m_is_extended_sequence_number, sequence_number);
 }
 
 RTPReceiverIONode::RTPReceiverIONode(

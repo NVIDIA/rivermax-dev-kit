@@ -16,19 +16,24 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_SERVICES_H_
-#define RDK_SERVICES_SERVICES_H_
+#ifndef RDK_SERVICES_PROTOCOL_PROTOCOL_H_
+#define RDK_SERVICES_PROTOCOL_PROTOCOL_H_
 
-#include "rdk/services/memory_allocation/memory_allocation.h"
-#include "rdk/services/buffer_wr/buffer_wr.h"
-#include "rdk/services/media/media.h"
-#include "rdk/services/protocol/protocol.h"
-#include "rdk/services/utils/utils.h"
-#include "rdk/services/statistics/statistics.h"
-#include "rdk/services/cpu/cpu.h"
-#include "rdk/services/cli/cli.h"
-#include "rdk/services/settings/settings.h"
-#include "rdk/services/error_handling/error_handling.h"
-#include "rdk/services/sdp/sdp.h"
+// Protocol header definitions
+#include "rdk/services/protocol/ethernet.h"
+#include "rdk/services/protocol/ipv4.h"
+#include "rdk/services/protocol/udp.h"
+#include "rdk/services/protocol/rtp.h"
 
-#endif /* RDK_SERVICES_SERVICES_H_ */
+// Protocol parsers
+#include "rdk/services/protocol/protocol_parsers.h"
+#include "rdk/services/protocol/ethernet_parser.h"
+#include "rdk/services/protocol/ipv4_parser.h"
+#include "rdk/services/protocol/udp_parser.h"
+#include "rdk/services/protocol/rtp_parser.h"
+
+// High-level packet parsers
+#include "rdk/services/protocol/packet_parser.h"
+#include "rdk/services/protocol/media_packet_parser.h"
+
+#endif // RDK_SERVICES_PROTOCOL_PROTOCOL_H_

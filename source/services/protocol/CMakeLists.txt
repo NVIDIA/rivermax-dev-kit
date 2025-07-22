@@ -14,39 +14,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(rivermax-dev-kit-services)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-add_library(${PROJECT_NAME} STATIC)
+project(rivermax-dev-kit-services-protocol)
 
-target_link_libraries(${PROJECT_NAME}
+add_library(${PROJECT_NAME} OBJECT)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        packet_parser.cpp
+        media_packet_parser.cpp
+)
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        include
+)
+target_link_libraries(${PROJECT_NAME} 
     PRIVATE
         rivermax-dev-kit-build
     PUBLIC
-        rivermax-dev-kit-services-cpu
-        rivermax-dev-kit-services-legacy-util
-        rivermax-dev-kit-services-error-handling
+        Rivermax::Include
         rivermax-dev-kit-services-utils
-        rivermax-dev-kit-services-protocol
-        rivermax-dev-kit-services-sdp
-        rivermax-dev-kit-services-statistics
         rivermax-dev-kit-services-media
+        rivermax-dev-kit-services-sdp
 )
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-
-set(RIVERMAX_DEV_KIT_SERVICE_COMPONENTS
-    legacy_util
-    error_handling
-    settings
-    cli
-    cpu
-    statistics
-    utils
-    media
-    protocol
-    sdp
-    buffer_wr
-    memory_allocation
-)
-foreach(service_component ${RIVERMAX_DEV_KIT_SERVICE_COMPONENTS})
-    add_subdirectory(${service_component})
-endforeach()

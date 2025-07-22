@@ -14,7 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-target_sources(${PROJECT_NAME}
+project(rivermax-dev-kit-services-media)
+
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE include)
+
+target_sources(rivermax-dev-kit-services
     PRIVATE
         ipmx.cpp
         media_file_streaming_provider.cpp
@@ -22,4 +27,4 @@ target_sources(${PROJECT_NAME}
         media_frame_provider.cpp
         media_utils.cpp
 )
-target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_include_directories(rivermax-dev-kit-services PUBLIC include)

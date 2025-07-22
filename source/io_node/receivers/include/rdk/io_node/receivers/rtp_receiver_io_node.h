@@ -32,6 +32,7 @@
 #include "rdk/io_node/receivers/receiver_io_node_base.h"
 #include "rdk/io_node/receivers/rtp_event_notifier_interface.h"
 #include "rdk/core/flow/receive_flow.h"
+#include "rdk/services/protocol/media_packet_parser.h"
 
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
@@ -60,6 +61,7 @@ private:
     uint32_t m_last_sequence_number = 0;
     bool m_last_mbit = true;
     std::unique_ptr<IRTPEventHandler> m_frame_notifier;
+    std::unique_ptr<MediaPacketParser> m_packet_parser;
 public:
     /**
      * @brief: Constructs RTP receive stream wrapper.
