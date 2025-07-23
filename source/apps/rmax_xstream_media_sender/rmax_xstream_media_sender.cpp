@@ -364,15 +364,15 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
                 frame_provider = std::make_shared<NullFrameProvider>(m_app_settings->media);
                 contains_payload = false;
             } else {
-                frame_provider = std::make_shared<MediaFileFrameProvider>(
+                auto media_file_frame_provider = std::make_shared<MediaFileFrameProvider>(
                     m_app_settings->video_file, MediaType::Video,
                     m_app_settings->media.bytes_per_frame, *m_header_allocator, true);
-                auto media_file_frame_provider = std::dynamic_pointer_cast<MediaFileFrameProvider>(frame_provider);
                 rc = media_file_frame_provider->load_frames();
                 if (rc != ReturnStatus::success) {
                     std::cerr << "Failed to load frames from video file" << std::endl;
                     return rc;
                 }
+                frame_provider = std::move(media_file_frame_provider);
             }
             rc = m_senders[sender_index]->set_frame_provider(
                 stream_index, std::move(frame_provider), MediaType::Video, contains_payload);
