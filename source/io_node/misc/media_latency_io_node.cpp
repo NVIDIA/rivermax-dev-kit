@@ -62,12 +62,16 @@ MediaTxIONode::MediaTxIONode(
 {
 }
 
-void MediaTxIONode::initialize_send_stream()
+ReturnStatus MediaTxIONode::initialize_send_stream()
 {
     m_app_settings->num_of_total_streams = 1;
     m_app_settings->num_of_memory_blocks = 1;
     m_app_settings->media.frames_fields_in_mem_block = 2;
-    initialize_media_settings(*m_app_settings);
+    auto rc = initialize_media_settings(*m_app_settings);
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to initialize media settings" << std::endl;
+        return rc;
+    }
     m_app_settings->num_of_chunks = m_app_settings->num_of_chunks_in_mem_block *
                                     m_app_settings->num_of_memory_blocks;
     if (m_gpu_direct_tx && (m_app_settings->packet_app_header_size == 0)) {
@@ -85,6 +89,7 @@ void MediaTxIONode::initialize_send_stream()
             m_app_settings->num_of_packets_in_chunk, m_app_settings->packet_payload_size,
             m_send_data_stride_size, m_send_header_stride_size);
     m_send_stream = std::shared_ptr<RtpVideoSendStream>(new RtpVideoSendStream(stream_settings));
+    return ReturnStatus::success;
 }
 
 ReturnStatus MediaTxIONode::query_memory_size(size_t& tx_header_size, size_t& tx_payload_size,

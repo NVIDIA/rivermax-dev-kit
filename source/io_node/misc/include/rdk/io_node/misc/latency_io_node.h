@@ -197,7 +197,7 @@ public:
     /**
      * @brief: Initializes send stream (for client requests and server replies).
      */
-    virtual void initialize_send_stream() = 0;
+    virtual ReturnStatus initialize_send_stream() = 0;
     /**
      * @brief: Initializes receive stream (for receiving client requests and server replies).
      */

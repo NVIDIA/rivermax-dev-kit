@@ -262,6 +262,7 @@ ReturnStatus LatencyApp::set_rivermax_clock()
 
 ReturnStatus LatencyApp::initialize_threads()
 {
+    ReturnStatus rc = ReturnStatus::success;
     LatencyNodeSettings node_settings;
     node_settings.app = m_app_settings;
     node_settings.receive_ip = m_latency_settings->receive_ip;
@@ -282,7 +283,11 @@ ReturnStatus LatencyApp::initialize_threads()
                                        m_header_allocator->get_memory_utils(),
                                        m_payload_allocator->get_memory_utils(),
                                        LatencyApp::get_time_ns));
-            m_io_node->initialize_send_stream();
+            rc = m_io_node->initialize_send_stream();
+            if (rc != ReturnStatus::success) {
+                std::cerr << "Failed to initialize send stream" << std::endl;
+                return rc;
+            }
             m_io_node->initialize_receive_stream(
                     TwoTupleFlow(0, m_app_settings->local_ip, m_latency_settings->receive_port));
             break;
@@ -292,7 +297,11 @@ ReturnStatus LatencyApp::initialize_threads()
                                     m_header_allocator->get_memory_utils(),
                                     m_payload_allocator->get_memory_utils(),
                                     LatencyApp::get_time_ns));
-            m_io_node->initialize_send_stream();
+            rc = m_io_node->initialize_send_stream();
+            if (rc != ReturnStatus::success) {
+                std::cerr << "Failed to initialize send stream" << std::endl;
+                return rc;
+            }
             m_io_node->initialize_receive_stream(
                     TwoTupleFlow(0, m_app_settings->local_ip, m_latency_settings->receive_port));
             break;
@@ -313,7 +322,11 @@ ReturnStatus LatencyApp::initialize_threads()
                                           m_payload_allocator->get_memory_utils(),
                                           LatencyApp::get_time_ns));
             }
-            m_io_node->initialize_send_stream();
+            rc = m_io_node->initialize_send_stream();
+            if (rc != ReturnStatus::success) {
+                std::cerr << "Failed to initialize send stream" << std::endl;
+                return rc;
+            }
             m_io_node->initialize_receive_stream(
                     TwoTupleFlow(0, m_app_settings->local_ip, m_latency_settings->receive_port));
             break;

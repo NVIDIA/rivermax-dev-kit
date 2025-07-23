@@ -74,7 +74,7 @@ std::ostream& GenericLatencyIONode::print(std::ostream& out) const
     return out;
 }
 
-void GenericLatencyIONode::initialize_send_stream()
+ReturnStatus GenericLatencyIONode::initialize_send_stream()
 {
     if (m_gpu_direct_tx && (m_send_dim.header_size == 0)) {
         m_send_dim.header_size = RTP_HEADER_SIZE;
@@ -90,6 +90,7 @@ void GenericLatencyIONode::initialize_send_stream()
             static_cast<uint16_t>(m_send_dim.header_size));
 
     m_send_stream = std::shared_ptr<GenericSendStream>(new GenericSendStream(settings));
+    return ReturnStatus::success;
 }
 
 ReturnStatus GenericLatencyIONode::query_memory_size(size_t& tx_header_size, size_t& tx_payload_size,
