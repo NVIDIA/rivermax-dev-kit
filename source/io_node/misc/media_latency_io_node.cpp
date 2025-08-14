@@ -286,7 +286,7 @@ void MediaTxIONode::send_receive()
     };
 
     uint64_t scheduled_next_field_start_time_ns = get_send_time_of_next_field_ns();
-    uint64_t scheduled_next_field_complete_time_ns = get_finish_time_of_next_field_ns();
+    uint64_t scheduled_next_field_complete_time_ns;
 
     m_marked_token = 0;
     m_handled_token = 0;
