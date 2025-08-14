@@ -152,11 +152,12 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     float bytes_per_pixel = static_cast<float>(bytes_in_pgroup) / static_cast<float>(pixels_in_pgroup);
     video_settings.bytes_per_frame = bytes_in_pgroup * pgroups_in_line * video_settings.resolution.height;
 
-    uint32_t pgroups_in_packet = 0;
+    uint32_t pgroups_in_packet = 1; /* Non-zero initialization for Coverity to avoid a false "divide by zero" error */
     for (uint32_t pkt_cnt = 1; pkt_cnt <= pgroups_in_line; pkt_cnt++) {
         if (pgroups_in_line % pkt_cnt != 0) {
             continue;
         }
+        /* We get here at least once, e.g. when pkt_cnt == pgroups_in_line, and pgroups_in_packet will be > 0 */
         pgroups_in_packet = pgroups_in_line / pkt_cnt;
         if (pgroups_in_packet * bytes_in_pgroup <= 1440) {
             break;
@@ -174,7 +175,7 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     }
 
     video_settings.pixels_per_packet = pgroups_in_packet * pixels_in_pgroup;
-    video_settings.packets_in_frame_field = video_settings.packets_in_line * video_settings.resolution.height;
+    video_settings.packets_in_frame_field = static_cast<uint32_t>(video_settings.packets_in_line * video_settings.resolution.height);
 
     std::cout << "using sampling type: " << enum_to_string(video_settings.sampling_type);
     std::cout << " and bit depth: " << enum_to_string(video_settings.bit_depth) << std::endl;
