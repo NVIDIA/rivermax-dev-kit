@@ -55,7 +55,7 @@ void AppRTPReceiveStream::set_frame_start_handler(std::unique_ptr<IRTPEventHandl
 ReturnStatus AppRTPReceiveStream::get_next_chunk(ReceiveChunk& chunk)
 {
     ReturnStatus status = ReceiveStream::get_next_chunk(chunk);
-    if (status != ReturnStatus::success) {
+    if (status != ReturnStatus::success || chunk.get_length() == 0) {
         return status;
     }
     m_statistic.rx_count += chunk.get_length();
