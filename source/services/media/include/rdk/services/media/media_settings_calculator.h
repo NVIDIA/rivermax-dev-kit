@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_MEDIA_UTILS_H_
-#define RDK_SERVICES_MEDIA_MEDIA_UTILS_H_
+#ifndef RDK_SERVICES_MEDIA_MEDIA_CALC_H_
+#define RDK_SERVICES_MEDIA_MEDIA_CALC_H_
 
 #include <cstddef>
 #include <chrono>
@@ -56,25 +56,24 @@ typedef const std::unordered_map<
  * This class provides a static factory method to create media settings calculators
  * based on the SMPTE standard and media settings.
  */
-class IMediaSettingsCalcFactory
+class IMediaSettingsCalculatorFactory
 {
 private:
     /* Static map of SMPTE standards to calculator factory functions */
     static media_settings_calculator_factory_map_t s_media_settings_calculator_factory_map;
 public:
     /**
-     * @brief: Gets a media settings calculator for the specified media type.
+     * @brief: Returns a media-type-specific media settings calculator for the media setting.
      *
      * This static method creates and returns a media settings calculator based on
-     * the SMPTE standard and media settings provided.
+     * the SMPTE standard of media settings provided.
      *
-     * @param [in] media_type: The SMPTE standard for the media type.
      * @param [in] media_settings: Reference to the media settings to configure.
      * @param [in] extra_parameters: Optional vector of format-specific parameters.
      *
      * @return: Shared pointer to the created media settings calculator.
      */
-    static std::shared_ptr<IMediaSettingsCalculator> get_media_settings_calculator(SMPTEStandard media_type, MediaSettings& media_settings,
+    static std::shared_ptr<IMediaSettingsCalculator> get_media_settings_calculator(MediaSettings& media_settings,
         const std::vector<FormatSpecificParameter>& extra_parameters = {});
 };
 
@@ -92,7 +91,7 @@ public:
      * @brief: MediaSettingsCalculator constructor.
      *
      * @param [in] media_settings: Reference to the media settings to configure.
-     * @param [in] extra_parameters: Optional vector of format-specific parameters.
+     * @param [in] extra_parameters: Optional vector of format-specific SDP parameters.
      */
     MediaSettingsCalculator(MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters = {}) :
         m_media_settings(media_settings), m_extra_parameters(extra_parameters) {}
@@ -101,7 +100,7 @@ public:
      */
     virtual ~MediaSettingsCalculator() = default;
     /**
-     * @brief: Gets the name of the media type.
+     * @brief: Returns the name of the media type.
      *
      * @return: String representation of the media type name.
      */
@@ -117,4 +116,4 @@ protected:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_MEDIA_UTILS_H_ */
+#endif /* RDK_SERVICES_MEDIA_MEDIA_CALC_H_ */

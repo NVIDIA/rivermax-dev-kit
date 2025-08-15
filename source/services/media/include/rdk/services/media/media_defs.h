@@ -28,9 +28,9 @@
 #include <vector>
 #include <chrono>
 #include <memory>
-#include "rdk/services/error_handling/return_status.h"
 
 #include "rdk/services/media/media_calc_interface.h"
+#include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/sdp/sdp_defs.h"
 
 namespace rivermax
@@ -257,13 +257,13 @@ const std::vector<VideoSampling> SUPPORTED_VIDEO_SAMPLING_TYPES = {
     VideoSampling::RGB
 };
 /**
- * @brief: Enum class SMPTE Media content types.
+ * @brief: Enum class for SMPTE Media content types.
  */
 enum class SMPTEStandard
 {
-    ST_2110_20_Video,
-    ST_2110_30_Audio,
-    ST_2110_40_Ancillary,
+    ST_2110_20,
+    ST_2110_30,
+    ST_2110_40,
     Unknown
 };
  /* Supported video bit depths */
@@ -306,9 +306,18 @@ struct AppMediaSettings
     uint8_t payload_type = 96;
     uint16_t pixels_per_packet = 0;
 };
-
-class IMediaSettingsCalculator;
-
+/**
+ * @brief: Media settings calculator interface.
+ *
+ * This interface provides methods for calculating media parameters for different media types.
+ */
+ class IMediaSettingsCalculator;
+/**
+ * @brief: Media settings.
+ *
+ * The struct will be used to hold media parameters for
+ * all different media types processed by the application.
+ */
 struct MediaSettings
 {
     virtual ~MediaSettings() = default;
@@ -327,7 +336,7 @@ struct MediaSettings
     size_t chunks_in_frame_field = 0;
     size_t packets_in_chunk = 0;
     size_t frames_fields_in_mem_block = 0;
-    /*
+    /**
      * @brief: Reference clock ID.
      *
      * The reference clock ID is used to identify the reference clock.
@@ -336,34 +345,43 @@ struct MediaSettings
      * If the reference clock is not PTP, the ID is the local MAC address.
      */
     std::string refclk_id = "";
-    /*
+    /**
      * @brief: Reference clock is PTP.
      */
     bool ref_clk_is_ptp = true;
     uint8_t ptp_domain_id = DEFAULT_PTP_DOMAIN_ID;
     size_t bytes_per_frame = 0;
-    size_t protocol_header_size = 0;
+    uint16_t protocol_header_size = 0;
     bool header_data_split = false;
-    size_t packet_app_header_size = 0;
-    size_t packet_payload_size = 0;
-    size_t raw_packet_payload_size = 0;
+    uint16_t packet_app_header_size = 0;
+    uint16_t packet_payload_size = 0;
+    uint16_t raw_packet_payload_size = 0;
     uint8_t payload_type = DEFAULT_PAYLOAD_TYPE;
     size_t chunks_in_mem_block = 0;
     size_t packets_in_mem_block = 0;
     size_t requested_num_of_mem_blocks = DEFAULT_NUM_OF_MEM_BLOCKS;
     size_t data_stride_size = 0;
     size_t app_header_stride_size = 0;
-
-    virtual SMPTEStandard get_media_type() const { return SMPTEStandard::Unknown; };
-    std::shared_ptr<IMediaSettingsCalculator> media_calc;
+    /**
+     * @brief: Returns the media type.
+     *
+     * @return: Media type.
+     */
+    virtual SMPTEStandard get_media_type() const = 0;
+    std::shared_ptr<IMediaSettingsCalculator> media_settings_calculator;
 };
-
-struct SMPTE_2110_20_MediaSettings : public MediaSettings
+/**
+ * @brief: SMPTE 2110-20 video media settings.
+ *
+ * The struct will be used to hold media parameters for
+ * SMPTE 2110-20 video streams.
+ */
+ struct SMPTE_2110_20_MediaSettings : public MediaSettings
 {
     virtual ~SMPTE_2110_20_MediaSettings() = default;
-    virtual SMPTEStandard get_media_type() const override { return SMPTEStandard::ST_2110_20_Video; };
+    virtual SMPTEStandard get_media_type() const override { return SMPTEStandard::ST_2110_20; };
     Resolution resolution = { FHD_WIDTH, FHD_HEIGHT };
-    FrameRate frame_rate = { 60 };;
+    FrameRate frame_rate = { 60 };
     VideoSampling sampling_type = VideoSampling::YCbCr_4_2_2;
     VideoBitDepth bit_depth = VideoBitDepth::_10;
     VideoScanType video_scan_type = VideoScanType::Progressive;
@@ -372,22 +390,6 @@ struct SMPTE_2110_20_MediaSettings : public MediaSettings
     size_t packets_in_line = 0;
     size_t lines_in_frame_field = 0;
     uint16_t pixels_per_packet = 0;
-};
-
-struct SMPTE_2110_30_MediaSettings : public MediaSettings
-{
-    virtual ~SMPTE_2110_30_MediaSettings() = default;
-    virtual SMPTEStandard get_media_type() const override { return SMPTEStandard::ST_2110_30_Audio; };
-    uint32_t sampling_frequency = 0;
-    uint32_t num_of_channels = 0;
-    uint32_t bit_depth = 0;
-};
-
-struct SMPTE_2110_40_MediaSettings : public MediaSettings
-{
-    virtual ~SMPTE_2110_40_MediaSettings() = default;
-    virtual SMPTEStandard get_media_type() const override { return SMPTEStandard::ST_2110_40_Ancillary; };
-    size_t max_data_amount = 0;
 };
 
 }  // namespace services

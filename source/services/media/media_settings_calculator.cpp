@@ -21,7 +21,7 @@
 
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/media_calc_interface.h"
-#include "rdk/services/media/video_calc.h"
+#include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/sdp/sdp.h"
 #include "rdk/services/sdp/sdp_defs.h"
@@ -34,12 +34,9 @@ namespace dev_kit
 namespace services
 {
 
-//using namespace rivermax::dev_kit::core;
-//using namespace rivermax::dev_kit::services;
-
-media_settings_calculator_factory_map_t IMediaSettingsCalcFactory::s_media_settings_calculator_factory_map = {
+media_settings_calculator_factory_map_t IMediaSettingsCalculatorFactory::s_media_settings_calculator_factory_map = {
     {
-        SMPTEStandard::ST_2110_20_Video,
+        SMPTEStandard::ST_2110_20,
         [](MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters)
         {
             return std::make_shared<ST_2110_20_MediaSettingsCalculator>(media_settings, extra_parameters);
@@ -47,10 +44,10 @@ media_settings_calculator_factory_map_t IMediaSettingsCalcFactory::s_media_setti
     }
 };
 
-std::shared_ptr<IMediaSettingsCalculator> IMediaSettingsCalcFactory::get_media_settings_calculator(SMPTEStandard media_type, MediaSettings& media_settings,
+std::shared_ptr<IMediaSettingsCalculator> IMediaSettingsCalculatorFactory::get_media_settings_calculator(MediaSettings& media_settings,
     const std::vector<FormatSpecificParameter>& extra_parameters)
 {
-    auto iter = s_media_settings_calculator_factory_map.find(media_type);
+    auto iter = s_media_settings_calculator_factory_map.find(media_settings.get_media_type());
     if (iter != s_media_settings_calculator_factory_map.end()) {
         return iter->second(media_settings, extra_parameters);
     }

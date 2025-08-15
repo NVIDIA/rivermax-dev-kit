@@ -221,7 +221,7 @@ size_t IPMXStreamSender::prepare_sender_report_base(uint32_t ssrc, const TwoTupl
     std::strncpy((char *)(m_report.sr.info.mediaclk), "direct=0",
                           sizeof(m_report.sr.info.mediaclk) - 1);
 
-    auto& video_settings = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
 
     m_report.sr.media.type = htons(IPMX_MIB_TYPE_UNCOMPRESSED_VIDEO);
     m_report.sr.media.length = htons(sizeof(m_report.sr.media) / sizeof(uint32_t) - 1);

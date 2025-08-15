@@ -61,11 +61,6 @@ ReturnStatus AppRTPReceiveStream::get_next_chunk(ReceiveChunk& chunk)
     if (status != ReturnStatus::success || chunk.get_length() == 0) {
         return status;
     }
-
-    if (chunk.get_length() == 0) {
-        return ReturnStatus::success;
-    }
-
     m_statistic.rx_count += chunk.get_length();
     m_statistic_totals.rx_count += chunk.get_length();
 

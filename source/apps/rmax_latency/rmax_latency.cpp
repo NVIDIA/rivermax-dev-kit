@@ -19,7 +19,7 @@
 #include <cassert>
 
 #include "rdk/apps/rmax_latency/rmax_latency.h"
-#include "rdk/services/media/media_calc.h"
+#include "rdk/services/media/media_settings_calculator.h"
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/media/media.h"
@@ -315,9 +315,8 @@ ReturnStatus LatencyApp::initialize_threads()
             m_media_settings.frame_rate = m_app_settings->media.frame_rate;
             m_media_settings.bit_depth = m_app_settings->media.color_bit_depth;
             m_media_settings.ref_clk_is_ptp = true;
-            auto media_settings_calculator = IMediaSettingsCalcFactory::get_media_settings_calculator(
-                SMPTEStandard::ST_2110_20_Video, m_media_settings);
-            m_media_settings.media_calc = media_settings_calculator;
+            auto media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(m_media_settings);
+            m_media_settings.media_settings_calculator = media_settings_calculator;
             media_settings_calculator->calculate_media_settings();
             if (m_latency_settings->client) {
                 if (m_app_settings->num_of_packets_in_chunk != LatencySettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK) {

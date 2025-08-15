@@ -16,29 +16,27 @@
  * limitations under the License.
  */
 
-#include "rdk/services/media/media_defs.h"
-#include "rt_threads.h"
 #include <functional>
 #include <unordered_map>
 
+#include "rt_threads.h"
+#include "rdk/services/media/media_defs.h"
 #include "rdk/apps/rmax_xstream_media_sender/rmax_xstream_media_sender.h"
 #include "rdk/apps/rmax_base_memory_strategy.h"
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/clock.h"
-#include "rdk/services/utils/enum_utils.h"
 #include "rdk/services/sdp/sdp_defs.h"
-#include "rdk/services/media/media.h"
 
 using namespace rivermax::dev_kit::apps::rmax_xstream_media_sender;
 
 void MediaSenderSettings::init_default_values()
 {
     AppSettings::init_default_values();
-    media.frames_fields_in_mem_block = MediaSenderSettings::DEFAULT_FIELDS_IN_MEM_BLOCK;
+    media.frames_fields_in_mem_block = MediaSenderSettings::DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK;
     media.resolution = { FHD_WIDTH, FHD_HEIGHT };
     num_of_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
     /* Before enabling other media types, video is enabled by default */
-    enabled_media_types.insert(SMPTEStandard::ST_2110_20_Video);
+    enabled_media_types.insert(SMPTEStandard::ST_2110_20);
 }
 
 ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaSenderSettings>& settings) const
@@ -320,7 +318,7 @@ void MediaSenderApp::configure_video_types()
     bool alpha_enabled = m_app_settings->media.alpha_bit_depth != VideoBitDepth::Unknown;
 
     auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
-    video_settings->media_calc = IMediaSettingsCalcFactory::get_media_settings_calculator(SMPTEStandard::ST_2110_20_Video, *video_settings);
+    video_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*video_settings);
     video_settings->header_data_split = m_app_settings->header_data_split;
     video_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
     video_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
@@ -328,7 +326,7 @@ void MediaSenderApp::configure_video_types()
     video_settings->frame_rate = m_app_settings->media.frame_rate;
     video_settings->sampling_type = m_app_settings->media.sampling_type;
     video_settings->bit_depth = m_app_settings->media.color_bit_depth;
-    video_settings->media_calc->calculate_media_settings();
+    video_settings->media_settings_calculator->calculate_media_settings();
 
     for (size_t idx = 0; idx < num_of_video_threads; idx++) {
         size_t num_of_streams_in_cur_thread;
@@ -343,7 +341,7 @@ void MediaSenderApp::configure_video_types()
 
     if (alpha_enabled) {
         auto alpha_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
-        alpha_settings->media_calc = IMediaSettingsCalcFactory::get_media_settings_calculator(SMPTEStandard::ST_2110_20_Video, *alpha_settings);
+        alpha_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*alpha_settings);
         alpha_settings->header_data_split = m_app_settings->header_data_split;
         alpha_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
         alpha_settings->resolution = m_app_settings->media.resolution;
@@ -352,7 +350,7 @@ void MediaSenderApp::configure_video_types()
         alpha_settings->bit_depth = m_app_settings->media.alpha_bit_depth;
         alpha_settings->colorimetry = Colorimetry::ALPHA;
         alpha_settings->smpte_standard_number = SMPTEStandardNumber::ST2110_20_2021;
-        alpha_settings->media_calc->calculate_media_settings();
+        alpha_settings->media_settings_calculator->calculate_media_settings();
 
         for (size_t idx = 0; idx < num_of_video_threads; idx++) {
             size_t num_of_streams_in_cur_thread;
@@ -369,20 +367,8 @@ void MediaSenderApp::configure_video_types()
     }
 }
 
-void MediaSenderApp::configure_audio_types()
-{
-    // TODO: add a media type configuration entry for audio.
-}
-
-void MediaSenderApp::configure_ancillary_types()
-{
-    // TODO: add a media type configuration entry for ancillary.
-}
-
 const std::unordered_map<SMPTEStandard, std::function<void(MediaSenderApp*)>> MediaSenderApp::s_media_type_config_map = {
-    {SMPTEStandard::ST_2110_20_Video, [](MediaSenderApp* app) { app->configure_video_types(); }},
-    {SMPTEStandard::ST_2110_30_Audio, [](MediaSenderApp* app) { app->configure_audio_types(); }},
-    {SMPTEStandard::ST_2110_40_Ancillary, [](MediaSenderApp* app) { app->configure_ancillary_types(); }}
+    {SMPTEStandard::ST_2110_20, [](MediaSenderApp* app) { app->configure_video_types(); }},
 };
 
 void MediaSenderApp::configure_media_types_processing()
@@ -399,7 +385,7 @@ void MediaSenderApp::initialize_sender_threads()
 {
     size_t streams_offset = 0;
     size_t sender_idx = 0;
-    auto synchronizer = std::make_shared<Synchronizer>(m_media_sender_settings->media_types_to_nodes.size());
+    auto synchronizer = std::make_shared<LinearSynchronizer>(m_media_sender_settings->media_types_to_nodes.size());
     for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
         auto& media_type_config = node.first;
         auto num_of_streams = node.second;
@@ -474,7 +460,7 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
                 frame_provider = std::make_shared<NullFrameProvider>(media_type_config);
                 contains_payload = false;
             } else {
-                if (media_type_config.get_media_type() != SMPTEStandard::ST_2110_20_Video) {
+                if (media_type_config.get_media_type() != SMPTEStandard::ST_2110_20) {
                     std::cerr << "Video file is not supported for other media types" << std::endl;
                     return ReturnStatus::failure;
                 }

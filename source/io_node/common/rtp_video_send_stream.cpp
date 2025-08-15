@@ -32,13 +32,15 @@ using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::core;
 
 RtpVideoSendStream::RtpVideoSendStream(const MediaStreamSettings& settings) :
-    MediaSendStream(settings)
+    MediaSendStream(settings),
+    m_video_settings(dynamic_cast<const SMPTE_2110_20_MediaSettings&>(settings.m_media_settings))
 {
     memset(&m_send_stats, 0, sizeof(m_send_stats));
 }
 
 RtpVideoSendStream::RtpVideoSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks) :
-    MediaSendStream(settings, mem_blocks)
+    MediaSendStream(settings, mem_blocks),
+    m_video_settings(dynamic_cast<const SMPTE_2110_20_MediaSettings&>(settings.m_media_settings))
 {
     memset(&m_send_stats, 0, sizeof(m_send_stats));
 }
@@ -67,17 +69,16 @@ void RtpVideoSendStream::prepare_chunk_to_send(MediaChunk& chunk)
     uint64_t stride = 0;
     byte_t* current_packet_pointer;
 
-    const SMPTE_2110_20_MediaSettings& media = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_stream_settings.m_media_settings);
-    while (stride < chunk_length && m_send_stats.packet_counter < media.packets_in_frame_field) {
+    while (stride < chunk_length && m_send_stats.packet_counter < m_video_settings.packets_in_frame_field) {
         current_packet_pointer = header_pointer + (stride * header_stride_size);
         build_2110_20_rtp_header(current_packet_pointer);
-        if (!((stride + 1) % media.packets_in_line)) {
+        if (!((stride + 1) % m_video_settings.packets_in_line)) {
             // Prepare line number for next iteration:
-            m_send_stats.line_number = (m_send_stats.line_number + 1) % media.resolution.height;
+            m_send_stats.line_number = (m_send_stats.line_number + 1) % m_video_settings.resolution.height;
         }
         stride++;
     }
-    m_send_stats.packet_counter %= media.packets_in_frame_field;
+    m_send_stats.packet_counter %= m_video_settings.packets_in_frame_field;
 }
 
 inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
@@ -112,9 +113,8 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     buffer[13] = (m_send_stats.rtp_sequence >> 16) & 0xff;  // Low 16 bits of Extended Sequence Number.
     *(uint16_t*)&buffer[14] = htons(m_stream_settings.m_media_settings.packet_payload_size - 20);  // SRD Length.
 
-    const SMPTE_2110_20_MediaSettings& media = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_stream_settings.m_media_settings);
-    uint16_t number_of_rows = media.resolution.height;
-    if (media.video_scan_type == VideoScanType::Interlaced) {
+    uint16_t number_of_rows = m_video_settings.resolution.height;
+    if (m_video_settings.video_scan_type == VideoScanType::Interlaced) {
         number_of_rows /= 2;
     }
 
@@ -125,15 +125,15 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     *(uint16_t*)&buffer[18] = htons(m_send_stats.srd_offset);  // SRD Offset.
     uint16_t group_size = (uint16_t)((m_stream_settings.m_media_settings.packet_payload_size - 20) / 2.5);
     m_send_stats.srd_offset = (m_send_stats.srd_offset + group_size) %
-            (group_size * media.packets_in_line);
+            (group_size * m_video_settings.packets_in_line);
 
-    if (++m_send_stats.packet_counter == media.packets_in_frame_field) {
+    if (++m_send_stats.packet_counter == m_video_settings.packets_in_frame_field) {
         buffer[1] |= 0x80; // Last packet in frame (Marker).
         // ST2210-20: the timestamp SHOULD be the same for each packet of the frame/field.
-        auto fps_num = media.frame_rate.num;
-        auto fps_denom = static_cast<double>(media.frame_rate.denom);
-        double ticks = (media.sample_rate / (fps_num / fps_denom));
-        if (media.video_scan_type == VideoScanType::Interlaced) {
+        auto fps_num = m_video_settings.frame_rate.num;
+        auto fps_denom = static_cast<double>(m_video_settings.frame_rate.denom);
+        double ticks = (m_video_settings.sample_rate / (fps_num / fps_denom));
+        if (m_video_settings.video_scan_type == VideoScanType::Interlaced) {
             m_send_stats.rtp_interlace_field_indicator = !m_send_stats.rtp_interlace_field_indicator;
             ticks /= 2;
         }
@@ -147,23 +147,22 @@ double RtpVideoSendStream::calculate_trs()
     double t_frame_ns;
     double r_active;
     uint32_t packets_in_frame;
-    const SMPTE_2110_20_MediaSettings& media = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_stream_settings.m_media_settings);
 
-    if (media.video_scan_type == VideoScanType::Progressive) {
-        t_frame_ns = media.frame_field_time_interval_ns;
+    if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
+        t_frame_ns = m_video_settings.frame_field_time_interval_ns;
     }
     else {
-        t_frame_ns = media.frame_field_time_interval_ns * 2;
+        t_frame_ns = m_video_settings.frame_field_time_interval_ns * 2;
     }
 
-    if (media.video_scan_type == VideoScanType::Progressive) {
+    if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
         r_active = (1080.0 / 1125.0);
     }
     else {
-        if (media.resolution.height >= FHD_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
+        if (m_video_settings.resolution.height >= FHD_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
             r_active = (1080.0 / 1125.0);
         }
-        else if (media.resolution.height >= 576) {
+        else if (m_video_settings.resolution.height >= 576) {
             r_active = (576.0 / 625.0);
         }
         else {
@@ -171,11 +170,11 @@ double RtpVideoSendStream::calculate_trs()
         }
     }
 
-    if (media.video_scan_type == VideoScanType::Progressive) {
-        packets_in_frame = media.packets_in_frame_field;
+    if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
+        packets_in_frame = m_video_settings.packets_in_frame_field;
     }
     else {
-        packets_in_frame = media.packets_in_frame_field * 2;
+        packets_in_frame = m_video_settings.packets_in_frame_field * 2;
     }
 
     return (t_frame_ns * r_active) / packets_in_frame;
@@ -185,13 +184,12 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
 {
     double send_time_ns = static_cast<double>(time_now_ns + NS_IN_SEC);
     double t_frame_ns;
-    const SMPTE_2110_20_MediaSettings& media = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_stream_settings.m_media_settings);
 
-    if (media.video_scan_type == VideoScanType::Progressive) {
-        t_frame_ns = media.frame_field_time_interval_ns;
+    if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
+        t_frame_ns = m_video_settings.frame_field_time_interval_ns;
     }
     else {
-        t_frame_ns = media.frame_field_time_interval_ns * 2;
+        t_frame_ns = m_video_settings.frame_field_time_interval_ns * 2;
     }
 
     uint64_t N = static_cast<uint64_t>(send_time_ns / t_frame_ns + 1);
@@ -200,9 +198,9 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
     double r_active;
     double tro_default_multiplier;
 
-    if (media.video_scan_type == VideoScanType::Progressive) {
+    if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
         r_active = (1080.0 / 1125.0);
-        if (media.resolution.height >= FHD_HEIGHT) {  // As defined by SMPTE 2110-21 6.3.2
+        if (m_video_settings.resolution.height >= FHD_HEIGHT) {  // As defined by SMPTE 2110-21 6.3.2
             tro_default_multiplier = (43.0 / 1125.0);
         }
         else {
@@ -210,11 +208,11 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
         }
     }
     else {
-        if (media.resolution.height >= FHD_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
+        if (m_video_settings.resolution.height >= FHD_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
             r_active = (1080.0 / 1125.0);
             tro_default_multiplier = (22.0 / 1125.0);
         }
-        else if (media.resolution.height >= 576) {
+        else if (m_video_settings.resolution.height >= 576) {
             r_active = (576.0 / 625.0);
             tro_default_multiplier = (26.0 / 625.0);
         }
@@ -226,11 +224,11 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
 
     uint32_t packets_in_frame;
 
-    if (media.video_scan_type == VideoScanType::Progressive) {
-        packets_in_frame = media.packets_in_frame_field;
+    if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
+        packets_in_frame = m_video_settings.packets_in_frame_field;
     }
     else {
-        packets_in_frame = media.packets_in_frame_field * 2;
+        packets_in_frame = m_video_settings.packets_in_frame_field * 2;
     }
 
     double trs_ns = (t_frame_ns * r_active) / packets_in_frame;
@@ -240,7 +238,7 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
 
     m_send_stats.rtp_timestamp = static_cast<uint32_t>(
         time_to_rtp_timestamp(first_packet_start_time_ns,
-                static_cast<int>(media.sample_rate)));
+                static_cast<int>(m_video_settings.sample_rate)));
     send_time_ns = first_packet_start_time_ns;
 
     return send_time_ns;

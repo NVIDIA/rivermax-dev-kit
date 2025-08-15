@@ -198,7 +198,11 @@ public:
      */
     ReturnStatus set_frame_provider(size_t stream_index, std::shared_ptr<IFrameProvider> frame_provider,
         MediaType media_type = MediaType::Video, bool contains_payload = true);
-
+    /**
+     * @brief: Sets the synchronizer for the sender.
+     *
+     * @param [in] synchronizer: Synchronizer to set.
+     */
     void set_synchronizer(const std::shared_ptr<ISynchronizer>& synchronizer) { m_synchronizer = synchronizer; }
     static constexpr size_t DEFAULT_NUMBER_OF_MEM_BLOCKS = 1;
 private:
@@ -380,6 +384,17 @@ private:
      * @return: Commit timestamp in nanoseconds.
      */
     inline uint64_t get_commit_timestamp_ns(bool first_chunk_in_frame, double send_time_ns, size_t stream_id) const;
+    /**
+     * @brief: Coordinates the start time with the synchronizer if available.
+     *
+     * This method handles the synchronization logic to coordinate the start time
+     * across multiple senders using the provided synchronizer.
+     *
+     * @param [in,out] send_time_ns: The proposed send time, which may be adjusted by the synchronizer.
+     *
+     * @return: Status of the operation.
+     */
+    ReturnStatus coordinate_start_time(uint64_t& send_time_ns);
 };
 
 inline uint64_t MediaSenderIONode::get_commit_timestamp_ns(

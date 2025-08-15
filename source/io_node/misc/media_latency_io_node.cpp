@@ -31,7 +31,7 @@
 #include "rdk/io_node/misc/media_latency_io_node.h"
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/media/media.h"
-#include "rdk/services/media/video_calc.h"
+#include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/core/stream/send/generic_stream.h"
 
@@ -607,7 +607,8 @@ void MediaRxIONode::receive_send()
     double tro;
     double trs;
 
-    m_media_settings.media_calc->calculate_tro_trs(tro, trs);
+    auto video_calc = static_cast<ST_2110_20_MediaSettingsCalculator&>(*m_media_settings.media_settings_calculator);
+    video_calc.calculate_tro_trs(tro, trs);
 
     while (rc != ReturnStatus::failure && rc != ReturnStatus::signal_received &&
                   SignalHandler::get_received_signal() < 0) {

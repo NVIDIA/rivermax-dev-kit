@@ -20,8 +20,8 @@
 #define RDK_SERVICES_MEDIA_MEDIA_H_
 
 #include "rdk/services/media/media_defs.h"
-#include "rdk/services/media/media_calc.h"
-#include "rdk/services/media/video_calc.h"
+#include "rdk/services/media/media_settings_calculator.h"
+#include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/media/media_frame_provider.h"
 #include "rdk/services/media/media_frame_pool.h"
 #include "rdk/services/media/media_file_streaming_provider.h"

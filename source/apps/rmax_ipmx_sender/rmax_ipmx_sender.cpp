@@ -29,11 +29,11 @@ using namespace rivermax::dev_kit::apps::rmax_ipmx_sender;
 void IPMXSenderSettings::init_default_values()
 {
     AppSettings::init_default_values();
-    media.frames_fields_in_mem_block = DEFAULT_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP;
+    media.frames_fields_in_mem_block = DEFAULT_MEMORY_BUFFER_SIZE_IN_FRAMES;
     ref_clk_is_ptp = false;
     app_memory_alloc = true;
     register_memory = true;
-    enabled_media_types.insert(SMPTEStandard::ST_2110_20_Video);
+    enabled_media_types.insert(SMPTEStandard::ST_2110_20);
 }
 
 ReturnStatus IPMXSenderSettingsValidator::validate(const std::shared_ptr<IPMXSenderSettings>& settings) const
@@ -137,6 +137,7 @@ ReturnStatus IPMXSenderApp::initialize()
 
     try {
         configure_media_types_processing();
+        assign_streams_to_threads();
         initialize_send_flows();
         initialize_sender_threads();
         rc = allocate_app_memory();
@@ -301,7 +302,7 @@ void IPMXSenderApp::initialize_send_flows()
     }
 }
 
-void IPMXSenderApp::configure_video_types()
+void IPMXSenderApp::configure_video_settings()
 {
     static const std::vector<FormatSpecificParameter> extra_ipmx_parameters = {{"IPMX", "", true}};
 
@@ -315,7 +316,7 @@ void IPMXSenderApp::configure_video_types()
     m_ipmx_sender_settings->media_types_to_nodes.clear();
 
     auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
-    video_settings->media_calc = IMediaSettingsCalcFactory::get_media_settings_calculator(SMPTEStandard::ST_2110_20_Video, *video_settings, extra_ipmx_parameters);
+    video_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*video_settings, extra_ipmx_parameters);
     video_settings->header_data_split = m_app_settings->header_data_split;
     if (m_app_settings->num_of_packets_in_chunk_specified) {
         video_settings->packets_in_chunk = m_app_settings->num_of_packets_in_chunk;
@@ -325,7 +326,7 @@ void IPMXSenderApp::configure_video_types()
     video_settings->frame_rate = m_app_settings->media.frame_rate;
     video_settings->sampling_type = m_app_settings->media.sampling_type;
     video_settings->bit_depth = m_app_settings->media.color_bit_depth;
-    video_settings->media_calc->calculate_media_settings();
+    video_settings->media_settings_calculator->calculate_media_settings();
 
     video_settings->ref_clk_is_ptp = m_app_settings->ref_clk_is_ptp;
     if (m_app_settings->ref_clk_is_ptp) {
@@ -348,11 +349,13 @@ void IPMXSenderApp::configure_video_types()
 
 void IPMXSenderApp::configure_media_types_processing()
 {
-    for (const auto media_type : m_ipmx_sender_settings->enabled_media_types) {
-        if (media_type == SMPTEStandard::ST_2110_20_Video) {
-            configure_video_types();
-        }
+    if (m_ipmx_sender_settings->enabled_media_types.count(SMPTEStandard::ST_2110_20)) {
+        configure_video_settings();
     }
+}
+
+void IPMXSenderApp::assign_streams_to_threads()
+{
     m_streams_per_thread.reserve(m_app_settings->num_of_threads);
     for (int stream = 0; stream < m_app_settings->num_of_total_streams; stream++) {
         m_streams_per_thread[stream % m_app_settings->num_of_threads]++;

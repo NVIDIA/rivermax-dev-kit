@@ -59,7 +59,7 @@ public:
      */
     virtual ReturnStatus calculate_media_settings() = 0;
     /**
-     * @brief: Composes SDP description for the media type.
+     * @brief: Generates SDP description for the media type.
      *
      * This pure virtual method must be implemented by derived classes to generate
      * a Session Description Protocol (SDP) description string for their specific
@@ -72,28 +72,17 @@ public:
      *
      * @return: SDP description string for the media stream.
      */
-    virtual std::string compose_media_sdp(const std::string& source_ip, const uint16_t source_port,
+    virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) = 0;
     /**
-     * @brief: Gets the media type name.
+     * @brief: Returns the media type name.
      *
      * This pure virtual method must be implemented by derived classes to return
      * a string representation of their specific media type name.
      *
      * @return: String representation of the media type.
      */
-    virtual std::string get_media_type_name() const = 0;    
-    /**
-     * @brief: Calculates TRO and TRS timing parameters.
-     *
-     * This pure virtual method must be implemented by derived classes to calculate
-     * the TRO (Transmit Offset) and TRS (Transmit Reference) timing parameters
-     * according to SMPTE standards for their specific media type.
-     *
-     * @param [out] tro: The calculated TRO (Transmit Offset) value.
-     * @param [out] trs: The calculated TRS (Transmit Reference) value.
-     */
-    virtual void calculate_tro_trs(double& tro, double& trs) = 0;
+    virtual std::string get_media_type_name() const = 0;
 };
 
 } // namespace services

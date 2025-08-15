@@ -34,7 +34,7 @@ namespace apps
 {
 namespace rmax_ipmx_sender
 {
-constexpr size_t DEFAULT_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP = 10;
+constexpr size_t DEFAULT_MEMORY_BUFFER_SIZE_IN_FRAMES = 10;
 /**
  * @brief: Configuration settings for Rivermax IPMX Sender.
  */
@@ -93,8 +93,8 @@ private:
     /* Application settings pointer */
     std::shared_ptr<IPMXSenderSettings> m_ipmx_sender_settings;
     std::vector<std::unique_ptr<IPMXSenderIONode>> m_senders;
-    rmx_device_iface m_device_interface;
     std::vector<TwoTupleFlow> m_stream_dst_addresses;
+    rmx_device_iface m_device_interface;
     rmx_mem_region m_mem_region;
 public:
     /**
@@ -134,7 +134,7 @@ private:
      * memory allocator.
      * @note The requested memory size is implicitly aligned to the minimal size unit
      *             of the selected Allocator.
-          *
+     *
      * @param [in] size: Requested allocation size.
      *
      * @return: Pointer to allocated memory.
@@ -161,9 +161,14 @@ private:
      * to the senders of the application.
      */
     void distribute_memory_to_senders();
-
-    void configure_video_types();
-
+    /**
+     * @brief: Configures media settings for video.
+     */
+    void configure_video_settings();
+    /**
+     * @brief: Configures media settings for all enabled video types.
+     */
+    void configure_media_types_processing();
     /**
      * @brief: Assigns streams to the worker threads.
      *
@@ -171,7 +176,7 @@ private:
      * Several streams are assigned to the same thread (almost evenly),
      * if the amount of the threads is smaller than of the streams.
      */
-    void configure_media_types_processing();
+    void assign_streams_to_threads();
     /**
      * @brief: Initializes sender threads.
      *

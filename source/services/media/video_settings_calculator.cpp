@@ -17,17 +17,22 @@
  */
 
 #include <cstdint>
+#include <string>
 #include <unordered_map>
 
 #include "rdk/services/media/media_defs.h"
-#include "rdk/services/media/video_calc.h"
+#include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/sdp/sdp_defs.h"
 #include "rt_threads.h"
 
-//using namespace rivermax::dev_kit::core;
-using namespace rivermax::dev_kit::services;
+namespace rivermax
+{
+namespace dev_kit
+{
+namespace services
+{
 
 using BytesPerPixelRatio = std::pair<uint32_t, uint32_t>;
 using VideoDepthPixelRatioMap =
@@ -51,32 +56,26 @@ using VideoDepthPixelRatioMap =
  */
 const VideoDepthPixelRatioMap VIDEO_DEPTH_TO_PIXEL_RATIO = {
     {VideoSampling::RGB,
-     {{VideoBitDepth::_8, {3, 1}},
-      {VideoBitDepth::_10, {15, 4}},
-      {VideoBitDepth::_12, {9, 2}}}},
+        {{VideoBitDepth::_8, {3, 1}},
+         {VideoBitDepth::_10, {15, 4}},
+         {VideoBitDepth::_12, {9, 2}}}},
     {VideoSampling::YCbCr_4_4_4,
-     {{VideoBitDepth::_8, {3, 1}},
-      {VideoBitDepth::_10, {15, 4}},
-      {VideoBitDepth::_12, {9, 2}}}},
+        {{VideoBitDepth::_8, {3, 1}},
+         {VideoBitDepth::_10, {15, 4}},
+         {VideoBitDepth::_12, {9, 2}}}},
     {VideoSampling::YCbCr_4_2_2,
-     {{VideoBitDepth::_8, {4, 2}},
-      {VideoBitDepth::_10, {5, 2}},
-      {VideoBitDepth::_12, {6, 2}}}},
+        {{VideoBitDepth::_8, {4, 2}},
+         {VideoBitDepth::_10, {5, 2}},
+         {VideoBitDepth::_12, {6, 2}}}},
     {VideoSampling::YCbCr_4_2_0,
-     {{VideoBitDepth::_8, {6, 4}},
-      {VideoBitDepth::_10, {15, 8}},
-      {VideoBitDepth::_12, {9, 4}}}},
-     {VideoSampling::KEY,
-      {{VideoBitDepth::_8, {1, 1}},
-      {VideoBitDepth::_10, {5, 4}},
-      {VideoBitDepth::_12, {3, 2}}}}
-   };
-namespace rivermax
-{
-namespace dev_kit
-{
-namespace services
-{
+        {{VideoBitDepth::_8, {6, 4}},
+         {VideoBitDepth::_10, {15, 8}},
+         {VideoBitDepth::_12, {9, 4}}}},
+    {VideoSampling::KEY,
+        {{VideoBitDepth::_8, {1, 1}},
+         {VideoBitDepth::_10, {5, 4}},
+         {VideoBitDepth::_12, {3, 2}}}}
+};
 
 bool ST_2110_20_MediaSettingsCalculator::is_bit_depth_supported(VideoSampling sampling, VideoBitDepth bit_depth)
 {
@@ -165,7 +164,7 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     }
 
     video_settings.packets_in_line = pgroups_in_line / pgroups_in_packet;
-    video_settings.packet_payload_size = pgroups_in_packet * bytes_in_pgroup + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
+    video_settings.packet_payload_size = static_cast<uint16_t>(pgroups_in_packet * bytes_in_pgroup + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
 
     video_settings.protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
     video_settings.raw_packet_payload_size = pgroups_in_packet * bytes_in_pgroup;
@@ -176,19 +175,6 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
 
     video_settings.pixels_per_packet = pgroups_in_packet * pixels_in_pgroup;
     video_settings.packets_in_frame_field = static_cast<uint32_t>(video_settings.packets_in_line * video_settings.resolution.height);
-
-    std::cout << "using sampling type: " << enum_to_string(video_settings.sampling_type);
-    std::cout << " and bit depth: " << enum_to_string(video_settings.bit_depth) << std::endl;
-    std::cout << "resolution: " << video_settings.resolution.width << "x" << video_settings.resolution.height << std::endl;
-    std::cout << "bytes in pgroup: " << bytes_in_pgroup << std::endl;
-    std::cout << "pixels in pgroup: " << pixels_in_pgroup << std::endl;
-    std::cout << "bytes_per_pixel: " << bytes_per_pixel << std::endl;
-    std::cout << "pixels in frame: " << pixels_in_frame << std::endl;
-    std::cout << "bytes in frame: " << video_settings.bytes_per_frame << std::endl;
-    std::cout << "packet payload size: " << video_settings.packet_payload_size << std::endl;
-    std::cout << "pgroups in line: " << pgroups_in_line << std::endl;
-    std::cout << "packets in line: " << video_settings.packets_in_line << std::endl;
-    std::cout << "packets in frame: " << video_settings.packets_in_frame_field << std::endl;
 
     bool chunk_size_applied = false;
     if (video_settings.packets_in_chunk) {
@@ -230,11 +216,11 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     return ReturnStatus::success;
 }
 
-std::string ST_2110_20_MediaSettingsCalculator::compose_media_sdp(
+std::string ST_2110_20_MediaSettingsCalculator::generate_media_sdp(
     const std::string& source_ip, const uint16_t source_port,
     const std::string& destination_ip, const uint16_t destination_port)
 {
-    auto& video_settings = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
 
     auto session_description = SessionDescription::Builder(source_ip)
         .set_session_id(SDPManager::generate_ntp_id())
@@ -245,7 +231,7 @@ std::string ST_2110_20_MediaSettingsCalculator::compose_media_sdp(
     auto time_description = TimeDescription::Builder().build();
 
     auto media_description = SMPTE2110_20_MediaDescription::Builder(
-        destination_port, TransportProtocol::RTP_AVP, "96", destination_ip)
+        destination_port, TransportProtocol::RTP_AVP, std::to_string(video_settings.payload_type), destination_ip)
         .set_source_filter(SourceFilterAttribute::Builder(destination_ip, source_ip).build())
         .set_smpte_standard_number(video_settings.smpte_standard_number)
         .set_sampling(video_settings.sampling_type)

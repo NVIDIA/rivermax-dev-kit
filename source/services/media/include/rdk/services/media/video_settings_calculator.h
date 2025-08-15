@@ -30,7 +30,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/sdp/sdp.h"
 #include "rdk/services/media/media_defs.h"
-#include "rdk/services/media/media_calc.h"
+#include "rdk/services/media/media_settings_calculator.h"
 
 namespace rivermax
 {
@@ -71,7 +71,7 @@ public:
      */
     virtual ReturnStatus calculate_media_settings() override;
     /**
-     * @brief: Composes SDP description for SMPTE 2110-20 video.
+     * @brief: Generates SDP description for SMPTE 2110-20 video.
      *
      * This method generates a Session Description Protocol (SDP) description string
      * for the SMPTE 2110-20 video stream with the specified network parameters.
@@ -83,24 +83,25 @@ public:
      *
      * @return: SDP description string for the video stream.
      */
-    virtual std::string compose_media_sdp(const std::string& source_ip, const uint16_t source_port,
+    virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) override;
     /**
-     * @brief: Gets the media type name.
+     * @brief: Returns the media type name.
      *
      * @return: String representation of the SMPTE 2110-20 video media type.
      */
     virtual std::string get_media_type_name() const override;
     /**
-     * @brief: Calculates TRO and TRS based on SMPTE 2110-21 standard.
+     * @brief: Calculates TRO and TRS timing parameters.
      *
-     * This method is responsible to calculate TRO and TRS based on the SMPTE 2110-21 standard
-     * using the instance's media settings.
+     * This method calculates the TRO (Time Read Offset)
+     * and TRS (Time Read Spacing) timing parameters 
+     * according to SMPTE ST2110-20.
      *
-     * @param [out] tro: The calculated TRO.
-     * @param [out] trs: The calculated TRS.
+     * @param [out] tro: The calculated TRO (Time Read Offset) value.
+     * @param [out] trs: The calculated TRS (Time Read Spacing) value.
      */
-    void calculate_tro_trs(double& tro, double& trs) override;
+    void calculate_tro_trs(double& tro, double& trs);
     /**
      * @brief: Check if the given sampling type and bit depth are supported.
      *

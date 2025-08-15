@@ -553,8 +553,8 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
             return parser->add_flag(CLIOptStr::ENABLE_ALPHA,
-                                      app_settings->media.enable_alpha,
-                                      "Enable Alpha channel with default bit depth of main video");
+                                    app_settings->media.enable_alpha,
+                                    "Enable Alpha channel with default bit depth of main video");
         }
     },
     {

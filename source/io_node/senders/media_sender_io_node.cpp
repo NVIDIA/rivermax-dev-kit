@@ -429,6 +429,35 @@ ReturnStatus MediaSenderIONode::process_frame()
     return ReturnStatus::success;
 }
 
+ReturnStatus MediaSenderIONode::coordinate_start_time(uint64_t& send_time_ns)
+{
+    if (!m_synchronizer) {
+        return ReturnStatus::success;
+    }
+
+    auto start_time_checker = [&](uint64_t proposed_time) {
+        if (proposed_time - send_time_ns < NS_IN_USEC) {
+            return 0;
+        }
+        int skip_frames = 0;
+        uint64_t new_start_time;
+        do {
+            skip_frames++;
+            new_start_time = send_time_ns + m_media_settings.frame_field_time_interval_ns * skip_frames;
+        } while (proposed_time > new_start_time);
+        return static_cast<int>(new_start_time - proposed_time);
+    };
+
+    uint64_t coordinated_start_time_ns = 0;
+    ReturnStatus rc = m_synchronizer->request(send_time_ns, start_time_checker, coordinated_start_time_ns);
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to request coordinated start time" << std::endl;
+        return rc;
+    }
+    send_time_ns = coordinated_start_time_ns;
+    return ReturnStatus::success;
+}
+
 void MediaSenderIONode::operator()()
 {
     set_cpu_resources();
@@ -445,40 +474,22 @@ void MediaSenderIONode::operator()()
     * in the same time and keep aligned during the run. It can be updated in the future.
     */
     uint64_t time_now_ns = get_time_now_ns();
-    double send_time_ns = 0;
+    uint64_t send_time_ns = 0;
     for (auto& stream_pack : m_stream_packs) {
-        send_time_ns = stream_pack.stream->calculate_send_time_ns(time_now_ns);
-        stream_pack.buffer_writer->set_first_packet_timestamp(send_time_ns);
+        send_time_ns = static_cast<uint64_t>(stream_pack.stream->calculate_send_time_ns(time_now_ns));
     }
 
-    if (m_synchronizer) {
-
-        auto start_time_checker = [&](uint64_t proposed_time) {
-            if (proposed_time - send_time_ns < 1000) {
-                return 0;
-            }
-            int skip_frames = 0;
-            uint64_t new_start_time;
-            do {
-                skip_frames++;
-                new_start_time = send_time_ns + m_media_settings.frame_field_time_interval_ns * skip_frames;
-            } while (proposed_time > new_start_time);
-            return static_cast<int>(new_start_time - proposed_time);
-        };
-    
-        uint64_t coordinated_start_time_ns = 0;
-        rc = m_synchronizer->request(send_time_ns, start_time_checker, coordinated_start_time_ns);
-        if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to request coordinated start time" << std::endl;
-            return;
-        }
-        std::ostringstream oss;
-        oss << "Coordinated start time: requested " << static_cast<uint64_t>(send_time_ns) << " [ns], consensus:" << static_cast<uint64_t>(coordinated_start_time_ns) << " [ns]\n";
-        std::cout << oss.str();
-        send_time_ns = coordinated_start_time_ns;
+    rc = coordinate_start_time(send_time_ns);
+    if (rc != ReturnStatus::success) {
+        return;
     }
 
     const double start_send_time_ns = send_time_ns;
+
+    for (auto& stream_pack : m_stream_packs) {
+        stream_pack.buffer_writer->set_first_packet_timestamp(start_send_time_ns);
+    }
+
     size_t sent_field_counter = 0;
     size_t sent_field_counter_prev = 0;
     auto get_send_time_ns = [&]() { return (
@@ -556,7 +567,7 @@ void MediaSenderIONode::operator()()
             float mbps = (bytes_sent * 8.0 * 1000) / (time_now - last_update_time);
             oss << " Sender: " << std::setw(3) << m_index
                 << "   Streams: " << std::setw(3) << m_stream_packs.size()
-                << "   Type: " << std::setw(12) << std::left << m_media_settings.media_calc->get_media_type_name()
+                << "   Type: " << std::setw(12) << std::left << m_media_settings.media_settings_calculator->get_media_type_name()
                 << "   Frames sent: " << std::setw(3) << std::right << sent_field_counter - sent_field_counter_prev
                 << "   Bytes sent: " << std::setw(12) << bytes_sent
                 << "   Mbps: " << std::setw(12) << std::fixed << std::setprecision(3) << mbps << std::endl;

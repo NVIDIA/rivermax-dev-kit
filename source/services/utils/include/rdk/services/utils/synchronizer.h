@@ -19,15 +19,10 @@
 #ifndef RDK_SERVICES_UTILS_SYNCHRONIZER_H_
 #define RDK_SERVICES_UTILS_SYNCHRONIZER_H_
 
-#include <cstddef>
-
-#include <algorithm>
+#include <cstdint>
 #include <condition_variable>
 #include <functional>
-#include <iostream>
 #include <mutex>
-#include <thread>
-#include <vector>
 
 #include "rdk/services/error_handling/return_status.h"
 
@@ -66,15 +61,20 @@ public:
      * @return: Status of the synchronization operation.
      */
     virtual ReturnStatus request(uint64_t requested_time, std::function<int(uint64_t)> checker, uint64_t& consensus_time) = 0;
+    /**
+     * @brief: Resets the synchronizer state.
+     *
+     * This method resets the internal counters and status to allow the synchronizer
+     * to be reused for another round of synchronization.
+     */
+    virtual void reset() = 0;
 };
 
 /**
- * @brief: Thread synchronization implementation using condition variables.
+ * @brief: Thread synchronization implementation using simple time increment.
  *
  * This class implements a thread synchronization mechanism that allows multiple
- * threads to reach consensus on a common time value. It uses mutexes and condition
- * variables to coordinate between threads and ensures all threads wait for each
- * other before proceeding.
+ * threads to reach consensus on a common time value. 
  *
  * The synchronizer works by:
  * 1. Collecting time requests from all threads
@@ -82,34 +82,24 @@ public:
  * 3. Using a checker function to validate and adjust the proposed time
  * 4. Reaching consensus when all threads agree on the final time
  */
-class Synchronizer : public ISynchronizer
+class LinearSynchronizer : public ISynchronizer
 {
 public:
     /**
      * @brief: Synchronizer constructor.
      *
-     * @param [in] numThreads: Number of threads that will participate in synchronization.
+     * @param [in] num_threads: Number of threads that will participate in synchronization.
      */
-    Synchronizer(int numThreads) :
-        m_num_of_threads(numThreads),
+    LinearSynchronizer(size_t num_threads) :
+        m_num_of_threads(num_threads),
         m_request_count(0),
-        m_new_candidate(0),
+        m_new_candidate_time(0),
         m_sync_status(ReturnStatus::success) {}
     /**
      * @brief: Virtual destructor.
      */
-     virtual ~Synchronizer() = default;
-    /**
-     * @brief: Resets the synchronizer state.
-     *
-     * This method resets the internal counters and status to allow the synchronizer
-     * to be reused for another round of synchronization.
-     */
-    void reset() {
-        m_request_count = 0;
-        m_new_candidate = 0;
-        m_sync_status = ReturnStatus::success;
-    }
+    virtual ~LinearSynchronizer() = default;
+    void reset() override;
     /**
      * @brief: Requests synchronization with other threads.
      *
@@ -133,59 +123,17 @@ public:
      */
     ReturnStatus request(uint64_t requested_time,
                         std::function<int(uint64_t)> checker,
-                        uint64_t &consensus_time) override 
-    {
-        std::unique_lock<std::mutex> lock(m_mtx);
-        m_new_candidate = std::max(m_new_candidate, requested_time);
-        m_request_count++;
-
-        if (m_request_count < m_num_of_threads) {
-            m_cv.wait(lock, [this] { return m_request_count == m_num_of_threads; });
-        } else {
-            uint64_t proposed_time = m_new_candidate;
-            bool all_zero = true;
-            bool any_negative = false;
-
-            do {
-                all_zero = true;
-                any_negative = false;
-                int max_checker_result = 0;
-
-                for (int i = 0; i < m_num_of_threads; ++i) {
-                    int checker_result = checker(proposed_time);
-                    if (checker_result == 0) {
-                        continue;
-                    } else if (checker_result < 0) {
-                        any_negative = true;
-                        break;
-                    } else {
-                        all_zero = false;
-                        max_checker_result = std::max(max_checker_result, checker_result);
-                    }
-                }
-                if (any_negative) {
-                    m_sync_status = ReturnStatus::failure;
-                } else if (!all_zero) {
-                    proposed_time += max_checker_result;
-                }
-            } while (!all_zero && !any_negative);
-            m_new_candidate = proposed_time;
-            m_cv.notify_all();
-        }
-
-        consensus_time = m_new_candidate;
-        return m_sync_status;
-    }
+                        uint64_t &consensus_time) override;
 
 private:
     /* Number of threads participating in synchronization */
-    int m_num_of_threads;
+    size_t m_num_of_threads;
     /* Current count of threads that have made synchronization requests */
-    int m_request_count;
+    size_t m_request_count;
     /* The current candidate time for consensus */
-    uint64_t m_new_candidate;
+    uint64_t m_new_candidate_time;
     /* Mutex for protecting shared state */
-    std::mutex m_mtx;
+    std::mutex m_mutex;
     /* Condition variable for thread coordination */
     std::condition_variable m_cv;
     /* Status of the synchronization operation */

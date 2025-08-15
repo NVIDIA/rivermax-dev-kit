@@ -19,10 +19,11 @@
 #ifndef RDK_APPS_RMAX_XSTREAM_MEDIA_SENDER_RMAX_XSTREAM_MEDIA_SENDER_H_
 #define RDK_APPS_RMAX_XSTREAM_MEDIA_SENDER_RMAX_XSTREAM_MEDIA_SENDER_H_
 
-#include "rdk/apps/rmax_base_app.h"
 #include <memory>
 #include <functional>
 #include <unordered_map>
+
+#include "rdk/apps/rmax_base_app.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;
@@ -44,10 +45,10 @@ struct MediaSenderSettings : AppSettings
 public:
     static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD = 16;
     static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_UHD = 32;
-    static constexpr uint32_t DEFAULT_FIELDS_IN_MEM_BLOCK = 10;
+    static constexpr uint32_t DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK = 10;
     void init_default_values() override;
     std::unordered_set<SMPTEStandard> enabled_media_types;
-    std::vector<std::unique_ptr<MediaSettings>>media_type_configs;
+    std::vector<std::unique_ptr<MediaSettings>> media_type_configs;
     std::vector<std::pair<const MediaSettings&, size_t>> media_types_to_nodes;
 };
 
@@ -158,20 +159,6 @@ private:
      */
     void configure_video_types();
     /**
-     * @brief: Configures audio types processing.
-     *
-     * This method is responsible for configuring audio media types processing
-     * for the sender application.
-     */
-    void configure_audio_types();
-    /**
-     * @brief: Configures ancillary types processing.
-     *
-     * This method is responsible for configuring ancillary media types processing
-     * for the sender application.
-     */
-    void configure_ancillary_types();
-    /**
      * @brief: Distributes streams across threads.
      *
      * This method is responsible for distributing streams across threads based on
@@ -193,12 +180,10 @@ private:
      */
     void configure_network_flows();
     /**
-     * @brief: Distributes work for threads.
+     * @brief: Configures processing of enabled media types.
      *
-     * This method is responsible to distribute work to threads, by
-     * distributing number of streams per sender thread uniformly.
-     * In future development, this can be extended to different
-     * streams per thread distribution policies.
+     * This method is responsible to configure processing of enabled media types
+     * for the sender application.
      */
     void configure_media_types_processing();
     /**

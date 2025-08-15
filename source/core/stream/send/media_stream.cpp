@@ -42,7 +42,7 @@ MediaStreamSettings::MediaStreamSettings(const TwoTupleFlow& source_address,
         m_pcp(pcp),
         m_ecn(ecn)
 {
-    m_sdp = m_media_settings.media_calc->compose_media_sdp(source_address.get_ip(), source_address.get_port(),
+    m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(source_address.get_ip(), source_address.get_port(),
         destination_address.get_ip(), destination_address.get_port());
 }
 

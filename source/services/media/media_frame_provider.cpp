@@ -117,7 +117,7 @@ NullFrameProvider::NullFrameProvider(const MediaSettings& media_settings) :
 
 void NullFrameProvider::set_frame_settings(FrameMetadata& metadata, size_t& frame_size)
 {
-    auto& video_settings = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
     frame_size = video_settings.bytes_per_frame;
     metadata.resolution = video_settings.resolution;
     metadata.media_type = MediaType::Video;

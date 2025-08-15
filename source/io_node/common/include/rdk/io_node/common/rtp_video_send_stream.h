@@ -64,6 +64,7 @@ class RtpVideoSendStream : public MediaSendStream
 {
 private:
     SendingStatistics m_send_stats;
+    const SMPTE_2110_20_MediaSettings& m_video_settings;
 public:
     /**
      * @brief: RtpVideoSendStream constructor without assigning memory blocks.

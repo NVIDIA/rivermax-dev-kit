@@ -69,7 +69,7 @@ void RTPVideoMockBufferWriter::reset_in_frame_state()
 
 inline void RTPVideoMockBufferWriter::update_in_frame_state()
 {
-    auto& video_settings = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
     m_send_data.srd_offset = (m_send_data.srd_offset + video_settings.pixels_per_packet) %
         (video_settings.resolution.width);
     if (!((m_send_data.packet_counter + 1) % video_settings.packets_in_line)) {
@@ -98,7 +98,7 @@ size_t RTPVideoMockBufferWriter::build_rtp_header_2110_20_extension(byte_t* buff
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     |F|     SRD Row Number          |C|         SRD Offset          |
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
-    auto& video_settings = dynamic_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
     uint16_t extended_sequence_number = htons(static_cast<uint16_t>(m_send_data.rtp_sequence >> 16));
     memcpy(buffer, &extended_sequence_number, sizeof(extended_sequence_number));
     SRDHeader *srd = reinterpret_cast<SRDHeader*>(buffer + RTP_HEADER_EXT_SEQ_NUM_SIZE);
@@ -196,7 +196,7 @@ size_t RTPVideoBufferWriter::fill_packet(byte_t* buffer)
         std::cerr << "Error: Invalid frame state" << std::endl;
         return 0;
     }
-    auto raw_payload_size = m_media_settings.raw_packet_payload_size;
+    size_t raw_payload_size = m_media_settings.raw_packet_payload_size;
     if (raw_payload_size > m_data_left_in_frame) {
         raw_payload_size = m_data_left_in_frame;
     }
