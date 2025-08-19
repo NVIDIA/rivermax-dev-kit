@@ -47,6 +47,7 @@ set(RIVERMAX_DEV_KIT_APP_COMPONENTS
     rmax_latency
     rmax_ipo_receiver
     rmax_rtp_receiver
+    rmax_media_probe
     rmax_xstream_media_sender
     rmax_xstream_generic_sender
     CACHE INTERNAL "Rivermax Dev Kit application components."
