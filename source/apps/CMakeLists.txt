@@ -38,6 +38,7 @@ target_link_libraries(rivermax-dev-kit-app-base
         rivermax-dev-kit-io-node
         rivermax-dev-kit-facade
 )
+target_link_libraries(${PROJECT_NAME} INTERFACE rivermax-dev-kit-app-base)
 
 # Process all RDK applications
 set(RIVERMAX_DEV_KIT_APP_COMPONENTS
