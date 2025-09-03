@@ -448,7 +448,7 @@ void MediaTxIONode::send_receive()
     if (!parse_receive_timing(receive_chunk, reply)) {
         std::cerr << "Invalid server reply" << std::endl;
     } else {
-        std::cout <<  "Rx HW timestapm delay relative to scheduled packet send time.\n";
+        std::cout <<  "Rx HW timestamp delay relative to scheduled packet send time.\n";
         std::cout << "Avg: " << reply.rx_delay_avg << std::endl;
         std::cout << "Min: " << reply.rx_delay_min << std::endl;
         std::cout << "Max: " << reply.rx_delay_max << std::endl;
