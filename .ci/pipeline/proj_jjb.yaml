@@ -1,5 +1,5 @@
 - job-template:
-    name: "{jjb_proj}"
+    name: "{jjb_proj}-{os}"
     project-type: pipeline
     folder: "{jjb_folder}"
     properties:
@@ -11,7 +11,9 @@
         - inject:
             keep-system-variables: true
             properties-content: |
-              jjb_proj={jjb_proj}
+              jjb_proj={jjb_proj}-{os}
+              job_path=rivermax-ci-{os}
+
     description: Do NOT edit this job through the Web GUI !
     concurrent: true
     sandbox: true
@@ -21,18 +23,18 @@
             default: "{jjb_branch}"
             description: "Commit to be checked, usually set by PR"
         - string:
-            name: "conf_file"
-            default: ".ci/pipeline/job_matrix.yaml"
-            description: "Regex to select job config file"
-        - string:
             name: "DEBUG"
             default: 0
             description: "Enable debug prints and traces, valid values are 0-9"
+        - string:
+            name: "conf_file"
+            default: ".ci/pipeline/job_matrix.yaml"
+            description: "Regex to select job config file"
     triggers:
         - github-pull-request:
             cron: 'H/5 * * * *'
-            trigger-phrase: '.*\bbot:retest\b.*'
-            status-context: "{jjb_proj}"
+            trigger-phrase: '.*\bbot:(?:{os_short}:)?retest\b.*'
+            status-context: "{jjb_proj}-{os}"
             success-status: "Build passed."
             failure-status: "Build failed."
             error-status:   "Build failed."
@@ -63,9 +65,13 @@
                     parent-credentials: true
         script-path: "{jjb_jenkinsfile}"
 
-
 - project:
     name: rivermax-dev-kit
+    os:
+        - linux:
+            os_short: lin
+        - windows:
+            os_short: win
     jjb_email: 'danielpr@nvidia.com'
     jjb_proj: 'rivermax-dev-kit-ci'
     jjb_git: 'git@github.com:Mellanox-lab/rivermax-dev-kit.git'
@@ -74,4 +80,4 @@
     jjb_folder: 'rivermax'
     jjb_branch: 'master'
     jobs:
-        - "{jjb_proj}"
+        - "{jjb_proj}-{os}"

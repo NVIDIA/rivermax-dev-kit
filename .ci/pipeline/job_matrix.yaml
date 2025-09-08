@@ -20,40 +20,21 @@ runs_on_agents:
   - {nodeLabel: 'master', category: 'base'}
 
 steps:
-  - name: Run Linux Build
+  - name: Run Build
     shell: action
     module: groovy
     parallel: true
     run: |
-      def build = build job: 'rivermax/rivermax-ci-linux',
+
+      def build = build job: "rivermax/${job_path}",
         parameters: [
           string(name: 'SUBMODULES_OVERRIDE', value: "${SUBMODULE_NAME}:${env.ghprbActualCommit ?: sha1}")
         ],
         propagate: false
 
       def resultColor = build.result == 'SUCCESS' ? 'green' : 'red'
-      currentBuild.description += "<br><b>Linux Build:</b> <a href='${build.absoluteUrl}' style='color:${resultColor}'>${build.result} </a>"
+      currentBuild.description += "<br><b>Build:</b> <a href='${build.absoluteUrl}' style='color:${resultColor}'>${build.result} </a>"
       if (!build.resultIsBetterOrEqualTo('SUCCESS')) {
         currentBuild.result = build.result
-        error("Linux build failed")
+        error("build failed")
       }
-
-
-  - name: Run Windows Build
-    shell: action
-    module: groovy
-    parallel: true
-    run: |
-      def build = build job: 'rivermax/rivermax-ci-windows',
-        parameters: [
-          string(name: 'SUBMODULES_OVERRIDE', value: "${SUBMODULE_NAME}:${env.ghprbActualCommit ?: sha1}")
-        ],
-        propagate: false
-
-      def resultColor = build.result == 'SUCCESS' ? 'green' : 'red'
-      currentBuild.description += "<br><b>Windows Build:</b> <a href='${build.absoluteUrl}' style='color:${resultColor}'>${build.result} </a>"
-      if (!build.resultIsBetterOrEqualTo('SUCCESS')) {
-        currentBuild.result = build.result
-        error("Windows build failed")
-      }
-
