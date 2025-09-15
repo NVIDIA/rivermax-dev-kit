@@ -25,6 +25,9 @@ steps:
     module: groovy
     parallel: true
     run: |
+      if (env.JENKINS_URL == "https://nbupdc.blsm.nvidia.com/swx-media-master/") {
+        job_path = "${job_path}-dr"
+      }
 
       def build = build job: "rivermax/${job_path}",
         parameters: [
