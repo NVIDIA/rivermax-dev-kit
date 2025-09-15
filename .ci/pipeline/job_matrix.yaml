@@ -9,6 +9,13 @@ timeout_minutes: 240
 env:
   SUBMODULE_NAME: rivermax-dev-kit
 
+kubernetes:
+  cloud: il-ipp-blossom-prod
+  namespace: swx-media
+
+runs_on_dockers:
+  - { name: "groovy", url: "quay.io/podman/stable:v5.0.2", arch: 'x86_64'}
+
 pipeline_start:
   shell: action
   module: groovy
@@ -16,14 +23,10 @@ pipeline_start:
     currentBuild.description = currentBuild.description ?: ""
     currentBuild.displayName += "-${params.ghprbTargetBranch ?: sha1}"
 
-runs_on_agents:
-  - {nodeLabel: 'master', category: 'base'}
-
 steps:
   - name: Run Build
     shell: action
     module: groovy
-    parallel: true
     run: |
       if (env.JENKINS_URL == "https://nbupdc.blsm.nvidia.com/swx-media-master/") {
         job_path = "${job_path}-dr"
