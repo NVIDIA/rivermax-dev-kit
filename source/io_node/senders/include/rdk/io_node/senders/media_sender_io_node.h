@@ -84,6 +84,7 @@ private:
     int m_sleep_between_operations;
     bool m_print_parameters;
     uint32_t m_stats_report_interval_ms;
+    uint64_t m_stats_sent_frame_field_counter;
     int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
     IONodeMemoryUtils& m_memory_utils;
@@ -205,6 +206,19 @@ public:
      */
     void set_synchronizer(const std::shared_ptr<ISynchronizer>& synchronizer) { m_synchronizer = synchronizer; }
     static constexpr size_t DEFAULT_NUMBER_OF_MEM_BLOCKS = 1;
+protected:
+    /**
+     * @brief: Prints sender statistics.
+     *
+     * @param [out] out: Output stream to print statistics to.
+     * @param [in] interval_duration: Statistics interval duration.
+     */
+    virtual void print_statistics(std::ostream& out,
+        const std::chrono::high_resolution_clock::duration& interval_duration) const;
+    /**
+     * @brief: Resets statistics.
+     */
+    virtual void reset_statistics();
 private:
     /**
      * @brief: Creates sender's streams.

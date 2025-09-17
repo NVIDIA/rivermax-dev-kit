@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <climits>
 #include <iomanip>
 #include <sstream>
 #include <thread>
@@ -99,6 +100,7 @@ MediaSenderIONode::MediaSenderIONode(
     m_sleep_between_operations(app_settings.sleep_between_operations),
     m_print_parameters(app_settings.print_parameters),
     m_stats_report_interval_ms(app_settings.stats_report_interval_ms),
+    m_stats_sent_frame_field_counter(0),
     m_cpu_core_affinity(cpu_core_affinity),
     m_hw_queue_full_sleep_us(app_settings.hw_queue_full_sleep_us),
     m_memory_utils(memory_utils),
@@ -492,7 +494,7 @@ void MediaSenderIONode::operator()()
     }
 
     size_t sent_field_counter = 0;
-    size_t sent_field_counter_prev = 0;
+    size_t sent_field_counter_diff = 0;
     auto get_send_time_ns = [&]() { return (
         start_send_time_ns
         + m_media_settings.frame_field_time_interval_ns
@@ -521,9 +523,7 @@ void MediaSenderIONode::operator()()
         };
     }
 
-    uint64_t last_update_interval = 0;
-    uint64_t last_update_time = start_send_time_ns;
-
+    auto stats_start_time = std::chrono::high_resolution_clock::now();
     while (likely(rc != ReturnStatus::failure && SignalHandler::get_received_signal() < 0)) {
         chunk_in_frame_counter = 0;
         send_time_ns = get_send_time_ns();
@@ -559,23 +559,16 @@ void MediaSenderIONode::operator()()
                         ++chunk_in_frame_counter < m_media_settings.chunks_in_frame_field));
 
         sent_field_counter++;
+        m_stats_sent_frame_field_counter++;
 
-        uint64_t time_now = get_time_now_ns();
-        if (m_stats_report_interval_ms > 0 && (time_now - start_send_time_ns) / (m_stats_report_interval_ms * NS_IN_MSEC) > last_update_interval) {
-            std::ostringstream oss;
-            uint64_t bytes_sent = (sent_field_counter - sent_field_counter_prev) * m_media_settings.packets_in_frame_field * m_stream_packs.size() *
-                (m_media_settings.packet_app_header_size + m_media_settings.packet_payload_size + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
-            float mbps = (bytes_sent * 8.0 * 1000) / (time_now - last_update_time);
-            oss << " Sender: " << std::setw(3) << m_index
-                << "   Streams: " << std::setw(3) << m_stream_packs.size()
-                << "   Type: " << std::setw(12) << std::left << m_media_settings.media_settings_calculator->get_media_type_name()
-                << "   Frames sent: " << std::setw(3) << std::right << sent_field_counter - sent_field_counter_prev
-                << "   Bytes sent: " << std::setw(12) << bytes_sent
-                << "   Mbps: " << std::setw(12) << std::fixed << std::setprecision(3) << mbps << std::endl;
-            std::cout << oss.str();
-            sent_field_counter_prev = sent_field_counter;
-            last_update_time = time_now;
-            last_update_interval++;
+        if (m_stats_report_interval_ms > 0) {
+            auto now = std::chrono::high_resolution_clock::now();
+            auto duration = now - stats_start_time;
+            if (duration >= std::chrono::milliseconds{m_stats_report_interval_ms}) {
+                print_statistics(std::cout, duration);
+                reset_statistics();
+                stats_start_time = now;
+            }
         }
     }
 
@@ -776,4 +769,23 @@ ReturnStatus MediaSenderIONode::fill_memblock_from_file(byte_t* block_memory_buf
     mem_utils->memory_copy(block_memory_buffer, temp_buffer.get(), block_memory_size);
 
     return ReturnStatus::success;
+}
+
+void MediaSenderIONode::print_statistics(
+    std::ostream& out, const std::chrono::high_resolution_clock::duration& interval_duration) const
+{
+    uint64_t bytes_sent = (m_stats_sent_frame_field_counter) * m_media_settings.packets_in_frame_field * m_stream_packs.size() *
+        (m_media_settings.packet_app_header_size + m_media_settings.packet_payload_size + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
+    float mbps = static_cast<float>(bytes_sent * CHAR_BIT * NS_IN_USEC) / (interval_duration.count());
+    out << " Sender: " << std::setw(3) << m_index
+        << "   Streams: " << std::setw(3) << m_stream_packs.size()
+        << "   Type: " << std::setw(12) << std::left << m_media_settings.media_settings_calculator->get_media_type_name()
+        << "   Frames sent: " << std::setw(3) << std::right << m_stats_sent_frame_field_counter
+        << "   Bytes sent: " << std::setw(12) << bytes_sent
+        << "   Mbps: " << std::setw(12) << std::fixed << std::setprecision(3) << mbps << std::endl;
+}
+
+void MediaSenderIONode::reset_statistics()
+{
+    m_stats_sent_frame_field_counter = 0;
 }
