@@ -779,12 +779,14 @@ void MediaSenderIONode::print_statistics(
     uint64_t bytes_sent = (m_stats_sent_frame_field_counter) * m_media_settings.packets_in_frame_field * m_stream_packs.size() *
         (m_media_settings.packet_app_header_size + m_media_settings.packet_payload_size + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
     float mbps = (bytes_sent * CHAR_BIT) / duration_cast<duration<float, std::micro>>(interval_duration).count();
-    out << " Sender: " << std::setw(3) << m_index
+    std::ostringstream oss;
+    oss << " Sender: " << std::setw(3) << m_index
         << "  Streams: " << std::setw(3) << m_stream_packs.size()
         << "  Type: " << std::setw(11) << std::left << m_media_settings.media_settings_calculator->get_media_type_name()
         << "  Frames sent: " << std::setw(3) << std::right << m_stats_sent_frame_field_counter
         << "  Bytes sent: " << std::setw(11) << bytes_sent
         << "  BW: " << std::setw(10) << std::fixed << std::setprecision(3) << mbps << " Mbps" << std::endl;
+    out << oss.str();
 }
 
 void MediaSenderIONode::reset_statistics()
