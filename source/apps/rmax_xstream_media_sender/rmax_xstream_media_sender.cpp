@@ -178,7 +178,11 @@ ReturnStatus MediaSenderApp::initialize()
     }
 
     try {
-        configure_media_types_processing();
+        rc = configure_media_types_processing();
+        if (rc == ReturnStatus::failure) {
+            std::cerr << "Failed to configure media types" << std::endl;
+            return rc;
+        }
         configure_network_flows();
         initialize_sender_threads();
         rc = configure_memory_layout();
@@ -304,7 +308,7 @@ void MediaSenderApp::configure_network_flows()
     }
 }
 
-void MediaSenderApp::configure_video_types()
+ReturnStatus MediaSenderApp::configure_video_types()
 {
     size_t num_of_video_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
     if (num_of_video_threads < m_app_settings->num_of_threads) {
@@ -319,6 +323,10 @@ void MediaSenderApp::configure_video_types()
 
     auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
     video_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*video_settings);
+    if (!video_settings->media_settings_calculator) {
+        std::cerr << "Failed to create media settings calculator for 2110-20" << std::endl;
+        return ReturnStatus::failure;
+    }
     video_settings->header_data_split = m_app_settings->header_data_split;
     video_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
     video_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
@@ -326,7 +334,11 @@ void MediaSenderApp::configure_video_types()
     video_settings->frame_rate = m_app_settings->media.frame_rate;
     video_settings->sampling_type = m_app_settings->media.sampling_type;
     video_settings->bit_depth = m_app_settings->media.color_bit_depth;
-    video_settings->media_settings_calculator->calculate_media_settings();
+    ReturnStatus rc = video_settings->media_settings_calculator->calculate_media_settings();
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to calculate media settings for 2110-20" << std::endl;
+        return rc;
+    }
 
     for (size_t idx = 0; idx < num_of_video_threads; idx++) {
         size_t num_of_streams_in_cur_thread;
@@ -342,6 +354,10 @@ void MediaSenderApp::configure_video_types()
     if (alpha_enabled) {
         auto alpha_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
         alpha_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*alpha_settings);
+        if (!alpha_settings->media_settings_calculator) {
+            std::cerr << "Failed to create media settings calculator for 2110-20 alpha/key stream" << std::endl;
+            return ReturnStatus::failure;
+        }
         alpha_settings->header_data_split = m_app_settings->header_data_split;
         alpha_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
         alpha_settings->resolution = m_app_settings->media.resolution;
@@ -350,7 +366,11 @@ void MediaSenderApp::configure_video_types()
         alpha_settings->bit_depth = m_app_settings->media.alpha_bit_depth;
         alpha_settings->colorimetry = Colorimetry::ALPHA;
         alpha_settings->smpte_standard_number = SMPTEStandardNumber::ST2110_20_2021;
-        alpha_settings->media_settings_calculator->calculate_media_settings();
+        rc = alpha_settings->media_settings_calculator->calculate_media_settings();
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to calculate media settings for 2110-20 alpha/key stream" << std::endl;
+            return rc;
+        }
 
         for (size_t idx = 0; idx < num_of_video_threads; idx++) {
             size_t num_of_streams_in_cur_thread;
@@ -365,20 +385,32 @@ void MediaSenderApp::configure_video_types()
         }
         m_media_sender_settings->media_type_configs.push_back(std::move(alpha_settings));
     }
+    return ReturnStatus::success;
 }
 
-const std::unordered_map<SMPTEStandard, std::function<void(MediaSenderApp*)>> MediaSenderApp::s_media_type_config_map = {
-    {SMPTEStandard::ST_2110_20, [](MediaSenderApp* app) { app->configure_video_types(); }},
+const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaSenderApp*)>> MediaSenderApp::s_media_type_config_map = {
+    {SMPTEStandard::ST_2110_20, [](MediaSenderApp* app) { return app->configure_video_types(); }},
 };
 
-void MediaSenderApp::configure_media_types_processing()
+ReturnStatus MediaSenderApp::configure_media_types_processing()
 {
+    if (m_media_sender_settings->enabled_media_types.empty()) {
+        std::cerr << "No media types are enabled" << std::endl;
+        return ReturnStatus::failure;
+    }
+    ReturnStatus rc = ReturnStatus::success;
     for (const auto& media_type : m_media_sender_settings->enabled_media_types) {
         auto it = s_media_type_config_map.find(media_type);
-        if (it != s_media_type_config_map.end()) {
-            it->second(this);
+        if (it == s_media_type_config_map.end()) {
+            std::cerr << "Unsupported media type: " << static_cast<int>(media_type) << std::endl;
+            return ReturnStatus::failure;
+        }
+        rc = it->second(this);
+        if (rc != ReturnStatus::success) {
+            return rc;
         }
     }
+    return rc;
 }
 
 void MediaSenderApp::initialize_sender_threads()

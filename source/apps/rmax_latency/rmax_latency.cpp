@@ -316,8 +316,16 @@ ReturnStatus LatencyApp::initialize_threads()
             m_media_settings.bit_depth = m_app_settings->media.color_bit_depth;
             m_media_settings.ref_clk_is_ptp = true;
             auto media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(m_media_settings);
+            if (!media_settings_calculator) {
+                std::cerr << "Failed to create media settings calculator for 2110-20" << std::endl;
+                return ReturnStatus::failure;
+            }
             m_media_settings.media_settings_calculator = media_settings_calculator;
-            media_settings_calculator->calculate_media_settings();
+            rc = media_settings_calculator->calculate_media_settings();
+            if (rc != ReturnStatus::success) {
+                std::cerr << "Failed to calculate media settings for 2110-20" << std::endl;
+                return rc;
+            }
             if (m_latency_settings->client) {
                 if (m_app_settings->num_of_packets_in_chunk != LatencySettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK) {
                     m_app_settings->num_of_packets_in_chunk_specified = true;

@@ -136,7 +136,11 @@ ReturnStatus IPMXSenderApp::initialize()
     }
 
     try {
-        configure_media_types_processing();
+        rc = configure_media_types_processing();
+        if (rc == ReturnStatus::failure) {
+            std::cerr << "Failed to configure media types" << std::endl;
+            return rc;
+        }
         assign_streams_to_threads();
         initialize_send_flows();
         initialize_sender_threads();
@@ -302,7 +306,7 @@ void IPMXSenderApp::initialize_send_flows()
     }
 }
 
-void IPMXSenderApp::configure_video_settings()
+ReturnStatus IPMXSenderApp::configure_video_settings()
 {
     static const std::vector<FormatSpecificParameter> extra_ipmx_parameters = {{"IPMX", "", true}};
 
@@ -317,6 +321,10 @@ void IPMXSenderApp::configure_video_settings()
 
     auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
     video_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*video_settings, extra_ipmx_parameters);
+    if (!video_settings->media_settings_calculator) {
+        std::cerr << "Failed to create media settings calculator for 2110-20" << std::endl;
+        return ReturnStatus::failure;
+    }
     video_settings->header_data_split = m_app_settings->header_data_split;
     if (m_app_settings->num_of_packets_in_chunk_specified) {
         video_settings->packets_in_chunk = m_app_settings->num_of_packets_in_chunk;
@@ -326,7 +334,11 @@ void IPMXSenderApp::configure_video_settings()
     video_settings->frame_rate = m_app_settings->media.frame_rate;
     video_settings->sampling_type = m_app_settings->media.sampling_type;
     video_settings->bit_depth = m_app_settings->media.color_bit_depth;
-    video_settings->media_settings_calculator->calculate_media_settings();
+    auto rc = video_settings->media_settings_calculator->calculate_media_settings();
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to calculate media settings for 2110-20" << std::endl;
+        return rc;
+    }
 
     video_settings->ref_clk_is_ptp = m_app_settings->ref_clk_is_ptp;
     if (m_app_settings->ref_clk_is_ptp) {
@@ -345,13 +357,16 @@ void IPMXSenderApp::configure_video_settings()
         m_ipmx_sender_settings->media_types_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
     }
     m_ipmx_sender_settings->media_type_configs.push_back(std::move(video_settings));
+    return ReturnStatus::success;
 }
 
-void IPMXSenderApp::configure_media_types_processing()
+ReturnStatus IPMXSenderApp::configure_media_types_processing()
 {
     if (m_ipmx_sender_settings->enabled_media_types.count(SMPTEStandard::ST_2110_20)) {
-        configure_video_settings();
+        return configure_video_settings();
     }
+    std::cerr << "No supported media types to configure" << std::endl;
+    return ReturnStatus::failure;
 }
 
 void IPMXSenderApp::assign_streams_to_threads()

@@ -163,12 +163,16 @@ private:
     void distribute_memory_to_senders();
     /**
      * @brief: Configures media settings for video.
+     *
+     * @return: Return status of the operation.
      */
-    void configure_video_settings();
+    ReturnStatus configure_video_settings();
     /**
      * @brief: Configures media settings for all enabled video types.
+     *
+     * @return: Return status of the operation.
      */
-    void configure_media_types_processing();
+    ReturnStatus configure_media_types_processing();
     /**
      * @brief: Assigns streams to the worker threads.
      *

@@ -112,7 +112,7 @@ private:
      * This static map contains functions for configuring different media types.
      * Each SMPTEStandard enum value maps to a function that configures that specific media type.
      */
-    static const std::unordered_map<SMPTEStandard, std::function<void(MediaSenderApp*)>> s_media_type_config_map;
+    static const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaSenderApp*)>> s_media_type_config_map;
 public:
     /**
      * @brief: MediaSenderApp class constructor.
@@ -156,8 +156,10 @@ private:
      *
      * This method is responsible for configuring video media types processing
      * for the sender application.
+     *
+     * @return: Status of the operation.
      */
-    void configure_video_types();
+    ReturnStatus configure_video_types();
     /**
      * @brief: Distributes streams across threads.
      *
@@ -185,7 +187,7 @@ private:
      * This method is responsible to configure processing of enabled media types
      * for the sender application.
      */
-    void configure_media_types_processing();
+    ReturnStatus configure_media_types_processing();
     /**
      * @brief: Initializes sender threads.
      *
