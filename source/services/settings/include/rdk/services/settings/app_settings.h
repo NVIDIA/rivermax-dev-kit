@@ -27,7 +27,7 @@
 #include <rivermax_api.h>
 
 #include "rdk/services/utils/defs.h"
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/app_media_settings.h"
 
 namespace rivermax
 {

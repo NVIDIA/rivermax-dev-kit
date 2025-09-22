@@ -28,7 +28,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/core/memory_layout/media_memory_layout.h"
 #include "rdk/core/memory_layout/header_payload_memory_layout.h"
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings.h"
 #include "rdk/core/stream/send/send_stream_interface.h"
 #include "rdk/core/chunk/media_chunk.h"
 #include "rdk/core/flow/flow.h"

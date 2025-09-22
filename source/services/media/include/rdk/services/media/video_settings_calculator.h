@@ -29,7 +29,7 @@
 
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/sdp/sdp.h"
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_calculator.h"
 
 namespace rivermax

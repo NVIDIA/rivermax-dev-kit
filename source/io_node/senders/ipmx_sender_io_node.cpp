@@ -27,7 +27,7 @@
 #include <regex>
 
 #include <rivermax_api.h>
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings_2110_20.h"
 #include "rt_threads.h"
 
 #include "rdk/io_node/senders/ipmx_sender_io_node.h"

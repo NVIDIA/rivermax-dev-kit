@@ -30,7 +30,7 @@
 #include "rdk/io_node/common/io_node_memory_utils.h"
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/io_node/common/chunk_buffer_writer_interface.h"
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_frame_provider.h"
 #include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
 #include "rdk/core/memory_layout/header_payload_memory_layout.h"

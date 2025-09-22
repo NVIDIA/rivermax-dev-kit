@@ -29,7 +29,7 @@
 #include <cstring>
 
 #include <rivermax_api.h>
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings.h"
 #include "rt_threads.h"
 
 #include "rdk/io_node/senders/media_sender_io_node.h"

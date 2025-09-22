@@ -24,6 +24,8 @@
 #include <unordered_map>
 
 #include "rdk/apps/rmax_base_app.h"
+#include "rdk/services/media/media_settings.h"
+#include "rdk/services/media/app_media_settings.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;

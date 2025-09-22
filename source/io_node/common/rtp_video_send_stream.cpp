@@ -26,7 +26,7 @@
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/services/utils/defs.h"
 #include "rdk/core/stream/send/media_stream.h"
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings_2110_20.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::core;

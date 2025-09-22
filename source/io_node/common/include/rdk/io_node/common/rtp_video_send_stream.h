@@ -26,6 +26,7 @@
 
 #include "rdk/services/utils/defs.h"
 #include "rdk/core/stream/send/media_stream.h"
+#include "rdk/services/media/media_settings_2110_20.h"
 
 using namespace rivermax::dev_kit::core;
 

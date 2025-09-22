@@ -20,7 +20,6 @@
 #include <unordered_map>
 
 #include "rt_threads.h"
-#include "rdk/services/media/media_defs.h"
 #include "rdk/apps/rmax_xstream_media_sender/rmax_xstream_media_sender.h"
 #include "rdk/apps/rmax_base_memory_strategy.h"
 #include "rdk/services/utils/defs.h"

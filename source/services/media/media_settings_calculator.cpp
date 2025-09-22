@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_calc_interface.h"
 #include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/error_handling/return_status.h"

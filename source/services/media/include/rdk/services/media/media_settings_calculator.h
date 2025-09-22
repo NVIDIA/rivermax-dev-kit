@@ -28,7 +28,7 @@
 #include <memory>
 
 #include "rdk/services/sdp/sdp.h"
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_calc_interface.h"
 
 namespace rivermax

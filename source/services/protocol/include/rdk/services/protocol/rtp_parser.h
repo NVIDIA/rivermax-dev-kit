@@ -19,6 +19,8 @@
 #ifndef RDK_SERVICES_PROTOCOL_RTP_PARSER_H_
 #define RDK_SERVICES_PROTOCOL_RTP_PARSER_H_
 
+#include <netinet/in.h>
+
 #include "rdk/services/protocol/protocol_parsers.h"
 #include "rdk/services/protocol/rtp.h"
 #include "rdk/services/media/media_defs.h"

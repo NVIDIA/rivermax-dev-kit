@@ -30,7 +30,7 @@
 #include "rdk/io_node/misc/generic_latency_io_node.h"
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/core/stream/send/generic_stream.h"
-#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings_2110_20.h"
 
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;

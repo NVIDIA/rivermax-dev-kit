@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
+#include <cassert>
 #include <cstddef>
 #include <cstring>
 
 #include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
-#include "rdk/services/media/media.h"
+#include "rdk/services/media/media_settings_2110_20.h"
 
 using namespace rivermax::dev_kit::services;
 

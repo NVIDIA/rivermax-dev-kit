@@ -18,17 +18,16 @@
 
 #include <cstring>
 #include <ctime>
+#include <iostream>
 #include <iomanip>
 #include <memory>
 #include <chrono>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 
 #include "rdk/apps/rmax_ipmx_receiver/ipmx_stream_timeline_tracker.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/error_handling/error_handling.h"
-#include "rdk/services/media/media_defs.h"
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/counter_math.h"
 

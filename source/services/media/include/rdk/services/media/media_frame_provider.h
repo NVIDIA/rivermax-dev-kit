@@ -26,11 +26,10 @@
 #include <mutex>
 #include <condition_variable>
 #include <fstream>
-#include <chrono>
 #include <unordered_map>
-#include <functional>
 
 #include "rdk/services/utils/defs.h"
+#include "rdk/services/media/media_settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 
 namespace rivermax
