@@ -164,7 +164,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_option(CLIOptStr::SRC_IP,
                                       app_settings->source_ip,
                                       "Source IP address")
-                            ->check(CLI::ValidIPV4)->required();
+                            ->check(CLI::ValidIPV4);
         }
     },
     {

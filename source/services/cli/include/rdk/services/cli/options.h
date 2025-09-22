@@ -51,6 +51,7 @@ constexpr size_t NUM_OF_PACKETS_IN_CHUNK_DEFAULT = 4096;
 constexpr uint16_t PACKET_PAYLOAD_SIZE_DEFAULT = 1460;
 constexpr uint16_t PACKET_APP_HEADER_SIZE_DEFAULT = 0;
 constexpr int SLEEP_BETWEEN_OPERATIONS_US_DEFAULT = 0;
+constexpr const char* SOURCE_IP_DEFAULT = "0.0.0.0";
 constexpr const char* DESTINATION_IP_DEFAULT = "234.5.6.7";
 constexpr uint16_t DESTINATION_PORT_DEFAULT = 50000;
 constexpr uint32_t STATS_REPORT_INTERVAL_MS_DEFAULT = 1000;

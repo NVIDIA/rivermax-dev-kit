@@ -29,6 +29,7 @@ constexpr int INVALID_CORE_NUMBER = -1;
 
 void AppSettings::init_default_values()
 {
+    source_ip = SOURCE_IP_DEFAULT;
     destination_ip = DESTINATION_IP_DEFAULT;
     destination_port = DESTINATION_PORT_DEFAULT;
     num_of_threads = NUM_OF_THREADS_DEFAULT;
