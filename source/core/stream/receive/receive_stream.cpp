@@ -362,7 +362,6 @@ std::ostream& ReceiveStream::print(std::ostream& out) const
             << ", source " << flow.get_source_ip() << ":" << flow.get_source_port()
             << ", destination " << flow.get_destination_ip() << ":" << flow.get_destination_port() << "\n";
     }
-    out << "+**********************************************\n";
 
     return out;
 }

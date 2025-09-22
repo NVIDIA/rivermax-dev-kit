@@ -95,7 +95,7 @@ public:
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb);
     virtual ~GenericLatencyIONode() = default;
-    virtual std::ostream& print(std::ostream& out) const;
+    std::ostream& print(std::ostream& out) const override;
     /**
      * @brief: Overrides operator << for @ref GenericLatencyIONode reference.
      */

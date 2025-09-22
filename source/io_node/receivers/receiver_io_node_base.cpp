@@ -55,9 +55,10 @@ std::ostream& ReceiverIONodeBase::print(std::ostream& out) const
         << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
         << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
         << "| Number of streams in this thread: " << m_streams.size() << "\n"
-        << "+#############################################\n";
+        << "+---------------------------------------------\n";
     for (const auto& stream : m_streams) {
         stream->print(out);
+        out << "+---------------------------------------------\n";
     }
     return out;
 }

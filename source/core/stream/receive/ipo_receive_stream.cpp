@@ -89,8 +89,6 @@ std::ostream& IPOReceiveStream::print(std::ostream& out) const
         stream.print(out);
     }
 
-    out << "+**********************************************\n";
-
     return out;
 }
 

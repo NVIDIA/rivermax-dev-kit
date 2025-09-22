@@ -111,8 +111,7 @@ std::ostream& GenericSendStream::print(std::ostream& out) const
         << "| Number of user requested chunks: " << m_stream_settings.m_num_of_requested_chunks << "\n"
         << "| Number of application chunks: " << m_num_of_chunks << "\n"
         << "| Number of packets in chunk: " << m_stream_settings.m_num_of_packets_in_chunk << "\n"
-        << "| Packet's payload size: " << m_stream_settings.m_packet_typical_payload_size << "\n"
-        << "+**********************************************\n";
+        << "| Packet payload size: " << m_stream_settings.m_packet_typical_payload_size << "\n";
 
     return out;
 }
@@ -317,8 +316,6 @@ ReturnStatus GenericSendStream::create_stream()
         return ReturnStatus::failure;
     }
     m_stream_created = true;
-
-    print(std::cout);
 
     return ReturnStatus::success;
 }

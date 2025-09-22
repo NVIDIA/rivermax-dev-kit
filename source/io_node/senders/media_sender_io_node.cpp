@@ -119,12 +119,10 @@ MediaSenderIONode::MediaSenderIONode(
 
 std::ostream& MediaSenderIONode::print(std::ostream& out) const
 {
-    out << "+#############################################\n"
-        << "| Sender index: " << m_index << "\n"
+    out << "| Sender index: " << m_index << "\n"
         << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
         << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
-        << "| Number of streams in this thread: " << m_stream_packs.size() << "\n"
-        << "+#############################################\n";
+        << "| Number of streams in this thread: " << m_stream_packs.size() << "\n";
     return out;
 }
 
@@ -398,9 +396,12 @@ void MediaSenderIONode::print_parameters()
     }
 
     std::stringstream sender_parameters;
+    sender_parameters << "+#############################################\n";
     sender_parameters << this;
+    sender_parameters << "+---------------------------------------------\n";
     for (auto& stream_pack : m_stream_packs) {
         sender_parameters << *stream_pack.stream;
+        sender_parameters << "+---------------------------------------------\n";
     }
     std::cout << sender_parameters.str() << std::endl;
 }

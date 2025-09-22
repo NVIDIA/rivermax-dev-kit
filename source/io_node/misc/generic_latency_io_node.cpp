@@ -55,8 +55,7 @@ GenericLatencyIONode::GenericLatencyIONode(
 
 std::ostream& GenericLatencyIONode::print(std::ostream& out) const
 {
-    out << "+#############################################\n"
-        << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
+    out << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
         << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
         << "| Tx Header address: " << m_send_header_region.addr << "\n"
         << "| Tx Header length: " << m_send_header_region.length << "[B]" << "\n"
@@ -69,8 +68,7 @@ std::ostream& GenericLatencyIONode::print(std::ostream& out) const
         << "| Rx Header key: " << m_receive_header_region.mkey << "\n"
         << "| Rx Payload address: " << m_receive_payload_region.addr << "\n"
         << "| Rx Payload length: " << m_receive_payload_region.length << "[B]" << "\n"
-        << "| Rx Payload key: " << m_receive_payload_region.mkey << "\n"
-        << "+#############################################\n";
+        << "| Rx Payload key: " << m_receive_payload_region.mkey << "\n";
     return out;
 }
 
@@ -124,9 +122,13 @@ void GenericLatencyIONode::print_parameters()
         return;
     }
     std::stringstream text_parameters;
+    text_parameters << "+#############################################\n";
     text_parameters << this;
+    text_parameters << "+---------------------------------------------\n";
     text_parameters << *m_send_stream;
+    text_parameters << "+---------------------------------------------\n";
     text_parameters << *m_receive_stream;
+    text_parameters << "+---------------------------------------------\n";
     std::cout << text_parameters.str() << std::endl;
 }
 

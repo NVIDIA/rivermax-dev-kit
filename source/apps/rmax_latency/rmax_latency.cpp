@@ -232,7 +232,6 @@ ReturnStatus LatencyApp::run()
     }
 
     try {
-        std::cout << *m_io_node;
         auto thread = std::thread(std::ref(*m_io_node));
         thread.join();
         unregister_app_memory();

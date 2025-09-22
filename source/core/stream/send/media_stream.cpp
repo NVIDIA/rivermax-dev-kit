@@ -18,6 +18,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <chrono>
 #include <thread>
 
@@ -221,13 +222,16 @@ void MediaSendStream::assign_memory_blocks(MediaStreamMemBlockset& mem_blocks)
 
 std::ostream& MediaSendStream::print(std::ostream& out) const
 {
-    ISendStream::print(out);
+    std::string sdp = m_stream_settings.get_sdp();
+    std::istringstream sdp_stream(sdp);
+    std::string sdp_line;
+    std::ostringstream os;
 
-    out << "| SDP file: " << "\n"
-        << "---------------------------------------------------------------------------------------" << "\n"
-        << m_stream_settings.m_sdp << "\n"
-        << "---------------------------------------------------------------------------------------" << "\n"
-        << "+**********************************************\n";
+    ISendStream::print(out);
+    out << "| SDP file: " << "\n";
+    while (std::getline(sdp_stream, sdp_line)) {
+        out << "|   " << sdp_line << "\n";
+    }
 
     return out;
 }

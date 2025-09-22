@@ -573,12 +573,10 @@ IPMXSenderIONode::IPMXSenderIONode(
 
 std::ostream& IPMXSenderIONode::print(std::ostream& out) const
 {
-    out << "+#############################################\n"
-        << "| Sender index: " << m_index << "\n"
+    out << "| Sender index: " << m_index << "\n"
         << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
         << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
-        << "| Number of streams in this thread: " << m_stream_senders.size() << "\n"
-        << "+#############################################\n";
+        << "| Number of streams in this thread: " << m_stream_senders.size() << "\n";
     return out;
 }
 
@@ -633,9 +631,16 @@ void IPMXSenderIONode::print_parameters()
     }
 
     std::stringstream sender_parameters;
+    sender_parameters << "+#############################################\n";
     sender_parameters << this;
+    sender_parameters << "+---------------------------------------------\n";
+    sender_parameters << "| RTCP stream (IPMX Sender Reports of media streams):\n";
+    sender_parameters << *m_rtcp_stream;
+    sender_parameters << "+---------------------------------------------\n";
+
     for (auto& stream_sender : m_stream_senders) {
         sender_parameters << stream_sender.get_media_stream();
+        sender_parameters << "+---------------------------------------------\n";
     }
 
     if (m_index == 0) {

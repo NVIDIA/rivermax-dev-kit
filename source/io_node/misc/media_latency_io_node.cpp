@@ -137,9 +137,13 @@ void MediaTxIONode::print_parameters()
         return;
     }
     std::stringstream text_parameters;
+    text_parameters << "+#############################################\n";
     text_parameters << this;
+    text_parameters << "+---------------------------------------------\n";
     text_parameters << *m_send_stream;
+    text_parameters << "+---------------------------------------------\n";
     text_parameters << *m_receive_stream;
+    text_parameters << "+---------------------------------------------\n";
     std::cout << text_parameters.str() << std::endl;
 }
 
