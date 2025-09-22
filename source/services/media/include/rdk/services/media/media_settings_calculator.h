@@ -80,20 +80,23 @@ public:
 /**
  * @brief: Base implementation of media settings calculator.
  *
- * This class provides a base implementation of the media settings calculator interface.
- * It stores references to media settings and extra parameters that can be used by
- * derived classes to perform specific calculations.
+ * This template class provides type-safe access to specific media settings types.
+ * Derived classes inherit from this template with their specific settings type
+ * ensuring compile-time type safety.
+ *
+ * @tparam SettingsType: The specific media settings type (e.g., SMPTE_2110_20_MediaSettings).
  */
+template<typename SettingsType>
 class MediaSettingsCalculator : public IMediaSettingsCalculator
 {
 public:
     /**
      * @brief: MediaSettingsCalculator constructor.
      *
-     * @param [in] media_settings: Reference to the media settings to configure.
+     * @param [in] media_settings: Reference to the typed media settings to configure.
      * @param [in] extra_parameters: Optional vector of format-specific SDP parameters.
      */
-    MediaSettingsCalculator(MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters = {}) :
+    MediaSettingsCalculator(SettingsType& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters = {}) :
         m_media_settings(media_settings), m_extra_parameters(extra_parameters) {}
     /**
      * @brief: Virtual destructor.
@@ -106,8 +109,8 @@ public:
      */
     virtual std::string get_media_type_name() const override { return "Unknown"; }
 protected:
-    /* Reference to the media settings being configured */
-    MediaSettings& m_media_settings;
+    /* Reference to the typed media settings being configured */
+    SettingsType& m_media_settings;
     /* Vector of format-specific parameters for the media type */
     const std::vector<FormatSpecificParameter> m_extra_parameters;
 };

@@ -39,7 +39,13 @@ media_settings_calculator_factory_map_t IMediaSettingsCalculatorFactory::s_media
         SMPTEStandard::ST_2110_20,
         [](MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters)
         {
-            return std::make_shared<ST_2110_20_MediaSettingsCalculator>(media_settings, extra_parameters);
+            // Runtime type safety check
+            if (media_settings.get_media_type() != SMPTEStandard::ST_2110_20) {
+                throw std::invalid_argument("MediaSettings type mismatch: expected ST_2110_20, got " + 
+                                          std::to_string(static_cast<int>(media_settings.get_media_type())));
+            }
+            auto& video_settings = static_cast<SMPTE_2110_20_MediaSettings&>(media_settings);
+            return std::make_shared<ST_2110_20_MediaSettingsCalculator>(video_settings, extra_parameters);
         }
     }
 };

@@ -92,7 +92,7 @@ void ST_2110_20_MediaSettingsCalculator::calculate_tro_trs(double& tro, double& 
     double r_active;
     double tro_default_multiplier;
 
-    auto& video_settings = dynamic_cast<SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    auto& video_settings = m_media_settings;
 
     if (video_settings.video_scan_type == VideoScanType::Progressive) {
         t_frame_ns = video_settings.frame_field_time_interval_ns;
@@ -134,7 +134,7 @@ void ST_2110_20_MediaSettingsCalculator::calculate_tro_trs(double& tro, double& 
 
 ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
 {
-    auto& video_settings = dynamic_cast<SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    auto& video_settings = m_media_settings;
 
     if (!is_bit_depth_supported(video_settings.sampling_type, video_settings.bit_depth)) {
         std::cerr << "Unsupported width/sampling/bit depth combination: " << video_settings.resolution.width
@@ -220,7 +220,7 @@ std::string ST_2110_20_MediaSettingsCalculator::generate_media_sdp(
     const std::string& source_ip, const uint16_t source_port,
     const std::string& destination_ip, const uint16_t destination_port)
 {
-    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    const auto& video_settings = m_media_settings;
 
     auto session_description = SessionDescription::Builder(source_ip)
         .set_session_id(SDPManager::generate_ntp_id())
@@ -254,7 +254,7 @@ std::string ST_2110_20_MediaSettingsCalculator::generate_media_sdp(
 
 std::string ST_2110_20_MediaSettingsCalculator::get_media_type_name() const
 {
-    auto& video_settings = dynamic_cast<SMPTE_2110_20_MediaSettings&>(m_media_settings);
+    const auto& video_settings = m_media_settings;
     if (video_settings.sampling_type == VideoSampling::KEY) {
         return "Video (Key)";
     }

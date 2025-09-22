@@ -31,6 +31,7 @@
 #include "rdk/services/sdp/sdp.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_calculator.h"
+#include "rdk/services/media/video_settings.h"
 
 namespace rivermax
 {
@@ -46,17 +47,17 @@ namespace services
  * It provides methods to calculate video-specific media settings and compose SDP descriptions
  * according to the SMPTE 2110-20 standard.
  */
-class ST_2110_20_MediaSettingsCalculator : public MediaSettingsCalculator
+class ST_2110_20_MediaSettingsCalculator : public MediaSettingsCalculator<SMPTE_2110_20_MediaSettings>
 {
 public:
     /**
      * @brief: ST_2110_20_MediaSettingsCalculator constructor.
      *
-     * @param [in] media_settings: Reference to the media settings to configure.
+     * @param [in] video_settings: Reference to the video settings to configure.
      * @param [in] extra_parameters: Optional vector of format-specific parameters.
      */
-    ST_2110_20_MediaSettingsCalculator(MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters = {}) :
-        MediaSettingsCalculator(media_settings, extra_parameters) {}
+    ST_2110_20_MediaSettingsCalculator(SMPTE_2110_20_MediaSettings& video_settings, const std::vector<FormatSpecificParameter>& extra_parameters = {}) :
+        MediaSettingsCalculator<SMPTE_2110_20_MediaSettings>(video_settings, extra_parameters) {}
     /**
      * @brief: Virtual destructor.
      */
