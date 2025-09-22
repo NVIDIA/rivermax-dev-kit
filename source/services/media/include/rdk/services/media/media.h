@@ -25,6 +25,8 @@
 #include "rdk/services/media/app_media_settings.h"
 #include "rdk/services/media/media_settings_calculator.h"
 #include "rdk/services/media/video_settings_calculator.h"
+#include "rdk/services/media/media_settings_audio.h"
+#include "rdk/services/media/media_settings_ancillary.h"
 #include "rdk/services/media/media_frame_provider.h"
 #include "rdk/services/media/media_frame_pool.h"
 #include "rdk/services/media/media_file_streaming_provider.h"

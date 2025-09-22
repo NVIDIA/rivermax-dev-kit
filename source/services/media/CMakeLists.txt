@@ -27,5 +27,7 @@ target_sources(rivermax-dev-kit-services
         media_frame_provider.cpp
         media_settings_calculator.cpp
         video_settings_calculator.cpp
+        ancillary_settings_calculator.cpp
+        audio_settings_calculator.cpp
 )
 target_include_directories(rivermax-dev-kit-services PUBLIC include)

@@ -158,7 +158,7 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         }
         /* We get here at least once, e.g. when pkt_cnt == pgroups_in_line, and pgroups_in_packet will be > 0 */
         pgroups_in_packet = pgroups_in_line / pkt_cnt;
-        if (pgroups_in_packet * bytes_in_pgroup <= 1440) {
+        if (pgroups_in_packet * bytes_in_pgroup <= MediaSettings::MAX_PAYLOAD_SIZE) {
             break;
         }
     }

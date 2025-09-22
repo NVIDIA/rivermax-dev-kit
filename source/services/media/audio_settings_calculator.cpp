@@ -1,0 +1,199 @@
+/*
+ * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
+ * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <cstdint>
+#include <string>
+#include <iostream>
+#include <cstddef>
+
+#include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/audio_settings_calculator.h"
+#include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/utils/defs.h"
+#include "rt_threads.h"
+
+namespace rivermax
+{
+namespace dev_kit
+{
+namespace services
+{
+
+constexpr size_t BITS_IN_BYTES = 8;
+constexpr uint8_t DSCP_MEDIA_RTP_CLASS = 34;
+
+bool ST_2110_30_MediaSettingsCalculator::is_channel_count_supported(uint8_t num_channels)
+{
+    return SUPPORTED_AUDIO_CHANNEL_COUNTS.find(num_channels) != SUPPORTED_AUDIO_CHANNEL_COUNTS.end();
+}
+
+ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
+{
+    m_media_settings.packets_per_second = USEC_IN_SEC / m_media_settings.ptime_usec;
+    
+    uint32_t sampling_freq_value = static_cast<uint32_t>(m_media_settings.sampling_frequency);
+    
+    // Validate samples per packet is an integer
+    if (sampling_freq_value % m_media_settings.packets_per_second != 0) {
+        std::cerr << "Error: Sampling frequency (" << sampling_freq_value 
+                  << " Hz) is not evenly divisible by packet rate (" << m_media_settings.packets_per_second
+                  << " packets/sec). This will cause sample truncation." << std::endl;
+        return ReturnStatus::failure;
+    }
+    
+    m_media_settings.samples_per_packet = sampling_freq_value / m_media_settings.packets_per_second;
+    m_media_settings.bytes_per_sample = static_cast<size_t>(m_media_settings.bit_depth) / BITS_IN_BYTES;
+    
+    // Calculate payload size (samples * channels * bytes per sample)
+    size_t payload_size = m_media_settings.samples_per_packet * 
+                          m_media_settings.num_channels *
+                          m_media_settings.bytes_per_sample;
+
+    m_media_settings.protocol_header_size = RTP_HEADER_SIZE;
+    m_media_settings.raw_packet_payload_size = static_cast<uint16_t>(payload_size);
+    m_media_settings.packet_payload_size = static_cast<uint16_t>(payload_size + m_media_settings.protocol_header_size);
+    
+    // Validate packet size doesn't exceed UDP limit
+    if (m_media_settings.packet_payload_size > MediaSettings::MAX_PAYLOAD_SIZE) {
+        std::cerr << "Error: Audio packet size (" << m_media_settings.packet_payload_size 
+                  << " bytes) exceeds network limit (" << MediaSettings::MAX_PAYLOAD_SIZE << " bytes). "
+                  << "Consider shorter ptime or fewer channels/lower bit depth." << std::endl;
+        return ReturnStatus::failure;
+    }
+    
+    if (m_media_settings.header_data_split) {
+        m_media_settings.packet_app_header_size = m_media_settings.protocol_header_size;
+        m_media_settings.packet_payload_size -= m_media_settings.protocol_header_size;
+    }
+    
+    // Set default packets per frame field if not provided
+    if (!m_media_settings.packets_in_frame_field) {
+        constexpr uint32_t PACKETS_PER_FRAME_FIELD = 100;
+        m_media_settings.packets_in_frame_field = PACKETS_PER_FRAME_FIELD;
+    }
+
+    // Validate and apply custom chunk size if provided
+    bool chunk_size_applied = false;
+    if (m_media_settings.packets_in_chunk > 0) {
+        if (m_media_settings.packets_in_frame_field % m_media_settings.packets_in_chunk == 0) {
+            chunk_size_applied = true;
+            std::cout << "Using custom audio chunk size: " << m_media_settings.packets_in_chunk 
+                      << " packets per chunk" << std::endl;
+        } else {
+            std::cerr << "Warning: Custom chunk size (" << m_media_settings.packets_in_chunk
+                      << ") is not a divisor of packets in field ("
+                      << m_media_settings.packets_in_frame_field << "). Calculating optimal size." << std::endl;
+        }
+    }
+
+    if (!chunk_size_applied) {
+        // Aim for ~20 packets per chunk (20ms chunks if ptime=1ms)
+        constexpr uint32_t TARGET_PACKETS_PER_CHUNK = 20;
+        
+        m_media_settings.packets_in_chunk = m_media_settings.packets_in_frame_field;
+        for (uint32_t chunk_cnt = 1; chunk_cnt <= m_media_settings.packets_in_frame_field; chunk_cnt++) {
+            if (m_media_settings.packets_in_frame_field % chunk_cnt != 0) {
+                continue;
+            }
+            uint32_t packets_per_chunk = m_media_settings.packets_in_frame_field / chunk_cnt;
+            if (packets_per_chunk <= TARGET_PACKETS_PER_CHUNK) {
+                m_media_settings.packets_in_chunk = packets_per_chunk;
+                break;
+            }
+        }
+        
+        std::cout << "Calculated audio chunk size: " << m_media_settings.packets_in_chunk 
+                  << " packets per chunk (" 
+                  << (m_media_settings.packets_in_frame_field / m_media_settings.packets_in_chunk)
+                  << " chunks per frame)" << std::endl;
+    }
+
+    // Calculate chunks per frame field
+    m_media_settings.chunks_in_frame_field =
+        m_media_settings.packets_in_frame_field / m_media_settings.packets_in_chunk;
+    
+    return ReturnStatus::success;
+}
+
+ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_timing_parameters()
+{
+    // Audio uses sampling frequency as RTP clock rate (per ST 2110-30)
+    m_media_settings.sample_rate = static_cast<uint32_t>(m_media_settings.sampling_frequency);
+    m_media_settings.frame_field_time_interval_ns = static_cast<double>(m_media_settings.packets_in_frame_field * m_media_settings.ptime_usec * NS_IN_USEC);
+    m_media_settings.ticks_per_frame = (static_cast<double>(m_media_settings.sample_rate) * m_media_settings.frame_field_time_interval_ns) / static_cast<double>(NS_IN_SEC);
+    
+    return ReturnStatus::success;
+}
+
+void ST_2110_30_MediaSettingsCalculator::calculate_memory_parameters()
+{
+    if (m_media_settings.frames_fields_in_mem_block == 0) {
+        m_media_settings.frames_fields_in_mem_block = m_media_settings.DEFAULT_NUM_OF_FRAMES_IN_MEM_BLOCK;
+    }
+    
+    m_media_settings.chunks_in_mem_block = m_media_settings.frames_fields_in_mem_block * m_media_settings.chunks_in_frame_field;
+    m_media_settings.packets_in_mem_block = m_media_settings.chunks_in_mem_block * m_media_settings.packets_in_chunk;
+    m_media_settings.bytes_per_frame = m_media_settings.raw_packet_payload_size * m_media_settings.packets_in_frame_field;
+}
+
+void ST_2110_30_MediaSettingsCalculator::calculate_stride_parameters()
+{
+    m_media_settings.app_header_stride_size = align_up_pow2(m_media_settings.packet_app_header_size, get_cache_line_size());
+    m_media_settings.data_stride_size = align_up_pow2(m_media_settings.packet_payload_size, get_cache_line_size());
+}
+
+ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_media_settings()
+{
+    if (!is_channel_count_supported(m_media_settings.num_channels)) {
+        std::cerr << "Unsupported channel count: " << static_cast<uint32_t>(m_media_settings.num_channels) 
+                  << " channels." << std::endl;
+        return ReturnStatus::failure;
+    }
+
+    ReturnStatus status = calculate_packet_parameters();
+    if (status != ReturnStatus::success) {
+        return status;
+    }
+    
+    status = calculate_timing_parameters();
+    if (status != ReturnStatus::success) {
+        return status;
+    }
+    
+    calculate_memory_parameters();
+    calculate_stride_parameters();
+
+    return ReturnStatus::success;
+}
+
+std::string ST_2110_30_MediaSettingsCalculator::generate_media_sdp(
+    const std::string& source_ip, const uint16_t source_port,
+    const std::string& destination_ip, const uint16_t destination_port)
+{
+    std::string sdp_stub;
+    return sdp_stub;
+}
+
+std::string ST_2110_30_MediaSettingsCalculator::get_media_type_name() const
+{
+    return "Audio";
+}
+
+} // namespace services
+} // namespace dev_kit
+} // namespace rivermax

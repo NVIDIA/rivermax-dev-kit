@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_MEDIA_CALC_H_
-#define RDK_SERVICES_MEDIA_MEDIA_CALC_H_
+#ifndef RDK_SERVICES_MEDIA_MEDIA_SETTINGS_CALCULATOR_H_
+#define RDK_SERVICES_MEDIA_MEDIA_SETTINGS_CALCULATOR_H_
 
 #include <cstddef>
 #include <chrono>
@@ -119,4 +119,4 @@ protected:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_MEDIA_CALC_H_ */
+#endif /* RDK_SERVICES_MEDIA_MEDIA_SETTINGS_CALCULATOR_H_ */

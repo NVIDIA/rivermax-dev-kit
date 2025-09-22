@@ -44,13 +44,15 @@ struct MediaSettings
     virtual ~MediaSettings() = default;
 
     static constexpr size_t MIN_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP = 2;
+    static constexpr uint32_t MAX_PAYLOAD_SIZE = 1440;
     static constexpr size_t DEFAULT_NUM_OF_FRAMES_IN_MEM_BLOCK = 10;
     static constexpr size_t DEFAULT_NUM_OF_MEM_BLOCKS = 1;
     static constexpr uint8_t DEFAULT_PTP_DOMAIN_ID = 127;
     static constexpr uint8_t DEFAULT_PAYLOAD_TYPE = 96;
+    static constexpr size_t RTP_SAMPLE_RATE = 90000;
 
     uint32_t sdp_media_block_index = 0;
-    size_t sample_rate = 90000;
+    size_t sample_rate = RTP_SAMPLE_RATE;
     uint32_t packets_in_frame_field = 0;
     double frame_field_time_interval_ns = 0;
     double ticks_per_frame = 0;
