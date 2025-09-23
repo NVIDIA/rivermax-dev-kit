@@ -48,7 +48,8 @@ namespace rmax_media_probe
 /**
  * @brief: Event structure containing information about a newly detected frame.
  */
-struct NewFrameEvent {
+struct NewFrameEvent
+{
     size_t component_index;
     const IReceiveStream& stream;
     uint64_t receive_ts;
@@ -65,10 +66,12 @@ using OnNewFrameCallback = std::function<void (const NewFrameEvent& event)>;
 /**
  * @brief: Structure representing a media component with timing and sequence information.
  */
-struct MediaComponent {
+struct MediaComponent
+{
     uint64_t receive_ts;
     uint32_t rtp_ts;
     bool is_rtp_ts_valid;
+    bool is_rtp_ts_pending;
     uint32_t rtp_seq_num;
     bool is_extended_seq_num;
     size_t packet_count;
@@ -81,7 +84,15 @@ struct MediaComponent {
  * by matching RTP timestamps across components. It provides statistics about
  * frame matching, mismatches, and order errors.
  */
-class MediaMonitor {
+class MediaMonitor
+{
+protected:
+    std::mutex m_mutex;
+    size_t m_id;
+    std::vector<MediaComponent> m_components;
+    uint64_t m_matched_frames;
+    uint64_t m_mismatches;
+    uint64_t m_order_errors;
 public:
     /**
      * @brief: MediaMonitor constructor.
@@ -136,13 +147,6 @@ protected:
      * @brief: Reset all statistics counters to zero.
      */
     void reset_stats();
-    /* Mutex for protecting shared state */
-    std::mutex m_mtx;
-    size_t m_id;
-    std::vector<MediaComponent> m_components;
-    uint64_t m_matched_frames;
-    uint64_t m_mismatches;
-    uint64_t m_order_errors;
 };
 
 } // namespace rmax_media_probe

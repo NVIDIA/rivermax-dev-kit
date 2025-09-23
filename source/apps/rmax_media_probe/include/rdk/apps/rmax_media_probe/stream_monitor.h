@@ -45,7 +45,8 @@ struct MediaProbeSettings;
  * and tracks various statistics including packet loss, frame rates, and media delays.
  * It provides callbacks for new frame events and maintains shared statistics.
  */
-class StreamMonitor {
+class StreamMonitor
+{
 public:
     /**
      * @brief: StreamMonitor constructor.
@@ -166,7 +167,8 @@ protected:
  * This wrapper allows StreamMonitor to be used as a data consumer in the
  * Rivermax receive framework by implementing the IReceiveDataConsumer interface.
  */
-class StreamMonitorWrapper : public IReceiveDataConsumer {
+class StreamMonitorWrapper : public IReceiveDataConsumer
+{
 public:
     /**
      * @brief: StreamMonitorWrapper constructor.
@@ -193,8 +195,8 @@ public:
     {
         return m_stream_monitor.consume_chunk(chunk, stream, consumed_packets);
     }
-    protected:
-        StreamMonitor& m_stream_monitor;
+protected:
+    StreamMonitor& m_stream_monitor;
 };
 
 } // namespace rmax_media_probe
