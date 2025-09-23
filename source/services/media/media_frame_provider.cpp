@@ -21,7 +21,7 @@
 #include <random>
 
 #include "rdk/services/media/media_frame_provider.h"
-#include "rdk/services/media/media_settings_2110_20.h"
+#include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
 

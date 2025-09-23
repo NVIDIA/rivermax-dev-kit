@@ -20,7 +20,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "rdk/services/media/media_settings_2110_20.h"
+#include "rdk/services/media/media_settings_video.h"
 #include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/utils/defs.h"

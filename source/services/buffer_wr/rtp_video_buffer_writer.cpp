@@ -21,7 +21,7 @@
 #include <cstring>
 
 #include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
-#include "rdk/services/media/media_settings_2110_20.h"
+#include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
 

@@ -21,7 +21,7 @@
 
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/media_settings.h"
-#include "rdk/services/media/media_settings_2110_20.h"
+#include "rdk/services/media/media_settings_video.h"
 #include "rdk/services/media/app_media_settings.h"
 #include "rdk/services/media/media_settings_calculator.h"
 #include "rdk/services/media/video_settings_calculator.h"

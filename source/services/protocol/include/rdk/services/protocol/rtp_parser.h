@@ -19,7 +19,13 @@
 #ifndef RDK_SERVICES_PROTOCOL_RTP_PARSER_H_
 #define RDK_SERVICES_PROTOCOL_RTP_PARSER_H_
 
-#include <netinet/in.h>
+/* Platform specific headers and declarations */
+#if defined(_WIN32)
+#include <ws2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")
+#elif defined(__linux__)
+#include <arpa/inet.h>
+#endif
 
 #include "rdk/services/protocol/protocol_parsers.h"
 #include "rdk/services/protocol/rtp.h"
