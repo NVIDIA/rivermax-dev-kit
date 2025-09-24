@@ -24,9 +24,13 @@
 #include <iostream>
 #include <mutex>
 
+#include "rdk/core/stream/receive/receive_stream_interface.h"
+#include "rdk/core/flow/receive_flow.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/protocol/media_packet_parser.h"
-#include "rdk/apps/rmax_media_probe/media_monitor.h"
+#include "rdk/core/data_handler/receive_data_consumer_interface.h"
+
+using namespace rivermax::dev_kit::core;
 
 namespace rivermax
 {
@@ -36,6 +40,35 @@ namespace apps
 {
 namespace rmax_media_probe
 {
+
+/**
+ * @brief: Media component identifiers.
+ */
+ enum MEDIA_COMPONENT_INDEX {
+    MEDIA_COMPONENT_VIDEO = 0,
+    MEDIA_COMPONENT_ALPHA = 1,
+    NUM_OF_MEDIA_COMPONENTS = 2
+};
+
+/**
+ * @brief: Event structure containing information about a newly detected frame.
+ */
+struct NewFrameEvent
+{
+    size_t component_index;
+    const IReceiveStream& stream;
+    uint64_t receive_ts;
+    uint32_t rtp_ts;
+    uint32_t rtp_seq_num;
+    float media_delay_usec;
+};
+
+/**
+ * @brief: Callback function type for new frame events.
+ */
+using OnNewFrameCallback = std::function<void (const NewFrameEvent& event)>;
+
+const OnNewFrameCallback null_new_frame_callback;
 
 struct MediaProbeSettings;
 
@@ -50,6 +83,7 @@ class StreamMonitor
 {
 protected:
     const MediaProbeSettings& m_app_settings;
+    const ReceiveFlow m_flow;
     MediaPacketParser m_packet_parser;
     size_t m_stream_index;
     size_t m_component_index;
@@ -99,14 +133,8 @@ public:
      *
      * @param [in] app_settings: Application settings.
      * @param [in] component_index: Index of the media component this monitor handles.
-     * @param [in] on_new_frame_callback: Callback function to invoke when a new frame is detected.
      */
-    StreamMonitor(const MediaProbeSettings &app_settings, size_t stream_index, size_t component_index, OnNewFrameCallback on_new_frame_callback) :
-        m_app_settings(app_settings),
-        m_packet_parser(false),
-        m_stream_index(stream_index),
-        m_component_index(component_index),
-        m_on_new_frame_callback(on_new_frame_callback) {}
+    StreamMonitor(const MediaProbeSettings &app_settings, const ReceiveFlow& flow, size_t stream_index, size_t component_index);
     /**
      * @brief: StreamMonitor destructor.
      */
@@ -123,9 +151,15 @@ public:
     /**
      * @brief: Print current statistics and reset counters.
      *
-     * @param [out] os: Output stream to write statistics to.
+     * @param [out] out: Output stream to write statistics to.
      */
-    void print_and_reset_stats(std::ostream& os);
+    void print_and_reset_stats(std::ostream& out);
+    /**
+     * @brief: Set a new frame callback.
+     *
+     * @param [in] on_new_frame_callback: Callback function to invoke when a new frame is detected.
+     */
+    void set_on_new_frame_callback(OnNewFrameCallback on_new_frame_callback) { m_on_new_frame_callback = on_new_frame_callback; };
 protected:
     /**
      * @brief: Measure media delay between receive timestamp and RTP timestamp.

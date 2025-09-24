@@ -17,12 +17,27 @@
  */
 
 #include <chrono>
+#include <sstream>
+#include <iomanip>
 
 #include "rdk/services/media/media_defs.h"
 #include "rdk/apps/rmax_media_probe/stream_monitor.h"
 
 using namespace std::chrono;
 using namespace rivermax::dev_kit::apps::rmax_media_probe;
+
+const OnNewFrameCallback null_new_frame_callback = [](const NewFrameEvent& event) {};
+
+
+StreamMonitor::StreamMonitor(const MediaProbeSettings &app_settings, const ReceiveFlow& flow, size_t stream_index, size_t component_index) :
+    m_app_settings(app_settings),
+    m_flow(flow),
+    m_packet_parser(false),
+    m_stream_index(stream_index),
+    m_component_index(component_index),
+    m_on_new_frame_callback(null_new_frame_callback)
+{
+}
 
 void StreamMonitor::measure_media_delay(uint64_t receive_ts, uint32_t rtp_ts)
 {
@@ -130,8 +145,9 @@ ReturnStatus StreamMonitor::consume_chunk(const ReceiveChunk& chunk, const IRece
     return ReturnStatus::success;
 }
 
-void StreamMonitor::print_and_reset_stats(std::ostream& os)
+void StreamMonitor::print_and_reset_stats(std::ostream& out)
 {
+    std::stringstream oss;
     SharedStats stats;
     {
         std::lock_guard<std::mutex> lock(m_shared_stats_mutex);
@@ -141,16 +157,17 @@ void StreamMonitor::print_and_reset_stats(std::ostream& os)
         m_shared_stats.bad_rtp_headers_diff = 0;
         m_shared_stats.received_frames_diff = 0;
     }
-    os << "Media id: " << m_stream_index
-       << " Component: " << m_component_index
-       << " Packets: " << stats.received_packets_diff
-       << ", missing: " << stats.missing_packets_diff
-       << " bad RTP: " << stats.bad_rtp_headers_diff
-       << ". Frames: " << stats.received_frames_diff
-       << " of size (pkts): " << stats.packets_in_last_frame
-       << ". FPS: " << std::fixed << std::setprecision(2) << stats.fps
-       << ". Media delay (us) last: " << stats.media_delay_usec << " us"
-       << ", min: " << stats.media_delay_min_usec << " us"
-       << ", max: " << stats.media_delay_max_usec << " us"
-       << std::endl;
+    oss << "Flow: " << m_flow.get_destination_ip() << ":" << m_flow.get_destination_port()
+        << ". Component: " << m_component_index
+        << ". Packets: " << stats.received_packets_diff
+        << ", missing: " << stats.missing_packets_diff
+        << " bad RTP: " << stats.bad_rtp_headers_diff
+        << ". Frames: " << stats.received_frames_diff
+        << " of size (pkts): " << stats.packets_in_last_frame
+        << ". FPS: " << std::fixed << std::setprecision(2) << stats.fps
+        << ". Media delay (us) last: " << stats.media_delay_usec << " us"
+        << ", min: " << stats.media_delay_min_usec << " us"
+        << ", max: " << stats.media_delay_max_usec << " us"
+        << std::endl;
+    out << oss.str();
 }

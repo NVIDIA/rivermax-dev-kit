@@ -208,8 +208,8 @@ void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode& node,
     node.assign_streams(start_media_index, flows, streams);
     size_t media_index = start_media_index;
     for (size_t stream_index = 0; stream_index < flows.size(); stream_index++) {
-        auto stream_monitor = std::make_unique<StreamMonitor>(*m_media_probe_settings, media_index, component_index,
-            [this, media_index](const NewFrameEvent& event) { m_media_monitors[media_index]->on_new_frame(event); });
+        auto stream_monitor = std::make_unique<StreamMonitor>(*m_media_probe_settings, flows[stream_index], media_index, component_index);
+        m_media_monitors[media_index]->add_stream_monitor(*stream_monitor);
         node.set_receive_data_consumer(stream_index, std::make_unique<StreamMonitorWrapper>(*stream_monitor));
         m_stream_monitors.push_back(std::move(stream_monitor));
         media_index++;
@@ -266,13 +266,6 @@ void MediaProbeApp::run_receiver_threads()
 
     while (likely(SignalHandler::get_received_signal() < 0)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(m_app_settings->stats_report_interval_ms));
-        std::cout << "--------------------------------" << std::endl;
-        std::cout << "Stream Statistics:" << std::endl;
-        for (auto& stream_monitor : m_stream_monitors) {
-            stream_monitor->print_and_reset_stats(std::cout);
-        }
-        std::cout << "--------------------------------" << std::endl;
-        std::cout << "Media Statistics:" << std::endl;
         for (auto& media_monitor : m_media_monitors) {
             media_monitor->print_and_reset_stats(std::cout);
         }

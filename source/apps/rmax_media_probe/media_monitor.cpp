@@ -124,13 +124,15 @@ void MediaMonitor::on_new_frame(const NewFrameEvent& event)
     m_components[event.component_index].rtp_seq_num = event.rtp_seq_num;
 }
 
-void MediaMonitor::print_stats(std::ostream& os) const
+void MediaMonitor::print_stats(std::ostream& out) const
 {
-    os << "Media id: " << m_id
-       << " matched frames: " << m_matched_frames
-       << " mismatches: " << m_mismatches
-       << " order errors: " << m_order_errors
-       << std::endl;
+    std::stringstream oss;
+    oss << "Media id: " << m_id
+        << " matched frames: " << m_matched_frames
+        << " mismatches: " << m_mismatches
+        << " order errors: " << m_order_errors
+        << std::endl;
+    out << oss.str();
 }
 
 void MediaMonitor::reset_stats()
@@ -140,10 +142,23 @@ void MediaMonitor::reset_stats()
     m_order_errors = 0;
 }
 
-void MediaMonitor::print_and_reset_stats(std::ostream& os)
+void MediaMonitor::print_and_reset_stats(std::ostream& out)
+{
+    std::stringstream oss;
+    std::unique_lock<std::mutex> lock(m_mutex);
+    oss << "--------------------------------" << std::endl;
+    print_stats(oss);
+    for (auto& stream_monitor : m_stream_monitors) {
+        stream_monitor.get().print_and_reset_stats(oss);
+    }
+    out << oss.str();
+    reset_stats();
+}
+
+void MediaMonitor::add_stream_monitor(StreamMonitor& stream_monitor)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
-    print_stats(os);
-    reset_stats();
+    stream_monitor.set_on_new_frame_callback(std::bind(&MediaMonitor::on_new_frame, this, std::placeholders::_1));
+    m_stream_monitors.push_back(std::ref(stream_monitor));
 }
 

@@ -24,8 +24,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <functional>
 
 #include "rdk/apps/rmax_receiver_base.h"
+#include "rdk/apps/rmax_media_probe/stream_monitor.h"
+
 
 namespace rivermax
 {
@@ -35,33 +38,6 @@ namespace apps
 {
 namespace rmax_media_probe
 {
-
-/**
- * @brief: Media component identifiers.
- */
- enum MEDIA_COMPONENT_INDEX {
-    MEDIA_COMPONENT_VIDEO = 0,
-    MEDIA_COMPONENT_ALPHA = 1,
-    NUM_OF_MEDIA_COMPONENTS = 2
-};
-
-/**
- * @brief: Event structure containing information about a newly detected frame.
- */
-struct NewFrameEvent
-{
-    size_t component_index;
-    const IReceiveStream& stream;
-    uint64_t receive_ts;
-    uint32_t rtp_ts;
-    uint32_t rtp_seq_num;
-    float media_delay_usec;
-};
-
-/**
- * @brief: Callback function type for new frame events.
- */
-using OnNewFrameCallback = std::function<void (const NewFrameEvent& event)>;
 
 /**
  * @brief: Structure representing a media component with timing and sequence information.
@@ -90,6 +66,7 @@ protected:
     std::mutex m_mutex;
     size_t m_id;
     std::vector<MediaComponent> m_components;
+    std::vector<std::reference_wrapper<StreamMonitor>> m_stream_monitors;
     uint64_t m_matched_frames;
     uint64_t m_mismatches;
     uint64_t m_order_errors;
@@ -114,9 +91,15 @@ public:
     /**
      * @brief: Print current statistics and reset counters.
      *
-     * @param [out] os: Output stream to write statistics to.
+     * @param [out] out: Output stream to write statistics to.
      */
-    void print_and_reset_stats(std::ostream& os);
+    void print_and_reset_stats(std::ostream& out);
+    /**
+     * @brief: Register a stream monitor with the media monitor.
+     *
+     * @param [in] stream_monitor: Reference to the stream monitor to register.
+     */
+     void add_stream_monitor(StreamMonitor& stream_monitor);
 protected:
     /**
      * @brief: Reset RTP timestamp matching state for all components.
@@ -140,9 +123,9 @@ protected:
     /**
      * @brief: Print current statistics without resetting counters.
      *
-     * @param [out] os: Output stream to write statistics to.
+     * @param [out] out: Output stream to write statistics to.
      */
-    void print_stats(std::ostream& os) const;
+    void print_stats(std::ostream& out) const;
     /**
      * @brief: Reset all statistics counters to zero.
      */
