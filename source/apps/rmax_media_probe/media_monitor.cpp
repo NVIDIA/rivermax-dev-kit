@@ -113,22 +113,23 @@ void MediaMonitor::match_rtp_timestamps(size_t component_index, uint32_t stream_
 void MediaMonitor::on_new_frame(const NewFrameEvent& event)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
-    if (event.component_index >= m_components.size()) {
+    const size_t component_index = static_cast<size_t>(event.component_id);
+    if (component_index >= m_components.size()) {
         std::cerr << "component index out of range" << std::endl;
         return;
     }
 
-    match_rtp_timestamps(event.component_index, event.stream.get_id(), event.rtp_ts);
+    match_rtp_timestamps(component_index, event.stream.get_id(), event.rtp_ts);
 
-    m_components[event.component_index].receive_ts = event.receive_ts;
-    m_components[event.component_index].rtp_seq_num = event.rtp_seq_num;
+    m_components[component_index].receive_ts = event.receive_ts;
+    m_components[component_index].rtp_seq_num = event.rtp_seq_num;
 }
 
 void MediaMonitor::print_stats(std::ostream& out) const
 {
     std::stringstream oss;
     oss << "Media id: " << m_id
-        << " matched frames: " << m_matched_frames
+        << " video/alpha frame matches: " << m_matched_frames
         << " mismatches: " << m_mismatches
         << " order errors: " << m_order_errors
         << std::endl;

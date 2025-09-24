@@ -186,7 +186,7 @@ void MediaProbeApp::configure_network_flows()
 }
 
 void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode& node, size_t start_media_index,
-    const std::vector<ReceiveFlow>& flows, size_t component_index)
+    const std::vector<ReceiveFlow>& flows, MediaComponentId component_index)
 {
     std::vector<std::unique_ptr<IReceiveStream>> streams;
     streams.reserve(flows.size());
@@ -210,14 +210,14 @@ void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode& node,
     for (size_t stream_index = 0; stream_index < flows.size(); stream_index++) {
         auto stream_monitor = std::make_unique<StreamMonitor>(*m_media_probe_settings, flows[stream_index], media_index, component_index);
         m_media_monitors[media_index]->add_stream_monitor(*stream_monitor);
-        node.set_receive_data_consumer(stream_index, std::make_unique<StreamMonitorWrapper>(*stream_monitor));
+        node.set_receive_data_consumer(stream_index, std::make_unique<StreamMonitorAdapter>(*stream_monitor));
         m_stream_monitors.push_back(std::move(stream_monitor));
         media_index++;
     }
     node.set_statistics_report_interval(m_app_settings->stats_report_interval_ms);
 }
 
-void MediaProbeApp::initialize_component_receivers(size_t& receiver_index, size_t media_component_id, const std::vector<ReceiveFlow>& flows)
+void MediaProbeApp::initialize_component_receivers(size_t& receiver_index, MediaComponentId component_index, const std::vector<ReceiveFlow>& flows)
 {
     size_t start_media_index = 0;
     for (size_t rx_index = 0; rx_index < m_app_settings->num_of_threads; rx_index++) {
@@ -233,7 +233,7 @@ void MediaProbeApp::initialize_component_receivers(size_t& receiver_index, size_
             receiver_index,
             recv_cpu_core,
             *m_memory_utils);
-        initialize_media_probe_node_streams(*receiver, start_media_index, component_flows, media_component_id);
+        initialize_media_probe_node_streams(*receiver, start_media_index, component_flows, component_index);
         m_receivers.push_back(std::move(receiver));
         start_media_index += m_streams_per_thread[rx_index];
         receiver_index++;
@@ -246,15 +246,15 @@ void MediaProbeApp::initialize_receive_io_nodes()
 
     m_media_monitors.reserve(m_app_settings->num_of_total_streams);
     for (size_t media_monitor_index = 0; media_monitor_index < m_app_settings->num_of_total_streams; ++media_monitor_index) {
-        m_media_monitors.push_back(std::make_unique<MediaMonitor>(media_monitor_index, NUM_OF_MEDIA_COMPONENTS));
+        m_media_monitors.push_back(std::make_unique<MediaMonitor>(media_monitor_index, static_cast<size_t>(MediaComponentId::Count)));
     }
 
     if (m_media_probe_settings->is_video_enabled) {
-        initialize_component_receivers(receiver_index, MEDIA_COMPONENT_VIDEO, m_video_flows);
+        initialize_component_receivers(receiver_index, MediaComponentId::Video, m_video_flows);
     }
 
     if (m_media_probe_settings->is_alpha_enabled) {
-        initialize_component_receivers(receiver_index, MEDIA_COMPONENT_ALPHA, m_alpha_flows);
+        initialize_component_receivers(receiver_index, MediaComponentId::Alpha, m_alpha_flows);
     }
 }
 

@@ -44,10 +44,11 @@ namespace rmax_media_probe
 /**
  * @brief: Media component identifiers.
  */
- enum MEDIA_COMPONENT_INDEX {
-    MEDIA_COMPONENT_VIDEO = 0,
-    MEDIA_COMPONENT_ALPHA = 1,
-    NUM_OF_MEDIA_COMPONENTS = 2
+enum class MediaComponentId : size_t
+{
+    Video = 0,
+    Alpha = 1,
+    Count = 2
 };
 
 /**
@@ -55,7 +56,7 @@ namespace rmax_media_probe
  */
 struct NewFrameEvent
 {
-    size_t component_index;
+    MediaComponentId component_id;
     const IReceiveStream& stream;
     uint64_t receive_ts;
     uint32_t rtp_ts;
@@ -86,7 +87,7 @@ protected:
     const ReceiveFlow m_flow;
     MediaPacketParser m_packet_parser;
     size_t m_stream_index;
-    size_t m_component_index;
+    MediaComponentId m_component_id;
     bool m_is_first_packet = true;
     uint32_t m_prev_frame_rtp_timestamp = 0;
     uint64_t m_prev_frame_receive_timestamp = 0;
@@ -132,9 +133,9 @@ public:
      * @brief: StreamMonitor constructor.
      *
      * @param [in] app_settings: Application settings.
-     * @param [in] component_index: Index of the media component this monitor handles.
+     * @param [in] component_id: Id of the media component this monitor handles.
      */
-    StreamMonitor(const MediaProbeSettings &app_settings, const ReceiveFlow& flow, size_t stream_index, size_t component_index);
+    StreamMonitor(const MediaProbeSettings &app_settings, const ReceiveFlow& flow, size_t stream_index, MediaComponentId component_id);
     /**
      * @brief: StreamMonitor destructor.
      */
@@ -184,25 +185,25 @@ protected:
 };
 
 /**
- * @brief: Wrapper class that adapts StreamMonitor to IReceiveDataConsumer interface.
+ * @brief: Adapter class that adapts StreamMonitor to IReceiveDataConsumer interface.
  *
- * This wrapper allows StreamMonitor to be used as a data consumer in the
+ * This adapter allows StreamMonitor to be used as a data consumer in the
  * Rivermax receive framework by implementing the IReceiveDataConsumer interface.
  */
-class StreamMonitorWrapper : public IReceiveDataConsumer
+class StreamMonitorAdapter : public IReceiveDataConsumer
 {
 public:
     /**
-     * @brief: StreamMonitorWrapper constructor.
+     * @brief: StreamMonitorAdapter constructor.
      *
      * @param [in] stream_monitor: Reference to the StreamMonitor instance to wrap.
      */
-    StreamMonitorWrapper(StreamMonitor& stream_monitor) :
+    StreamMonitorAdapter(StreamMonitor& stream_monitor) :
         m_stream_monitor(stream_monitor) {}
     /**
      * @brief: StreamMonitorWrapper destructor.
      */
-    virtual ~StreamMonitorWrapper() = default;
+    virtual ~StreamMonitorAdapter() = default;
     /**
      * @brief: Consume a chunk of received data by delegating to the wrapped StreamMonitor.
      *

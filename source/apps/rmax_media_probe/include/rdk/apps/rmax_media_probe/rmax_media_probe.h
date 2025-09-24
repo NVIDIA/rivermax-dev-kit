@@ -181,7 +181,7 @@ private:
      * @param [in] component_index: Index of the component being configured.
      */
     void initialize_media_probe_node_streams(RTPReceiverIONode& node, size_t start_id,
-        const std::vector<ReceiveFlow>& flows, size_t component_index);
+        const std::vector<ReceiveFlow>& flows, MediaComponentId component_index);
     /**
      * @brief: Initialize receive IO nodes for the application.
      */
@@ -194,10 +194,10 @@ private:
      * @brief: Initialize receiver IO nodes for a specific media component.
      *
      * @param [in,out] receiver_index: Reference to the current receiver index, will be incremented.
-     * @param [in] media_component_id: ID of the media component (VIDEO or ALPHA).
+     * @param [in] component_index: index of the media component (VIDEO or ALPHA).
      * @param [in] flows: Vector of receive flows for this component.
      */
-    void initialize_component_receivers(size_t& receiver_index, size_t media_component_id, const std::vector<ReceiveFlow>& flows);
+    void initialize_component_receivers(size_t& receiver_index, MediaComponentId component_index, const std::vector<ReceiveFlow>& flows);
     /**
      * @brief: Limit the receive chunk size.
      *

@@ -29,12 +29,12 @@ using namespace rivermax::dev_kit::apps::rmax_media_probe;
 const OnNewFrameCallback null_new_frame_callback = [](const NewFrameEvent& event) {};
 
 
-StreamMonitor::StreamMonitor(const MediaProbeSettings &app_settings, const ReceiveFlow& flow, size_t stream_index, size_t component_index) :
+StreamMonitor::StreamMonitor(const MediaProbeSettings &app_settings, const ReceiveFlow& flow, size_t stream_index, MediaComponentId component_id) :
     m_app_settings(app_settings),
     m_flow(flow),
     m_packet_parser(false),
     m_stream_index(stream_index),
-    m_component_index(component_index),
+    m_component_id(component_id),
     m_on_new_frame_callback(null_new_frame_callback)
 {
 }
@@ -83,7 +83,7 @@ void StreamMonitor::process_new_frame(uint64_t receive_timestamp, uint32_t rtp_t
     measure_media_delay(receive_timestamp, rtp_timestamp);
 
     NewFrameEvent event = {
-        .component_index = m_component_index,
+        .component_id = m_component_id,
         .stream = stream,
         .receive_ts = receive_timestamp,
         .rtp_ts = rtp_timestamp,
@@ -158,7 +158,7 @@ void StreamMonitor::print_and_reset_stats(std::ostream& out)
         m_shared_stats.received_frames_diff = 0;
     }
     oss << "Flow: " << m_flow.get_destination_ip() << ":" << m_flow.get_destination_port()
-        << ". Component: " << m_component_index
+        << ". Component: " << static_cast<size_t>(m_component_id)
         << ". Packets: " << stats.received_packets_diff
         << ", missing: " << stats.missing_packets_diff
         << " bad RTP: " << stats.bad_rtp_headers_diff
