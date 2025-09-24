@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <mutex>
 #include <functional>
+#include <map>
 
 #include "rdk/apps/rmax_receiver_base.h"
 #include "rdk/apps/rmax_media_probe/stream_monitor.h"
@@ -65,8 +66,8 @@ class MediaMonitor
 protected:
     std::mutex m_mutex;
     size_t m_id;
-    std::vector<MediaComponent> m_components;
-    std::vector<std::reference_wrapper<StreamMonitor>> m_stream_monitors;
+    std::map<MediaComponentId, MediaComponent> m_components;
+    std::map<MediaComponentId, std::reference_wrapper<StreamMonitor>> m_stream_monitors;
     uint64_t m_matched_frames;
     uint64_t m_mismatches;
     uint64_t m_order_errors;
@@ -77,7 +78,7 @@ public:
      * @param [in] id: Unique identifier for this media monitor.
      * @param [in] num_of_components: Number of media components to monitor.
      */
-    MediaMonitor(size_t id, size_t num_of_components) : m_id(id), m_components(num_of_components) {};
+    MediaMonitor(size_t id) : m_id(id) {};
     /**
      * @brief: MediaMonitor destructor.
      */
@@ -108,18 +109,18 @@ protected:
     /**
      * @brief: Restart RTP timestamp matching for a specific component.
      *
-     * @param [in] component_index: Index of the component to restart matching for.
+     * @param [in] component_id: Id of the component to restart matching for.
      * @param [in] rtp_ts: RTP timestamp to use as the new reference.
      */
-    void restart_rtp_matching(size_t component_index, uint32_t rtp_ts);
+    void restart_rtp_matching(MediaComponentId component_id, uint32_t rtp_ts);
     /**
      * @brief: Match RTP timestamps across components for synchronization.
      *
-     * @param [in] component_index: Index of the component with the new timestamp.
+     * @param [in] component_id: Id of the component with the new timestamp.
      * @param [in] stream_id: Stream identifier.
      * @param [in] rtp_ts: RTP timestamp to match.
      */
-    void match_rtp_timestamps(size_t component_index, uint32_t stream_id, uint32_t rtp_ts);
+    void match_rtp_timestamps(MediaComponentId component_id, uint32_t stream_id, uint32_t rtp_ts);
     /**
      * @brief: Print current statistics without resetting counters.
      *

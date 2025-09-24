@@ -161,6 +161,12 @@ public:
      * @param [in] on_new_frame_callback: Callback function to invoke when a new frame is detected.
      */
     void set_on_new_frame_callback(OnNewFrameCallback on_new_frame_callback) { m_on_new_frame_callback = on_new_frame_callback; };
+    /**
+     * @brief: Get the media component Id of the stream monitor.
+     *
+     * @return: Media component Id of the stream monitor.
+     */
+    MediaComponentId get_component_id() const { return m_component_id; };
 protected:
     /**
      * @brief: Measure media delay between receive timestamp and RTP timestamp.

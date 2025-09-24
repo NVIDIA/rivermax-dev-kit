@@ -18,6 +18,7 @@
 
 #include "rdk/apps/rmax_media_probe/rmax_media_probe.h"
 #include "rdk/apps/rmax_media_probe/stream_monitor.h"
+#include <unordered_set>
 
 using namespace rivermax::dev_kit::apps::rmax_media_probe;
 
@@ -245,7 +246,7 @@ void MediaProbeApp::initialize_receive_io_nodes()
 
     m_media_monitors.reserve(m_app_settings->num_of_total_streams);
     for (size_t media_monitor_index = 0; media_monitor_index < m_app_settings->num_of_total_streams; ++media_monitor_index) {
-        m_media_monitors.push_back(std::make_unique<MediaMonitor>(media_monitor_index, static_cast<size_t>(MediaComponentId::Count)));
+        m_media_monitors.push_back(std::make_unique<MediaMonitor>(media_monitor_index));
     }
 
     if (m_media_probe_settings->is_video_enabled) {
