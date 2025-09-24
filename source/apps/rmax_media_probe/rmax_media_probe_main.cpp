@@ -29,7 +29,7 @@ constexpr const char* APP_DESCRIPTION = "NVIDIA Rivermax Media probe app";
 constexpr const char* APP_EXAMPLES = \
     "\nExamples:\n"
     "  1. rmax_media_probe --local-ip 1.2.3.4 --src-ip 6.7.8.9 --dst-ip 1.2.3.4 -p 50020 --video --alpha\n"
-    "  2. rmax_media_probe --local-ip 1.2.3.4 --dst-ip 1.2.3.4 -p 50020 --video --app-hdr-size 50 -v\n"
+    "  2. rmax_media_probe --local-ip 1.2.3.4 --dst-ip 1.2.3.4 -p 50020 --video -v\n"
     "  3. rmax_media_probe --local-ip 1.2.3.4 --dst-ip 239.1.1.1 -p 50020 --video --alpha -T 2 -S 10 -a 1,2 -i 3\n";
 
 int main(int argc, const char* argv[])

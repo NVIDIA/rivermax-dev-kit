@@ -80,7 +80,6 @@ ReturnStatus MediaProbeCLISettingsBuilder::add_cli_options(std::shared_ptr<Media
     m_cli_parser_manager->add_option(CLIOptStr::STREAMS);
     m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
     m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
-    m_cli_parser_manager->add_option(CLIOptStr::APP_HDR_SIZE);
     m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
@@ -202,7 +201,7 @@ void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode& node,
             0, RECEIVE_CHUNK_SIZE_LIMIT);
         auto stream = std::make_unique<AppRTPReceiveStream>(stream_settings,
             m_is_extended_sequence_number,
-            m_app_settings->packet_app_header_size != 0, false);
+            false, false);
         streams.push_back(std::move(stream));
     }
     node.assign_streams(start_media_index, flows, streams);
