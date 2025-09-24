@@ -22,6 +22,7 @@
 
 #include "rdk/services/media/media_defs.h"
 #include "rdk/apps/rmax_media_probe/stream_monitor.h"
+#include "rdk/apps/rmax_media_probe/rmax_media_probe.h"
 
 using namespace std::chrono;
 using namespace rivermax::dev_kit::apps::rmax_media_probe;
@@ -41,9 +42,9 @@ StreamMonitor::StreamMonitor(const MediaProbeSettings &app_settings, const Recei
 
 void StreamMonitor::measure_media_delay(uint64_t receive_ts, uint32_t rtp_ts)
 {
-    constexpr double RTP_FREQUENCY = 90000.0;
-    uint64_t rtp_round = receive_ts / (static_cast<double>(1L << 32) / RTP_FREQUENCY * NS_IN_SEC);
-    double rtp_time = (static_cast<uint64_t>(rtp_ts) + rtp_round * static_cast<uint64_t>(1L << 32)) / RTP_FREQUENCY;
+    double rtp_frequency = m_app_settings.media.sample_rate;
+    uint64_t rtp_round = receive_ts / (static_cast<double>(1L << 32) / rtp_frequency * NS_IN_SEC);
+    double rtp_time = (static_cast<uint64_t>(rtp_ts) + rtp_round * static_cast<uint64_t>(1L << 32)) / rtp_frequency;
     double receive_time = static_cast<double>(receive_ts) / NS_IN_SEC;
     double delay_usec = (receive_time - rtp_time) * static_cast<float>(microseconds{ seconds{ 1 } }.count());
     m_media_delay_usec = delay_usec;
