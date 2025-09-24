@@ -25,6 +25,7 @@
 #include <mutex>
 
 #include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/protocol/media_packet_parser.h"
 #include "rdk/apps/rmax_media_probe/media_monitor.h"
 
 namespace rivermax
@@ -47,76 +48,9 @@ struct MediaProbeSettings;
  */
 class StreamMonitor
 {
-public:
-    /**
-     * @brief: StreamMonitor constructor.
-     *
-     * @param [in] app_settings: Application settings.
-     * @param [in] component_index: Index of the media component this monitor handles.
-     * @param [in] on_new_frame_callback: Callback function to invoke when a new frame is detected.
-     */
-    StreamMonitor(const MediaProbeSettings &app_settings, size_t stream_index, size_t component_index, OnNewFrameCallback on_new_frame_callback) :
-        m_app_settings(app_settings),
-        m_stream_index(stream_index),
-        m_component_index(component_index),
-        m_on_new_frame_callback(on_new_frame_callback) {}
-    /**
-     * @brief: StreamMonitor destructor.
-     */
-    virtual ~StreamMonitor() = default;
-    /**
-     * @brief: Process a received chunk of RTP packets.
-     *
-     * @param [in] chunk: The received chunk containing RTP packets.
-     * @param [in] stream: The receive stream interface.
-     * @param [out] consumed_packets: Number of packets consumed from the chunk.
-     * @return: Return status indicating success or failure.
-     */
-    ReturnStatus consume_chunk(const ReceiveChunk &chunk, const IReceiveStream &stream, size_t &consumed_packets);
-    /**
-     * @brief: Extract RTP sequence number from packet header.
-     *
-     * @param [in] header: Pointer to the RTP packet header.
-     * @param [in] length: Length of the header data.
-     * @param [out] sequence_number: Extracted sequence number.
-     * @return: True if sequence number was successfully extracted, false otherwise.
-     */
-    bool get_sequence_number(const byte_t *header, size_t length, uint32_t &sequence_number) const;
-    /**
-     * @brief: Extract RTP timestamp from packet header.
-     *
-     * @param [in] header: Pointer to the RTP packet header.
-     * @return: RTP timestamp value.
-     */
-    uint32_t get_rtp_timestamp(const byte_t *header) const;
-    /**
-     * @brief: Print current statistics and reset counters.
-     *
-     * @param [out] os: Output stream to write statistics to.
-     */
-    void print_and_reset_stats(std::ostream& os);
 protected:
-    /**
-     * @brief: Measure media delay between receive timestamp and RTP timestamp.
-     *
-     * @param [in] receive_ts: Timestamp when packet was received.
-     * @param [in] rtp_ts: RTP timestamp from packet header.
-     */
-    void measure_media_delay(uint64_t receive_ts, uint32_t rtp_ts);
-    /**
-     * @brief: Process a newly detected frame.
-     *
-     * @param [in] receive_timestamp: Timestamp when frame was received.
-     * @param [in] rtp_timestamp: RTP timestamp of the frame.
-     * @param [in] rtp_seq_num: RTP sequence number of the frame.
-     * @param [in] stream: Reference to the receive stream.
-     */
-    void process_new_frame(uint64_t receive_timestamp, uint32_t rtp_timestamp, uint32_t rtp_seq_num, const IReceiveStream& stream);
-    /**
-     * @brief: Update shared statistics with current values.
-     */
-    void update_shared_stats();
     const MediaProbeSettings& m_app_settings;
+    MediaPacketParser m_packet_parser;
     size_t m_stream_index;
     size_t m_component_index;
     bool m_is_first_packet = true;
@@ -159,6 +93,60 @@ protected:
 
     SharedStats m_shared_stats;
     std::mutex m_shared_stats_mutex;
+public:
+    /**
+     * @brief: StreamMonitor constructor.
+     *
+     * @param [in] app_settings: Application settings.
+     * @param [in] component_index: Index of the media component this monitor handles.
+     * @param [in] on_new_frame_callback: Callback function to invoke when a new frame is detected.
+     */
+    StreamMonitor(const MediaProbeSettings &app_settings, size_t stream_index, size_t component_index, OnNewFrameCallback on_new_frame_callback) :
+        m_app_settings(app_settings),
+        m_packet_parser(false),
+        m_stream_index(stream_index),
+        m_component_index(component_index),
+        m_on_new_frame_callback(on_new_frame_callback) {}
+    /**
+     * @brief: StreamMonitor destructor.
+     */
+    virtual ~StreamMonitor() = default;
+    /**
+     * @brief: Process a received chunk of RTP packets.
+     *
+     * @param [in] chunk: The received chunk containing RTP packets.
+     * @param [in] stream: The receive stream interface.
+     * @param [out] consumed_packets: Number of packets consumed from the chunk.
+     * @return: Return status indicating success or failure.
+     */
+    ReturnStatus consume_chunk(const ReceiveChunk &chunk, const IReceiveStream &stream, size_t &consumed_packets);
+    /**
+     * @brief: Print current statistics and reset counters.
+     *
+     * @param [out] os: Output stream to write statistics to.
+     */
+    void print_and_reset_stats(std::ostream& os);
+protected:
+    /**
+     * @brief: Measure media delay between receive timestamp and RTP timestamp.
+     *
+     * @param [in] receive_ts: Timestamp when packet was received.
+     * @param [in] rtp_ts: RTP timestamp from packet header.
+     */
+    void measure_media_delay(uint64_t receive_ts, uint32_t rtp_ts);
+    /**
+     * @brief: Process a newly detected frame.
+     *
+     * @param [in] receive_timestamp: Timestamp when frame was received.
+     * @param [in] rtp_timestamp: RTP timestamp of the frame.
+     * @param [in] rtp_seq_num: RTP sequence number of the frame.
+     * @param [in] stream: Reference to the receive stream.
+     */
+    void process_new_frame(uint64_t receive_timestamp, uint32_t rtp_timestamp, uint32_t rtp_seq_num, const IReceiveStream& stream);
+    /**
+     * @brief: Update shared statistics with current values.
+     */
+    void update_shared_stats();
 };
 
 /**

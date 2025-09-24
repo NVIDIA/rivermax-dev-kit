@@ -24,27 +24,6 @@
 using namespace std::chrono;
 using namespace rivermax::dev_kit::apps::rmax_media_probe;
 
-bool StreamMonitor::get_sequence_number(const byte_t* header, size_t length, uint32_t& sequence_number) const
-{
-    if (length < 4 || (header[0] & 0xC0) != 0x80) {
-        return false;
-    }
-
-    sequence_number = header[3] | header[2] << 8;
-    uint8_t cc = 0x0F & header[0];
-    uint8_t offset = cc * RTP_HEADER_CSRC_GRANULARITY_BYTES;
-    sequence_number |= (header[offset + 12] << 24) | (header[offset + 13] << 16);
-    return true;
-}
-
-uint32_t StreamMonitor::get_rtp_timestamp(const byte_t* header) const
-{
-    return static_cast<uint32_t>(header[7]) << 0 |
-           static_cast<uint32_t>(header[6]) << 8 |
-           static_cast<uint32_t>(header[5]) << 16 |
-           static_cast<uint32_t>(header[4]) << 24;
-}
-
 void StreamMonitor::measure_media_delay(uint64_t receive_ts, uint32_t rtp_ts)
 {
     constexpr double RTP_FREQUENCY = 90000.0;
@@ -120,7 +99,7 @@ ReturnStatus StreamMonitor::consume_chunk(const ReceiveChunk& chunk, const IRece
         const ReceivePacketInfo& packet_info = chunk.get_packet_info(pkt_idx);
         size_t packet_size = packet_info.get_packet_sub_block_size(0);
         uint32_t rtp_seq_num;
-        bool is_sequence_number_valid = get_sequence_number(packet_bodies, packet_size, rtp_seq_num);
+        bool is_sequence_number_valid = m_packet_parser.get_sequence_number(packet_bodies, packet_size, true, rtp_seq_num);
 
         if (!is_sequence_number_valid) {
             m_bad_rtp_headers++;
@@ -128,7 +107,7 @@ ReturnStatus StreamMonitor::consume_chunk(const ReceiveChunk& chunk, const IRece
         }
 
         uint64_t receive_timestamp = packet_info.get_packet_timestamp();
-        uint32_t rtp_timestamp = get_rtp_timestamp(packet_bodies);
+        uint32_t rtp_timestamp = htonl(m_packet_parser.rtp(packet_bodies)->timestamp);
         packet_bodies += stride_size;
 
         if (unlikely(m_is_first_packet)) {
