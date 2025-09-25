@@ -24,6 +24,7 @@
 
 #include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/common/rtp_smpte_2110_20_packet.h"
 
 namespace rivermax
 {
@@ -33,12 +34,12 @@ namespace services
 {
 
 /**
- * @brief: Writes RTP packets with video payload.
+ * @brief: Mock buffer writer for ST 2110-20 RTP packets.
  *
  * This class serves as a mock implementation for writing RTP packets with video payload.
- * It provides methods to set stream properties, update in-frame state, and build RTP headers.
+ * It provides methods to set stream properties, update in-media-unit state, and build RTP headers.
  */
-class RTP_SMPTE_2110_20_MockPacketBufferWriter : public RTPMediaPacketBufferWriter
+class RTP_SMPTE_2110_20_MockPacketBufferWriter : public RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext>
 {
 public:
     /**
@@ -54,36 +55,48 @@ public:
      * @brief: Destructor for RTP_SMPTE_2110_20_MockPacketBufferWriter.
      */
     virtual ~RTP_SMPTE_2110_20_MockPacketBufferWriter() = default;
-    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) override;
-protected:
-    void set_stream_properties() override {};
-    void update_in_media_unit_state() override;
-    size_t build_rtp_header(byte_t* buffer) override;
     /**
-     * @brief: Builds SMPTE ST 2110-20 extension RTP header.
+     * @brief: Sets the next media unit (video frame).
      *
-     * @param [in] buffer: Pointer to the buffer where the extension header will be written.
+     * @param [in] media_unit: Pointer to the media unit.
      *
-     * @return: The size of the extension header written.
+     * @return: Return status of the operation.
      */
-    size_t build_rtp_header_2110_20_extension(byte_t* buffer);
+    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) override;
+
+protected:
     /**
-     * @brief: Resets the in-media unit state.
+     * @brief: Creates a SMPTE 2110-20 Packet.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory (optional).
+     *
+     * @return: Unique pointer to the created RTP packet.
+     */
+    std::unique_ptr<RTPPacket> create_packet(byte_t* header_ptr, byte_t* payload_ptr) override {
+        return std::make_unique<RTP_SMPTE_2110_20_Packet>(header_ptr, payload_ptr);
+    }
+    /**
+     * @brief: Updates the in-media-unit state.
+     *
+     * @param [in] header_size: Size of the processed header.
+     * @param [in] payload_size: Size of the processed payload.
+     */
+    void update_in_media_unit_state(size_t header_size, size_t payload_size) override;
+    /**
+     * @brief: Reset in-media unit state for new media unit.
      */
     void reset_in_media_unit_state();
 };
 
 /**
- * @brief: Writes RTP packets with video payload.
+ * @brief: Buffer writer for ST 2110-20 RTP packets.
  *
  * This class serves as an implementation for writing RTP packets with video payload.
- * It extends RTP_SMPTE_2110_20_MockPacketBufferWriter and provides additional methods to fill packet buffers.
+ * It extends RTP_SMPTE_2110_20_MockPacketBufferWriter and provides additional methods to write media to buffers.
  */
 class RTP_SMPTE_2110_20_PacketBufferWriter : public RTP_SMPTE_2110_20_MockPacketBufferWriter
 {
-protected:
-    size_t m_data_left_in_frame = 0;
-    std::shared_ptr<MediaUnit> m_current_media_unit = nullptr;
 public:
     /**
      * @brief: Constructor for RTP_SMPTE_2110_20_PacketBufferWriter.
@@ -99,12 +112,26 @@ public:
      * @brief: Destructor for RTP_SMPTE_2110_20_PacketBufferWriter.
      */
     virtual ~RTP_SMPTE_2110_20_PacketBufferWriter() = default;
+    /**
+     * @brief: Sets the next media unit (video frame).
+     *
+     * @param [in] media_unit: Pointer to the media unit.
+     *
+     * @return: Return status of the operation.
+     */
     ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
-
+    // Inherit the other overload of write_buffer
     using RTPMediaPacketBufferWriter::write_buffer;
+    /**
+     * @brief: Writes a buffer to RTP packets.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory.
+     * @param [in] length_in_strides: Length of the buffer in strides.
+     *
+     * @return: Status of the operation.
+     */
     ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
-protected:
-    size_t fill_packet(byte_t* buffer) override;
 };
 
 } // namespace services

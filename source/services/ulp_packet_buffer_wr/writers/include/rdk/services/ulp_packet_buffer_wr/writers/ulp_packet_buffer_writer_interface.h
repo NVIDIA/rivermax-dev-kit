@@ -23,6 +23,7 @@
 #include <memory>
 
 #include "rdk/services/memory_allocation/memory_allocation.h"
+#include "rdk/services/media/media.h"
 
 namespace rivermax
 {
@@ -37,7 +38,7 @@ namespace services
  * This class provides an interface for writing packets data to memory.
  * It includes methods for writing packet headers and payloads to allocated buffer memory,
  * supporting both Header Data Split and non-Header Data Split modes.
- * Derived classes must implement the write_buffer methods to handle the actual packet
+ * Derived classes must implement the @ref write_buffer methods to handle the actual packet
  * buffer writing process.
  */
 class IULPPacketBufferWriter
@@ -67,7 +68,7 @@ public:
      * writing of complete packets (header + payload) to a single contiguous buffer.
      *
      * @param [in] payload_ptr: Pointer to the buffer where complete packet data
-     *                           (header + payload) will be written.
+     *                          (header + payload) will be written.
      * @param [in] buffer_length: Length of the buffer in strides.
      *
      * @return: Status of the operation.
@@ -86,6 +87,21 @@ public:
      * @return: Status of the operation.
      */
     virtual ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length) = 0;
+    /**
+     * @brief: Sets the next media unit to be processed.
+     *
+     * @param [in] media_unit: Pointer to the media unit.
+     *
+     * @return: Return status of the operation.
+     */
+    virtual ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) = 0;
+    /**
+     * @brief: Sets the timestamp for the first packet.
+     *
+     * @param [in] packet_time_ns: The timestamp of the first packet.
+     */
+    virtual void set_initial_timestamp(uint64_t timestamp_ns) = 0;
+
 protected:
     /* Memory utilities for header management. */
     std::shared_ptr<MemoryUtils> m_header_mem_utils;

@@ -169,8 +169,8 @@ ReturnStatus MediaSenderIONode::initialize_streams()
         stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);
 
         constexpr bool contains_payload = false;
-        std::unique_ptr<RTPMediaPacketBufferWriter> packet_buffer_writer =
-            RTPMediaPacketBufferWriter::get_rtp_media_packet_buffer_writer(
+        std::unique_ptr<IULPPacketBufferWriter> packet_buffer_writer =
+            factory::create_rtp_media_packet_buffer_writer(
                 m_media_settings.get_smpte_standard(), contains_payload, m_media_settings,
                 m_memory_utils.get_header_memory_utils(),
                 m_memory_utils.get_payload_memory_utils());
@@ -504,7 +504,7 @@ void MediaSenderIONode::operator()()
     const double start_send_time_ns = send_time_ns;
 
     for (auto& stream_pack : m_stream_packs) {
-        stream_pack.packet_buffer_writer->set_first_packet_timestamp(start_send_time_ns);
+        stream_pack.packet_buffer_writer->set_initial_timestamp(start_send_time_ns);
     }
 
     size_t sent_field_counter = 0;
@@ -699,7 +699,7 @@ ReturnStatus MediaSenderIONode::set_media_essence_provider(
     }
 
     m_stream_packs[stream_index].essence_provider = std::move(essence_provider);
-    std::unique_ptr<RTPMediaPacketBufferWriter> packet_buffer_writer = RTPMediaPacketBufferWriter::get_rtp_media_packet_buffer_writer(
+    std::unique_ptr<IULPPacketBufferWriter> packet_buffer_writer = factory::create_rtp_media_packet_buffer_writer(
         smpte_standard, contains_payload, m_media_settings,
         m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
     if (packet_buffer_writer) {

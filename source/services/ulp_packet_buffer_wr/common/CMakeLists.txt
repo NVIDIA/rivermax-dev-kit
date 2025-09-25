@@ -14,12 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-
-set(RIVERMAX_DEV_KIT_SERVICES_ULP_PACKET_BUFFER_WR_COMPONENTS
-    common
-    writers
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        rtp_packet.cpp
+        rtp_smpte_2110_20_packet.cpp
+        rtp_smpte_2110_40_packet.cpp
 )
-foreach(packet_buffer_wr_component ${RIVERMAX_DEV_KIT_SERVICES_ULP_PACKET_BUFFER_WR_COMPONENTS})
-    add_subdirectory(${packet_buffer_wr_component})
-endforeach()
+target_include_directories(${PROJECT_NAME} PUBLIC include)

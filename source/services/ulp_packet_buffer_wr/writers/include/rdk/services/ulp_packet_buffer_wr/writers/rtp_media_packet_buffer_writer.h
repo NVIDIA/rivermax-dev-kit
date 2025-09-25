@@ -24,6 +24,7 @@
 
 #include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/ulp_packet_buffer_wr/writers/ulp_packet_buffer_writer_interface.h"
+#include "rdk/services/ulp_packet_buffer_wr/common/rtp_packet.h"
 
 namespace rivermax
 {
@@ -33,21 +34,6 @@ namespace services
 {
 
 constexpr uint32_t DEFAULT_SSRC = 0x0eb51dbd;
-
-/**
- * @brief: RTP send data statistics.
- *
- * This struct will hold run time state of a stream.
- */
-struct RTPStreamSendStats
-{
-    uint32_t packet_counter = 0;
-    uint32_t rtp_sequence = 0;
-    uint32_t rtp_timestamp = 0;
-    uint8_t rtp_interlace_field_indicator = 0;
-    uint16_t line_number = 0;
-    uint16_t srd_offset = 0;
-};
 
 /**
  * @brief: Key for media buffer factory map.
@@ -104,52 +90,69 @@ struct MediaBufferFactoryKeyHash {
  * This map associates @ref SMPTEStandard values with factory functions that create
  * instances of @ref RTPMediaPacketBufferWriter or its derived classes.
  */
-class RTPMediaPacketBufferWriter;
 typedef std::unordered_map<
     MediaBufferFactoryKey,
-    std::function<std::unique_ptr<RTPMediaPacketBufferWriter>(const MediaSettings& media_settings,
+    std::function<std::unique_ptr<IULPPacketBufferWriter>(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)>,
         MediaBufferFactoryKeyHash> rtp_media_packet_buffer_writer_factory_map_t;
 
+namespace factory {
+    /**
+     * @brief: Factory function to create RTP media buffer writers.
+     *
+     * @param [in] type: SMPTE standard type.
+     * @param [in] contains_payload: Flag indicating whether the buffer contains payload.
+     * @param [in] media_settings: Media settings.
+     * @param [in] header_mem_utils: Shared pointer to header memory utilities.
+     * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
+     *
+     * @return: Unique pointer to @ref IULPPacketBufferWriter instance.
+     */
+    std::unique_ptr<IULPPacketBufferWriter> create_rtp_media_packet_buffer_writer(
+        SMPTEStandard type, bool contains_payload, const MediaSettings& media_settings,
+        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
+}
+
 /**
- * @brief: Writes RTP packets with media payload.
+ * @brief: Buffer writer for RTP packets.
  *
  * This class serves as a base class for classes that are responsible for
  * writing RTP packets with media payload. It provides a generic method that
  * fills a provided buffer with a valid RTP header and payload, processes
- * the data, manages the in-frame state logic. Derived classes must implement
+ * the data, manages the in-media-unit state logic. Derived classes must implement
  * the pure virtual methods to build the RTP header, write payload,
- * update the in-frame state, and set the concrete stream properties.
+ * update the in-media-unit state, and set the concrete stream properties.
  */
+template<typename PacketContextType>
 class RTPMediaPacketBufferWriter : public IULPPacketBufferWriter
 {
 protected:
     const MediaSettings& m_media_settings;
-    uint32_t m_ssrc = 0;
-    RTPStreamSendStats m_send_data;
-private:
-    /* Factory map for creating RTPMediaPacketBufferWriter instances. */
-    static rtp_media_packet_buffer_writer_factory_map_t s_rtp_media_packet_buffer_writer_factory;
+    std::unique_ptr<PacketContextType> m_rtp_packet_context;
+
 public:
     /**
      * @brief: Destructor for @ref RTPMediaPacketBufferWriter.
      */
     virtual ~RTPMediaPacketBufferWriter() = default;
     /**
-     * @brief: Factory method to get an @ref RTPMediaPacketBufferWriter instance.
+     * @brief: Writes a buffer to RTP packets when Header Data Split mode is off.
      *
-     * @param [in] smpte_standard: SMPTE standard.
-     * @param [in] contains_payload: Flag indicating whether the buffer contains payload.
-     * @param [in] media_settings: Media settings.
-     * @param [in] header_mem_utils: Shared pointer to header memory utilities.
-     * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
+     * @param [in] payload_ptr: Pointer to the payload memory.
+     * @param [in] length_in_strides: Length of the buffer in strides.
      *
-     * @return: Unique pointer to an RTPMediaPacketBufferWriter instance.
+     * @return: Status of the operation.
      */
-    static std::unique_ptr<RTPMediaPacketBufferWriter> get_rtp_media_packet_buffer_writer(
-        SMPTEStandard smpte_standard, bool contains_payload, const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     ReturnStatus write_buffer(void* payload_ptr, size_t length_in_strides) override;
+    /**
+     * @brief: Writes a buffer to RTP packets when Header Data Split mode is on.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory.
+     * @param [in] length_in_strides: Length of the buffer in strides.
+     *
+     * @return: Status of the operation.
+     */
     ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
     /**
      * @brief: Sets the next media unit to be processed.
@@ -164,7 +167,8 @@ public:
      *
      * @param [in] packet_time_ns: The timestamp of the first packet.
      */
-    void set_first_packet_timestamp(uint64_t packet_time_ns);
+    void set_initial_timestamp(uint64_t packet_time_ns) override;
+
 protected:
     /**
      * @brief: Constructor for @ref RTPMediaPacketBufferWriter.
@@ -176,45 +180,23 @@ protected:
     RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     /**
-     * @brief: Builds the complete RTP header.
+     * @brief: Updates the in-media-unit state.
      *
-     * @param [in] buffer: Pointer to the buffer where the RTP header will be written.
-     *
-     * @return: The total size of the RTP header and extension written.
+     * @param [in] header_size: Size of the processed header.
+     * @param [in] payload_size: Size of the processed payload.
      */
-    virtual size_t build_rtp_header(byte_t* buffer) = 0;
+    virtual void update_in_media_unit_state(size_t header_size, size_t payload_size) = 0;
     /**
-     * @brief: Builds the common RTP header.
+     * @brief: Creates the appropriate packet type for this writer.
      *
-     * @param [in] buffer: Pointer to the buffer where the RTP header will be written.
+     * @param [in] header_ptr: Pointer to the header buffer.
+     * @param [in] payload_ptr: Pointer to the payload buffer (optional for non-HDS mode).
      *
-     * @return: The size of the RTP header written.
+     * @return: Unique pointer to the created packet.
      */
-    size_t build_rtp_header_common(byte_t* buffer);
-    /**
-     * @brief: Fills packet buffer with data.
-     *
-     * By default, no data is written.
-     *
-     * @param [in] buffer: Pointer to the buffer where the data will be written.
-     *
-     * @return: The size of the data written.
-     */
-    virtual size_t fill_packet(byte_t* buffer) { return 0; };
-    /**
-     * @brief: Sets the stream properties.
-     */
-    virtual void set_stream_properties() {};
-    /**
-     * @brief: Updates the in-media unit state.
-     */
-    virtual void update_in_media_unit_state() = 0;
-    /**
-     * @brief: Returns status of Header-Data-Split mode.
-     *
-     * @return: true if Header-Data-Split mode is enabled.
-     */
-    inline bool is_hds_on() const { return m_media_settings.app_header_stride_size > 0; }
+    virtual std::unique_ptr<RTPPacket> create_packet(byte_t* header_ptr, byte_t* payload_ptr = nullptr) {
+        return std::make_unique<RTPPacket>(header_ptr, payload_ptr);
+    }
 };
 
 } // namespace services

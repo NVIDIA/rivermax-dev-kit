@@ -29,171 +29,104 @@
 
 using namespace rivermax::dev_kit::services;
 
-struct RTPHeader {
-    uint8_t cc : 4;            // CSRC count
-    uint8_t extension : 1;     // Extension bit
-    uint8_t padding : 1;       // Padding bit
-    uint8_t version : 2;       // Version, currently 2
-    uint8_t payload_type : 7;  // Payload type
-    uint8_t marker : 1;        // Marker bit
-    uint16_t sequence_number;  // Sequence number
-    uint32_t timestamp;        // Timestamp
-    uint32_t ssrc;             // Synchronization source (SSRC) identifier
-};
-
-RTPMediaPacketBufferWriter::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
+template<typename PacketContextType>
+RTPMediaPacketBufferWriter<PacketContextType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
     IULPPacketBufferWriter(std::move(header_mem_utils), std::move(payload_mem_utils)),
-    m_media_settings(media_settings),
-    m_ssrc(DEFAULT_SSRC) // Simulated SSRC.
+    m_media_settings(media_settings)
 {
-    set_stream_properties();
+    m_rtp_packet_context = std::make_unique<PacketContextType>();
+    m_rtp_packet_context->ssrc = DEFAULT_SSRC; // Simulated SSRC.
+    m_rtp_packet_context->payload_type = media_settings.payload_type;
+    m_rtp_packet_context->payload_size = media_settings.raw_packet_payload_size;
 }
 
-ReturnStatus RTPMediaPacketBufferWriter::write_buffer(void* payload_ptr, size_t length_in_strides)
+template<typename PacketContextType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType>::write_buffer(void* payload_ptr, size_t length_in_strides)
 {
-    byte_t* header_pointer = reinterpret_cast<byte_t*>(payload_ptr);
-    assert(header_pointer);
+    byte_t* current_packet_pointer = reinterpret_cast<byte_t*>(payload_ptr);
+    assert(current_packet_pointer);
     uint64_t stride = 0;
-    byte_t* current_packet_pointer;
-    byte_t* current_payload_pointer;
+    size_t header_size = 0;
+    size_t payload_size = 0;
+    ReturnStatus status = ReturnStatus::success;
+    
+    while (stride < length_in_strides && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
+        // No Header Data split mode
+        auto packet = create_packet(current_packet_pointer);
+        status = packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        status = packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
+        update_in_media_unit_state(header_size, payload_size);
+        current_packet_pointer += m_media_settings.data_stride_size;
+        stride++;
+    }
+    return status;
+}
 
-    while (stride < length_in_strides && m_send_data.packet_counter < m_media_settings.packets_in_media_unit) {
-        current_packet_pointer = header_pointer + (stride * m_media_settings.data_stride_size);
-        current_payload_pointer = (current_packet_pointer + m_media_settings.protocol_header_size);
-        build_rtp_header(current_packet_pointer);
-        fill_packet(current_payload_pointer);
-        update_in_media_unit_state();
+template<typename PacketContextType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType>::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
+{
+    byte_t* current_header_pointer = reinterpret_cast<byte_t*>(header_ptr);
+    byte_t* current_payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);
+    assert(current_header_pointer);
+    assert(current_payload_pointer);
+    uint64_t stride = 0;
+    size_t header_size = 0;
+    size_t payload_size = 0;
+    ReturnStatus status = ReturnStatus::success;
+
+    while (stride < length_in_strides && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
+        auto packet = create_packet(current_header_pointer, current_payload_pointer); // Header Data Split mode
+        status = packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        status = packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
+        update_in_media_unit_state(header_size, payload_size);
+        current_header_pointer += m_media_settings.app_header_stride_size;
+        current_payload_pointer += m_media_settings.data_stride_size;
         stride++;
     }
     return ReturnStatus::success;
 }
 
-ReturnStatus RTPMediaPacketBufferWriter::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
+template<typename PacketContextType>
+void RTPMediaPacketBufferWriter<PacketContextType>::set_initial_timestamp(uint64_t packet_time_ns)
 {
-    assert(payload_ptr);
-    assert(header_ptr);
-
-    byte_t* header_pointer = reinterpret_cast<byte_t*>(header_ptr);
-    byte_t* payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);
-    assert(header_pointer);
-    assert(payload_ptr);
-    uint64_t stride = 0;
-    byte_t* current_packet_pointer;
-    byte_t* current_payload_pointer;
-
-    while (stride < length_in_strides && m_send_data.packet_counter < m_media_settings.packets_in_media_unit) {
-        current_packet_pointer = header_pointer + (stride * m_media_settings.app_header_stride_size);
-        current_payload_pointer = (payload_pointer + (stride * m_media_settings.data_stride_size));
-        build_rtp_header(current_packet_pointer);
-        fill_packet(current_payload_pointer);
-        update_in_media_unit_state();
-        stride++;
-    }
-    return ReturnStatus::success;
-}
-
-size_t RTPMediaPacketBufferWriter::build_rtp_header_common(byte_t* buffer)
-{
-    // build RTP header - 12 bytes:
-    /*
-     0                   1                   2                   3
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     | V |P|X|  CC   |M|     PT      |            SEQ                |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     |                           timestamp                           |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     |                           ssrc                                |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-
-    RTPHeader* p_rtp_header = reinterpret_cast<RTPHeader*>(buffer);
-    p_rtp_header->version = 2;
-    p_rtp_header->padding = 0;
-    p_rtp_header->extension = 0;
-    p_rtp_header->cc = 0;
-    p_rtp_header->payload_type = m_media_settings.payload_type;
-    p_rtp_header->sequence_number = htons(static_cast<uint16_t>(m_send_data.rtp_sequence));
-    p_rtp_header->timestamp = htonl(static_cast<uint32_t>(m_send_data.rtp_timestamp));
-    p_rtp_header->ssrc = htonl(m_ssrc);
-    p_rtp_header->marker = (m_send_data.packet_counter == m_media_settings.packets_in_media_unit - 1) ? 1 : 0;
-
-    return sizeof(RTPHeader);
-}
-
-void RTPMediaPacketBufferWriter::set_first_packet_timestamp(uint64_t packet_time_ns)
-{
-    m_send_data.rtp_timestamp = static_cast<uint32_t>(
+    m_rtp_packet_context->timestamp = static_cast<uint32_t>(
         time_to_rtp_timestamp(packet_time_ns, static_cast<int>(m_media_settings.sample_rate)));
 }
 
-rtp_media_packet_buffer_writer_factory_map_t RTPMediaPacketBufferWriter::s_rtp_media_packet_buffer_writer_factory = \
+
+template<typename WriterType>
+std::unique_ptr<IULPPacketBufferWriter> create_writer(
+    const MediaSettings& media_settings,
+    std::shared_ptr<MemoryUtils> header_mem_utils,
+    std::shared_ptr<MemoryUtils> payload_mem_utils)
 {
-    {
-        {SMPTEStandard::ST_2110_20, false},
-        [](const MediaSettings& media_settings,
-            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
-        {
-            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_20_MockPacketBufferWriter(media_settings,
-                std::move(header_mem_utils), std::move(payload_mem_utils)));
-        }
-    },
-    {
-        {SMPTEStandard::ST_2110_20, true},
-        [](const MediaSettings& media_settings,
-            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
-        {
-            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_20_PacketBufferWriter(media_settings,
-                std::move(header_mem_utils), std::move(payload_mem_utils)));
-        }
-    },
-    {
-        {SMPTEStandard::ST_2110_30, false},
-        [](const MediaSettings& media_settings,
-            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
-        {
-            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_30_PacketBufferWriter(media_settings,
-                std::move(header_mem_utils), std::move(payload_mem_utils)));
-        }
-    },
-    {
-        {SMPTEStandard::ST_2110_30, true},
-        [](const MediaSettings& media_settings,
-            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
-        {
-            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_30_PacketBufferWriter(media_settings,
-                std::move(header_mem_utils), std::move(payload_mem_utils)));
-        }
-    },
-    {
-        {SMPTEStandard::ST_2110_40, false},
-        [](const MediaSettings& media_settings,
-            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
-        {
-            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_40_PacketBufferWriter(media_settings,
-                std::move(header_mem_utils), std::move(payload_mem_utils)));
-        }
-    },
-    {
-        {SMPTEStandard::ST_2110_40, true},
-        [](const MediaSettings& media_settings,
-            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
-        {
-            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_40_PacketBufferWriter(media_settings,
-                std::move(header_mem_utils), std::move(payload_mem_utils)));
-        }
-    },
+    return std::unique_ptr<WriterType>(new WriterType(media_settings,
+        std::move(header_mem_utils), std::move(payload_mem_utils)));
+}
+
+static rtp_media_packet_buffer_writer_factory_map_t s_rtp_media_packet_buffer_writer_factory = {
+    {{SMPTEStandard::ST_2110_20, false}, create_writer<RTP_SMPTE_2110_20_MockPacketBufferWriter>},
+    {{SMPTEStandard::ST_2110_20, true},  create_writer<RTP_SMPTE_2110_20_PacketBufferWriter>},
+    {{SMPTEStandard::ST_2110_30, false}, create_writer<RTP_SMPTE_2110_30_MockPacketBufferWriter>},
+    {{SMPTEStandard::ST_2110_30, true},  create_writer<RTP_SMPTE_2110_30_PacketBufferWriter>},
+    {{SMPTEStandard::ST_2110_40, false}, create_writer<RTP_SMPTE_2110_40_MockPacketBufferWriter>},
+    {{SMPTEStandard::ST_2110_40, true},  create_writer<RTP_SMPTE_2110_40_PacketBufferWriter>}
 };
 
-std::unique_ptr<RTPMediaPacketBufferWriter> RTPMediaPacketBufferWriter::get_rtp_media_packet_buffer_writer(
+std::unique_ptr<IULPPacketBufferWriter> factory::create_rtp_media_packet_buffer_writer(
     SMPTEStandard type, bool contains_payload, const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
 {
     auto key = MediaBufferFactoryKey(type, contains_payload);
-    auto iter = RTPMediaPacketBufferWriter::s_rtp_media_packet_buffer_writer_factory.find(key);
-    if (iter != RTPMediaPacketBufferWriter::s_rtp_media_packet_buffer_writer_factory.end()) {
+    auto iter = s_rtp_media_packet_buffer_writer_factory.find(key);
+    if (iter != s_rtp_media_packet_buffer_writer_factory.end()) {
         return iter->second(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils));
-    } else {
-        return nullptr;
     }
+    return nullptr;
 }
+
+// Explicit template instantiation
+template class RTPMediaPacketBufferWriter<RTPPacketContext>;
+template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext>;
+template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext>;

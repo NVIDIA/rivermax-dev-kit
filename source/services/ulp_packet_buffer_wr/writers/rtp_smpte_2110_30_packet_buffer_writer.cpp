@@ -26,51 +26,33 @@
 
 using namespace rivermax::dev_kit::services;
 
-RTP_SMPTE_2110_30_PacketBufferWriter::RTP_SMPTE_2110_30_PacketBufferWriter(const MediaSettings& media_settings,
-    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-    RTPMediaPacketBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils))
-{
-    set_stream_properties();
-}
-
-ReturnStatus RTP_SMPTE_2110_30_PacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+ReturnStatus RTP_SMPTE_2110_30_MockPacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
     reset_in_media_unit_state();
     return ReturnStatus::success;
 }
 
-void RTP_SMPTE_2110_30_PacketBufferWriter::reset_in_media_unit_state()
+void RTP_SMPTE_2110_30_MockPacketBufferWriter::reset_in_media_unit_state()
 {
-    m_send_data.packet_counter = 0;
+    m_rtp_packet_context->counter = 0;
 }
 
-void RTP_SMPTE_2110_30_PacketBufferWriter::update_in_media_unit_state()
+void RTP_SMPTE_2110_30_MockPacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size) 
 {
     const auto& audio_settings = static_cast<const SMPTE_2110_30_MediaSettings&>(m_media_settings);
     uint32_t ticks_per_packet = static_cast<uint32_t>((m_media_settings.sample_rate * audio_settings.ptime_usec) / USEC_IN_SEC);
 
-    m_send_data.rtp_timestamp += ticks_per_packet;
+    m_rtp_packet_context->timestamp += ticks_per_packet;
 
     // Track packet counter for media unit boundaries (but doesn't affect timestamp)
-    if (++m_send_data.packet_counter >= m_media_settings.packets_in_media_unit) {
-        m_send_data.packet_counter = 0;
+    if (++m_rtp_packet_context->counter >= m_media_settings.packets_in_media_unit) {
+        m_rtp_packet_context->counter = 0;
     }
-    m_send_data.rtp_sequence++;
+    m_rtp_packet_context->sequence++;
 }
 
-size_t RTP_SMPTE_2110_30_PacketBufferWriter::build_rtp_header(byte_t* buffer)
+ReturnStatus RTP_SMPTE_2110_30_PacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
-    // ST 2110-30: Standard RTP header only, no extension
-    // Note: Marker bit is set in build_rtp_header_common: Set to 0 for all audio packets)
-    size_t rtp_header_size = build_rtp_header_common(buffer);
-    buffer[1] &= 0x7F;  // Clear marker bit (bit 7 of byte 1)
-
-    return rtp_header_size;
-}
-
-size_t RTP_SMPTE_2110_30_PacketBufferWriter::fill_packet(byte_t* buffer)
-{
-    // Mock implementation: no actual payload filling
-    // Real implementation would copy audio samples here
-    return m_media_settings.raw_packet_payload_size;
+    // Todo: Implement actual media unit handling.
+    return ReturnStatus::success;
 }
