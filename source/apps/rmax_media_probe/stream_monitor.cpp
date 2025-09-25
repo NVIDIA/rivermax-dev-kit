@@ -132,6 +132,7 @@ ReturnStatus StreamMonitor::consume_chunk(const ReceiveChunk& chunk, const IRece
             continue;
         }
 
+        bool is_m_bit_set = ((m_packet_parser.rtp(packet_bodies)->mpt & RTP_M_BIT_MASK) != 0);
         uint64_t receive_timestamp = packet_info.get_packet_timestamp();
         uint32_t rtp_timestamp = htonl(m_packet_parser.rtp(packet_bodies)->timestamp);
         packet_bodies += stride_size;
@@ -141,6 +142,7 @@ ReturnStatus StreamMonitor::consume_chunk(const ReceiveChunk& chunk, const IRece
             m_prev_frame_rtp_timestamp = rtp_timestamp;
             m_prev_rtp_seq_num = rtp_seq_num;
             m_prev_frame_seq_num = rtp_seq_num;
+            m_is_prev_mbit_set = is_m_bit_set;
             continue;
         }
         /*
@@ -149,11 +151,15 @@ ReturnStatus StreamMonitor::consume_chunk(const ReceiveChunk& chunk, const IRece
          */
         if (rtp_seq_num != m_prev_rtp_seq_num + 1) {
             m_missing_packets += rtp_seq_num - m_prev_rtp_seq_num - 1;
-        }
-        else if (rtp_timestamp != m_prev_frame_rtp_timestamp) {
-            process_new_frame(receive_timestamp, rtp_timestamp, rtp_seq_num, stream);
+        } else if (!is_m_bit_set && m_is_prev_mbit_set) {
+            /*
+             * M bit is used in ST2110-20 and in ST2110-40. When adding support forST2110-30 audio,
+             * M-bit should be ignored.
+             */
+             process_new_frame(receive_timestamp, rtp_timestamp, rtp_seq_num, stream);
         }
         m_prev_rtp_seq_num = rtp_seq_num;
+        m_is_prev_mbit_set = is_m_bit_set;
     }
     consumed_packets = chunk.get_length();
     return ReturnStatus::success;

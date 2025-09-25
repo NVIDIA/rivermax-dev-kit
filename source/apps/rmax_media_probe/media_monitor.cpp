@@ -64,7 +64,7 @@ void MediaMonitor::restart_rtp_matching(MediaComponentId component_id, uint32_t 
  * Each stream has a flag is_rtp_ts_valid, meaning that a stream has a new frame that
  * is pending matching with other components. The flag is cleared when all streams
  * get a frame with the same timestamp (matching succeeded, a new matching cycle starts),
- * or when another stream receives a a frame with non-matching timestamp (matching failed,
+ * or when another stream receives a frame with non-matching timestamp (matching failed,
  * a new matching cycle starts).
  * When a new frame is detected in one stream, its RTP timestamp is compared to the
  * previous RTP timestamps of this stream and with the last timestamps of other streams.
@@ -99,7 +99,7 @@ void MediaMonitor::match_rtp_timestamps(MediaComponentId component_id, uint32_t 
                     restart_rtp_matching(component_id, rtp_ts);
                     return;
                 }
-                /* new timestamp is matches the pending timestamp in another stream, matching succeeded */
+                /* new timestamp matches the pending timestamp in another stream, matching succeeded */
                 matching_count++;
             }
         }

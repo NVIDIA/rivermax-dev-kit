@@ -93,6 +93,7 @@ protected:
     uint64_t m_prev_frame_receive_timestamp = 0;
     uint32_t m_prev_frame_seq_num = 0;
     int32_t m_prev_rtp_seq_num = 0;
+    bool m_is_prev_mbit_set = false;
     uint64_t m_received_packets = 0;
     uint64_t m_missing_packets = 0;
     uint64_t m_bad_rtp_headers = 0;
