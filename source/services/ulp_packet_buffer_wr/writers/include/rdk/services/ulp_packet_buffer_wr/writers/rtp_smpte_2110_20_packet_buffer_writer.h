@@ -16,15 +16,14 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_BUFFER_WR_RTP_VIDEO_BUFFER_WRITER_H_
-#define RDK_SERVICES_BUFFER_WR_RTP_VIDEO_BUFFER_WRITER_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_20_PACKET_BUFFER_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_20_PACKET_BUFFER_WRITER_H_
 
 #include <cstddef>
 #include <memory>
 
-#include "rdk/services/buffer_wr/buffer_writer_interface.h"
-#include "rdk/services/buffer_wr/rtp_media_buffer_writer.h"
 #include "rdk/services/media/media_unit_pool.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
 
 namespace rivermax
 {
@@ -39,22 +38,22 @@ namespace services
  * This class serves as a mock implementation for writing RTP packets with video payload.
  * It provides methods to set stream properties, update in-frame state, and build RTP headers.
  */
-class RTPVideoMockBufferWriter : public RTPMediaBufferWriter
+class RTP_SMPTE_2110_20_MockPacketBufferWriter : public RTPMediaPacketBufferWriter
 {
 public:
     /**
-     * @brief: Constructor for RTPVideoMockBufferWriter.
+     * @brief: Constructor for RTP_SMPTE_2110_20_MockPacketBufferWriter.
      *
      * @param [in] media_settings: Media settings.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
      */
-    RTPVideoMockBufferWriter(const MediaSettings& media_settings,
+    RTP_SMPTE_2110_20_MockPacketBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     /**
-     * @brief: Destructor for RTPVideoMockBufferWriter.
+     * @brief: Destructor for RTP_SMPTE_2110_20_MockPacketBufferWriter.
      */
-    virtual ~RTPVideoMockBufferWriter() = default;
+    virtual ~RTP_SMPTE_2110_20_MockPacketBufferWriter() = default;
     ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) override;
 protected:
     void set_stream_properties() override {};
@@ -78,30 +77,31 @@ protected:
  * @brief: Writes RTP packets with video payload.
  *
  * This class serves as an implementation for writing RTP packets with video payload.
- * It extends RTPVideoMockBufferWriter and provides additional methods to fill packet buffers.
+ * It extends RTP_SMPTE_2110_20_MockPacketBufferWriter and provides additional methods to fill packet buffers.
  */
-class RTPVideoBufferWriter : public RTPVideoMockBufferWriter
+class RTP_SMPTE_2110_20_PacketBufferWriter : public RTP_SMPTE_2110_20_MockPacketBufferWriter
 {
 protected:
     size_t m_data_left_in_frame = 0;
     std::shared_ptr<MediaUnit> m_current_media_unit = nullptr;
 public:
     /**
-     * @brief: Constructor for RTPVideoBufferWriter.
+     * @brief: Constructor for RTP_SMPTE_2110_20_PacketBufferWriter.
      *
      * @param [in] media_settings: Media settings.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
      */
-    RTPVideoBufferWriter(const MediaSettings& media_settings,
+    RTP_SMPTE_2110_20_PacketBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-        RTPVideoMockBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils)) {}
+        RTP_SMPTE_2110_20_MockPacketBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils)) {}
     /**
-     * @brief: Destructor for RTPVideoBufferWriter.
+     * @brief: Destructor for RTP_SMPTE_2110_20_PacketBufferWriter.
      */
-    virtual ~RTPVideoBufferWriter() = default;
+    virtual ~RTP_SMPTE_2110_20_PacketBufferWriter() = default;
     ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
-    using IBufferWriter::write_buffer;
+
+    using RTPMediaPacketBufferWriter::write_buffer;
     ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
 protected:
     size_t fill_packet(byte_t* buffer) override;
@@ -111,4 +111,4 @@ protected:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_BUFFER_WR_RTP_VIDEO_BUFFER_WRITER_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_20_PACKET_BUFFER_WRITER_H_ */

@@ -169,16 +169,16 @@ ReturnStatus MediaSenderIONode::initialize_streams()
         stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);
 
         constexpr bool contains_payload = false;
-        std::unique_ptr<RTPMediaBufferWriter> buffer_writer =
-            RTPMediaBufferWriter::get_rtp_media_buffer_writer(
+        std::unique_ptr<RTPMediaPacketBufferWriter> packet_buffer_writer =
+            RTPMediaPacketBufferWriter::get_rtp_media_packet_buffer_writer(
                 m_media_settings.get_smpte_standard(), contains_payload, m_media_settings,
                 m_memory_utils.get_header_memory_utils(),
                 m_memory_utils.get_payload_memory_utils());
 
-        if (buffer_writer) {
-            stream_pack.buffer_writer = std::move(buffer_writer);
+        if (packet_buffer_writer) {
+            stream_pack.packet_buffer_writer = std::move(packet_buffer_writer);
         } else {
-            std::cerr << "Failed to create buffer writer for stream " << stream_idx << " of sender "
+            std::cerr << "Failed to create packet buffer writer for stream " << stream_idx << " of sender "
                       << m_index << std::endl;
             return ReturnStatus::failure;
         }
@@ -436,7 +436,7 @@ ReturnStatus MediaSenderIONode::process_media_unit()
         if (!media_unit) {
             continue;
         }
-        auto rc = stream_pack.buffer_writer->set_next_media_unit(std::move(media_unit));
+        auto rc = stream_pack.packet_buffer_writer->set_next_media_unit(std::move(media_unit));
         if (rc != ReturnStatus::success) {
             std::cerr << "Failed to set next media unit" << std::endl;
             return rc;
@@ -504,7 +504,7 @@ void MediaSenderIONode::operator()()
     const double start_send_time_ns = send_time_ns;
 
     for (auto& stream_pack : m_stream_packs) {
-        stream_pack.buffer_writer->set_first_packet_timestamp(start_send_time_ns);
+        stream_pack.packet_buffer_writer->set_first_packet_timestamp(start_send_time_ns);
     }
 
     size_t sent_field_counter = 0;
@@ -524,14 +524,14 @@ void MediaSenderIONode::operator()()
     std::function<ReturnStatus(MediaStreamPack&)> write_buffer_callback;
     if (is_hds_on()) {
         write_buffer_callback = [](auto& stream_pack) {
-            return stream_pack.buffer_writer->write_buffer(
+            return stream_pack.packet_buffer_writer->write_buffer(
                 stream_pack.chunk_handler->get_app_hdr_ptr(),
                 stream_pack.chunk_handler->get_data_ptr(),
                 stream_pack.chunk_handler->get_length());
         };
     } else {
         write_buffer_callback = [](auto& stream_pack) {
-            return stream_pack.buffer_writer->write_buffer(
+            return stream_pack.packet_buffer_writer->write_buffer(
                 stream_pack.chunk_handler->get_data_ptr(),
                 stream_pack.chunk_handler->get_length());
         };
@@ -699,11 +699,11 @@ ReturnStatus MediaSenderIONode::set_media_essence_provider(
     }
 
     m_stream_packs[stream_index].essence_provider = std::move(essence_provider);
-    std::unique_ptr<RTPMediaBufferWriter> buffer_writer = RTPMediaBufferWriter::get_rtp_media_buffer_writer(
+    std::unique_ptr<RTPMediaPacketBufferWriter> packet_buffer_writer = RTPMediaPacketBufferWriter::get_rtp_media_packet_buffer_writer(
         smpte_standard, contains_payload, m_media_settings,
         m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
-    if (buffer_writer) {
-        m_stream_packs[stream_index].buffer_writer = std::move(buffer_writer);
+    if (packet_buffer_writer) {
+        m_stream_packs[stream_index].packet_buffer_writer = std::move(packet_buffer_writer);
     } else {
         std::cout << "Media essence provider was set for stream " << stream_index <<
             " but buffer writer was not created" << std::endl;

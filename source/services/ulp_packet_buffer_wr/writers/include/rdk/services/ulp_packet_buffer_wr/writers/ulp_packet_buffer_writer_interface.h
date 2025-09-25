@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_BUFFER_WR_BUFFER_WRITER_INTERFACE_H_
-#define RDK_SERVICES_BUFFER_WR_BUFFER_WRITER_INTERFACE_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_ULP_PACKET_BUFFER_WRITER_INTERFACE_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_ULP_PACKET_BUFFER_WRITER_INTERFACE_H_
 
 #include <cstddef>
 #include <memory>
@@ -32,52 +32,56 @@ namespace services
 {
 
 /**
- * @brief: Interface for buffer writers.
+ * @brief: Interface for Upper Layer Protocol (ULP) packet buffer writers.
  *
- * This class provides an interface for writing data to buffers. It includes methods
- * for writing headers and payloads to buffers. Derived classes must implement the
- * write_buffer method to handle the actual writing process.
+ * This class provides an interface for writing packets data to memory.
+ * It includes methods for writing packet headers and payloads to allocated buffer memory,
+ * supporting both Header Data Split and non-Header Data Split modes.
+ * Derived classes must implement the write_buffer methods to handle the actual packet
+ * buffer writing process.
  */
-class IBufferWriter
+class IULPPacketBufferWriter
 {
 public:
     /**
-     * @brief: Constructor for IBufferWriter.
+     * @brief: Constructor for IULPPacketBufferWriter.
      *
-     * Initializes the buffer writer with memory utilities for header and payload management.
+     * Initializes the packet buffer writer with memory utilities for header and payload
+     * management.
      *
      * @param [in] header_mem_utils: Shared pointer to memory utilities for header management.
      * @param [in] payload_mem_utils: Shared pointer to memory utilities for payload management.
      */
-    IBufferWriter(std::shared_ptr<MemoryUtils> header_mem_utils,
+    IULPPacketBufferWriter(std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils) :
         m_header_mem_utils(std::move(header_mem_utils)),
         m_payload_mem_utils(std::move(payload_mem_utils)) {}
     /**
-     * @brief: Destructor for IBufferWriter.
+     * @brief: Destructor for IULPPacketBufferWriter.
      */
-    virtual ~IBufferWriter() = default;
+    virtual ~IULPPacketBufferWriter() = default;
     /**
-     * @brief: Writes data to the buffer when Header Data Split mode is off .
+     * @brief: Writes packet buffer when Header Data Split mode is off.
      *
      * This pure virtual method must be implemented by derived classes to handle the
-     * writing of headers and payloads to the buffer.
+     * writing of complete packets (header + payload) to a single contiguous buffer.
      *
-     * @param [in] payload_ptr: Pointer to the payload data.
-     * @param [in] buffer_length: Length of the buffer.
+     * @param [in] payload_ptr: Pointer to the buffer where complete packet data
+     *                           (header + payload) will be written.
+     * @param [in] buffer_length: Length of the buffer in strides.
      *
      * @return: Status of the operation.
      */
     virtual ReturnStatus write_buffer(void* payload_ptr, size_t buffer_length) = 0;
     /**
-     * @brief: Writes data to the buffer when Header Data Split is on.
+     * @brief: Writes packet buffer when Header Data Split mode is on.
      *
      * This pure virtual method must be implemented by derived classes to handle the
-     * writing of headers and payloads to the buffer.
+     * writing of packet headers and payloads to separate buffers.
      *
-     * @param [in] header_ptr: Pointer to the header data.
-     * @param [in] payload_ptr: Pointer to the payload data.
-     * @param [in] buffer_length: Length of the buffer.
+     * @param [in] header_ptr: Pointer to the header buffer.
+     * @param [in] payload_ptr: Pointer to the payload buffer.
+     * @param [in] buffer_length: Length of the buffer in strides.
      *
      * @return: Status of the operation.
      */
@@ -93,4 +97,4 @@ protected:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_BUFFER_WR_BUFFER_WRITER_INTERFACE_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_ULP_PACKET_BUFFER_WRITER_INTERFACE_H_ */

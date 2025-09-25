@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_BUFFER_WR_RTP_AUDIO_BUFFER_WRITER_H_
-#define RDK_SERVICES_BUFFER_WR_RTP_AUDIO_BUFFER_WRITER_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_40_PACKET_BUFFER_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_40_PACKET_BUFFER_WRITER_H_
 
-#include "rdk/services/buffer_wr/rtp_media_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
 
 namespace rivermax
 {
@@ -29,29 +29,31 @@ namespace services
 {
 
 /**
- * @brief: Simple audio buffer writer for ST 2110-30 RTP packets.
+ * @brief: Simple ancillary buffer writer for ST 2110-40 RTP packets.
  *
- * @note: This is a simplified implementation for interim use.
+ * @note This is a simplified implementation for interim use.
  * A more comprehensive refactor is planned for the future.
  */
-class RTPAudioBufferWriter : public RTPMediaBufferWriter
+class RTP_SMPTE_2110_40_PacketBufferWriter : public RTPMediaPacketBufferWriter
 {
 public:
-    RTPAudioBufferWriter(const MediaSettings& media_settings,
+    RTP_SMPTE_2110_40_PacketBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils);
-    virtual ~RTPAudioBufferWriter() = default;
+
+    virtual ~RTP_SMPTE_2110_40_PacketBufferWriter() = default;
+
     /**
-     * @brief: Set the next media unit (audio frame/packet group).
+     * @brief: Set the next media unit (ancillary frame/packet group).
      *
-     * @param [in] media_unit: Pointer to the media unit (audio sample).
+     * @param [in] media_unit: Pointer to the media unit (ancillary data).
      *
      * @return: Return status of the operation.
      */
     ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
 protected:
     /**
-     * @brief: Build ST 2110-30 RTP header (no extension for audio).
+     * @brief: Build ST 2110-40 RTP header with ancillary extension.
      *
      * @param [in] buffer: Pointer to the buffer where the RTP header will be written.
      *
@@ -59,7 +61,7 @@ protected:
      */
     size_t build_rtp_header(byte_t* buffer) override;
     /**
-     * @brief: Update packet counter and RTP state for audio.
+     * @brief: Update packet counter and RTP state for ancillary.
      */
     void update_in_media_unit_state() override;
     /**
@@ -67,17 +69,30 @@ protected:
      */
     void reset_in_media_unit_state();
     /**
-     * @brief: Fill packet with audio payload data (for mock implementation, does nothing).
+     * @brief: Fill packet with ancillary payload data (for mock implementation, does nothing).
      *
      * @param [in] buffer: Pointer to the buffer where the data will be written.
      *
      * @return: The size of the data written.
      */
     size_t fill_packet(byte_t* buffer) override;
+    /**
+     * @brief: Build ST 2110-40 ancillary extension header.
+     *
+     * @param [in] buffer: Pointer to the buffer where the extension header will be written.
+     *
+     * @return: The size of the extension header written.
+     */
+    size_t build_rtp_header_2110_40_extension(byte_t* buffer);
+private:
+    /**
+     * @brief: Field indicator for interlaced ancillary data.
+     */
+    uint8_t m_field_indicator; 
 };
 
 } // namespace services
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif // RDK_SERVICES_BUFFER_WR_RTP_AUDIO_BUFFER_WRITER_H_
+#endif // RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_40_PACKET_BUFFER_WRITER_H_

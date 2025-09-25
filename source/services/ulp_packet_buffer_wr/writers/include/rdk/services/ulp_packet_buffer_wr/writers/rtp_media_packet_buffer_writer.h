@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_BUFFER_WR_RTP_MEDIA_BUFFER_WRITER_H_
-#define RDK_SERVICES_BUFFER_WR_RTP_MEDIA_BUFFER_WRITER_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_MEDIA_PACKET_BUFFER_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_MEDIA_PACKET_BUFFER_WRITER_H_
 
 #include <cstddef>
 #include <memory>
 
-#include "rdk/services/buffer_wr/buffer_writer_interface.h"
 #include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/ulp_packet_buffer_writer_interface.h"
 
 namespace rivermax
 {
@@ -31,7 +31,9 @@ namespace dev_kit
 {
 namespace services
 {
+
 constexpr uint32_t DEFAULT_SSRC = 0x0eb51dbd;
+
 /**
  * @brief: RTP send data statistics.
  *
@@ -51,7 +53,7 @@ struct RTPStreamSendStats
  * @brief: Key for media buffer factory map.
  *
  * This struct represents the key used in the media buffer factory map
- * @ref rtp_media_buffer_writer_factory_map_t.
+ * @ref rtp_media_packet_buffer_writer_factory_map_t.
  * It consists of a @ref SMPTEStandard and a boolean indicating whether the buffer contains payload.
  */
 struct MediaBufferFactoryKey {
@@ -97,17 +99,17 @@ struct MediaBufferFactoryKeyHash {
 };
 
 /**
- * @brief: Factory map type for creating @ref RTPMediaBufferWriter instances.
+ * @brief: Factory map type for creating @ref RTPMediaPacketBufferWriter instances.
  *
  * This map associates @ref SMPTEStandard values with factory functions that create
- * instances of @ref RTPMediaBufferWriter or its derived classes.
+ * instances of @ref RTPMediaPacketBufferWriter or its derived classes.
  */
-class RTPMediaBufferWriter;
+class RTPMediaPacketBufferWriter;
 typedef std::unordered_map<
     MediaBufferFactoryKey,
-    std::function<std::unique_ptr<RTPMediaBufferWriter>(const MediaSettings& media_settings,
+    std::function<std::unique_ptr<RTPMediaPacketBufferWriter>(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)>,
-        MediaBufferFactoryKeyHash> rtp_media_buffer_writer_factory_map_t;
+        MediaBufferFactoryKeyHash> rtp_media_packet_buffer_writer_factory_map_t;
 
 /**
  * @brief: Writes RTP packets with media payload.
@@ -119,22 +121,22 @@ typedef std::unordered_map<
  * the pure virtual methods to build the RTP header, write payload,
  * update the in-frame state, and set the concrete stream properties.
  */
-class RTPMediaBufferWriter : public IBufferWriter
+class RTPMediaPacketBufferWriter : public IULPPacketBufferWriter
 {
 protected:
     const MediaSettings& m_media_settings;
     uint32_t m_ssrc = 0;
     RTPStreamSendStats m_send_data;
 private:
-    /* Factory map for creating RTPMediaBufferWriter instances. */
-    static rtp_media_buffer_writer_factory_map_t s_rtp_media_buffer_writer_factory;
+    /* Factory map for creating RTPMediaPacketBufferWriter instances. */
+    static rtp_media_packet_buffer_writer_factory_map_t s_rtp_media_packet_buffer_writer_factory;
 public:
     /**
-     * @brief: Destructor for @ref RTPMediaBufferWriter.
+     * @brief: Destructor for @ref RTPMediaPacketBufferWriter.
      */
-    virtual ~RTPMediaBufferWriter() = default;
+    virtual ~RTPMediaPacketBufferWriter() = default;
     /**
-     * @brief: Factory method to get an @ref RTPMediaBufferWriter instance.
+     * @brief: Factory method to get an @ref RTPMediaPacketBufferWriter instance.
      *
      * @param [in] smpte_standard: SMPTE standard.
      * @param [in] contains_payload: Flag indicating whether the buffer contains payload.
@@ -142,9 +144,9 @@ public:
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
      *
-     * @return: Unique pointer to an RTPMediaBufferWriter instance.
+     * @return: Unique pointer to an RTPMediaPacketBufferWriter instance.
      */
-    static std::unique_ptr<RTPMediaBufferWriter> get_rtp_media_buffer_writer(
+    static std::unique_ptr<RTPMediaPacketBufferWriter> get_rtp_media_packet_buffer_writer(
         SMPTEStandard smpte_standard, bool contains_payload, const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     ReturnStatus write_buffer(void* payload_ptr, size_t length_in_strides) override;
@@ -165,13 +167,13 @@ public:
     void set_first_packet_timestamp(uint64_t packet_time_ns);
 protected:
     /**
-     * @brief: Constructor for @ref RTPMediaBufferWriter.
+     * @brief: Constructor for @ref RTPMediaPacketBufferWriter.
      *
      * @param [in] media_settings: Media settings.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
      */
-    RTPMediaBufferWriter(const MediaSettings& media_settings,
+    RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     /**
      * @brief: Builds the complete RTP header.
@@ -219,4 +221,4 @@ protected:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_BUFFER_WR_RTP_MEDIA_BUFFER_WRITER_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_MEDIA_PACKET_BUFFER_WRITER_H_ */

@@ -22,10 +22,10 @@
 
 #include "rt_threads.h"
 
-#include "rdk/services/buffer_wr/rtp_ancillary_buffer_writer.h"
-#include "rdk/services/buffer_wr/rtp_audio_buffer_writer.h"
-#include "rdk/services/buffer_wr/rtp_media_buffer_writer.h"
-#include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_20_packet_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_30_packet_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_40_packet_buffer_writer.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -41,16 +41,16 @@ struct RTPHeader {
     uint32_t ssrc;             // Synchronization source (SSRC) identifier
 };
 
-RTPMediaBufferWriter::RTPMediaBufferWriter(const MediaSettings& media_settings,
+RTPMediaPacketBufferWriter::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-    IBufferWriter(std::move(header_mem_utils), std::move(payload_mem_utils)),
+    IULPPacketBufferWriter(std::move(header_mem_utils), std::move(payload_mem_utils)),
     m_media_settings(media_settings),
     m_ssrc(DEFAULT_SSRC) // Simulated SSRC.
 {
     set_stream_properties();
 }
 
-ReturnStatus RTPMediaBufferWriter::write_buffer(void* payload_ptr, size_t length_in_strides)
+ReturnStatus RTPMediaPacketBufferWriter::write_buffer(void* payload_ptr, size_t length_in_strides)
 {
     byte_t* header_pointer = reinterpret_cast<byte_t*>(payload_ptr);
     assert(header_pointer);
@@ -69,7 +69,7 @@ ReturnStatus RTPMediaBufferWriter::write_buffer(void* payload_ptr, size_t length
     return ReturnStatus::success;
 }
 
-ReturnStatus RTPMediaBufferWriter::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
+ReturnStatus RTPMediaPacketBufferWriter::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
 {
     assert(payload_ptr);
     assert(header_ptr);
@@ -93,7 +93,7 @@ ReturnStatus RTPMediaBufferWriter::write_buffer(void* header_ptr, void* payload_
     return ReturnStatus::success;
 }
 
-size_t RTPMediaBufferWriter::build_rtp_header_common(byte_t* buffer)
+size_t RTPMediaPacketBufferWriter::build_rtp_header_common(byte_t* buffer)
 {
     // build RTP header - 12 bytes:
     /*
@@ -121,20 +121,20 @@ size_t RTPMediaBufferWriter::build_rtp_header_common(byte_t* buffer)
     return sizeof(RTPHeader);
 }
 
-void RTPMediaBufferWriter::set_first_packet_timestamp(uint64_t packet_time_ns)
+void RTPMediaPacketBufferWriter::set_first_packet_timestamp(uint64_t packet_time_ns)
 {
     m_send_data.rtp_timestamp = static_cast<uint32_t>(
         time_to_rtp_timestamp(packet_time_ns, static_cast<int>(m_media_settings.sample_rate)));
 }
 
-rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_writer_factory = \
+rtp_media_packet_buffer_writer_factory_map_t RTPMediaPacketBufferWriter::s_rtp_media_packet_buffer_writer_factory = \
 {
     {
         {SMPTEStandard::ST_2110_20, false},
         [](const MediaSettings& media_settings,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
-            return std::unique_ptr<RTPMediaBufferWriter>(new RTPVideoMockBufferWriter(media_settings,
+            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_20_MockPacketBufferWriter(media_settings,
                 std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },
@@ -143,7 +143,7 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
         [](const MediaSettings& media_settings,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
-            return std::unique_ptr<RTPMediaBufferWriter>(new RTPVideoBufferWriter(media_settings,
+            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_20_PacketBufferWriter(media_settings,
                 std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },
@@ -152,7 +152,7 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
         [](const MediaSettings& media_settings,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
-            return std::unique_ptr<RTPMediaBufferWriter>(new RTPAudioBufferWriter(media_settings,
+            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_30_PacketBufferWriter(media_settings,
                 std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },
@@ -161,7 +161,7 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
         [](const MediaSettings& media_settings,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
-            return std::unique_ptr<RTPMediaBufferWriter>(new RTPAudioBufferWriter(media_settings,
+            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_30_PacketBufferWriter(media_settings,
                 std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },
@@ -170,7 +170,7 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
         [](const MediaSettings& media_settings,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
-            return std::unique_ptr<RTPMediaBufferWriter>(new RTPAncillaryBufferWriter(media_settings,
+            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_40_PacketBufferWriter(media_settings,
                 std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },
@@ -179,19 +179,19 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
         [](const MediaSettings& media_settings,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
-            return std::unique_ptr<RTPMediaBufferWriter>(new RTPAncillaryBufferWriter(media_settings,
+            return std::unique_ptr<RTPMediaPacketBufferWriter>(new RTP_SMPTE_2110_40_PacketBufferWriter(media_settings,
                 std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },
 };
 
-std::unique_ptr<RTPMediaBufferWriter> RTPMediaBufferWriter::get_rtp_media_buffer_writer(
+std::unique_ptr<RTPMediaPacketBufferWriter> RTPMediaPacketBufferWriter::get_rtp_media_packet_buffer_writer(
     SMPTEStandard type, bool contains_payload, const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
 {
     auto key = MediaBufferFactoryKey(type, contains_payload);
-    auto iter = RTPMediaBufferWriter::s_rtp_media_buffer_writer_factory.find(key);
-    if (iter != RTPMediaBufferWriter::s_rtp_media_buffer_writer_factory.end()) {
+    auto iter = RTPMediaPacketBufferWriter::s_rtp_media_packet_buffer_writer_factory.find(key);
+    if (iter != RTPMediaPacketBufferWriter::s_rtp_media_packet_buffer_writer_factory.end()) {
         return iter->second(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils));
     } else {
         return nullptr;

@@ -30,7 +30,7 @@
 #include "rdk/io_node/common/chunk_buffer_writer_interface.h"
 #include "rdk/io_node/common/io_node_memory_utils.h"
 #include "rdk/io_node/common/rtp_video_send_stream.h"
-#include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
 #include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/utils/synchronizer.h"
@@ -71,7 +71,7 @@ private:
         std::unique_ptr<MediaChunk> chunk_handler;
         std::unique_ptr<MediaStreamMemBlockset> mem_blockset;
         std::vector<TwoTupleFlow> flows;
-        std::unique_ptr<RTPMediaBufferWriter> buffer_writer;
+        std::unique_ptr<RTPMediaPacketBufferWriter> packet_buffer_writer;
         std::shared_ptr<IMediaEssenceProvider> essence_provider;
     };
     static constexpr size_t DEFAULT_PRINT_TIME_INTERVAL_MS = 1000;

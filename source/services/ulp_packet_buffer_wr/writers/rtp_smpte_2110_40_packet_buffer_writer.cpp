@@ -20,7 +20,7 @@
 #include <cstddef>
 #include <cstring>
 
-#include "rdk/services/buffer_wr/rtp_ancillary_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_40_packet_buffer_writer.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -53,27 +53,27 @@ struct AncillaryRTPExtension
 
 static constexpr size_t RTP_HEADER_EXT_SEQ_NUM_SIZE = 2;
 
-RTPAncillaryBufferWriter::RTPAncillaryBufferWriter(const MediaSettings& media_settings,
+RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-    RTPMediaBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils)),
+    RTPMediaPacketBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils)),
     m_field_indicator(0)
 {
     set_stream_properties();
 }
 
-ReturnStatus RTPAncillaryBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
     reset_in_media_unit_state();
     return ReturnStatus::success;
 }
 
-void RTPAncillaryBufferWriter::reset_in_media_unit_state()
+void RTP_SMPTE_2110_40_PacketBufferWriter::reset_in_media_unit_state()
 {
     m_send_data.packet_counter = 0;
     m_field_indicator = 0;
 }
 
-void RTPAncillaryBufferWriter::update_in_media_unit_state()
+void RTP_SMPTE_2110_40_PacketBufferWriter::update_in_media_unit_state()
 {
     // ST 2110-40: timestamp is the SAME for all packets in a media unit (like video)
     // Only increment after the last packet of the media unit
@@ -89,7 +89,7 @@ void RTPAncillaryBufferWriter::update_in_media_unit_state()
     m_send_data.rtp_sequence++;
 }
 
-size_t RTPAncillaryBufferWriter::build_rtp_header_2110_40_extension(byte_t* buffer)
+size_t RTP_SMPTE_2110_40_PacketBufferWriter::build_rtp_header_2110_40_extension(byte_t* buffer)
 {
     // Build ST 2110-40 ancillary extension header
     /* 0                   1                   2                   3
@@ -119,7 +119,7 @@ size_t RTPAncillaryBufferWriter::build_rtp_header_2110_40_extension(byte_t* buff
     return 8;  // Size of ST 2110-40 extension header
 }
 
-size_t RTPAncillaryBufferWriter::build_rtp_header(byte_t* buffer)
+size_t RTP_SMPTE_2110_40_PacketBufferWriter::build_rtp_header(byte_t* buffer)
 {
     // Build standard RTP header (marker bit set correctly by base class)
     // Marker = 1 only on last packet of frame (packets_in_media_unit - 1)
@@ -131,7 +131,7 @@ size_t RTPAncillaryBufferWriter::build_rtp_header(byte_t* buffer)
     return rtp_header_size + extension_size;
 }
 
-size_t RTPAncillaryBufferWriter::fill_packet(byte_t* buffer)
+size_t RTP_SMPTE_2110_40_PacketBufferWriter::fill_packet(byte_t* buffer)
 {
     // Mock implementation: no actual payload filling
     // Real implementation would copy ancillary data here

@@ -16,19 +16,9 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_SERVICES_H_
-#define RDK_SERVICES_SERVICES_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_ULP_PACKET_BUFFER_WR_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_WR_ULP_PACKET_BUFFER_WR_H_
 
-#include "rdk/services/memory_allocation/memory_allocation.h"
-#include "rdk/services/ulp_packet_buffer_wr/ulp_packet_buffer_wr.h"
-#include "rdk/services/media/media.h"
-#include "rdk/services/protocol/protocol.h"
-#include "rdk/services/utils/utils.h"
-#include "rdk/services/statistics/statistics.h"
-#include "rdk/services/cpu/cpu.h"
-#include "rdk/services/cli/cli.h"
-#include "rdk/services/settings/settings.h"
-#include "rdk/services/error_handling/error_handling.h"
-#include "rdk/services/sdp/sdp.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/writers.h"
 
-#endif /* RDK_SERVICES_SERVICES_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_WR_ULP_PACKET_BUFFER_WR_H_ */

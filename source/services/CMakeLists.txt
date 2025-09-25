@@ -44,7 +44,7 @@ set(RIVERMAX_DEV_KIT_SERVICE_COMPONENTS
     media
     protocol
     sdp
-    buffer_wr
+    ulp_packet_buffer_wr
     memory_allocation
 )
 foreach(service_component ${RIVERMAX_DEV_KIT_SERVICE_COMPONENTS})

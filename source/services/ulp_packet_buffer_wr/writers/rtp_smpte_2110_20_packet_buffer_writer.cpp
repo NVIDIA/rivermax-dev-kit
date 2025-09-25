@@ -20,7 +20,7 @@
 #include <cstddef>
 #include <cstring>
 
-#include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_20_packet_buffer_writer.h"
 #include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
@@ -47,20 +47,20 @@ struct SRDHeader {
     }
  };
 
- RTPVideoMockBufferWriter::RTPVideoMockBufferWriter(const MediaSettings& media_settings,
+ RTP_SMPTE_2110_20_MockPacketBufferWriter::RTP_SMPTE_2110_20_MockPacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-    RTPMediaBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils))
+    RTPMediaPacketBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils))
 {
     set_stream_properties();
 }
 
-ReturnStatus RTPVideoMockBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+ReturnStatus RTP_SMPTE_2110_20_MockPacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
     reset_in_media_unit_state();
     return ReturnStatus::success;
 }
 
-void RTPVideoMockBufferWriter::reset_in_media_unit_state()
+void RTP_SMPTE_2110_20_MockPacketBufferWriter::reset_in_media_unit_state()
 {
     m_send_data.packet_counter = 0;
     m_send_data.line_number = 0;
@@ -68,7 +68,7 @@ void RTPVideoMockBufferWriter::reset_in_media_unit_state()
     m_send_data.rtp_interlace_field_indicator = 0;
 }
 
-inline void RTPVideoMockBufferWriter::update_in_media_unit_state()
+inline void RTP_SMPTE_2110_20_MockPacketBufferWriter::update_in_media_unit_state()
 {
     auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
     m_send_data.srd_offset = (m_send_data.srd_offset + video_settings.pixels_per_packet) %
@@ -89,7 +89,7 @@ inline void RTPVideoMockBufferWriter::update_in_media_unit_state()
     m_send_data.rtp_sequence++;
 }
 
-size_t RTPVideoMockBufferWriter::build_rtp_header_2110_20_extension(byte_t* buffer)
+size_t RTP_SMPTE_2110_20_MockPacketBufferWriter::build_rtp_header_2110_20_extension(byte_t* buffer)
 {
     // build SRD header - 8-14 bytes:
     /* 0                   1                   2                   3
@@ -113,26 +113,26 @@ size_t RTPVideoMockBufferWriter::build_rtp_header_2110_20_extension(byte_t* buff
     return RTP_HEADER_EXT_SEQ_NUM_SIZE + sizeof(SRDHeader);
 }
 
-size_t RTPVideoMockBufferWriter::build_rtp_header(byte_t* buffer)
+size_t RTP_SMPTE_2110_20_MockPacketBufferWriter::build_rtp_header(byte_t* buffer)
 {
     size_t rtp_header_size = build_rtp_header_common(buffer);
     size_t extension_size = build_rtp_header_2110_20_extension(buffer + rtp_header_size);
     return rtp_header_size + extension_size;
 }
 
-ReturnStatus RTPVideoBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+ReturnStatus RTP_SMPTE_2110_20_PacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
     if (media_unit == nullptr || media_unit->data == nullptr) {
         std::cerr << "Error: Media unit is null or media unit data is null" << std::endl;
         return ReturnStatus::failure;
     }
-    RTPVideoMockBufferWriter::set_next_media_unit(media_unit);
+    RTP_SMPTE_2110_20_MockPacketBufferWriter::set_next_media_unit(media_unit);
     m_current_media_unit = std::move(media_unit);
     m_data_left_in_frame = m_current_media_unit->data->get_size();
     return ReturnStatus::success;
 }
 
-ReturnStatus RTPVideoBufferWriter::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
+ReturnStatus RTP_SMPTE_2110_20_PacketBufferWriter::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
 {
     byte_t* header_pointer = reinterpret_cast<byte_t*>(header_ptr);
     byte_t* payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);
@@ -190,7 +190,7 @@ ReturnStatus RTPVideoBufferWriter::write_buffer(void* header_ptr, void* payload_
     return ReturnStatus::success;
 }
 
-size_t RTPVideoBufferWriter::fill_packet(byte_t* buffer)
+size_t RTP_SMPTE_2110_20_PacketBufferWriter::fill_packet(byte_t* buffer)
 {
     if (m_current_media_unit == nullptr || m_current_media_unit->data == nullptr ||
         m_current_media_unit->data->get() == nullptr || !m_payload_mem_utils) {

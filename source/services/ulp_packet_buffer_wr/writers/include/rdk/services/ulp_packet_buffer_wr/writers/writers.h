@@ -16,11 +16,13 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_BUFFER_WR_BUFFER_WR_H_
-#define RDK_SERVICES_BUFFER_WR_BUFFER_WR_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_WRITERS_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_WRITERS_H_
 
-#include "rdk/services/buffer_wr/buffer_writer_interface.h"
-#include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
-#include "rdk/services/buffer_wr/rtp_media_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/ulp_packet_buffer_writer_interface.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_20_packet_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_30_packet_buffer_writer.h"
+#include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_40_packet_buffer_writer.h"
 
-#endif /* RDK_SERVICES_BUFFER_WR_BUFFER_WR_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_WRITERS_H_ */
