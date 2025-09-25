@@ -31,14 +31,6 @@ void MediaProbeSettings::init_default_values()
 
 ReturnStatus MediaProbeSettingsValidator::validate(const std::shared_ptr<MediaProbeSettings>& settings) const
 {
-#if defined(CUDA_ENABLED) && !defined(TEGRA_ENABLED)
-    if (settings->gpu_id != INVALID_GPU_ID && settings->packet_app_header_size == 0) {
-        std::cerr << "GPU Direct is supported only in header-data split mode\n"
-                << "Please specify application header size." << std::endl;
-        return ReturnStatus::failure;
-    }
-#endif
-
     ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->source_ip);
     if (rc != ReturnStatus::success) {
         return rc;
@@ -84,10 +76,6 @@ ReturnStatus MediaProbeCLISettingsBuilder::add_cli_options(std::shared_ptr<Media
     m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
-#ifdef CUDA_ENABLED
-    m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
-#endif
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
     m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
