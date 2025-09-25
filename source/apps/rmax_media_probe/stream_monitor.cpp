@@ -40,7 +40,7 @@ StreamMonitor::StreamMonitor(const MediaProbeSettings &app_settings, const Recei
 {
 }
 
-void StreamMonitor::measure_media_delay(uint64_t receive_ts, uint32_t rtp_ts)
+void StreamMonitor::measure_media_latency(uint64_t receive_ts, uint32_t rtp_ts)
 {
     double rtp_frequency = m_app_settings.media.sample_rate;
     uint64_t rtp_round = receive_ts / (static_cast<double>(1L << 32) / rtp_frequency * NS_IN_SEC);
@@ -81,7 +81,7 @@ void StreamMonitor::process_new_frame(uint64_t receive_timestamp, uint32_t rtp_t
     uint32_t frame_packet_count = rtp_seq_num - m_prev_frame_seq_num;
     m_prev_frame_rtp_timestamp = rtp_timestamp;
     m_prev_frame_seq_num = rtp_seq_num;
-    measure_media_delay(receive_timestamp, rtp_timestamp);
+    measure_media_latency(receive_timestamp, rtp_timestamp);
 
     NewFrameEvent event = {
         .component_id = m_component_id,
@@ -133,7 +133,10 @@ ReturnStatus StreamMonitor::consume_chunk(const ReceiveChunk& chunk, const IRece
             m_prev_frame_seq_num = rtp_seq_num;
             continue;
         }
-        
+        /*
+         * Check if the sequence number is consecutive. Packet reordering or duplication
+         * by the network is not allowed.
+         */
         if (rtp_seq_num != m_prev_rtp_seq_num + 1) {
             m_missing_packets += rtp_seq_num - m_prev_rtp_seq_num - 1;
         }
@@ -166,7 +169,7 @@ void StreamMonitor::print_and_reset_stats(std::ostream& out)
         << ". Frames: " << stats.received_frames_diff
         << " of size (pkts): " << stats.packets_in_last_frame
         << ". FPS: " << std::fixed << std::setprecision(2) << stats.fps
-        << ". Media delay (us) last: " << stats.media_delay_usec << " us"
+        << ". Media latency last: " << stats.media_delay_usec << " us"
         << ", min: " << stats.media_delay_min_usec << " us"
         << ", max: " << stats.media_delay_max_usec << " us"
         << std::endl;

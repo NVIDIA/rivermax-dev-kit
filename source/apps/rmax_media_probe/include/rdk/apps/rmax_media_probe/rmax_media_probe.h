@@ -108,7 +108,7 @@ using MediaProbeExternalSettingsBuilder = ExternalSettingsBuilder<MediaProbeSett
  * The application tracks the synchronization of these components by matching
  * RTP timestamps across the two streams.
  * The application also tracks:
- *  - the media delay of each component by calculating
+ *  - the media latency of each component by calculating
  *    the difference between the receive timestamp and the RTP timestamp.
  *  - the number of dropped packets by calculating tracking RTP sequence numbers.
  *  - the number of received frames, packets, bytes.

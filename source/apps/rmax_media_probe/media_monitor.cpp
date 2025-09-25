@@ -52,6 +52,10 @@ void MediaMonitor::restart_rtp_matching(MediaComponentId component_id, uint32_t 
 /**
  * @brief: Match RTP timestamps across media components for synchronization.
  *
+ * This algorithm verifies that the sequences of RTP timestamps in the incoming
+ * media component streams are equal. This rule is applicable to video and alpha/key streams
+ * as well as for ancillary streams representing the same media content.
+ * 
  * The algorithm works in the assumptions that the incoming data is buffered in chunks
  * in the amount not higher than one frame: when two streams are sent synchronously
  * (both have the same FPS and both comply to ST2110-21, one stream can never be fetched
@@ -59,7 +63,7 @@ void MediaMonitor::restart_rtp_matching(MediaComponentId component_id, uint32_t 
  * The idea is the following:
  * Each stream has a flag is_rtp_ts_valid, meaning that a stream has a new frame that
  * is pending matching with other components. The flag is cleared when all streams
- * get a frame with the same timestamp (matching succeeded, a new matchinch cycle starts),
+ * get a frame with the same timestamp (matching succeeded, a new matching cycle starts),
  * or when another stream receives a a frame with non-matching timestamp (matching failed,
  * a new matching cycle starts).
  * When a new frame is detected in one stream, its RTP timestamp is compared to the

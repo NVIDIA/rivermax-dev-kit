@@ -77,7 +77,7 @@ struct MediaProbeSettings;
  * @brief: Stream monitor for RTP packet processing and frame detection.
  *
  * This class monitors RTP streams, processes incoming packets, detects frame boundaries,
- * and tracks various statistics including packet loss, frame rates, and media delays.
+ * and tracks various statistics including packet loss, frame rates, and media latencies.
  * It provides callbacks for new frame events and maintains shared statistics.
  */
 class StreamMonitor
@@ -169,12 +169,12 @@ public:
     MediaComponentId get_component_id() const { return m_component_id; };
 protected:
     /**
-     * @brief: Measure media delay between receive timestamp and RTP timestamp.
+     * @brief: Measure media latency as difference between receive timestamp and RTP timestamp.
      *
      * @param [in] receive_ts: Timestamp when packet was received.
      * @param [in] rtp_ts: RTP timestamp from packet header.
      */
-    void measure_media_delay(uint64_t receive_ts, uint32_t rtp_ts);
+    void measure_media_latency(uint64_t receive_ts, uint32_t rtp_ts);
     /**
      * @brief: Process a newly detected frame.
      *
