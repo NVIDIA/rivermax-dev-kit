@@ -100,9 +100,9 @@ protected:
     uint64_t m_packets_per_frame = 0;
     bool m_is_first_frame = true;
     float m_fps = 0.0f;
-    float m_media_delay_usec = 0.0f;
-    float m_media_delay_min_usec = 0.0f;
-    float m_media_delay_max_usec = 0.0f;
+    float m_media_latency_usec = 0.0f;
+    float m_media_latency_min_usec = 0.0f;
+    float m_media_latency_max_usec = 0.0f;
     OnNewFrameCallback m_on_new_frame_callback;
     /**
      * @brief: Shared statistics structure for thread-safe access.
@@ -121,9 +121,9 @@ protected:
         uint32_t prev_frame_rtp_timestamp = 0;
         uint32_t prev_frame_seq_num = 0;
         float fps = 0.0f;
-        float media_delay_usec = 0.0f;
-        float media_delay_min_usec = 0.0f;
-        float media_delay_max_usec = 0.0f;
+        float media_latency_usec = 0.0f;
+        float media_latency_min_usec = 0.0f;
+        float media_latency_max_usec = 0.0f;
     };
 
     SharedStats m_shared_stats;

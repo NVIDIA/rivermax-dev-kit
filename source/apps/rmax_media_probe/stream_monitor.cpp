@@ -19,6 +19,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 
 #include "rdk/services/media/media_defs.h"
 #include "rdk/apps/rmax_media_probe/stream_monitor.h"
@@ -42,19 +43,28 @@ StreamMonitor::StreamMonitor(const MediaProbeSettings &app_settings, const Recei
 
 void StreamMonitor::measure_media_latency(uint64_t receive_ts, uint32_t rtp_ts)
 {
-    double rtp_frequency = m_app_settings.media.sample_rate;
-    uint64_t rtp_round = receive_ts / (static_cast<double>(1L << 32) / rtp_frequency * NS_IN_SEC);
-    double rtp_time = (static_cast<uint64_t>(rtp_ts) + rtp_round * static_cast<uint64_t>(1L << 32)) / rtp_frequency;
-    double receive_time = static_cast<double>(receive_ts) / NS_IN_SEC;
-    double delay_usec = (receive_time - rtp_time) * static_cast<float>(microseconds{ seconds{ 1 } }.count());
-    m_media_delay_usec = delay_usec;
+    long double rtp_frequency = m_app_settings.media.sample_rate;
+    uint32_t receive_ts_2_rtp_time;
+    long double receive_ts_2_rtp_time_f;
+    long double receive_ts_remainder;
+    int32_t diff_in_rtp_time;
+    long double media_latency;
+
+    receive_ts_remainder = modfl(rtp_frequency * (receive_ts / duration_cast<duration<long double, std::nano>>(seconds{1}).count()),
+        &receive_ts_2_rtp_time_f);
+    receive_ts_2_rtp_time = static_cast<uint32_t>(receive_ts_2_rtp_time_f);
+    /* calculate timestamp difference in RTP TS domain to handle 32-bit
+     * wraparound */
+    diff_in_rtp_time = static_cast<int32_t>(receive_ts_2_rtp_time - rtp_ts);
+    media_latency = (diff_in_rtp_time + receive_ts_remainder) / rtp_frequency;
+    m_media_latency_usec = media_latency * microseconds{ seconds{ 1 } }.count();
     if (unlikely(m_is_first_frame)) {
-        m_media_delay_min_usec = m_media_delay_usec;
-        m_media_delay_max_usec = m_media_delay_usec;
+        m_media_latency_min_usec = m_media_latency_usec;
+        m_media_latency_max_usec = m_media_latency_usec;
         return;
     }
-    m_media_delay_min_usec = std::min(m_media_delay_min_usec, m_media_delay_usec);
-    m_media_delay_max_usec = std::max(m_media_delay_max_usec, m_media_delay_usec);
+    m_media_latency_min_usec = std::min(m_media_latency_min_usec, m_media_latency_usec);
+    m_media_latency_max_usec = std::max(m_media_latency_max_usec, m_media_latency_usec);
 }
 
 void StreamMonitor::update_shared_stats()
@@ -70,9 +80,9 @@ void StreamMonitor::update_shared_stats()
     m_shared_stats.total_received_frames = m_received_frames;
     m_shared_stats.packets_in_last_frame = m_packets_per_frame;
     m_shared_stats.fps = m_fps;
-    m_shared_stats.media_delay_usec = m_media_delay_usec;
-    m_shared_stats.media_delay_min_usec = m_media_delay_min_usec;
-    m_shared_stats.media_delay_max_usec = m_media_delay_max_usec;
+    m_shared_stats.media_latency_usec = m_media_latency_usec;
+    m_shared_stats.media_latency_min_usec = m_media_latency_min_usec;
+    m_shared_stats.media_latency_max_usec = m_media_latency_max_usec;
 }
 
 void StreamMonitor::process_new_frame(uint64_t receive_timestamp, uint32_t rtp_timestamp, uint32_t rtp_seq_num, const IReceiveStream& stream)
@@ -89,7 +99,7 @@ void StreamMonitor::process_new_frame(uint64_t receive_timestamp, uint32_t rtp_t
         .receive_ts = receive_timestamp,
         .rtp_ts = rtp_timestamp,
         .rtp_seq_num = rtp_seq_num,
-        .media_delay_usec = m_media_delay_usec
+        .media_delay_usec = m_media_latency_usec
     };
 
     m_on_new_frame_callback(event);
@@ -169,9 +179,9 @@ void StreamMonitor::print_and_reset_stats(std::ostream& out)
         << ". Frames: " << stats.received_frames_diff
         << " of size (pkts): " << stats.packets_in_last_frame
         << ". FPS: " << std::fixed << std::setprecision(2) << stats.fps
-        << ". Media latency last: " << stats.media_delay_usec << " us"
-        << ", min: " << stats.media_delay_min_usec << " us"
-        << ", max: " << stats.media_delay_max_usec << " us"
+        << ". Media latency last: " << stats.media_latency_usec << " us"
+        << ", min: " << stats.media_latency_min_usec << " us"
+        << ", max: " << stats.media_latency_max_usec << " us"
         << std::endl;
     out << oss.str();
 }
