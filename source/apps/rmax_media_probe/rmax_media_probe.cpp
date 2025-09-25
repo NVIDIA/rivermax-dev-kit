@@ -27,6 +27,7 @@ void MediaProbeSettings::init_default_values()
     AppSettings::init_default_values();
     app_memory_alloc = true;
     num_of_packets_in_chunk = DEFAULT_NUM_OF_PACKETS_IN_CHUNK;
+    register_memory = true;
 }
 
 ReturnStatus MediaProbeSettingsValidator::validate(const std::shared_ptr<MediaProbeSettings>& settings) const
@@ -77,7 +78,6 @@ ReturnStatus MediaProbeCLISettingsBuilder::add_cli_options(std::shared_ptr<Media
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
-    m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
     m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
