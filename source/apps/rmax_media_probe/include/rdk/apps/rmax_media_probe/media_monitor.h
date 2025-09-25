@@ -50,8 +50,6 @@ struct MediaComponent
     bool is_rtp_ts_valid;
     bool is_rtp_ts_pending;
     uint32_t rtp_seq_num;
-    bool is_extended_seq_num;
-    size_t packet_count;
 };
 
 /**
