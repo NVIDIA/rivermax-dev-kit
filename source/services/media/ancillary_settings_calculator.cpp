@@ -137,7 +137,7 @@ std::string ST_2110_40_MediaSettingsCalculator::generate_media_sdp(
     return sdp_stub;
 }
 
-std::string ST_2110_40_MediaSettingsCalculator::get_media_type_name() const
+std::string ST_2110_40_MediaSettingsCalculator::get_smpte_standard_name() const
 {
     return "Ancillary";
 }

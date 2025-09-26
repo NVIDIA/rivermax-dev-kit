@@ -63,6 +63,16 @@ struct AppMediaSettings
     size_t raw_packet_payload_size = 0;
     uint8_t payload_type = 96;
     uint16_t pixels_per_packet = 0;
+    bool enable_video = false;
+    bool enable_audio = false;
+    bool enable_ancillary = false;
+    uint32_t ptime_us = 1000;
+    AudioSamplingRate audio_sampling_rate = AudioSamplingRate::_48000;
+    AudioEncoding audio_encoding = AudioEncoding::L24;
+    uint8_t audio_channels_num = 2;
+    uint16_t anc_did = 0;
+    uint16_t anc_sdid = 0;
+    uint16_t anc_data_size = 128;
 };
 
 }  // namespace services

@@ -108,9 +108,18 @@ public:
     static const char* VIDEO_SAMPLING;
     static const char* VIDEO_BIT_DEPTH;
     static const char* ALPHA_BIT_DEPTH;
+    static const char* ENABLE_VIDEO;
     static const char* ENABLE_ALPHA;
+    static const char* ENABLE_AUDIO;
+    static const char* ENABLE_ANCILLARY;
     static const char* VIDEO_FILE;
     static const char* DYNAMIC_FILE_LOADING;
+    static const char* PTIME_US;
+    static const char* AUDIO_SAMPLING_RATE;
+    static const char* AUDIO_ENCODING;
+    static const char* ANCILLARY_DID;
+    static const char* ANCILLARY_SDID;
+    static const char* ANCILLARY_DATA_SIZE;
 };
 /**
  * @brief: CLI groups string key.
@@ -121,6 +130,8 @@ class CLIGroupStr
 {
 public:
     static const char* VIDEO_FORMAT_OPTIONS;
+    static const char* AUDIO_FORMAT_OPTIONS;
+    static const char* ANCILLARY_FORMAT_OPTIONS;
 };
 
 } // namespace services

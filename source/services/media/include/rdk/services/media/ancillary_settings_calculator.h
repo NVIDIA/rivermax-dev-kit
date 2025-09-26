@@ -82,11 +82,11 @@ public:
     virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) override;
     /**
-     * @brief: Returns the media type name.
+     * @brief: Returns the SMPTE standard name.
      *
-     * @return: String representation of the SMPTE 2110-40 ancillary data media type.
+     * @return: String representation of the SMPTE 2110-40 ancillary data SMPTE standard.
      */
-    virtual std::string get_media_type_name() const override;
+    virtual std::string get_smpte_standard_name() const override;
 
 private:
     /**

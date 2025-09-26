@@ -20,6 +20,8 @@
 #include <string>
 #include <iostream>
 #include <cstddef>
+#include <algorithm>
+#include <unordered_map>
 
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/audio_settings_calculator.h"
@@ -34,30 +36,46 @@ namespace dev_kit
 namespace services
 {
 
-constexpr size_t BITS_IN_BYTES = 8;
-constexpr uint8_t DSCP_MEDIA_RTP_CLASS = 34;
+// Audio sampling rate to Hz value mapping
+const std::unordered_map<AudioSamplingRate, uint32_t> AUDIO_SAMPLING_RATE_MAP = {
+    {AudioSamplingRate::_44100, 44100},
+    {AudioSamplingRate::_48000, 48000},
+    {AudioSamplingRate::_96000, 96000}
+};
+
+// Audio encoding to bit depth mapping
+const std::unordered_map<AudioEncoding, uint32_t> AUDIO_ENCODING_BIT_DEPTH_MAP = {
+    {AudioEncoding::L16, 16},
+    {AudioEncoding::L20, 20},
+    {AudioEncoding::L24, 24}
+};
 
 bool ST_2110_30_MediaSettingsCalculator::is_channel_count_supported(uint8_t num_channels)
 {
-    return SUPPORTED_AUDIO_CHANNEL_COUNTS.find(num_channels) != SUPPORTED_AUDIO_CHANNEL_COUNTS.end();
+    return std::find(SUPPORTED_AUDIO_CHANNEL_COUNTS.begin(), SUPPORTED_AUDIO_CHANNEL_COUNTS.end(), num_channels) 
+           != SUPPORTED_AUDIO_CHANNEL_COUNTS.end();
 }
 
 ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
 {
     m_media_settings.packets_per_second = USEC_IN_SEC / m_media_settings.ptime_usec;
     
-    uint32_t sampling_freq_value = static_cast<uint32_t>(m_media_settings.sampling_frequency);
-    
-    // Validate samples per packet is an integer
-    if (sampling_freq_value % m_media_settings.packets_per_second != 0) {
-        std::cerr << "Error: Sampling frequency (" << sampling_freq_value 
-                  << " Hz) is not evenly divisible by packet rate (" << m_media_settings.packets_per_second
-                  << " packets/sec). This will cause sample truncation." << std::endl;
+    auto rate_it = AUDIO_SAMPLING_RATE_MAP.find(m_media_settings.sampling_rate);
+    if (rate_it == AUDIO_SAMPLING_RATE_MAP.end()) {
+        std::cerr << "Error: Unsupported audio sampling rate: " 
+                  << static_cast<int>(m_media_settings.sampling_rate) << std::endl;
         return ReturnStatus::failure;
     }
+    uint32_t sampling_rate_value = rate_it->second;
+    m_media_settings.samples_per_packet = sampling_rate_value / m_media_settings.packets_per_second;
     
-    m_media_settings.samples_per_packet = sampling_freq_value / m_media_settings.packets_per_second;
-    m_media_settings.bytes_per_sample = static_cast<size_t>(m_media_settings.bit_depth) / BITS_IN_BYTES;
+    auto encoding_it = AUDIO_ENCODING_BIT_DEPTH_MAP.find(m_media_settings.encoding);
+    if (encoding_it == AUDIO_ENCODING_BIT_DEPTH_MAP.end()) {
+        std::cerr << "Error: Unsupported audio encoding: " 
+                  << static_cast<int>(m_media_settings.encoding) << std::endl;
+        return ReturnStatus::failure;
+    }
+    m_media_settings.bytes_per_sample = encoding_it->second / 8;
     
     // Calculate payload size (samples * channels * bytes per sample)
     size_t payload_size = m_media_settings.samples_per_packet * 
@@ -132,8 +150,14 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
 
 ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_timing_parameters()
 {
-    // Audio uses sampling frequency as RTP clock rate (per ST 2110-30)
-    m_media_settings.sample_rate = static_cast<uint32_t>(m_media_settings.sampling_frequency);
+    // Audio uses sampling rate as RTP clock rate (per ST 2110-30)
+    auto rate_it = AUDIO_SAMPLING_RATE_MAP.find(m_media_settings.sampling_rate);
+    if (rate_it == AUDIO_SAMPLING_RATE_MAP.end()) {
+        std::cerr << "Error: Unsupported audio sampling rate: " 
+                  << static_cast<int>(m_media_settings.sampling_rate) << std::endl;
+        return ReturnStatus::failure;
+    }
+    m_media_settings.sample_rate = rate_it->second;
     m_media_settings.frame_field_time_interval_ns = static_cast<double>(m_media_settings.packets_in_frame_field * m_media_settings.ptime_usec * NS_IN_USEC);
     m_media_settings.ticks_per_frame = (static_cast<double>(m_media_settings.sample_rate) * m_media_settings.frame_field_time_interval_ns) / static_cast<double>(NS_IN_SEC);
     
@@ -189,7 +213,7 @@ std::string ST_2110_30_MediaSettingsCalculator::generate_media_sdp(
     return sdp_stub;
 }
 
-std::string ST_2110_30_MediaSettingsCalculator::get_media_type_name() const
+std::string ST_2110_30_MediaSettingsCalculator::get_smpte_standard_name() const
 {
     return "Audio";
 }

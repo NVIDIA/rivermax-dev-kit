@@ -20,9 +20,10 @@
 #define RDK_SERVICES_MEDIA_MEDIA_SETTINGS_AUDIO_H_
 
 #include <cstdint>
-#include <unordered_set>
+#include <vector>
 #include <cstddef>
 
+#include "rdk/services/sdp/sdp_defs.h"
 #include "rdk/services/media/media_settings.h"
 
 
@@ -33,51 +34,24 @@ namespace dev_kit
 namespace services
 {
 
-/**
- * @brief: Audio sampling frequencies for SMPTE ST 2110-30.
- *
- * This corresponds to the <sampling-frequency> field in "a=fmtp" attribute in SDP as per SMPTE ST 2110-30.
- */
-enum class AudioSamplingFrequency : uint32_t
-{
-    _48000 = 48000,
-    _96000 = 96000,
-    _192000 = 192000,
-
-    Unknown = 0
-};
-
-/**
- * @brief: Audio bit depths for SMPTE ST 2110-30.
- *
- * This corresponds to the <encoding> field in "a=fmtp" attribute in SDP as per SMPTE ST 2110-30.
- */
-enum class AudioBitDepth : uint8_t
-{
-    _16 = 16,
-    _24 = 24,
-    _32 = 32,
-
-    Unknown = 0
-};
 
 
 /* Supported audio sampling frequencies */
-const std::unordered_set<AudioSamplingFrequency> SUPPORTED_AUDIO_SAMPLING_FREQUENCIES = {
-    AudioSamplingFrequency::_48000,
-    AudioSamplingFrequency::_96000,
-    AudioSamplingFrequency::_192000
+const std::vector<AudioSamplingRate> SUPPORTED_AUDIO_SAMPLING_RATES = {
+    AudioSamplingRate::_44100,
+    AudioSamplingRate::_48000,
+    AudioSamplingRate::_96000,
 };
 
 /* Supported audio bit depths */
-const std::unordered_set<AudioBitDepth> SUPPORTED_AUDIO_BIT_DEPTHS = {
-    AudioBitDepth::_16,
-    AudioBitDepth::_24,
-    AudioBitDepth::_32
+const std::vector<AudioEncoding> SUPPORTED_AUDIO_ENCODINGS = {
+    AudioEncoding::L16,
+    AudioEncoding::L20,
+    AudioEncoding::L24
 };
 
 /* Supported audio channel counts */
-const std::unordered_set<uint8_t> SUPPORTED_AUDIO_CHANNEL_COUNTS = {
+const std::vector<uint8_t> SUPPORTED_AUDIO_CHANNEL_COUNTS = {
     1,  // Mono
     2,  // Stereo
     6,  // 5.1 surround
@@ -94,10 +68,11 @@ const std::unordered_set<uint8_t> SUPPORTED_AUDIO_CHANNEL_COUNTS = {
 struct SMPTE_2110_30_MediaSettings : public MediaSettings
 {
     virtual ~SMPTE_2110_30_MediaSettings() = default;
-    virtual SMPTEStandard get_media_type() const override { return SMPTEStandard::ST_2110_30; }
+    virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_30; }
 
-    AudioSamplingFrequency sampling_frequency = AudioSamplingFrequency::_48000;
-    AudioBitDepth bit_depth = AudioBitDepth::_24;
+    // ST 2110-30 specific parameters
+    AudioSamplingRate sampling_rate = AudioSamplingRate::_48000;
+    AudioEncoding encoding = AudioEncoding::L24;
     uint8_t num_channels = 2;
     uint32_t ptime_usec = 1000;
     

@@ -34,8 +34,6 @@ void MediaSenderSettings::init_default_values()
     media.frames_fields_in_mem_block = MediaSenderSettings::DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK;
     media.resolution = { FHD_WIDTH, FHD_HEIGHT };
     num_of_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
-    /* Before enabling other SMPTE standards, video is enabled by default */
-    enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
 }
 
 ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaSenderSettings>& settings) const
@@ -109,10 +107,28 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ALPHA_BIT_DEPTH)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_VIDEO)
+        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ALPHA)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::DYNAMIC_FILE_LOADING)->needs(video_file);
     m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
+    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_AUDIO)
+        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::PTIME_US)
+        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_SAMPLING_RATE)
+        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_ENCODING)
+        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ANCILLARY)
+        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_DID)
+        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_SDID)
+        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_DATA_SIZE)
+        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
 
     return ReturnStatus::success;
 }
@@ -128,10 +144,22 @@ ReturnStatus MediaSenderApp::post_load_settings()
 {
     uint32_t default_packets_in_chunk;
 
+    if(m_app_settings->media.enable_video) {
+        m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
+    }
+
     if (m_app_settings->media.enable_alpha) {
         if (m_app_settings->media.alpha_bit_depth == VideoBitDepth::Unknown) {
             m_app_settings->media.alpha_bit_depth = m_app_settings->media.color_bit_depth;
         }
+    }
+
+    if(m_app_settings->media.enable_audio) {
+        m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_30);
+    }
+
+    if(m_app_settings->media.enable_ancillary) {
+        m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_40);
     }
 
     if (m_app_settings->media.resolution == Resolution(UHD_WIDTH, UHD_HEIGHT) ||
@@ -309,14 +337,16 @@ void MediaSenderApp::configure_network_flows()
 
 ReturnStatus MediaSenderApp::configure_video_types()
 {
+    if(!m_app_settings->media.enable_video) {
+        return ReturnStatus::failure;
+    }
+
     size_t num_of_video_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
     if (num_of_video_threads < m_app_settings->num_of_threads) {
         std::cout << "The number of video threads is limited to the number of streams ("
             << num_of_video_threads << ")" << std::endl;
     }
     size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_video_threads;
-
-    m_media_sender_settings->smpte_standard_to_nodes.clear();
 
     bool alpha_enabled = m_app_settings->media.alpha_bit_depth != VideoBitDepth::Unknown;
 
@@ -389,8 +419,100 @@ ReturnStatus MediaSenderApp::configure_video_types()
     return ReturnStatus::success;
 }
 
+ReturnStatus MediaSenderApp::configure_audio_types()
+{
+    if(!m_app_settings->media.enable_audio) {
+        return ReturnStatus::failure;
+    }
+
+    size_t num_of_audio_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
+    if (num_of_audio_threads < m_app_settings->num_of_threads) {
+        std::cout << "The number of audio threads is limited to the number of streams ("
+            << num_of_audio_threads << ")" << std::endl;
+    }
+    size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_audio_threads;
+
+    std::unique_ptr<SMPTE_2110_30_MediaSettings> audio_settings = std::make_unique<SMPTE_2110_30_MediaSettings>();
+    audio_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*audio_settings);
+    if (!audio_settings->media_settings_calculator) {
+        std::cerr << "Failed to create media settings calculator for 2110-30 audio" << std::endl;
+        return ReturnStatus::failure;
+    }
+    audio_settings->header_data_split = m_app_settings->header_data_split;
+    audio_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
+    audio_settings->sampling_rate = m_app_settings->media.audio_sampling_rate;
+    audio_settings->encoding = m_app_settings->media.audio_encoding;
+    audio_settings->num_channels = m_app_settings->media.audio_channels_num;
+    audio_settings->ptime_usec = m_app_settings->media.ptime_us;
+    
+    ReturnStatus rc = audio_settings->media_settings_calculator->calculate_media_settings();
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to calculate media settings for 2110-30 audio" << std::endl;
+        return rc;
+    }
+
+    for (size_t idx = 0; idx < num_of_audio_threads; idx++) {
+        size_t num_of_streams_in_cur_thread;
+        if (min_number_streams_per_thread * num_of_audio_threads + idx < m_app_settings->num_of_total_streams) {
+            num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
+        } else {
+            num_of_streams_in_cur_thread = min_number_streams_per_thread;
+        }
+        m_media_sender_settings->smpte_standard_to_nodes.emplace_back(*audio_settings, num_of_streams_in_cur_thread);
+    }
+    m_media_sender_settings->smpte_standard_configs.push_back(std::move(audio_settings));
+
+    return ReturnStatus::success;
+}
+
+ReturnStatus MediaSenderApp::configure_ancillary_types()
+{
+    if(!m_app_settings->media.enable_ancillary) {
+        return ReturnStatus::failure;
+    }
+    
+    size_t num_of_ancillary_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
+    if (num_of_ancillary_threads < m_app_settings->num_of_threads) {
+        std::cout << "The number of ancillary threads is limited to the number of streams ("
+            << num_of_ancillary_threads << ")" << std::endl;
+    }
+    size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_ancillary_threads;
+    
+    std::unique_ptr<SMPTE_2110_40_MediaSettings> ancillary_settings = std::make_unique<SMPTE_2110_40_MediaSettings>();
+    ancillary_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*ancillary_settings);
+    if (!ancillary_settings->media_settings_calculator) {
+        std::cerr << "Failed to create media settings calculator for 2110-40 ancillary" << std::endl;
+        return ReturnStatus::failure;
+    }
+    ancillary_settings->header_data_split = m_app_settings->header_data_split;
+    ancillary_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
+    ancillary_settings->did = m_app_settings->media.anc_did;
+    ancillary_settings->sdid = m_app_settings->media.anc_sdid;
+    ancillary_settings->user_data_size_bytes = m_app_settings->media.anc_data_size;
+    ReturnStatus rc = ancillary_settings->media_settings_calculator->calculate_media_settings();
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to calculate media settings for 2110-40 ancillary" << std::endl;
+        return rc;
+    }
+
+    for (size_t idx = 0; idx < num_of_ancillary_threads; idx++) {
+        size_t num_of_streams_in_cur_thread;
+        if (min_number_streams_per_thread * num_of_ancillary_threads + idx < m_app_settings->num_of_total_streams) {
+            num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
+        } else {
+            num_of_streams_in_cur_thread = min_number_streams_per_thread;
+        }
+        m_media_sender_settings->smpte_standard_to_nodes.emplace_back(*ancillary_settings, num_of_streams_in_cur_thread);
+    }
+    m_media_sender_settings->smpte_standard_configs.push_back(std::move(ancillary_settings));
+
+    return ReturnStatus::success;
+}
+
 const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaSenderApp*)>> MediaSenderApp::s_smpte_standard_config_map = {
     {SMPTEStandard::ST_2110_20, [](MediaSenderApp* app) { return app->configure_video_types(); }},
+    {SMPTEStandard::ST_2110_30, [](MediaSenderApp* app) { return app->configure_audio_types(); }},
+    {SMPTEStandard::ST_2110_40, [](MediaSenderApp* app) { return app->configure_ancillary_types(); }},
 };
 
 ReturnStatus MediaSenderApp::configure_smpte_standards_processing()
@@ -399,6 +521,9 @@ ReturnStatus MediaSenderApp::configure_smpte_standards_processing()
         std::cerr << "No SMPTE standards are enabled" << std::endl;
         return ReturnStatus::failure;
     }
+
+    m_media_sender_settings->smpte_standard_to_nodes.clear();
+    m_media_sender_settings->smpte_standard_configs.clear();
     ReturnStatus rc = ReturnStatus::success;
     for (const auto& smpte_standard : m_media_sender_settings->enabled_smpte_standards) {
         auto it = s_smpte_standard_config_map.find(smpte_standard);

@@ -161,7 +161,21 @@ private:
      *
      * @return: Status of the operation.
      */
-    ReturnStatus configure_video_types();
+     ReturnStatus configure_video_types();
+        /**
+     * @brief: Configures audio types processing.
+     *
+     * This method is responsible for configuring audio media types processing
+     * for the sender application.
+     */
+     ReturnStatus configure_audio_types();
+     /**
+     * @brief: Configures ancillary types processing.
+     *
+     * This method is responsible for configuring ancillary media types processing
+     * for the sender application.
+     */
+     ReturnStatus configure_ancillary_types();
     /**
      * @brief: Distributes streams across threads.
      *

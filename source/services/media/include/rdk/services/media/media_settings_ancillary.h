@@ -40,7 +40,7 @@ namespace services
  */
 struct SMPTE_2110_40_MediaSettings : public MediaSettings
 {
-    virtual SMPTEStandard get_media_type() const override { return SMPTEStandard::ST_2110_40; }
+    virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_40; }
 
     static constexpr uint16_t ANCILLARY_DATA_HEADER_SIZE = 8;
     uint16_t did = 0;

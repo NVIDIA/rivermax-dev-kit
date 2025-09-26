@@ -75,11 +75,22 @@ const char* CLIOptStr::VIDEO_FRAME_RATE = "--vfr,--video-frame-rate";
 const char* CLIOptStr::VIDEO_SAMPLING = "--vs,--video-sampling";
 const char* CLIOptStr::VIDEO_BIT_DEPTH = "--vbd,--video-bit-depth";
 const char* CLIOptStr::ALPHA_BIT_DEPTH = "--abd,--alpha-bit-depth";
+const char* CLIOptStr::ENABLE_VIDEO = "--enable-video";
 const char* CLIOptStr::ENABLE_ALPHA = "--enable-alpha";
+const char* CLIOptStr::ENABLE_AUDIO = "--enable-audio";
+const char* CLIOptStr::ENABLE_ANCILLARY = "--enable-ancillary";
 const char* CLIOptStr::VIDEO_FILE = "--vf,--video-file";
 const char* CLIOptStr::DYNAMIC_FILE_LOADING = "--dfl,--dynamic-file-loading";
+const char* CLIOptStr::PTIME_US = "--apu,--audio-ptime-us";
+const char* CLIOptStr::AUDIO_SAMPLING_RATE = "--asr,--audio-sampling-rate";
+const char* CLIOptStr::AUDIO_ENCODING = "--ae,--audio-encoding";
+const char* CLIOptStr::ANCILLARY_DID = "--and,--ancillary-did";
+const char* CLIOptStr::ANCILLARY_SDID = "--ans,--ancillary-sdid";
+const char* CLIOptStr::ANCILLARY_DATA_SIZE = "--ands,--ancillary-data-size";
 
 const char* CLIGroupStr::VIDEO_FORMAT_OPTIONS = "Video format options";
+const char* CLIGroupStr::AUDIO_FORMAT_OPTIONS = "Audio format options";
+const char* CLIGroupStr::ANCILLARY_FORMAT_OPTIONS = "Ancillary format options";
 
 /**
  * @note: TODO: GPU related options are handled awkwardly and should be improved.
@@ -549,6 +560,15 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         }
     },
     {
+        CLIOptStr::ENABLE_VIDEO,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_flag(CLIOptStr::ENABLE_VIDEO,
+                                    app_settings->media.enable_video,
+                                    "Enable Video channel");
+        }
+    },
+    {
         CLIOptStr::ENABLE_ALPHA,
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
@@ -574,6 +594,85 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_flag(CLIOptStr::DYNAMIC_FILE_LOADING,
                                       app_settings->dynamic_video_file_load,
                                       "Enable dynamic file loading: Load video frames on the fly during transmission)");
+        }
+    },
+    {
+        CLIOptStr::ENABLE_AUDIO,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_flag(CLIOptStr::ENABLE_AUDIO,
+                                    app_settings->media.enable_audio,
+                                    "Enable audio");
+        }
+    },
+    {
+        CLIOptStr::ENABLE_ANCILLARY,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_flag(CLIOptStr::ENABLE_ANCILLARY,
+                                    app_settings->media.enable_ancillary,
+                                    "Enable ancillary");
+        }
+    },
+    {
+        CLIOptStr::PTIME_US,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::PTIME_US,
+                                    app_settings->media.ptime_us,
+                                    "Audio packet time in microseconds")
+                                    ->default_val(1000);
+        }
+    },
+    {
+        CLIOptStr::AUDIO_SAMPLING_RATE,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::AUDIO_SAMPLING_RATE,
+                                    app_settings->media.audio_sampling_rate,
+                                    "Audio sampling rate")
+                                    ->transform(CLI::CheckedTransformer(create_mapping_vector(
+                                                SUPPORTED_AUDIO_SAMPLING_RATES), CLI::ignore_case))
+                                    ->default_val(enum_to_string(AudioSamplingRate::_48000));
+        }
+    },
+    {
+        CLIOptStr::AUDIO_ENCODING,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::AUDIO_ENCODING,
+                                    app_settings->media.audio_encoding,
+                                    "Audio encoding")
+                                    ->transform(CLI::CheckedTransformer(create_mapping_vector(
+                                                SUPPORTED_AUDIO_ENCODINGS), CLI::ignore_case))
+                                    ->default_val(enum_to_string(AudioEncoding::L24));
+        }
+    },
+    {
+        CLIOptStr::ANCILLARY_DID,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::ANCILLARY_DID,
+                                    app_settings->media.anc_did,
+                                    "Ancillary Data Identification (DID)");
+        }
+    },
+    {
+        CLIOptStr::ANCILLARY_SDID,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::ANCILLARY_SDID,
+                                    app_settings->media.anc_sdid,
+                                    "Ancillary Secondary Data Identification (SDID)");
+        }
+    },
+    {
+        CLIOptStr::ANCILLARY_DATA_SIZE,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::ANCILLARY_DATA_SIZE,
+                                    app_settings->media.anc_data_size,
+                                    "Ancillary data size");
         }
     },
 };
