@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_MEDIA_SETTINGS_2110_20_H_
-#define RDK_SERVICES_MEDIA_MEDIA_SETTINGS_2110_20_H_
+#ifndef RDK_SERVICES_MEDIA_MEDIA_SETTINGS_VIDEO_H_
+#define RDK_SERVICES_MEDIA_MEDIA_SETTINGS_VIDEO_H_
 
 #include <cstdint>
 
@@ -55,4 +55,4 @@ struct SMPTE_2110_20_MediaSettings : public MediaSettings
 }  // namespace dev_kit
 }  // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_MEDIA_SETTINGS_2110_20_H_ */
+#endif /* RDK_SERVICES_MEDIA_MEDIA_SETTINGS_VIDEO_H_ */

@@ -31,7 +31,7 @@ namespace dev_kit
 namespace services
 {
 /**
- * @brief: Application media related settings.
+ * @brief: Application level media settings.
  *
  * The struct will be used to hold application media parameters required
  * for the application to operate as requested by the user.
