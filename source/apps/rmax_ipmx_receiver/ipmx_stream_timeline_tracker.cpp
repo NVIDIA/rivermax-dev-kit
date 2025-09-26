@@ -30,6 +30,7 @@
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/utils/clock.h"
+#include "rdk/services/utils/counter_math.h"
 
 using namespace rivermax::dev_kit::apps::rmax_ipmx_receiver;
 
@@ -101,21 +102,6 @@ void IPMXStreamTimelineTracker::consume_rtcp_packet(const byte_t* data, const Re
     if (is_first_report || is_media_info_changed) {
         m_new_report_version_available.store(true);
     }
-}
-
-/**
- * @brief: A helper function to compare uint32_t values (e.g. RTP timestamps) with care to wrap-around.
- *
- * A is considered before B if there is a X: 0 <= X <= 0x7fffffff such that B = (A + X) mod 2^32.
- *
- * @param [in] a: The first argument of "is before" comparison.
- * @param [in] b: The second argument of "is before" comparison.
- *
- * @return: True if a is before b.
- */
-static inline bool is_before(uint32_t a, uint32_t b) {
-    return (((a & 0x80000000) == (b & 0x80000000)) && (a < b)) ||
-           (((a & 0x80000000) != (b & 0x80000000)) && ((a & 0x7fffffff) > (b & 0x7fffffff)));
 }
 
 void IPMXStreamTimelineTracker::IPMXDataClockState::update(uint32_t ipmx_stream_id,

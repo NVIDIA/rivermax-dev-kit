@@ -24,5 +24,6 @@
 #include "rdk/services/utils/gpu_manager.h"
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/synchronizer.h"
+#include "rdk/services/utils/counter_math.h"
 
 #endif /* RDK_SERVICES_UTILS_UTILS_H_ */

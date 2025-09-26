@@ -68,7 +68,6 @@ protected:
     std::map<MediaComponentId, std::reference_wrapper<StreamMonitor>> m_stream_monitors;
     uint64_t m_matched_frames;
     uint64_t m_mismatches;
-    uint64_t m_order_errors;
 public:
     /**
      * @brief: MediaMonitor constructor.

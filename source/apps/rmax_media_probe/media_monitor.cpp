@@ -16,24 +16,10 @@
  * limitations under the License.
  */
 
+#include "rdk/services/utils/counter_math.h"
 #include "rdk/apps/rmax_media_probe/media_monitor.h"
 
 using namespace rivermax::dev_kit::apps::rmax_media_probe;
-
-/**
- * @brief: A helper function to compare uint32_t values (e.g. RTP timestamps) with care to wrap-around.
- *
- * A is considered before B if there is a X: 0 <= X <= 0x7fffffff such that B = (A + X) mod 2^32.
- *
- * @param [in] a: The first argument of "is before" comparison.
- * @param [in] b: The second argument of "is before" comparison.
- *
- * @return: True if a is before b.
- */
- static inline bool is_before(uint32_t a, uint32_t b) {
-    return (((a & 0x80000000) == (b & 0x80000000)) && (a < b)) ||
-           (((a & 0x80000000) != (b & 0x80000000)) && ((a & 0x7fffffff) > (b & 0x7fffffff)));
-}
 
 void MediaMonitor::reset_rtp_matching()
 {
@@ -55,7 +41,7 @@ void MediaMonitor::restart_rtp_matching(MediaComponentId component_id, uint32_t 
  * This algorithm verifies that the sequences of RTP timestamps in the incoming
  * media component streams are equal. This rule is applicable to video and alpha/key streams
  * as well as for ancillary streams representing the same media content.
- * 
+ *
  * The algorithm works in the assumptions that the incoming data is buffered in chunks
  * in the amount not higher than one frame: when two streams are sent synchronously
  * (both have the same FPS and both comply to ST2110-21, one stream can never be fetched
@@ -71,13 +57,6 @@ void MediaMonitor::restart_rtp_matching(MediaComponentId component_id, uint32_t 
  */
 void MediaMonitor::match_rtp_timestamps(MediaComponentId component_id, uint32_t stream_id, uint32_t rtp_ts)
 {
-    if (likely(m_components[component_id].is_rtp_ts_valid)) {
-        if ((rtp_ts == m_components[component_id].rtp_ts) || is_before(rtp_ts, m_components[component_id].rtp_ts)) {
-            m_order_errors++;
-            reset_rtp_matching();
-            return;
-        }
-    }
     m_components[component_id].is_rtp_ts_valid = true;
     m_components[component_id].rtp_ts = rtp_ts;
 
@@ -87,12 +66,12 @@ void MediaMonitor::match_rtp_timestamps(MediaComponentId component_id, uint32_t 
         if (component_pair.first != component_id) {
             /* this is the another stream  */
             if (component.is_rtp_ts_pending) {
-                if (is_before(rtp_ts, component.rtp_ts)) {
+                if (is_counter_before(rtp_ts, component.rtp_ts)) {
                     /* new timestamp is lower that the pending timestamp in another stream, matching failed */
                     m_mismatches++;
                     reset_rtp_matching();
                     return;
-                } else if (is_before(component.rtp_ts, rtp_ts)) {
+                } else if (is_counter_before(component.rtp_ts, rtp_ts)) {
                     /* new timestamp is higher that the pending timestamp in another stream, matching failed */
                     m_mismatches++;
                     /* keep the new timestamp, maybe this is the next frame */
@@ -135,7 +114,6 @@ void MediaMonitor::print_stats(std::ostream& out) const
     oss << "Media id: " << m_id
         << " video/alpha frame matches: " << m_matched_frames
         << " mismatches: " << m_mismatches
-        << " order errors: " << m_order_errors
         << std::endl;
     out << oss.str();
 }
@@ -144,7 +122,6 @@ void MediaMonitor::reset_stats()
 {
     m_matched_frames = 0;
     m_mismatches = 0;
-    m_order_errors = 0;
 }
 
 void MediaMonitor::print_and_reset_stats(std::ostream& out)
@@ -168,4 +145,3 @@ void MediaMonitor::add_stream_monitor(StreamMonitor& stream_monitor)
     MediaComponent component;
     m_components.emplace(stream_monitor.get_component_id(), component);
 }
-

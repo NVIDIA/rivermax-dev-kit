@@ -151,7 +151,7 @@ ReturnStatus StreamMonitor::consume_chunk(const ReceiveChunk& chunk, const IRece
          */
         if (rtp_seq_num != m_prev_rtp_seq_num + 1) {
             m_missing_packets += rtp_seq_num - m_prev_rtp_seq_num - 1;
-        } else if (!is_m_bit_set && m_is_prev_mbit_set) {
+        } else if (m_is_prev_mbit_set) {
             /*
              * M bit is used in ST2110-20 and in ST2110-40. When adding support forST2110-30 audio,
              * M-bit should be ignored.
