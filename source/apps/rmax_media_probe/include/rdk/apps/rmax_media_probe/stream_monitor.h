@@ -61,7 +61,31 @@ struct NewFrameEvent
     uint64_t receive_ts;
     uint32_t rtp_ts;
     uint32_t rtp_seq_num;
-    float media_delay_usec;
+    float media_latency_usec;
+    /**
+     * @brief: Constructor for NewFrameEvent.
+     *
+     * @param [in] component_id: Media component identifier.
+     * @param [in] stream: Reference to the receive stream.
+     * @param [in] receive_ts: Timestamp when frame was received.
+     * @param [in] rtp_ts: RTP timestamp of the frame.
+     * @param [in] rtp_seq_num: RTP sequence number of the frame.
+     * @param [in] media_latency_usec: Media latency in microseconds.
+     */
+    NewFrameEvent(MediaComponentId component_id,
+                  const IReceiveStream& stream,
+                  uint64_t receive_ts,
+                  uint32_t rtp_ts,
+                  uint32_t rtp_seq_num,
+                  float media_latency_usec) :
+        component_id(component_id),
+        stream(stream),
+        receive_ts(receive_ts),
+        rtp_ts(rtp_ts),
+        rtp_seq_num(rtp_seq_num),
+        media_latency_usec(media_latency_usec)
+    {
+    }
 };
 
 /**
@@ -92,7 +116,7 @@ protected:
     uint32_t m_prev_frame_rtp_timestamp = 0;
     uint64_t m_prev_frame_receive_timestamp = 0;
     uint32_t m_prev_frame_seq_num = 0;
-    int32_t m_prev_rtp_seq_num = 0;
+    uint32_t m_prev_rtp_seq_num = 0;
     bool m_is_prev_mbit_set = false;
     uint64_t m_received_packets = 0;
     uint64_t m_missing_packets = 0;

@@ -93,14 +93,7 @@ void StreamMonitor::process_new_frame(uint64_t receive_timestamp, uint32_t rtp_t
     m_prev_frame_seq_num = rtp_seq_num;
     measure_media_latency(receive_timestamp, rtp_timestamp);
 
-    NewFrameEvent event = {
-        .component_id = m_component_id,
-        .stream = stream,
-        .receive_ts = receive_timestamp,
-        .rtp_ts = rtp_timestamp,
-        .rtp_seq_num = rtp_seq_num,
-        .media_delay_usec = m_media_latency_usec
-    };
+    NewFrameEvent event(m_component_id, stream, receive_timestamp, rtp_timestamp, rtp_seq_num, m_media_latency_usec);
 
     m_on_new_frame_callback(event);
 
