@@ -45,11 +45,11 @@ namespace rmax_media_probe
  */
 struct MediaComponent
 {
-    uint64_t receive_ts;
-    uint32_t rtp_ts;
-    bool is_rtp_ts_valid;
-    bool is_rtp_ts_pending;
-    uint32_t rtp_seq_num;
+    uint64_t receive_ts = 0;
+    uint32_t rtp_ts = 0;
+    bool is_rtp_ts_valid = false;
+    bool is_rtp_ts_pending = false;
+    uint32_t rtp_seq_num = 0;
 };
 
 /**
@@ -75,7 +75,7 @@ public:
      * @param [in] id: Unique identifier for this media monitor.
      * @param [in] num_of_components: Number of media components to monitor.
      */
-    MediaMonitor(size_t id) : m_id(id) {};
+    MediaMonitor(size_t id) : m_id(id), m_matched_frames(0), m_mismatches(0) {};
     /**
      * @brief: MediaMonitor destructor.
      */

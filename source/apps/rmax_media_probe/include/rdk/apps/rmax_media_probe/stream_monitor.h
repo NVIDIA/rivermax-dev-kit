@@ -185,7 +185,7 @@ public:
      *
      * @param [in] on_new_frame_callback: Callback function to invoke when a new frame is detected.
      */
-    void set_on_new_frame_callback(OnNewFrameCallback on_new_frame_callback) { m_on_new_frame_callback = on_new_frame_callback; };
+    void set_on_new_frame_callback(OnNewFrameCallback on_new_frame_callback) { m_on_new_frame_callback = std::move(on_new_frame_callback); };
     /**
      * @brief: Get the media component Id of the stream monitor.
      *
