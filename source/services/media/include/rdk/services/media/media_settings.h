@@ -90,6 +90,8 @@ struct MediaSettings
      */
     virtual SMPTEStandard get_media_type() const = 0;
     std::shared_ptr<IMediaSettingsCalculator> media_settings_calculator;
+    std::string media_file = "";
+    bool dynamic_media_file_load = false;
 };
 
 }  // namespace services

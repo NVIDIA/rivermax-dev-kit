@@ -333,6 +333,8 @@ ReturnStatus MediaSenderApp::configure_video_types()
     video_settings->frame_rate = m_app_settings->media.frame_rate;
     video_settings->sampling_type = m_app_settings->media.sampling_type;
     video_settings->bit_depth = m_app_settings->media.color_bit_depth;
+    video_settings->media_file = m_app_settings->video_file;
+    video_settings->dynamic_media_file_load = m_app_settings->dynamic_video_file_load;
     ReturnStatus rc = video_settings->media_settings_calculator->calculate_media_settings();
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to calculate media settings for 2110-20" << std::endl;
@@ -487,7 +489,7 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
         auto& media_type_config = node.first;
         auto num_of_streams = node.second;
         for(size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
-            if (m_app_settings->video_file.empty() || !(m_app_settings->dynamic_video_file_load)) {
+            if (media_type_config.media_file.empty() || !(media_type_config.dynamic_media_file_load)) {
                 frame_provider = std::make_shared<NullFrameProvider>(media_type_config);
                 contains_payload = false;
             } else {
@@ -496,8 +498,8 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
                     return ReturnStatus::failure;
                 }
                 auto media_file_frame_provider = std::make_shared<MediaFileFrameProvider>(
-                    m_app_settings->video_file, MediaType::Video,
-                    m_app_settings->media.bytes_per_frame, *m_header_allocator, true);
+                    media_type_config.media_file, MediaType::Video,
+                    media_type_config.bytes_per_frame, *m_header_allocator, true);
                 rc = media_file_frame_provider->load_frames();
                 if (rc != ReturnStatus::success) {
                     std::cerr << "Failed to load frames from video file" << std::endl;

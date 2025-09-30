@@ -96,7 +96,7 @@ MediaSenderIONode::MediaSenderIONode(
         time_handler_ns_cb_t time_hanlder_cb) :
     m_stream_packs(num_of_streams),
     m_media_settings(media_settings),
-    m_video_file(app_settings.video_file),
+    m_media_file(media_settings.media_file),
     m_index(index),
     m_network_address(network_address),
     m_sleep_between_operations(app_settings.sleep_between_operations),
@@ -114,7 +114,7 @@ MediaSenderIONode::MediaSenderIONode(
     m_dscp(0), m_pcp(0), m_ecn(0),
     m_get_time_ns_cb(std::move(time_hanlder_cb)),
     m_gpu_enabled(app_settings.gpu_id != INVALID_GPU_ID),
-    m_dynamic_video_file_load(app_settings.dynamic_video_file_load),
+    m_dynamic_media_file_load(media_settings.dynamic_media_file_load),
     m_synchronizer(nullptr)
 {
     m_stream_packs.resize(num_of_streams);
@@ -178,7 +178,7 @@ ReturnStatus MediaSenderIONode::initialize_memory_layout()
 {
     determine_memory_layout_for_single_block(m_block_header_memory_size, m_block_payload_memory_size);
 
-    if (!m_video_file.empty() && !m_dynamic_video_file_load) {
+    if (!m_media_file.empty() && !m_dynamic_media_file_load) {
 
         auto rc = get_number_of_mem_blocks_per_file(m_num_of_mem_blocks);
         if (rc != ReturnStatus::success) {
@@ -253,7 +253,7 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     std::ifstream input_file;
     input_file.open(video_file, std::ios::binary);
     if (!input_file.is_open()) {
-        std::cerr << "Failed to open file: " << m_video_file << std::endl;
+        std::cerr << "Failed to open file: " << m_media_file << std::endl;
         return ReturnStatus::failure;
     }
 
@@ -370,9 +370,9 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents(
                                            is_hds_on() ? 2 : 1,
                                            m_media_settings.chunks_in_mem_block));
         ReturnStatus rc;
-        if (!m_video_file.empty() && !m_dynamic_video_file_load) {
+        if (!m_media_file.empty() && !m_dynamic_media_file_load) {
             rc = initialize_mem_blockset(*stream_pack.mem_blockset, header_memory_ptr,
-                payload_memory_ptr, memory_layout, m_video_file);
+                payload_memory_ptr, memory_layout, m_media_file);
         } else {
             rc = initialize_mem_blockset(*stream_pack.mem_blockset, header_memory_ptr,
                 payload_memory_ptr, memory_layout);
@@ -702,9 +702,9 @@ ReturnStatus MediaSenderIONode::get_number_of_mem_blocks_per_file(size_t& number
 {
     number_of_mem_blocks = 0;
     std::ifstream input_file;
-    input_file.open(m_video_file, std::ios::binary);
+    input_file.open(m_media_file, std::ios::binary);
     if (!input_file.is_open()) {
-        std::cerr << "Failed to open file: " << m_video_file << std::endl;
+        std::cerr << "Failed to open file: " << m_media_file << std::endl;
         return ReturnStatus::failure;
     }
 

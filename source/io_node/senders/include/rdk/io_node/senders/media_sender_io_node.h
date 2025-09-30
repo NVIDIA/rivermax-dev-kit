@@ -78,7 +78,7 @@ private:
     static constexpr size_t DEFAULT_PRINT_TIME_INTERVAL_MS = 1000;
     std::vector<MediaStreamPack> m_stream_packs;
     const MediaSettings& m_media_settings;
-    std::string m_video_file;
+    std::string m_media_file;
     size_t m_index;
     FourTupleFlow m_network_address;
     int m_sleep_between_operations;
@@ -98,7 +98,7 @@ private:
     uint8_t m_dscp, m_pcp, m_ecn;
     time_handler_ns_cb_t m_get_time_ns_cb;
     bool m_gpu_enabled;
-    bool m_dynamic_video_file_load;
+    bool m_dynamic_media_file_load;
     std::shared_ptr<ISynchronizer> m_synchronizer;
     std::chrono::milliseconds m_print_interval_ms = std::chrono::milliseconds(DEFAULT_PRINT_TIME_INTERVAL_MS);
 public:
