@@ -16,65 +16,65 @@
  * limitations under the License.
  */
 
-#include "rdk/services/media/media_frame_pool.h"
+#include "rdk/services/media/media_unit_pool.h"
 
 using namespace rivermax::dev_kit::services;
 
-MediaFramePool::MediaFramePool(size_t frame_count, size_t frame_size, MemoryAllocator& mem_allocator) :
-    m_frame_size(frame_size),
-    m_frame_count(frame_count),
+MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, MemoryAllocator& mem_allocator) :
+    m_media_unit_size(media_unit_size),
+    m_media_unit_count(media_unit_count),
     m_memory_location(mem_allocator.get_memory_location())
 {
-    m_total_memory_size = frame_count * frame_size;
+    m_total_memory_size = media_unit_count * media_unit_size;
     m_total_memory_size = mem_allocator.align_length(m_total_memory_size);
     m_memory_block = static_cast<byte_t*>(mem_allocator.allocate_aligned(
         m_total_memory_size, mem_allocator.get_page_size()));
 
     if (!m_memory_block) {
-        throw std::runtime_error("Failed to allocate memory for MediaFramePool");
+        throw std::runtime_error("Failed to allocate memory for MediaUnitPool");
     }
 
-    m_all_frames.reserve(frame_count);
-    for (size_t i = 0; i < frame_count; ++i) {
-        byte_t* frame_memory = m_memory_block + (i * frame_size);
-        m_all_frames.emplace_back(frame_memory, frame_size, m_memory_location);
+    m_all_media_units.reserve(media_unit_count);
+    for (size_t i = 0; i < media_unit_count; ++i) {
+        byte_t* media_unit_memory = m_memory_block + (i * media_unit_size);
+        m_all_media_units.emplace_back(media_unit_memory, media_unit_size, m_memory_location);
         m_available_indices.push(i);
     }
 }
 
-MediaFramePool::MediaFramePool(size_t frame_count, size_t frame_size, byte_t* memory_block, size_t memory_size,
+MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, byte_t* memory_block, size_t memory_size,
     MemoryLocation memory_location) :
     m_memory_block(memory_block),
-    m_frame_size(frame_size),
-    m_frame_count(frame_count),
-    m_total_memory_size(frame_count * frame_size),
+    m_media_unit_size(media_unit_size),
+    m_media_unit_count(media_unit_count),
+    m_total_memory_size(media_unit_count * media_unit_size),
     m_memory_location(memory_location)
 {
     if (!m_memory_block) {
-        throw std::runtime_error("No memory provided for for MediaFramePool");
+        throw std::runtime_error("No memory provided for for MediaUnitPool");
     }
 
     if (memory_size < m_total_memory_size) {
-        throw std::invalid_argument("Insufficient external memory provided for MediaFramePool");
+        throw std::invalid_argument("Insufficient external memory provided for MediaUnitPool");
     }
 
-    // Initialize frames and indices
-    m_all_frames.reserve(frame_count);
-    for (size_t index = 0; index < frame_count; ++index) {
-        byte_t* frame_memory = memory_block + (index * frame_size);
-        m_all_frames.emplace_back(frame_memory, frame_size, m_memory_location);
+    // Initialize units and indices
+    m_all_media_units.reserve(media_unit_count);
+    for (size_t index = 0; index < media_unit_count; ++index) {
+        byte_t* unit_memory = memory_block + (index * media_unit_size);
+        m_all_media_units.emplace_back(unit_memory, media_unit_size, m_memory_location);
         m_available_indices.push(index);
     }
 }
 
-MediaFramePool::~MediaFramePool()
+MediaUnitPool::~MediaUnitPool()
 {
     m_in_destruction = true;
     m_available_indices = std::queue<size_t>();
-    m_all_frames.clear();
+    m_all_media_units.clear();
 }
 
-void MediaFramePool::return_frame_to_pool(size_t index)
+void MediaUnitPool::return_media_unit_to_pool(size_t index)
 {
     if (m_in_destruction || m_stop) {
         return;
@@ -85,7 +85,7 @@ void MediaFramePool::return_frame_to_pool(size_t index)
     m_cv.notify_one();
 }
 
-std::shared_ptr<MediaFrame> MediaFramePool::get_frame()
+std::shared_ptr<MediaUnit> MediaUnitPool::get_media_unit()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_available_indices.empty() || m_stop) {
@@ -95,13 +95,13 @@ std::shared_ptr<MediaFrame> MediaFramePool::get_frame()
     size_t index = m_available_indices.front();
     m_available_indices.pop();
 
-    return std::shared_ptr<MediaFrame>(
-        &m_all_frames[index],
-        [this, index](MediaFrame*) { this->return_frame_to_pool(index); }
+    return std::shared_ptr<MediaUnit>(
+        &m_all_media_units[index],
+        [this, index](MediaUnit*) { this->return_media_unit_to_pool(index); }
     );
 }
 
-std::shared_ptr<MediaFrame> MediaFramePool::get_frame_blocking()
+std::shared_ptr<MediaUnit> MediaUnitPool::get_media_unit_blocking()
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_cv.wait(lock, [this] { return !m_available_indices.empty() || m_stop; });
@@ -113,19 +113,19 @@ std::shared_ptr<MediaFrame> MediaFramePool::get_frame_blocking()
     size_t index = m_available_indices.front();
     m_available_indices.pop();
 
-    return std::shared_ptr<MediaFrame>(
-        &m_all_frames[index],
-        [this, index](MediaFrame*) { this->return_frame_to_pool(index); }
+    return std::shared_ptr<MediaUnit>(
+        &m_all_media_units[index],
+        [this, index](MediaUnit*) { this->return_media_unit_to_pool(index); }
     );
 }
 
-size_t MediaFramePool::get_available_frames_count() const
+size_t MediaUnitPool::get_available_media_units_count() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_available_indices.size();
 }
 
-void MediaFramePool::stop()
+void MediaUnitPool::stop()
 {
     m_stop = true;
     m_cv.notify_all();

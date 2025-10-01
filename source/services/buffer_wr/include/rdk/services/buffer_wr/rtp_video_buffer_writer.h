@@ -22,7 +22,7 @@
 #include <cstddef>
 #include <memory>
 
-#include "rdk/services/media/media_frame_provider.h"
+#include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/buffer_wr/buffer_writer_interface.h"
 #include "rdk/services/buffer_wr/rtp_media_buffer_writer.h"
 
@@ -55,10 +55,10 @@ public:
      * @brief: Destructor for RTPVideoMockBufferWriter.
      */
     virtual ~RTPVideoMockBufferWriter() = default;
-    ReturnStatus set_next_frame(std::shared_ptr<MediaFrame> frame) override;
+    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) override;
 protected:
     void set_stream_properties() override {};
-    void update_in_frame_state() override;
+    void update_in_media_unit_state() override;
     size_t build_rtp_header(byte_t* buffer) override;
     /**
      * @brief: Builds SMPTE ST 2110-20 extension RTP header.
@@ -69,9 +69,9 @@ protected:
      */
     size_t build_rtp_header_2110_20_extension(byte_t* buffer);
     /**
-     * @brief: Resets the in-frame state.
+     * @brief: Resets the in-media unit state.
      */
-    void reset_in_frame_state();
+    void reset_in_media_unit_state();
 };
 
 /**
@@ -84,7 +84,7 @@ class RTPVideoBufferWriter : public RTPVideoMockBufferWriter
 {
 protected:
     size_t m_data_left_in_frame = 0;
-    std::shared_ptr<MediaFrame> m_current_frame = nullptr;
+    std::shared_ptr<MediaUnit> m_current_media_unit = nullptr;
 public:
     /**
      * @brief: Constructor for RTPVideoBufferWriter.
@@ -100,7 +100,7 @@ public:
      * @brief: Destructor for RTPVideoBufferWriter.
      */
     virtual ~RTPVideoBufferWriter() = default;
-    ReturnStatus set_next_frame(std::shared_ptr<MediaFrame> frame) override;
+    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
     using IBufferWriter::write_buffer;
     ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
 protected:

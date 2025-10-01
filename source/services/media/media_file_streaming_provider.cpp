@@ -25,16 +25,17 @@
 
 using namespace rivermax::dev_kit::services;
 
-MediaFileStreamingProvider::MediaFileStreamingProvider(const std::string& file_path,
-    SMPTEStandard smpte_standard, size_t frame_size, std::shared_ptr<BufferedMediaFrameProvider> frame_provider,
+MediaFileStreamingProvider::MediaFileStreamingProvider(
+    const std::string& file_path, SMPTEStandard smpte_standard, size_t media_unit_size,
+    std::shared_ptr<BufferedEssenceProvider> essence_provider,
     std::shared_ptr<MemoryAllocator> memory_allocator, bool loop,
     size_t sleep_duration_microseconds) :
     m_file_path(file_path),
     m_smpte_standard(smpte_standard),
-    m_frame_size(frame_size),
-    m_frame_provider(std::move(frame_provider)),
+    m_media_unit_size(media_unit_size),
+    m_essence_provider(std::move(essence_provider)),
     m_memory_allocator(std::move(memory_allocator)),
-    m_loop_frames(loop),
+    m_loop_media_units(loop),
     m_stop(false),
     m_sleep_duration_microseconds(sleep_duration_microseconds)
 {
@@ -44,8 +45,8 @@ MediaFileStreamingProvider::MediaFileStreamingProvider(const std::string& file_p
     }
 
     m_memory_utils = m_memory_allocator->get_memory_utils();
-    m_frame_pool = std::make_unique<MediaFramePool>(
-        MEMORY_POOL_FRAME_COUNT, m_frame_size, *m_memory_allocator);
+    m_media_unit_pool = std::make_unique<MediaUnitPool>(
+        MEMORY_POOL_MEDIA_UNIT_COUNT, m_media_unit_size, *m_memory_allocator);
 }
 
 MediaFileStreamingProvider::~MediaFileStreamingProvider()
@@ -92,23 +93,23 @@ void MediaFileStreamingProvider::operator()()
     }
 
     // Create a temporary buffer for reading from file
-    auto temp_buffer = std::make_unique<byte_t[]>(m_frame_size);
+    auto temp_buffer = std::make_unique<byte_t[]>(m_media_unit_size);
 
     while (!m_stop && SignalHandler::get_received_signal() < 0) {
-        // Get a frame from the pool
-        auto frame = m_frame_pool->get_frame();
-        if (!frame) {
+        // Get a media unit from the pool
+        auto media_unit = m_media_unit_pool->get_media_unit();
+        if (!media_unit) {
             std::this_thread::sleep_for(std::chrono::microseconds(m_sleep_duration_microseconds));
             continue;
         }
 
         // Read data into temporary buffer first
-        m_input_file.read(reinterpret_cast<char*>(temp_buffer.get()), m_frame_size);
+        m_input_file.read(reinterpret_cast<char*>(temp_buffer.get()), m_media_unit_size);
         std::streamsize bytes_read = m_input_file.gcount();
 
         if (bytes_read == 0) {
             if (m_input_file.eof()) {
-                if (!m_loop_frames) {
+                if (!m_loop_media_units) {
                     break;
                 }
                 // Loop the file, start reading from the beginning
@@ -116,22 +117,27 @@ void MediaFileStreamingProvider::operator()()
                 m_input_file.seekg(0, std::ios::beg);
                 continue;
             } else if (m_input_file.fail()) {
-                std::cerr << "Failed to read frame from file: " << m_file_path << std::endl;
+                std::cerr << "Failed to read media unit from file: " << m_file_path << std::endl;
                 break;
             }
         }
 
-        // Copy from temporary buffer to frame buffer using memory utils
-        m_memory_utils->memory_copy(frame->data.get(), temp_buffer.get(),
-            bytes_read < static_cast<std::streamsize>(m_frame_size) ? bytes_read : m_frame_size);
+        // Copy from temporary buffer to unit buffer using memory utils
+        m_memory_utils->memory_copy(media_unit->data->get(), temp_buffer.get(),
+            bytes_read < static_cast<std::streamsize>(m_media_unit_size) ? bytes_read : m_media_unit_size);
 
-        // Handle partial frame read if needed
-        if (bytes_read < static_cast<std::streamsize>(m_frame_size)) {
-            m_memory_utils->memory_set(frame->data.get() + bytes_read, 0, m_frame_size - bytes_read);
+        // Handle partial media unit read if needed
+        if (bytes_read < static_cast<std::streamsize>(m_media_unit_size)) {
+            m_memory_utils->memory_set(media_unit->data->get() + bytes_read, 0, m_media_unit_size - bytes_read);
         }
 
+        // Add unit metadata
+        MediaUnitMetadata metadata;
+        metadata.smpte_standard = m_smpte_standard;
+        media_unit->add_metadata(metadata);
+
         while (!m_stop && SignalHandler::get_received_signal() < 0) {
-            if (m_frame_provider->add_frame(frame) == ReturnStatus::success) {
+            if (m_essence_provider->add_media_unit(media_unit) == ReturnStatus::success) {
                 break;
             }
             std::this_thread::sleep_for(std::chrono::microseconds(m_sleep_duration_microseconds));
@@ -143,7 +149,7 @@ void MediaFileStreamingProvider::operator()()
     }
 
     m_input_file.close();
-    m_frame_provider->stop();
-    m_frame_pool->stop();
+    m_essence_provider->stop();
+    m_media_unit_pool->stop();
     m_initialized = false;
 }

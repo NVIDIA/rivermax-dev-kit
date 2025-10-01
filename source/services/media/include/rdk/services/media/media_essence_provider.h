@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_MEDIA_FRAME_PROVIDER_H_
-#define RDK_SERVICES_MEDIA_MEDIA_FRAME_PROVIDER_H_
+#ifndef RDK_SERVICES_MEDIA_MEDIA_ESSENCE_PROVIDER_H_
+#define RDK_SERVICES_MEDIA_MEDIA_ESSENCE_PROVIDER_H_
 
 #include <cstdint>
 #include <memory>
@@ -39,9 +39,9 @@ namespace dev_kit
 namespace services
 {
 /**
- * @brief: Abstract interface for frame buffer management.
+ * @brief: Abstract interface for media unit buffer management.
  *
- * IFrameBuffer defines the essential contract for frame buffer implementations,
+ * IMediaUnitBuffer defines the essential contract for media unit buffer implementations,
  * providing access to buffer data, size information, and memory location details.
  * This interface abstracts the underlying memory management strategy, allowing
  * different implementations to handle owned vs. borrowed memory, different
@@ -52,12 +52,12 @@ namespace services
  * - Report buffer size and alignment information.
  * - Indicate memory location for proper memory operations.
  */
-class IFrameBuffer {
+class IMediaUnitBuffer {
 public:
     /**
      * @brief: Destructor.
      */
-    virtual ~IFrameBuffer() = default;
+    virtual ~IMediaUnitBuffer() = default;
     /**
      * @brief: Returns pointer to the buffer.
      *
@@ -85,9 +85,9 @@ public:
 };
 
 /**
- * @brief: Concrete implementation of @ref IFrameBuffer with flexible memory management.
+ * @brief: Concrete implementation of @ref IMediaUnitBuffer with flexible memory management.
  *
- * FrameBuffer provides a robust frame buffer implementation that supports multiple
+ * MediaUnitBuffer provides a robust media unit buffer implementation that supports multiple
  * memory ownership models:
  *
  * 1. Owned Memory: Automatically allocates and manages its own memory buffer.
@@ -101,7 +101,7 @@ public:
  * - RAII Compliance: Automatic resource management with proper cleanup.
  * - Thread Safety: Safe for concurrent read access.
  */
-class FrameBuffer : public IFrameBuffer {
+class MediaUnitBuffer : public IMediaUnitBuffer {
 private:
     /* Smart pointer for the owned memory */
     std::unique_ptr<byte_t[]> m_owned_buffer;
@@ -116,7 +116,7 @@ public:
      *
      * @param [in] buffer_size: Size of the buffer to allocate.
      */
-    FrameBuffer(size_t buffer_size);
+    MediaUnitBuffer(size_t buffer_size);
     /**
      * @brief: Constructor for external memory given as a raw pointer.
      *
@@ -124,7 +124,7 @@ public:
      * @param [in] buffer_size: Size of the external buffer.
      * @param [in] memory_location: Memory location of the external buffer.
      */
-    FrameBuffer(byte_t* external_buffer, size_t buffer_size,
+    MediaUnitBuffer(byte_t* external_buffer, size_t buffer_size,
         MemoryLocation memory_location = MemoryLocation::Host);
     /**
      * @brief: Constructor for external memory provided as a shared_ptr.
@@ -133,13 +133,13 @@ public:
      * @param [in] buffer_size: Size of the external buffer.
      * @param [in] memory_location: Memory location of the external buffer.
      */
-    FrameBuffer(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
+    MediaUnitBuffer(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
         MemoryLocation memory_location = MemoryLocation::Host);
-    FrameBuffer(const FrameBuffer&) = delete;
-    FrameBuffer& operator=(const FrameBuffer&) = delete;
-    FrameBuffer(FrameBuffer&& other) noexcept;
-    FrameBuffer& operator=(FrameBuffer&& other) noexcept;
-    ~FrameBuffer() = default;
+    MediaUnitBuffer(const MediaUnitBuffer&) = delete;
+    MediaUnitBuffer& operator=(const MediaUnitBuffer&) = delete;
+    MediaUnitBuffer(MediaUnitBuffer&& other) noexcept;
+    MediaUnitBuffer& operator=(MediaUnitBuffer&& other) noexcept;
+    ~MediaUnitBuffer() = default;
     byte_t* get() const override { return m_buffer_ptr; }
     size_t get_size() const override { return m_size; }
     size_t get_aligned_size() const override { return m_size; }
@@ -147,9 +147,9 @@ public:
 };
 
 /**
- * @brief: Holds metadata for a frame.
+ * @brief: Holds metadata for a media unit.
  */
-struct FrameMetadata {
+struct MediaUnitMetadata {
     SMPTEStandard smpte_standard;
     Resolution resolution;
     uint32_t sequence_number = 0;
@@ -158,30 +158,30 @@ struct FrameMetadata {
 };
 
 /**
- * @brief: Represents a media frame with data and metadata.
+ * @brief: Represents a media unit with data and metadata.
  *
- * MediaFrame encapsulates frame data through a polymorphic @ref IFrameBuffer interface
+ * MediaUnit encapsulates media unit data through a polymorphic @ref IMediaUnitBuffer interface
  * and associated metadata. It supports multiple construction patterns for different
  * memory management scenarios:
  *
- * 1. Self-Allocated: Creates its own FrameBuffer with allocated memory
+ * 1. Self-Allocated: Creates its own MediaUnitBuffer with allocated memory
  * 2. External Raw Pointer: Wraps external memory via raw pointer
  * 3. External Shared Pointer: Wraps external memory via shared_ptr
- * 4. Polymorphic Buffer: Accepts any @ref IFrameBuffer implementation
+ * 4. Polymorphic Buffer: Accepts any @ref IMediaUnitBuffer implementation
  *
- * The frame data is managed through a unique_ptr<IFrameBuffer>, enabling
+ * The media unit data is managed through a unique_ptr<IMediaUnitBuffer>, enabling
  * polymorphic behavior while maintaining clear ownership semantics.
- * Move-only semantics prevent accidental expensive frame copies.
+ * Move-only semantics prevent accidental expensive media unit copies.
  */
-struct MediaFrame {
-    std::unique_ptr<IFrameBuffer> data;
-    std::shared_ptr<FrameMetadata> metadata;
+struct MediaUnit {
+    std::unique_ptr<IMediaUnitBuffer> data;
+    std::shared_ptr<MediaUnitMetadata> metadata;
     /**
      * @brief: Constructor that allocates its own memory.
      *
      * @param [in] buffer_size: Size of the buffer to allocate.
      */
-    MediaFrame(size_t buffer_size);
+    MediaUnit(size_t buffer_size);
     /**
      * @brief: Constructor for external memory provided as a raw pointer.
      *
@@ -189,7 +189,7 @@ struct MediaFrame {
      * @param [in] buffer_size: Size of the external buffer.
      * @param [in] memory_location: Memory location of the external buffer.
      */
-    MediaFrame(byte_t* external_buffer, size_t buffer_size,
+    MediaUnit(byte_t* external_buffer, size_t buffer_size,
         MemoryLocation memory_location = MemoryLocation::Host);
     /**
      * @brief: Constructor for external memory provided as a shared_ptr.
@@ -198,112 +198,112 @@ struct MediaFrame {
      * @param [in] buffer_size: Size of the external buffer.
      * @param [in] memory_location: Memory location of the external buffer.
      */
-    MediaFrame(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
+    MediaUnit(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
         MemoryLocation memory_location = MemoryLocation::Host);
     /**
      * @brief: Constructor for external memory provided as a unique_ptr.
      *
-     * @param [in] frame_data: Unique pointer to an @ref IFrameBuffer implementation.
+     * @param [in] unit_data: Unique pointer to an @ref IMediaUnitBuffer implementation.
      */
-    MediaFrame(std::unique_ptr<IFrameBuffer>&& frame_data);
-    MediaFrame(const MediaFrame&) = delete;
-    MediaFrame& operator=(const MediaFrame&) = delete;
-    MediaFrame(MediaFrame&&) noexcept = default;
-    MediaFrame& operator=(MediaFrame&&) noexcept = default;
+    MediaUnit(std::unique_ptr<IMediaUnitBuffer>&& unit_data);
+    MediaUnit(const MediaUnit&) = delete;
+    MediaUnit& operator=(const MediaUnit&) = delete;
+    MediaUnit(MediaUnit&&) noexcept = default;
+    MediaUnit& operator=(MediaUnit&&) noexcept = default;
     /**
-     * @brief: Adds metadata to the frame.
+     * @brief: Adds metadata to the media unit.
      *
      * @param [in] metadata_: Metadata to add.
      */
-    void add_metadata(const FrameMetadata &metadata_)  { metadata = std::make_shared<FrameMetadata>(metadata_); }
+    void add_metadata(const MediaUnitMetadata& metadata_)  { metadata = std::make_shared<MediaUnitMetadata>(metadata_); }
 };
 
 /**
- * @brief: Interface for frame providers.
+ * @brief: Interface for media essence providers.
  */
-class IFrameProvider {
+class IMediaEssenceProvider {
 public:
-    virtual ~IFrameProvider() = default;
+    virtual ~IMediaEssenceProvider() = default;
     /**
-     * @brief: Returns a frame in a blocking manner.
+     * @brief: Returns a media unit in a blocking manner.
      *
-     * @return: Shared pointer to the media frame.
+     * @return: Shared pointer to the media unit.
      */
-    virtual std::shared_ptr<MediaFrame> get_frame_blocking() = 0;
+    virtual std::shared_ptr<MediaUnit> get_media_unit_blocking() = 0;
     /**
-     * @brief: Returns a frame in a non-blocking manner.
+     * @brief: Returns a media unit in a non-blocking manner.
      *
-     * @return: Shared pointer to the media frame.
+     * @return: Shared pointer to the media unit.
      */
-    virtual std::shared_ptr<MediaFrame> get_frame_not_blocking() = 0;
+    virtual std::shared_ptr<MediaUnit> get_media_unit_non_blocking() = 0;
     /**
      * @brief: Stop the provider and release all waiting threads.
      */
     virtual void stop() {};
 protected:
-    IFrameProvider() = default;
+    IMediaEssenceProvider() = default;
 };
 
 /**
- * @brief: Mock implementation of IFrameProvider for testing.
+ * @brief: Mock implementation of IMediaEssenceProvider for testing.
  */
-class NullFrameProvider : public IFrameProvider {
+class NullEssenceProvider : public IMediaEssenceProvider {
 protected:
     const MediaSettings& m_media_settings;
-    FrameMetadata m_cached_metadata;
-    size_t m_cached_frame_size;
-    float m_frame_not_available_probability;
+    MediaUnitMetadata m_cached_metadata;
+    size_t m_cached_media_unit_size;
+    float m_media_unit_not_available_probability;
 public:
     /**
-     * @brief: Constructor of NullFrameProvider.
+     * @brief: Constructor of NullEssenceProvider.
      *
      * @param [in] media_settings: Media settings for the generated stream.
      */
-    NullFrameProvider(const MediaSettings& media_settings);
+    NullEssenceProvider(const MediaSettings& media_settings);
 
-    std::shared_ptr<MediaFrame> get_frame_blocking() override;
-    std::shared_ptr<MediaFrame> get_frame_not_blocking() override;
+    std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
+    std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     /**
-     * @brief: Sets the probability of returning nullptr in @ref get_frame_not_blocking.
+     * @brief: Sets the probability of returning nullptr in @ref get_media_unit_non_blocking.
      *
      * @param [in] probability: Probability value between 0 and 1.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_frame_not_available_probability(float probability);
+    ReturnStatus set_media_unit_not_available_probability(float probability);
     /**
-     * @brief: Returns the current probability of returning nullptr in @ref get_frame_not_blocking.
+     * @brief: Returns the current probability of returning nullptr in @ref get_media_unit_non_blocking.
      *
      * @return: Probability value between 0 and 1.
      */
-    float get_frame_not_available_probability() const  { return m_frame_not_available_probability; }
+    float get_media_unit_not_available_probability() const  { return m_media_unit_not_available_probability; }
 private:
     /**
-     * @brief: Sets frame settings based on the stream type.
+     * @brief: Sets media unit settings based on the stream type.
      *
      * @param [in] metadata: Metadata to set.
-     * @param [in] frame_size: Size of the frame to set.
+     * @param [in] media_unit_size: Size of the media unit to set.
      */
-    void set_frame_settings(FrameMetadata& metadata, size_t& frame_size);
+    void set_media_unit_settings(MediaUnitMetadata& metadata, size_t& media_unit_size);
     /**
-     * @brief: Determines if a frame should be available based on the probability.
+     * @brief: Determines if a media unit should be available based on the probability.
      *
-     * @return: True if the frame should be available, false otherwise.
+     * @return: True if the media unit should be available, false otherwise.
      */
-    bool is_frame_available() const;
+    bool is_media_unit_available() const;
 };
 
 /**
- * @brief: Provide media frames from a buffer queue, implementing @ref IFrameProvider.
+ * @brief: Provide media units from a buffer queue, implementing @ref IMediaEssenceProvider.
  *
- * This class maintains a queue of media frames and provides them to consumers.
- * Frames can be added to the queue by producers and will be automatically
+ * This class maintains a queue of media units and provides them to consumers.
+ * Units can be added to the queue by producers and will be automatically
  * returned to their source when no longer needed.
  */
-class BufferedMediaFrameProvider : public IFrameProvider {
+class BufferedEssenceProvider : public IMediaEssenceProvider {
 private:
-    /* Queue of media frames */
-    std::queue<std::shared_ptr<MediaFrame>> m_frame_queue;
+    /* Queue of media units */
+    std::queue<std::shared_ptr<MediaUnit>> m_media_unit_queue;
     /* Mutex for thread safety */
     mutable std::mutex m_mutex;
     /* Condition variable for blocking operations */
@@ -316,51 +316,51 @@ public:
     /**
      * @brief: Constructor.
      *
-     * @param [in] max_queue_size: Maximum size of the internal frame queue (0 for unlimited).
+     * @param [in] max_queue_size: Maximum size of the internal media unit queue (0 for unlimited).
      */
-    BufferedMediaFrameProvider(size_t max_queue_size = 0);
+    BufferedEssenceProvider(size_t max_queue_size = 0);
     /**
      * @brief: Destructor.
      */
-    virtual ~BufferedMediaFrameProvider();
+    virtual ~BufferedEssenceProvider();
 
-    std::shared_ptr<MediaFrame> get_frame_blocking() override;
-    std::shared_ptr<MediaFrame> get_frame_not_blocking() override;
+    std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
+    std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     void stop() override;
     /**
-     * @brief: Add a frame to the queue.
+     * @brief: Add a media unit to the queue.
      *
-     * @param [in] frame: Shared pointer to a @ref MediaFrame.
+     * @param [in] media_unit: Shared pointer to a @ref MediaUnit.
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus add_frame(std::shared_ptr<MediaFrame> frame);
+    virtual ReturnStatus add_media_unit(std::shared_ptr<MediaUnit> media_unit);
     /**
-     * @brief: Return the number of frames in the queue.
+     * @brief: Return the number of media units in the queue.
      *
-     * @return: Number of frames in the queue.
+     * @return: Number of media units in the queue.
      */
     size_t get_queue_size() const;
 };
 
 /**
- * @brief: Reads frames from a binary file.
+ * @brief: Reads media units from a binary file.
  *
- * It loads frames into a queue and, if the loop option is enabled,
- * re-inserts frames after serving them.
+ * It loads media units into a queue and, if the loop option is enabled,
+ * re-inserts media units after serving them.
  */
-class MediaFileFrameProvider : public IFrameProvider {
+class MediaFileEssenceProvider : public IMediaEssenceProvider {
 protected:
     std::string m_file_path;
     MemoryAllocator& m_mem_allocator;
     SMPTEStandard m_smpte_standard;
-    size_t m_frame_size;
-    size_t m_aligned_frame_size;
-    bool m_loop_frames;
+    size_t m_media_unit_size;
+    size_t m_aligned_media_unit_size;
+    bool m_loop_media_units;
     bool m_stop;
-    bool m_frames_loaded;
+    bool m_media_units_loaded;
     std::ifstream m_input_file;
-    std::queue<std::shared_ptr<MediaFrame>> m_frame_queue;
+    std::queue<std::shared_ptr<MediaUnit>> m_media_unit_queue;
     std::mutex m_mutex;
     std::condition_variable m_cv;
 public:
@@ -369,33 +369,33 @@ public:
      *
      * @param [in] file_path: Path to the media file.
      * @param [in] smpte_standard: SMPTE standard.
-     * @param [in] frame_size: Size of each frame.
+     * @param [in] media_unit_size: Size of each media unit.
      * @param [in] mem_allocator: Memory allocator to use.
-     * @param [in] loop: Whether to loop frames.
+     * @param [in] loop: Whether to loop media units.
      */
-    MediaFileFrameProvider(const std::string &file_path, SMPTEStandard smpte_standard, size_t frame_size,
+    MediaFileEssenceProvider(const std::string &file_path, SMPTEStandard smpte_standard, size_t media_unit_size,
         MemoryAllocator& mem_allocator, bool loop = false);
     /**
      * @brief: Destructor.
      */
-    ~MediaFileFrameProvider();
+    ~MediaFileEssenceProvider();
 
-    std::shared_ptr<MediaFrame> get_frame_blocking() override;
-    std::shared_ptr<MediaFrame> get_frame_not_blocking() override;
+    std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
+    std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     void stop() override;
     /**
-     * @brief: Loads frames from the file.
+     * @brief: Loads media units from the file.
      */
-    ReturnStatus load_frames();
+    ReturnStatus load_media_units();
 private:
     /**
-     * @brief: Handles looping of frames.
+     * @brief: Handles looping of media units.
      *
-     * @param [in] frame: Frame to handle.
+     * @param [in] media_unit: Media unit to handle.
      */
-    void handle_looping_frame(std::shared_ptr<MediaFrame>& frame);
+    void handle_looping_media_unit(std::shared_ptr<MediaUnit>& media_unit);
     /**
-     * @brief: Allocates memory for the frames.
+     * @brief: Allocates memory for the media units.
      *
      * @param [in] file_size: Size of the file.
      * @param [out] file_memory_buffer: Pointer to the allocated memory.
@@ -403,20 +403,20 @@ private:
      *
      * @return: Status of the operation.
      */
-    ReturnStatus allocate_frames_memory(size_t file_size,
+    ReturnStatus allocate_media_units_memory(size_t file_size,
         byte_t*& file_memory_buffer, size_t& required_memory_size);
     /**
-     * @brief: Reads frames from the file and put them in the queue.
+     * @brief: Reads media units from the file and puts them in the queue.
      *
      * @param [in] file_memory_buffer: Pointer to the memory buffer.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus read_frames(byte_t* file_memory_buffer);
+    ReturnStatus read_media_units(byte_t* file_memory_buffer);
 };
 
 } // namespace services
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_MEDIA_FRAME_PROVIDER_H_ */
+#endif /* RDK_SERVICES_MEDIA_MEDIA_ESSENCE_PROVIDER_H_ */

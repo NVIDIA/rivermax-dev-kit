@@ -135,17 +135,19 @@ public:
     ReturnStatus initialize_smpte_standards();
     ReturnStatus initialize() override;
     /**
-     * @brief: Sets the frame provider for the specified stream index.
+     * @brief: Sets the media essence provider for the specified stream index.
      *
      * @param [in] stream_index: Stream index.
-     * @param [in] frame_provider: Framer provider pointer.
+     * @param [in] essence_provider: Media essence provider pointer.
      * @param [in] smpte_standard: SMPTE standard.
-     * @param [in] contains_payload: Flag indicating whether the frame provider contains payload.
+     * @param [in] contains_payload: Flag indicating whether the media essence provider contains payload.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_frame_provider(size_t stream_index, std::shared_ptr<IFrameProvider> frame_provider,
-        SMPTEStandard smpte_standard, bool contains_payload = true);
+    ReturnStatus set_media_essence_provider(size_t stream_index,
+                                            std::shared_ptr<IMediaEssenceProvider> essence_provider,
+                                            SMPTEStandard smpte_standard, bool contains_payload = true);
+
 private:
     ReturnStatus initialize_app_settings() final;
     ReturnStatus post_load_settings() final;
@@ -223,16 +225,16 @@ private:
      */
     static uint64_t get_time_ns(void* context = nullptr);
     /**
-     * @brief: Sets internal frame providers.
+     * @brief: Sets internal media essence providers.
      *
-     * This method is responsible to set internal (default) frame providers for
-     * the streams. The internal frame providers are used to generate frames that
+     * This method is responsible to set internal (default) media essence providers for
+     * the streams. The internal media essence providers are used to generate media units that
      * will be set by BufferWriters as a payload. User will be able to set an
-     * external frame provider by @ref MediaSenderApp::set_frame_provider.
+     * external media essence provider by @ref MediaSenderApp::set_media_essence_provider.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_internal_frame_providers();
+    ReturnStatus set_internal_media_essence_providers();
 };
 
 } // namespace rmax_xstream_media_sender

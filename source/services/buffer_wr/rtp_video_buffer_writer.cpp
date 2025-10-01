@@ -54,13 +54,13 @@ struct SRDHeader {
     set_stream_properties();
 }
 
-ReturnStatus RTPVideoMockBufferWriter::set_next_frame(std::shared_ptr<MediaFrame> frame)
+ReturnStatus RTPVideoMockBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
-    reset_in_frame_state();
+    reset_in_media_unit_state();
     return ReturnStatus::success;
 }
 
-void RTPVideoMockBufferWriter::reset_in_frame_state()
+void RTPVideoMockBufferWriter::reset_in_media_unit_state()
 {
     m_send_data.packet_counter = 0;
     m_send_data.line_number = 0;
@@ -68,7 +68,7 @@ void RTPVideoMockBufferWriter::reset_in_frame_state()
     m_send_data.rtp_interlace_field_indicator = 0;
 }
 
-inline void RTPVideoMockBufferWriter::update_in_frame_state()
+inline void RTPVideoMockBufferWriter::update_in_media_unit_state()
 {
     auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
     m_send_data.srd_offset = (m_send_data.srd_offset + video_settings.pixels_per_packet) %
@@ -120,15 +120,15 @@ size_t RTPVideoMockBufferWriter::build_rtp_header(byte_t* buffer)
     return rtp_header_size + extension_size;
 }
 
-ReturnStatus RTPVideoBufferWriter::set_next_frame(std::shared_ptr<MediaFrame> frame)
+ReturnStatus RTPVideoBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
-    if (frame == nullptr || frame->data == nullptr) {
-        std::cerr << "Error: Frame is null or frame data is null" << std::endl;
+    if (media_unit == nullptr || media_unit->data == nullptr) {
+        std::cerr << "Error: Media unit is null or media unit data is null" << std::endl;
         return ReturnStatus::failure;
     }
-    RTPVideoMockBufferWriter::set_next_frame(frame);
-    m_current_frame = std::move(frame);
-    m_data_left_in_frame = m_current_frame->data->get_size();
+    RTPVideoMockBufferWriter::set_next_media_unit(media_unit);
+    m_current_media_unit = std::move(media_unit);
+    m_data_left_in_frame = m_current_media_unit->data->get_size();
     return ReturnStatus::success;
 }
 
@@ -139,10 +139,10 @@ ReturnStatus RTPVideoBufferWriter::write_buffer(void* header_ptr, void* payload_
     assert(header_pointer);
     assert(payload_ptr);
 
-    if (m_current_frame == nullptr || m_current_frame->data == nullptr ||
-        m_current_frame->data->get() == nullptr || !m_payload_mem_utils ||
+    if (m_current_media_unit == nullptr || m_current_media_unit->data == nullptr ||
+        m_current_media_unit->data->get() == nullptr || !m_payload_mem_utils ||
         m_data_left_in_frame == 0) {
-        std::cerr << "Error: Invalid frame state" << std::endl;
+        std::cerr << "Error: Invalid media unit state" << std::endl;
         return ReturnStatus::failure;
     }
 
@@ -168,19 +168,19 @@ ReturnStatus RTPVideoBufferWriter::write_buffer(void* header_ptr, void* payload_
     for (size_t i = 0; i < packets_to_process; i++) {
         byte_t* current_packet_pointer = header_pointer + (i * m_media_settings.app_header_stride_size);
         build_rtp_header(current_packet_pointer);
-        update_in_frame_state();
+        update_in_media_unit_state();
     }
 
-    byte_t* frame_ptr = m_current_frame->data->get() + (m_current_frame->data->get_size() - m_data_left_in_frame);
+    byte_t* unit_ptr = m_current_media_unit->data->get() + (m_current_media_unit->data->get_size() - m_data_left_in_frame);
     auto status = m_payload_mem_utils->memory_copy_2D(payload_pointer, m_media_settings.data_stride_size,
-        frame_ptr, m_media_settings.raw_packet_payload_size,
-        m_media_settings.raw_packet_payload_size, packets_to_process, m_current_frame->data->get_memory_location());
+        unit_ptr, m_media_settings.raw_packet_payload_size,
+        m_media_settings.raw_packet_payload_size, packets_to_process, m_current_media_unit->data->get_memory_location());
 
     size_t data_copied = std::min(packets_to_process * m_media_settings.raw_packet_payload_size, m_data_left_in_frame);
     m_data_left_in_frame -= data_copied;
 
     if (m_data_left_in_frame == 0) {
-        m_current_frame = nullptr;
+        m_current_media_unit = nullptr;
     }
 
     if (status != ReturnStatus::success) {
@@ -192,9 +192,9 @@ ReturnStatus RTPVideoBufferWriter::write_buffer(void* header_ptr, void* payload_
 
 size_t RTPVideoBufferWriter::fill_packet(byte_t* buffer)
 {
-    if (m_current_frame == nullptr || m_current_frame->data == nullptr ||
-        m_current_frame->data->get() == nullptr || !m_payload_mem_utils) {
-        std::cerr << "Error: Invalid frame state" << std::endl;
+    if (m_current_media_unit == nullptr || m_current_media_unit->data == nullptr ||
+        m_current_media_unit->data->get() == nullptr || !m_payload_mem_utils) {
+        std::cerr << "Error: Invalid media unit state" << std::endl;
         return 0;
     }
     size_t raw_payload_size = m_media_settings.raw_packet_payload_size;
@@ -202,13 +202,13 @@ size_t RTPVideoBufferWriter::fill_packet(byte_t* buffer)
         raw_payload_size = m_data_left_in_frame;
     }
 
-    byte_t* frame_ptr = m_current_frame->data->get() + (m_current_frame->data->get_size() - m_data_left_in_frame);
-    m_payload_mem_utils->memory_copy(buffer, frame_ptr, raw_payload_size);
+    byte_t* unit_ptr = m_current_media_unit->data->get() + (m_current_media_unit->data->get_size() - m_data_left_in_frame);
+    m_payload_mem_utils->memory_copy(buffer, unit_ptr, raw_payload_size);
     m_data_left_in_frame -= raw_payload_size;
 
-    // If the frame is fully transmitted, reset the current frame
+    // If the media unit is fully transmitted, reset the current media unit
     if (m_data_left_in_frame == 0) {
-        m_current_frame = nullptr;
+        m_current_media_unit = nullptr;
     }
 
     return raw_payload_size;

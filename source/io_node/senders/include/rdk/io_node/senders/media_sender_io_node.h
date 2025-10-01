@@ -31,7 +31,7 @@
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/io_node/common/chunk_buffer_writer_interface.h"
 #include "rdk/services/media/media_settings.h"
-#include "rdk/services/media/media_frame_provider.h"
+#include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
 #include "rdk/core/memory_layout/header_payload_memory_layout.h"
 #include "rdk/services/utils/synchronizer.h"
@@ -73,7 +73,7 @@ private:
         std::unique_ptr<MediaStreamMemBlockset> mem_blockset;
         std::vector<TwoTupleFlow> flows;
         std::unique_ptr<RTPMediaBufferWriter> buffer_writer;
-        std::shared_ptr<IFrameProvider> frame_provider;
+        std::shared_ptr<IMediaEssenceProvider> essence_provider;
     };
     static constexpr size_t DEFAULT_PRINT_TIME_INTERVAL_MS = 1000;
     std::vector<MediaStreamPack> m_stream_packs;
@@ -84,7 +84,7 @@ private:
     int m_sleep_between_operations;
     bool m_print_parameters;
     uint32_t m_stats_report_interval_ms;
-    uint64_t m_stats_sent_frame_field_counter;
+    uint64_t m_stats_sent_media_unit_chunk_counter;
     int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
     IONodeMemoryUtils& m_memory_utils;
@@ -188,17 +188,18 @@ public:
      */
     void operator()();
     /**
-     * @brief: Sets the frame provider for the specified stream index.
+     * @brief: Sets the media essence provider for the specified stream index.
      *
      * @param [in] stream_index: Stream index.
-     * @param [in] frame_provider: Frame provider to set.
+     * @param [in] essence_provider: Media essence provider to set.
      * @param [in] smpte_standard: SMPTE standard.
-     * @param [in] contains_payload: Flag indicating whether the frame provider contains payload.
+     * @param [in] contains_payload: Flag indicating whether the media essence provider contains payload.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_frame_provider(size_t stream_index, std::shared_ptr<IFrameProvider> frame_provider,
-        SMPTEStandard smpte_standard, bool contains_payload = true);
+    ReturnStatus set_media_essence_provider(size_t stream_index,
+                                            std::shared_ptr<IMediaEssenceProvider> essence_provider,
+                                            SMPTEStandard smpte_standard, bool contains_payload = true);
     /**
      * @brief: Sets the synchronizer for the sender.
      *
@@ -258,13 +259,13 @@ private:
      */
     uint64_t get_time_now_ns() const { return m_get_time_ns_cb(nullptr); }
     /**
-     * @brief: Waits for the next frame.
+     * @brief: Waits for the next media unit.
      *
-     * This method implements logic to wait and wake up when next frame send time is close.
+     * This method implements logic to wait and wake up when next media unit send time is close.
      *
-     * @param [in] send_time_ns: Send time of the next frame in nanoseconds.
+     * @param [in] send_time_ns: Send time of the next media unit in nanoseconds.
      */
-    inline void wait_for_next_frame(uint64_t send_time_ns);
+    inline void wait_for_next_media_unit(uint64_t send_time_ns);
     /**
      * @brief: Returns status of Header-Data-Split mode.
      *
@@ -355,13 +356,13 @@ private:
      */
     bool is_internal_allocation_requested(const HeaderPayloadMemoryLayout& layout) const;
     /**
-     * @brief: Processes a frame.
+     * @brief: Processes a media essence unit.
      *
-     * This method processes a frame by retrieving it from the frame provider and setting it in the buffer writer.
+     * This method processes a media unit by retrieving it from the media essence provider and setting it in the buffer writer.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus process_frame();
+    ReturnStatus process_media_unit();
     /**
      * @brief: Fills a memory block from a file.
      *
@@ -391,13 +392,13 @@ private:
      *
      * This method calculates the commit timestamp based on the provided parameters.
      *
-     * @param [in] first_chunk_in_frame: Flag indicating if this is the first chunk in the frame.
+     * @param [in] first_chunk_in_media_unit: Flag indicating if this is the first chunk in the media unit.
      * @param [in] send_time_ns: Send time in nanoseconds.
      * @param [in] stream_id: ID of the stream.
      *
      * @return: Commit timestamp in nanoseconds.
      */
-    inline uint64_t get_commit_timestamp_ns(bool first_chunk_in_frame, double send_time_ns, size_t stream_id) const;
+    inline uint64_t get_commit_timestamp_ns(bool first_chunk_in_media_unit, double send_time_ns, size_t stream_id) const;
     /**
      * @brief: Coordinates the start time with the synchronizer if available.
      *
@@ -412,10 +413,10 @@ private:
 };
 
 inline uint64_t MediaSenderIONode::get_commit_timestamp_ns(
-    bool first_chunk_in_frame, double send_time_ns, size_t stream_id) const {
+    bool first_chunk_in_media_unit, double send_time_ns, size_t stream_id) const {
     uint64_t current_time_ns = get_time_now_ns();
 
-    if (first_chunk_in_frame && likely(send_time_ns > current_time_ns)) {
+    if (first_chunk_in_media_unit && likely(send_time_ns > current_time_ns)) {
         return static_cast<uint64_t>(send_time_ns);
     } else if (unlikely(send_time_ns <= current_time_ns)) {
         static auto start_time = std::chrono::high_resolution_clock::now();

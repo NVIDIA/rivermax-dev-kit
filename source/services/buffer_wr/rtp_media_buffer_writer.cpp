@@ -61,7 +61,7 @@ ReturnStatus RTPMediaBufferWriter::write_buffer(void* payload_ptr, size_t length
         current_payload_pointer = (current_packet_pointer + m_media_settings.protocol_header_size);
         build_rtp_header(current_packet_pointer);
         fill_packet(current_payload_pointer);
-        update_in_frame_state();
+        update_in_media_unit_state();
         stride++;
     }
     return ReturnStatus::success;
@@ -85,7 +85,7 @@ ReturnStatus RTPMediaBufferWriter::write_buffer(void* header_ptr, void* payload_
         current_payload_pointer = (payload_pointer + (stride * m_media_settings.data_stride_size));
         build_rtp_header(current_packet_pointer);
         fill_packet(current_payload_pointer);
-        update_in_frame_state();
+        update_in_media_unit_state();
         stride++;
     }
     return ReturnStatus::success;

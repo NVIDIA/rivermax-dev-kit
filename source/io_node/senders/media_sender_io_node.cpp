@@ -102,7 +102,7 @@ MediaSenderIONode::MediaSenderIONode(
     m_sleep_between_operations(app_settings.sleep_between_operations),
     m_print_parameters(app_settings.print_parameters),
     m_stats_report_interval_ms(app_settings.stats_report_interval_ms),
-    m_stats_sent_frame_field_counter(0),
+    m_stats_sent_media_unit_chunk_counter(0),
     m_cpu_core_affinity(cpu_core_affinity),
     m_hw_queue_full_sleep_us(app_settings.hw_queue_full_sleep_us),
     m_memory_utils(memory_utils),
@@ -410,23 +410,23 @@ void MediaSenderIONode::print_parameters()
     std::cout << sender_parameters.str() << std::endl;
 }
 
-ReturnStatus MediaSenderIONode::process_frame()
+ReturnStatus MediaSenderIONode::process_media_unit()
 {
     for (auto& stream_pack : m_stream_packs) {
-        if (!stream_pack.frame_provider) {
+        if (!stream_pack.essence_provider) {
             continue;
         }
-        std::shared_ptr<MediaFrame> frame = stream_pack.frame_provider->get_frame_blocking();
+        std::shared_ptr<MediaUnit> media_unit = stream_pack.essence_provider->get_media_unit_blocking();
 
         if (SignalHandler::get_received_signal() >= 0) {
             return ReturnStatus::success;
         }
-        if (!frame) {
+        if (!media_unit) {
             continue;
         }
-        auto rc = stream_pack.buffer_writer->set_next_frame(std::move(frame));
+        auto rc = stream_pack.buffer_writer->set_next_media_unit(std::move(media_unit));
         if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to set next frame" << std::endl;
+            std::cerr << "Failed to set next media unit" << std::endl;
             return rc;
         }
     }
@@ -444,11 +444,11 @@ ReturnStatus MediaSenderIONode::coordinate_start_time(uint64_t& send_time_ns)
         if (proposed_time - send_time_ns < NS_IN_USEC) {
             return 0;
         }
-        int skip_frames = 0;
+        int skip_media_units = 0;
         uint64_t new_start_time;
         do {
-            skip_frames++;
-            new_start_time = send_time_ns + m_media_settings.frame_field_time_interval_ns * skip_frames;
+            skip_media_units++;
+            new_start_time = send_time_ns + m_media_settings.frame_field_time_interval_ns * skip_media_units;
         } while (proposed_time > new_start_time);
         return static_cast<int>(new_start_time - proposed_time);
     };
@@ -504,9 +504,9 @@ void MediaSenderIONode::operator()()
         * sent_field_counter);
     };
     uint64_t commit_timestamp_ns = 0;
-    size_t chunk_in_frame_counter;
+    size_t chunk_in_media_unit_counter;
     rc = ReturnStatus::success;
-    auto first_chunk_in_frame = false;
+    auto first_chunk_in_media_unit = false;
 
     // Determine which function to use based on header data split mode:
     std::function<ReturnStatus(MediaStreamPack&)> write_buffer_callback;
@@ -527,12 +527,12 @@ void MediaSenderIONode::operator()()
 
     auto stats_start_time = high_resolution_clock::now();
     while (likely(rc != ReturnStatus::failure && SignalHandler::get_received_signal() < 0)) {
-        chunk_in_frame_counter = 0;
+        chunk_in_media_unit_counter = 0;
         send_time_ns = get_send_time_ns();
-        wait_for_next_frame(static_cast<uint64_t>(send_time_ns));
-        rc = process_frame();
+        wait_for_next_media_unit(static_cast<uint64_t>(send_time_ns));
+        rc = process_media_unit();
         if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to process frame" << std::endl;
+            std::cerr << "Failed to process media unit" << std::endl;
             break;
         }
         do {
@@ -544,8 +544,8 @@ void MediaSenderIONode::operator()()
                     break;
                 }
                 write_buffer_callback(stream_pack);
-                first_chunk_in_frame = unlikely(chunk_in_frame_counter % m_media_settings.chunks_in_frame_field == 0);
-                commit_timestamp_ns = get_commit_timestamp_ns(first_chunk_in_frame, send_time_ns, stream_pack.stream->get_id());
+                first_chunk_in_media_unit = unlikely(chunk_in_media_unit_counter % m_media_settings.chunks_in_frame_field == 0);
+                commit_timestamp_ns = get_commit_timestamp_ns(first_chunk_in_media_unit, send_time_ns, stream_pack.stream->get_id());
                 do {
                     rc = stream_pack.stream->blocking_commit_chunk(*stream_pack.chunk_handler,
                             commit_timestamp_ns, BLOCKING_CHUNK_RETRIES);
@@ -554,14 +554,14 @@ void MediaSenderIONode::operator()()
                     break;
                 }
             }
-            if ((chunk_in_frame_counter % m_media_settings.chunks_in_frame_field) == 0) {
+            if ((chunk_in_media_unit_counter % m_media_settings.chunks_in_frame_field) == 0) {
                 send_time_ns += m_media_settings.frame_field_time_interval_ns;
             }
         } while (likely(rc == ReturnStatus::success &&
-                        ++chunk_in_frame_counter < m_media_settings.chunks_in_frame_field));
+                        ++chunk_in_media_unit_counter < m_media_settings.chunks_in_frame_field));
 
         sent_field_counter++;
-        m_stats_sent_frame_field_counter++;
+        m_stats_sent_media_unit_chunk_counter++;
 
         if (m_stats_report_interval_ms > 0) {
             auto now = high_resolution_clock::now();
@@ -632,7 +632,7 @@ inline void MediaSenderIONode::prepare_buffers()
     // TODO: Add buffer preparation, for now, send random garbage as payload.
 }
 
-void MediaSenderIONode::wait_for_next_frame(uint64_t sleep_till_ns)
+void MediaSenderIONode::wait_for_next_media_unit(uint64_t sleep_till_ns)
 {
     uint64_t time_now_ns = get_time_now_ns();
 
@@ -673,11 +673,12 @@ void MediaSenderIONode::determine_memory_layout_for_single_block(
     }
 }
 
-ReturnStatus MediaSenderIONode::set_frame_provider(size_t stream_index,
-    std::shared_ptr<IFrameProvider> frame_provider, SMPTEStandard smpte_standard, bool contains_payload)
+ReturnStatus MediaSenderIONode::set_media_essence_provider(
+    size_t stream_index, std::shared_ptr<IMediaEssenceProvider> essence_provider,
+    SMPTEStandard smpte_standard, bool contains_payload)
 {
-    if (frame_provider == nullptr) {
-        std::cerr << "Invalid frame_provider" << std::endl;
+    if (essence_provider == nullptr) {
+        std::cerr << "Invalid media essence provider" << std::endl;
         return ReturnStatus::failure;
     }
     if (stream_index >= m_stream_packs.size()) {
@@ -685,14 +686,14 @@ ReturnStatus MediaSenderIONode::set_frame_provider(size_t stream_index,
         return ReturnStatus::failure;
     }
 
-    m_stream_packs[stream_index].frame_provider = std::move(frame_provider);
+    m_stream_packs[stream_index].essence_provider = std::move(essence_provider);
     std::unique_ptr<RTPMediaBufferWriter> buffer_writer = RTPMediaBufferWriter::get_rtp_media_buffer_writer(
         smpte_standard, contains_payload, m_media_settings,
         m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
     if (buffer_writer) {
         m_stream_packs[stream_index].buffer_writer = std::move(buffer_writer);
     } else {
-        std::cout << "Frame provider was set for stream " << stream_index <<
+        std::cout << "Media essence provider was set for stream " << stream_index <<
             " but buffer writer was not created" << std::endl;
     }
     return ReturnStatus::success;
@@ -776,14 +777,14 @@ ReturnStatus MediaSenderIONode::fill_memblock_from_file(byte_t* block_memory_buf
 void MediaSenderIONode::print_statistics(
     std::ostream& out, const std::chrono::high_resolution_clock::duration& interval_duration) const
 {
-    uint64_t bytes_sent = (m_stats_sent_frame_field_counter) * m_media_settings.packets_in_frame_field * m_stream_packs.size() *
+    uint64_t bytes_sent = (m_stats_sent_media_unit_chunk_counter) * m_media_settings.packets_in_frame_field * m_stream_packs.size() *
         (m_media_settings.packet_app_header_size + m_media_settings.packet_payload_size + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
     float mbps = (bytes_sent * CHAR_BIT) / duration_cast<duration<float, std::micro>>(interval_duration).count();
     std::ostringstream oss;
     oss << " Sender: " << std::setw(3) << m_index
         << "  Streams: " << std::setw(3) << m_stream_packs.size()
         << "  Type: " << std::setw(11) << std::left << m_media_settings.media_settings_calculator->get_smpte_standard_name()
-        << "  Frames sent: " << std::setw(3) << std::right << m_stats_sent_frame_field_counter
+        << "  Media units sent: " << std::setw(3) << std::right << m_stats_sent_media_unit_chunk_counter
         << "  Bytes sent: " << std::setw(11) << bytes_sent
         << "  BW: " << std::setw(10) << std::fixed << std::setprecision(3) << mbps << " Mbps" << std::endl;
     out << oss.str();
@@ -791,5 +792,5 @@ void MediaSenderIONode::print_statistics(
 
 void MediaSenderIONode::reset_statistics()
 {
-    m_stats_sent_frame_field_counter = 0;
+    m_stats_sent_media_unit_chunk_counter = 0;
 }

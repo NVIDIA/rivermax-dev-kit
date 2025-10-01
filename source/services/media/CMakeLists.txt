@@ -23,8 +23,8 @@ target_sources(rivermax-dev-kit-services
     PRIVATE
         ipmx.cpp
         media_file_streaming_provider.cpp
-        media_frame_pool.cpp
-        media_frame_provider.cpp
+        media_unit_pool.cpp
+        media_essence_provider.cpp
         media_settings_calculator.cpp
         video_settings_calculator.cpp
         ancillary_settings_calculator.cpp

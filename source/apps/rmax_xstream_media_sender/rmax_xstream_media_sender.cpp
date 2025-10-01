@@ -217,9 +217,9 @@ ReturnStatus MediaSenderApp::initialize()
             std::cerr << "Failed to configure memory layout" << std::endl;
             return rc;
         }
-        rc = set_internal_frame_providers();
+        rc = set_internal_media_essence_providers();
         if (rc == ReturnStatus::failure) {
-            std::cerr << "Failed to set internal frame providers" << std::endl;
+            std::cerr << "Failed to set internal media essence providers" << std::endl;
             return rc;
         }
     }
@@ -581,32 +581,32 @@ void MediaSenderApp::initialize_sender_threads()
     }
 }
 
-ReturnStatus MediaSenderApp::set_frame_provider(size_t stream_index,
-    std::shared_ptr<IFrameProvider> frame_provider, SMPTEStandard smpte_standard, bool contains_payload)
+ReturnStatus MediaSenderApp::set_media_essence_provider(size_t stream_index,
+    std::shared_ptr<IMediaEssenceProvider> essence_provider, SMPTEStandard smpte_standard, bool contains_payload)
 {
     size_t sender_thread_index = 0;
     size_t sender_stream_index = 0;
 
     auto rc = find_internal_stream_index(stream_index, sender_thread_index, sender_stream_index);
     if (rc != ReturnStatus::success) {
-        std::cerr << "Error setting frame provider, invalid stream index " << stream_index << std::endl;
+        std::cerr << "Error setting media essence provider, invalid stream index " << stream_index << std::endl;
         return rc;
     }
 
-    rc = m_senders[sender_thread_index]->set_frame_provider(
-        sender_stream_index, std::move(frame_provider), smpte_standard, contains_payload);
+    rc = m_senders[sender_thread_index]->set_media_essence_provider(
+        sender_stream_index, std::move(essence_provider), smpte_standard, contains_payload);
 
     if (rc != ReturnStatus::success) {
-        std::cerr << "Error setting frame provider for stream "
+        std::cerr << "Error setting media essence provider for stream "
                   << sender_stream_index << " on sender " << sender_thread_index << std::endl;
     }
 
     return rc;
 }
 
-ReturnStatus MediaSenderApp::set_internal_frame_providers()
+ReturnStatus MediaSenderApp::set_internal_media_essence_providers()
 {
-    std::shared_ptr<IFrameProvider> frame_provider;
+    std::shared_ptr<IMediaEssenceProvider> essence_provider;
     ReturnStatus rc;
     bool contains_payload = true;
     size_t sender_index = 0;
@@ -615,28 +615,29 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
         auto num_of_streams = node.second;
         for(size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
             if (smpte_standard_config.media_file.empty() || !(smpte_standard_config.dynamic_media_file_load)) {
-                frame_provider = std::make_shared<NullFrameProvider>(smpte_standard_config);
+                essence_provider = std::make_shared<NullEssenceProvider>(smpte_standard_config);
                 contains_payload = false;
             } else {
                 if (smpte_standard_config.get_smpte_standard() != SMPTEStandard::ST_2110_20) {
                     std::cerr << "Video file is not supported for other media types" << std::endl;
                     return ReturnStatus::failure;
                 }
-                auto media_file_frame_provider = std::make_shared<MediaFileFrameProvider>(
+                auto media_file_essence_provider = std::make_shared<MediaFileEssenceProvider>(
                     smpte_standard_config.media_file, smpte_standard_config.get_smpte_standard(),
                     smpte_standard_config.bytes_per_frame, *m_header_allocator, true);
-                rc = media_file_frame_provider->load_frames();
+                rc = media_file_essence_provider->load_media_units();
                 if (rc != ReturnStatus::success) {
-                    std::cerr << "Failed to load frames from video file" << std::endl;
+                    std::cerr << "Failed to load media units from video file" << std::endl;
                     return rc;
                 }
-                frame_provider = std::move(media_file_frame_provider);
+                essence_provider = std::move(media_file_essence_provider);
             }
-            rc = m_senders[sender_index]->set_frame_provider(
-                stream_index, std::move(frame_provider), smpte_standard_config.get_smpte_standard(), contains_payload);
+            rc = m_senders[sender_index]->set_media_essence_provider(
+                stream_index, std::move(essence_provider), smpte_standard_config.get_smpte_standard(),
+                contains_payload);
             if (rc != ReturnStatus::success) {
-                std::cerr << "Error setting frame provider for stream "
-                          << stream_index << " on sender " << sender_index << std::endl;
+                std::cerr << "Error setting media essence provider for stream " << stream_index
+                          << " on sender " << sender_index << std::endl;
                 return rc;
             }
         }

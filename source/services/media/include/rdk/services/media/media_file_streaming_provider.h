@@ -27,8 +27,8 @@
 #include <condition_variable>
 
 #include "rdk/services/utils/defs.h"
-#include "rdk/services/media/media_frame_provider.h"
-#include "rdk/services/media/media_frame_pool.h"
+#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 
 namespace rivermax
@@ -37,13 +37,13 @@ namespace dev_kit
 {
 namespace services
 {
-class MediaFramePool;
-class BufferedMediaFrameProvider;
+class MediaUnitPool;
+class BufferedEssenceProvider;
 /**
- * @brief: Reads frames from a file and streams them to a @ref BufferedMediaFrameProvider.
+ * @brief: Reads media units from a file and streams them to a @ref BufferedEssenceProvider.
  *
- * This class reads media frames from a file, uses a @ref MediaFramePool for memory management,
- * and pushes the frames to a @ref BufferedMediaFrameProvider for consumption by other components.
+ * This class reads media units from a file, uses a @ref MediaUnitPool for memory management,
+ * and pushes the media units to a @ref BufferedEssenceProvider for consumption by other components.
  * It supports looping through the file when reaching the end and provides thread-safe
  * operations for starting and stopping the streaming process.
  */
@@ -51,12 +51,12 @@ class MediaFileStreamingProvider {
 private:
     std::string m_file_path;
     SMPTEStandard m_smpte_standard;
-    size_t m_frame_size;
-    std::unique_ptr<MediaFramePool> m_frame_pool;
-    std::shared_ptr<BufferedMediaFrameProvider> m_frame_provider;
+    size_t m_media_unit_size;
+    std::unique_ptr<MediaUnitPool> m_media_unit_pool;
+    std::shared_ptr<BufferedEssenceProvider> m_essence_provider;
     std::shared_ptr<MemoryUtils> m_memory_utils;
     std::shared_ptr<MemoryAllocator> m_memory_allocator;
-    bool m_loop_frames;
+    bool m_loop_media_units;
     std::atomic<bool> m_stop{false};
     std::condition_variable m_cv;
     std::mutex m_mutex;
@@ -64,23 +64,24 @@ private:
     std::atomic<bool> m_initialized{false};
     size_t m_sleep_duration_microseconds;
     static constexpr auto SLEEP_DURATION_MICROSECONDS = 10000;
-    static constexpr auto MEMORY_POOL_FRAME_COUNT = 15;
+    static constexpr auto MEMORY_POOL_MEDIA_UNIT_COUNT = 15;
 public:
     /**
      * @brief: Constructor.
      *
      * @param [in] file_path: Path to the media file.
      * @param [in] smpte_standard: SMPTE standard.
-     * @param [in] frame_size: Size of each frame in bytes.
-     * @param [in] frame_provider: Shared pointer to a @ref BufferedMediaFrameProvider.
+     * @param [in] media_unit_size: Size of each media unit in bytes.
+     * @param [in] essence_provider: Shared pointer to a @ref BufferedEssenceProvider.
      * @param [in] memory_allocator: Shared pointer to a @ref MemoryAllocator.
      * @param [in] loop: Whether to loop through the file when reaching the end.
-     * @param [in] sleep_duration_microseconds: Sleep duration in microseconds between reading frames.
+     * @param [in] sleep_duration_microseconds: Sleep duration in microseconds between reading media units.
      */
     MediaFileStreamingProvider(const std::string& file_path, SMPTEStandard smpte_standard,
-        size_t frame_size, std::shared_ptr<BufferedMediaFrameProvider> frame_provider,
-        std::shared_ptr<MemoryAllocator> memory_allocator, bool loop = false,
-        size_t sleep_duration_microseconds = SLEEP_DURATION_MICROSECONDS);
+                               size_t media_unit_size,
+                               std::shared_ptr<BufferedEssenceProvider> essence_provider,
+                               std::shared_ptr<MemoryAllocator> memory_allocator, bool loop = false,
+                               size_t sleep_duration_microseconds = SLEEP_DURATION_MICROSECONDS);
     /**
      * @brief: Destructor.
      */
@@ -98,8 +99,8 @@ public:
     /**
      * @brief: Call operator for running in a separate thread.
      *
-     * This function runs in a separate thread, reads frames from the file,
-     * and pushes them to the @ref BufferedMediaFrameProvider. It handles looping
+     * This function runs in a separate thread, reads media units from the file,
+     * and pushes them to the @ref BufferedEssenceProvider. It handles looping
      * through the file if specified and ensures thread-safe operations.
      */
     void operator()();

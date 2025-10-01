@@ -22,7 +22,7 @@
 #include <cstddef>
 #include <memory>
 
-#include "rdk/services/media/media_frame_provider.h"
+#include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/buffer_wr/buffer_writer_interface.h"
 
 using namespace rivermax::dev_kit::services;
@@ -152,13 +152,13 @@ public:
     ReturnStatus write_buffer(void* payload_ptr, size_t length_in_strides) override;
     ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
     /**
-     * @brief: Sets the next frame to be processed.
+     * @brief: Sets the next media unit to be processed.
      *
-     * @param [in] frame: Pointer to the media frame.
+     * @param [in] media_unit: Pointer to the media unit (video frame, audio sample, or ancillary data).
      *
      * @return: Return status of the operation.
      */
-    virtual ReturnStatus set_next_frame(std::shared_ptr<MediaFrame> frame) { return ReturnStatus::success; };
+    virtual ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) { return ReturnStatus::success; };
     /**
      * @brief: Sets the rtp timestamp for the first packet.
      *
@@ -206,9 +206,9 @@ protected:
      */
     virtual void set_stream_properties() {};
     /**
-     * @brief: Updates the in-frame state.
+     * @brief: Updates the in-media unit state.
      */
-    virtual void update_in_frame_state() = 0;
+    virtual void update_in_media_unit_state() = 0;
     /**
      * @brief: Returns status of Header-Data-Split mode.
      *
