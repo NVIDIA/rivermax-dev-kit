@@ -28,6 +28,9 @@
 #include "rdk/services/media/media_settings_audio.h"
 #include "rdk/services/media/media_settings_ancillary.h"
 #include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/buffered_essence_provider.h"
+#include "rdk/services/media/media_file_essence_provider.h"
+#include "rdk/services/media/null_essence_provider.h"
 #include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/media/media_file_streaming_provider.h"
 

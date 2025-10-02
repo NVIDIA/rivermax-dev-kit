@@ -25,6 +25,9 @@ target_sources(rivermax-dev-kit-services
         media_file_streaming_provider.cpp
         media_unit_pool.cpp
         media_essence_provider.cpp
+        buffered_essence_provider.cpp
+        media_file_essence_provider.cpp
+        null_essence_provider.cpp
         media_settings_calculator.cpp
         video_settings_calculator.cpp
         ancillary_settings_calculator.cpp

@@ -27,8 +27,6 @@
 #include <condition_variable>
 
 #include "rdk/services/utils/defs.h"
-#include "rdk/services/media/media_essence_provider.h"
-#include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 
 namespace rivermax

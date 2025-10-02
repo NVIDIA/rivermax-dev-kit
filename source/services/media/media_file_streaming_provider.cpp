@@ -20,8 +20,10 @@
 #include <chrono>
 #include <thread>
 
-#include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/media/media_file_streaming_provider.h"
+#include "rdk/services/error_handling/error_handling.h"
+#include "rdk/services/media/buffered_essence_provider.h"
+#include "rdk/services/media/media_unit_pool.h"
 
 using namespace rivermax::dev_kit::services;
 
