@@ -286,9 +286,9 @@ ReturnStatus IPMXStreamSender::notify_report_completion(uint64_t completion_time
 
     m_stats.report_delay_sum += report_delay;
     uint64_t next_frame_start_time = m_start_send_time_ns +
-    static_cast<uint64_t>(m_finished_reports * m_media_settings.frame_field_time_interval_ns);
+    static_cast<uint64_t>(m_finished_reports * m_media_settings.media_unit_time_interval_ns);
     uint64_t cur_frame_start_time = next_frame_start_time -
-        static_cast<uint64_t>(m_media_settings.frame_field_time_interval_ns);
+        static_cast<uint64_t>(m_media_settings.media_unit_time_interval_ns);
     int64_t chunk_tx_pos = m_last_report_trigger_ts - cur_frame_start_time;
     if (m_stats.sent_frames_cnt == 0) {
         m_stats.chunk_tx_pos_min = chunk_tx_pos;
@@ -329,14 +329,14 @@ ReturnStatus IPMXStreamSender::commit_sender_report()
     }
 
     uint64_t timestamp = m_start_send_time_ns +
-        static_cast<uint64_t>(m_media_settings.frame_field_time_interval_ns *
+        static_cast<uint64_t>(m_media_settings.media_unit_time_interval_ns *
                                          m_finished_first_chunks);
     m_report.sr.ntp_ts_hi = htonl(static_cast<uint32_t>(timestamp / NS_IN_SEC));
     m_report.sr.ntp_ts_lo = htonl(static_cast<uint32_t>(timestamp % NS_IN_SEC));
     uint32_t rtp_ts = static_cast<uint32_t>(
             time_to_rtp_timestamp(timestamp, static_cast<int>(m_media_settings.sample_rate)));
     m_report.sr.rtp_ts = htonl(rtp_ts);
-    uint32_t sent_pkt_cnt = m_finished_fields * m_media_settings.packets_in_frame_field;
+    uint32_t sent_pkt_cnt = m_finished_fields * m_media_settings.packets_in_media_unit;
     m_report.sr.pkt_cnt = htonl(sent_pkt_cnt);
     uint32_t payload_octets_in_packet = m_media_settings.packet_payload_size -
                                         (RTP_HEADER_SIZE + RTP_SINGLE_SRD_HEADER_SIZE);
@@ -410,10 +410,10 @@ ReturnStatus IPMXStreamSender::process_media_completion()
             }
             return status;
         }
-    } else if (chunk_in_field_frame == m_media_settings.chunks_in_frame_field - 1) {
+    } else if (chunk_in_field_frame == m_media_settings.chunks_in_media_unit - 1) {
         m_finished_fields++;
         uint64_t next_frame_start_time = m_start_send_time_ns +
-            static_cast<uint64_t>(m_finished_fields * m_media_settings.frame_field_time_interval_ns);
+            static_cast<uint64_t>(m_finished_fields * m_media_settings.media_unit_time_interval_ns);
         /*
          * The last chunk of a media frame besides the media packets contains "dummy packets"
          * to fill the inter-frame gap. This causes the last chunk to complete just before
@@ -422,7 +422,7 @@ ReturnStatus IPMXStreamSender::process_media_completion()
          * When the sender is not fast enough, this delay will accumulate.
          * Here we define a threshold to detect a slow sender and to avoid false timeouts.
          */
-        uint64_t last_chunk_completion_delay_tolerance = m_media_settings.frame_field_time_interval_ns;
+        uint64_t last_chunk_completion_delay_tolerance = m_media_settings.media_unit_time_interval_ns;
         if (tx_hw_timestamp > next_frame_start_time + last_chunk_completion_delay_tolerance) {
             m_stats.frame_send_timeouts++;
         }
@@ -433,7 +433,7 @@ ReturnStatus IPMXStreamSender::process_media_completion()
 
 bool IPMXStreamSender::has_free_frame_buffer() const
 {
-    return m_committed_fields < m_finished_fields + m_media_settings.frames_fields_in_mem_block;
+    return m_committed_fields < m_finished_fields + m_media_settings.media_units_in_mem_block;
 }
 
 bool IPMXStreamSender::is_report_for_current_frame_sent() const
@@ -448,7 +448,7 @@ bool IPMXStreamSender::can_sleep(uint64_t& max_wakeup_time) const
         return false;
     }
     max_wakeup_time = m_start_send_time_ns - REPORT_SEND_SAFE_SLEEP_MARGIN +
-        static_cast<uint64_t>(m_media_settings.frame_field_time_interval_ns * m_finished_first_chunks);
+        static_cast<uint64_t>(m_media_settings.media_unit_time_interval_ns * m_finished_first_chunks);
     return true;
 }
 
@@ -472,7 +472,7 @@ ReturnStatus IPMXStreamSender::commit_next_media_chunk()
     uint64_t commit_timestamp_ns = 0;
     if (m_chunk_in_field_counter == 0) {
         commit_timestamp_ns = m_start_send_time_ns +
-            static_cast<uint64_t>(m_media_settings.frame_field_time_interval_ns * m_committed_fields);
+            static_cast<uint64_t>(m_media_settings.media_unit_time_interval_ns * m_committed_fields);
     }
 
     status = m_media_chunk_handler->mark_for_tracking(m_chunk_in_field_counter);
@@ -496,7 +496,7 @@ ReturnStatus IPMXStreamSender::commit_next_media_chunk()
         m_committed_first_chunks++;
     }
     m_chunk_in_field_counter++;
-    if (m_chunk_in_field_counter == m_media_settings.chunks_in_frame_field) {
+    if (m_chunk_in_field_counter == m_media_settings.chunks_in_media_unit) {
         m_chunk_in_field_counter = 0;
         m_committed_fields++;
     }
@@ -716,7 +716,7 @@ void IPMXSenderIONode::operator()()
     uint64_t last_stats_update_time = m_start_send_time_ns;
 
     wait_until(static_cast<uint64_t>(m_start_send_time_ns -
-        static_cast<uint64_t>(m_media_settings.frame_field_time_interval_ns)));
+        static_cast<uint64_t>(m_media_settings.media_unit_time_interval_ns)));
     send_initial_reports();
 
     while (likely(status == ReturnStatus::success && SignalHandler::get_received_signal() < 0)) {
@@ -734,7 +734,7 @@ void IPMXSenderIONode::operator()()
         uint64_t time_now;
         get_rivermax_ptp_time_ns(time_now);
         uint64_t latest_wakeup_time = time_now +
-            static_cast<uint64_t>(m_media_settings.frame_field_time_interval_ns);
+            static_cast<uint64_t>(m_media_settings.media_unit_time_interval_ns);
         bool safe_to_send = true;
         for (auto& stream_sender : m_stream_senders) {
             status = stream_sender.track_media_completions();

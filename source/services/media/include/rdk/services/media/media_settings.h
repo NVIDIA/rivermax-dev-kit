@@ -42,23 +42,31 @@ namespace services
 struct MediaSettings
 {
     virtual ~MediaSettings() = default;
+    
+    /**
+     * @brief: Returns the SMPTE standard.
+     *
+     * @return: SMPTE standard.
+     */
+    virtual SMPTEStandard get_smpte_standard() const = 0;
 
-    static constexpr size_t MIN_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP = 2;
+    static constexpr size_t MIN_MEDIA_UNITS_FOR_SIMULTANEOUS_TX_AND_FILLUP = 2;
     static constexpr uint32_t MAX_PAYLOAD_SIZE = 1440;
-    static constexpr size_t DEFAULT_NUM_OF_FRAMES_IN_MEM_BLOCK = 10;
+    static constexpr size_t DEFAULT_NUM_OF_MEDIA_UNITS_IN_MEM_BLOCK = 10;
     static constexpr size_t DEFAULT_NUM_OF_MEM_BLOCKS = 1;
     static constexpr uint8_t DEFAULT_PTP_DOMAIN_ID = 127;
     static constexpr uint8_t DEFAULT_PAYLOAD_TYPE = 96;
     static constexpr size_t RTP_SAMPLE_RATE = 90000;
 
     uint32_t sdp_media_block_index = 0;
+    uint8_t payload_type = DEFAULT_PAYLOAD_TYPE;
+    std::string media_file = "";
+    bool dynamic_media_file_load = false;
+    std::shared_ptr<IMediaSettingsCalculator> media_settings_calculator;
+
     size_t sample_rate = RTP_SAMPLE_RATE;
-    uint32_t packets_in_frame_field = 0;
-    double frame_field_time_interval_ns = 0;
-    double ticks_per_frame = 0;
-    size_t chunks_in_frame_field = 0;
-    size_t packets_in_chunk = 0;
-    size_t frames_fields_in_mem_block = 0;
+    double media_unit_time_interval_ns = 0;
+    double ticks_per_media_unit = 0;
     /**
      * @brief: Reference clock ID.
      *
@@ -73,27 +81,24 @@ struct MediaSettings
      */
     bool ref_clk_is_ptp = true;
     uint8_t ptp_domain_id = DEFAULT_PTP_DOMAIN_ID;
-    size_t bytes_per_frame = 0;
+
+    uint32_t packets_in_media_unit = 0;
+    size_t chunks_in_media_unit = 0;
+    size_t packets_in_chunk = 0;
+
     uint16_t protocol_header_size = 0;
+    uint16_t raw_packet_payload_size = 0;
+    uint16_t packet_payload_size = 0;
     bool header_data_split = false;
     uint16_t packet_app_header_size = 0;
-    uint16_t packet_payload_size = 0;
-    uint16_t raw_packet_payload_size = 0;
-    uint8_t payload_type = DEFAULT_PAYLOAD_TYPE;
+
+    size_t bytes_per_media_unit = 0;
+    size_t media_units_in_mem_block = 0;
     size_t chunks_in_mem_block = 0;
     size_t packets_in_mem_block = 0;
     size_t requested_num_of_mem_blocks = DEFAULT_NUM_OF_MEM_BLOCKS;
     size_t data_stride_size = 0;
     size_t app_header_stride_size = 0;
-    /**
-     * @brief: Returns the SMPTE standard.
-     *
-     * @return: SMPTE standard.
-     */
-    virtual SMPTEStandard get_smpte_standard() const = 0;
-    std::shared_ptr<IMediaSettingsCalculator> media_settings_calculator;
-    std::string media_file = "";
-    bool dynamic_media_file_load = false;
 };
 
 }  // namespace services

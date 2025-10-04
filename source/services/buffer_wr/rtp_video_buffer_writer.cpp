@@ -77,9 +77,9 @@ inline void RTPVideoMockBufferWriter::update_in_media_unit_state()
         // Prepare line number for next iteration:
         m_send_data.line_number = (m_send_data.line_number + 1) % video_settings.lines_in_frame_field;
     }
-    if (++m_send_data.packet_counter == video_settings.packets_in_frame_field) {
+    if (++m_send_data.packet_counter == video_settings.packets_in_media_unit) {
         // ST2210-20: the timestamp SHOULD be the same for each packet of the frame/field.
-        m_send_data.rtp_timestamp += static_cast<uint32_t>(video_settings.ticks_per_frame);
+        m_send_data.rtp_timestamp += static_cast<uint32_t>(video_settings.ticks_per_media_unit);
         m_send_data.packet_counter = 0;
         if (video_settings.video_scan_type == VideoScanType::Interlaced) {
             m_send_data.rtp_interlace_field_indicator = !m_send_data.rtp_interlace_field_indicator;
@@ -148,7 +148,7 @@ ReturnStatus RTPVideoBufferWriter::write_buffer(void* header_ptr, void* payload_
 
     // Determine how many complete packets we can process
     size_t packets_to_process = std::min(length_in_strides,
-        static_cast<size_t>(m_media_settings.packets_in_frame_field - m_send_data.packet_counter));
+        static_cast<size_t>(m_media_settings.packets_in_media_unit - m_send_data.packet_counter));
     // Limit by available frame data
     size_t max_packets_by_data =
         (m_data_left_in_frame + m_media_settings.raw_packet_payload_size - 1) /

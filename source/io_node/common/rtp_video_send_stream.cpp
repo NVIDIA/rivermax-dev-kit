@@ -69,7 +69,7 @@ void RtpVideoSendStream::prepare_chunk_to_send(MediaChunk& chunk)
     uint64_t stride = 0;
     byte_t* current_packet_pointer;
 
-    while (stride < chunk_length && m_send_stats.packet_counter < m_video_settings.packets_in_frame_field) {
+    while (stride < chunk_length && m_send_stats.packet_counter < m_video_settings.packets_in_media_unit) {
         current_packet_pointer = header_pointer + (stride * header_stride_size);
         build_2110_20_rtp_header(current_packet_pointer);
         if (!((stride + 1) % m_video_settings.packets_in_line)) {
@@ -78,7 +78,7 @@ void RtpVideoSendStream::prepare_chunk_to_send(MediaChunk& chunk)
         }
         stride++;
     }
-    m_send_stats.packet_counter %= m_video_settings.packets_in_frame_field;
+    m_send_stats.packet_counter %= m_video_settings.packets_in_media_unit;
 }
 
 inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
@@ -127,7 +127,7 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     m_send_stats.srd_offset = (m_send_stats.srd_offset + group_size) %
             (group_size * m_video_settings.packets_in_line);
 
-    if (++m_send_stats.packet_counter == m_video_settings.packets_in_frame_field) {
+    if (++m_send_stats.packet_counter == m_video_settings.packets_in_media_unit) {
         buffer[1] |= 0x80; // Last packet in frame (Marker).
         // ST2210-20: the timestamp SHOULD be the same for each packet of the frame/field.
         auto fps_num = m_video_settings.frame_rate.num;
@@ -149,10 +149,10 @@ double RtpVideoSendStream::calculate_trs()
     uint32_t packets_in_frame;
 
     if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
-        t_frame_ns = m_video_settings.frame_field_time_interval_ns;
+        t_frame_ns = m_video_settings.media_unit_time_interval_ns;
     }
     else {
-        t_frame_ns = m_video_settings.frame_field_time_interval_ns * 2;
+        t_frame_ns = m_video_settings.media_unit_time_interval_ns * 2;
     }
 
     if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
@@ -171,10 +171,10 @@ double RtpVideoSendStream::calculate_trs()
     }
 
     if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
-        packets_in_frame = m_video_settings.packets_in_frame_field;
+        packets_in_frame = m_video_settings.packets_in_media_unit;
     }
     else {
-        packets_in_frame = m_video_settings.packets_in_frame_field * 2;
+        packets_in_frame = m_video_settings.packets_in_media_unit * 2;
     }
 
     return (t_frame_ns * r_active) / packets_in_frame;
@@ -186,10 +186,10 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
     double t_frame_ns;
 
     if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
-        t_frame_ns = m_video_settings.frame_field_time_interval_ns;
+        t_frame_ns = m_video_settings.media_unit_time_interval_ns;
     }
     else {
-        t_frame_ns = m_video_settings.frame_field_time_interval_ns * 2;
+        t_frame_ns = m_video_settings.media_unit_time_interval_ns * 2;
     }
 
     uint64_t N = static_cast<uint64_t>(send_time_ns / t_frame_ns + 1);
@@ -225,10 +225,10 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
     uint32_t packets_in_frame;
 
     if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
-        packets_in_frame = m_video_settings.packets_in_frame_field;
+        packets_in_frame = m_video_settings.packets_in_media_unit;
     }
     else {
-        packets_in_frame = m_video_settings.packets_in_frame_field * 2;
+        packets_in_frame = m_video_settings.packets_in_media_unit * 2;
     }
 
     double trs_ns = (t_frame_ns * r_active) / packets_in_frame;

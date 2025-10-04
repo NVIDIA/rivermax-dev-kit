@@ -448,7 +448,7 @@ ReturnStatus MediaSenderIONode::coordinate_start_time(uint64_t& send_time_ns)
         uint64_t new_start_time;
         do {
             skip_media_units++;
-            new_start_time = send_time_ns + m_media_settings.frame_field_time_interval_ns * skip_media_units;
+            new_start_time = send_time_ns + m_media_settings.media_unit_time_interval_ns * skip_media_units;
         } while (proposed_time > new_start_time);
         return static_cast<int>(new_start_time - proposed_time);
     };
@@ -499,8 +499,8 @@ void MediaSenderIONode::operator()()
     size_t sent_field_counter_diff = 0;
     auto get_send_time_ns = [&]() { return (
         start_send_time_ns
-        + m_media_settings.frame_field_time_interval_ns
-        * m_media_settings.frames_fields_in_mem_block
+        + m_media_settings.media_unit_time_interval_ns
+        * m_media_settings.media_units_in_mem_block
         * sent_field_counter);
     };
     uint64_t commit_timestamp_ns = 0;
@@ -544,7 +544,7 @@ void MediaSenderIONode::operator()()
                     break;
                 }
                 write_buffer_callback(stream_pack);
-                first_chunk_in_media_unit = unlikely(chunk_in_media_unit_counter % m_media_settings.chunks_in_frame_field == 0);
+                first_chunk_in_media_unit = unlikely(chunk_in_media_unit_counter % m_media_settings.chunks_in_media_unit == 0);
                 commit_timestamp_ns = get_commit_timestamp_ns(first_chunk_in_media_unit, send_time_ns, stream_pack.stream->get_id());
                 do {
                     rc = stream_pack.stream->blocking_commit_chunk(*stream_pack.chunk_handler,
@@ -554,11 +554,11 @@ void MediaSenderIONode::operator()()
                     break;
                 }
             }
-            if ((chunk_in_media_unit_counter % m_media_settings.chunks_in_frame_field) == 0) {
-                send_time_ns += m_media_settings.frame_field_time_interval_ns;
+            if ((chunk_in_media_unit_counter % m_media_settings.chunks_in_media_unit) == 0) {
+                send_time_ns += m_media_settings.media_unit_time_interval_ns;
             }
         } while (likely(rc == ReturnStatus::success &&
-                        ++chunk_in_media_unit_counter < m_media_settings.chunks_in_frame_field));
+                        ++chunk_in_media_unit_counter < m_media_settings.chunks_in_media_unit));
 
         sent_field_counter++;
         m_stats_sent_media_unit_chunk_counter++;
@@ -715,11 +715,11 @@ ReturnStatus MediaSenderIONode::get_number_of_mem_blocks_per_file(size_t& number
 
     size_t mem_block_payload_size_in_bytes = 0;
     if (is_hds_on()) {
-        mem_block_payload_size_in_bytes = m_media_settings.packet_payload_size * m_media_settings.packets_in_frame_field *
-        m_media_settings.frames_fields_in_mem_block;
+        mem_block_payload_size_in_bytes = m_media_settings.packet_payload_size * m_media_settings.packets_in_media_unit *
+        m_media_settings.media_units_in_mem_block;
     } else {
         mem_block_payload_size_in_bytes = (m_media_settings.packet_payload_size - m_media_settings.protocol_header_size) *
-        m_media_settings.packets_in_frame_field * m_media_settings.frames_fields_in_mem_block;
+        m_media_settings.packets_in_media_unit * m_media_settings.media_units_in_mem_block;
     }
 
     std::cout << "File size: " << file_size << " [bytes]" << std::endl;
@@ -743,8 +743,8 @@ ReturnStatus MediaSenderIONode::fill_memblock_from_file(byte_t* block_memory_buf
 
     auto temp_buffer = std::make_unique<byte_t[]>(block_memory_size);
     size_t packet_size = m_media_settings.packet_payload_size - header_offset;
-    size_t mem_block_payload_size_in_bytes = packet_size * m_media_settings.packets_in_frame_field *
-        m_media_settings.frames_fields_in_mem_block;
+    size_t mem_block_payload_size_in_bytes = packet_size * m_media_settings.packets_in_media_unit *
+        m_media_settings.media_units_in_mem_block;
     size_t total_bytes_read = 0;
     byte_t* cur_data_ptr = temp_buffer.get() + header_offset;
 
@@ -777,7 +777,7 @@ ReturnStatus MediaSenderIONode::fill_memblock_from_file(byte_t* block_memory_buf
 void MediaSenderIONode::print_statistics(
     std::ostream& out, const std::chrono::high_resolution_clock::duration& interval_duration) const
 {
-    uint64_t bytes_sent = (m_stats_sent_media_unit_chunk_counter) * m_media_settings.packets_in_frame_field * m_stream_packs.size() *
+    uint64_t bytes_sent = (m_stats_sent_media_unit_chunk_counter) * m_media_settings.packets_in_media_unit * m_stream_packs.size() *
         (m_media_settings.packet_app_header_size + m_media_settings.packet_payload_size + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
     float mbps = (bytes_sent * CHAR_BIT) / duration_cast<duration<float, std::micro>>(interval_duration).count();
     std::ostringstream oss;

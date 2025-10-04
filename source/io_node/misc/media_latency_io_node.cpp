@@ -85,11 +85,11 @@ ReturnStatus MediaTxIONode::query_memory_size(size_t& tx_header_size, size_t& tx
     }
 
     tx_header_size = m_send_header_stride_size * m_media_settings.packets_in_chunk *
-                     m_media_settings.chunks_in_frame_field *
-                     m_media_settings.frames_fields_in_mem_block;
+                     m_media_settings.chunks_in_media_unit *
+                     m_media_settings.media_units_in_mem_block;
     tx_payload_size = m_send_data_stride_size * m_media_settings.packets_in_chunk *
-                     m_media_settings.chunks_in_frame_field *
-                     m_media_settings.frames_fields_in_mem_block;
+                     m_media_settings.chunks_in_media_unit *
+                     m_media_settings.media_units_in_mem_block;
     return ReturnStatus::success;
 };
 
@@ -266,7 +266,7 @@ void MediaTxIONode::send_receive()
     /* scheduled send time of the first packet of the field that will be committed next */
     auto get_send_time_of_next_field_ns = [&]() { return (
         m_start_send_time_ns
-        + m_media_settings.frame_field_time_interval_ns
+        + m_media_settings.media_unit_time_interval_ns
         * committed_frame_field_counter);
     };
 
@@ -274,7 +274,7 @@ void MediaTxIONode::send_receive()
        will be polled next, to be ready */
     auto get_finish_time_of_next_field_ns = [&]() { return (
         m_start_send_time_ns
-        + m_media_settings.frame_field_time_interval_ns
+        + m_media_settings.media_unit_time_interval_ns
         * (completed_frame_field_counter + 1));
     };
 
@@ -285,8 +285,8 @@ void MediaTxIONode::send_receive()
     m_handled_token = 0;
     rc = ReturnStatus::success;
 
-    m_commit_ts.reserve(m_media_settings.frames_fields_in_mem_block *
-                       m_media_settings.chunks_in_frame_field);
+    m_commit_ts.reserve(m_media_settings.media_units_in_mem_block *
+                       m_media_settings.chunks_in_media_unit);
 
     LatencyStats tx_delay("Tx latency", m_percentiles);
 
@@ -300,7 +300,7 @@ void MediaTxIONode::send_receive()
 
         bool is_time_to_fetch_completions = (ts_now >= scheduled_next_field_complete_time_ns);
         bool is_place_to_commit = (committed_frame_field_counter - completed_frame_field_counter) <
-                                  m_media_settings.frames_fields_in_mem_block;
+                                  m_media_settings.media_units_in_mem_block;
 
         if (!is_time_to_fetch_completions && !is_place_to_commit) {
             wait_for_next_frame(scheduled_next_field_complete_time_ns);
@@ -325,8 +325,8 @@ void MediaTxIONode::send_receive()
                 if (--fetch_budget == 0) {
                     break;
                 }
-            } while (completion_in_field_counter < m_media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM);
-            if (completion_in_field_counter == m_media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM) {
+            } while (completion_in_field_counter < m_media_settings.chunks_in_media_unit - LAST_CHUNKS_SKIP_NUM);
+            if (completion_in_field_counter == m_media_settings.chunks_in_media_unit - LAST_CHUNKS_SKIP_NUM) {
                 completed_frame_field_counter++;
                 completion_in_field_counter = 0;
             }
@@ -358,7 +358,7 @@ void MediaTxIONode::send_receive()
                 }
 
                 bool is_this_chunk_tracked =
-                    (chunk_in_field_counter < m_media_settings.chunks_in_frame_field - LAST_CHUNKS_SKIP_NUM);
+                    (chunk_in_field_counter < m_media_settings.chunks_in_media_unit - LAST_CHUNKS_SKIP_NUM);
                 if (is_this_chunk_tracked) {
                     rc = m_chunk_handler->mark_for_tracking(m_marked_token);
                     if (rc != ReturnStatus::success) {
@@ -388,9 +388,9 @@ void MediaTxIONode::send_receive()
                     break;
                 }
             } while (likely(rc == ReturnStatus::success &&
-                            chunk_in_field_counter < m_media_settings.chunks_in_frame_field));
+                            chunk_in_field_counter < m_media_settings.chunks_in_media_unit));
 
-            if (chunk_in_field_counter == m_media_settings.chunks_in_frame_field) {
+            if (chunk_in_field_counter == m_media_settings.chunks_in_media_unit) {
                 committed_frame_field_counter++;
                 chunk_in_field_counter = 0;
             }
@@ -408,7 +408,7 @@ void MediaTxIONode::send_receive()
 
     while (m_handled_token != m_marked_token) {
         if (get_time_now_ns() > scheduled_next_field_start_time_ns +
-                                m_media_settings.frame_field_time_interval_ns) {
+                                m_media_settings.media_unit_time_interval_ns) {
             std::cerr << "Tx completion timeout!" << std::endl;
             break;
         }
@@ -515,7 +515,7 @@ MediaRxIONode::MediaRxIONode(
     }
     m_receive_dim.header_size = m_media_settings.packet_app_header_size;
     m_receive_dim.payload_size = m_media_settings.packet_payload_size;
-    m_receive_dim.num_of_chunks = m_media_settings.chunks_in_frame_field;
+    m_receive_dim.num_of_chunks = m_media_settings.chunks_in_media_unit;
     m_receive_dim.num_of_packets_in_chunk = m_media_settings.packets_in_chunk;
 }
 
@@ -585,9 +585,9 @@ uint64_t MediaRxIONode::calc_next_frame_start(uint64_t last_pkt_ts)
     double t_frame_ns;
 
     if (m_media_settings.video_scan_type == VideoScanType::Progressive) {
-        t_frame_ns = m_media_settings.frame_field_time_interval_ns;
+        t_frame_ns = m_media_settings.media_unit_time_interval_ns;
     } else {
-        t_frame_ns = m_media_settings.frame_field_time_interval_ns * 2;
+        t_frame_ns = m_media_settings.media_unit_time_interval_ns * 2;
     }
 
     uint64_t N = static_cast<uint64_t>(send_time_ns / t_frame_ns) + 1;
@@ -699,7 +699,7 @@ void MediaRxIONode::receive_send()
                     dropped_pkt_cnt += sequence_number - (last_seq_num + 1);
                 }
                 uint32_t pkt_idx_in_frame = sequence_number - frame_first_seq_num;
-                if (pkt_idx_in_frame >= m_media_settings.packets_in_frame_field) {
+                if (pkt_idx_in_frame >= m_media_settings.packets_in_media_unit) {
                     std::cerr << "Invalid packet index in frame " << pkt_idx_in_frame << std::endl;
                     rx_latency.reset();
                     rx_state = RxState::syncing;

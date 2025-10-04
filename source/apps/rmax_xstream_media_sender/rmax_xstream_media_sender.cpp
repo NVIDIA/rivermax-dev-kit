@@ -358,7 +358,7 @@ ReturnStatus MediaSenderApp::configure_video_types()
     }
     video_settings->header_data_split = m_app_settings->header_data_split;
     video_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
-    video_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
+    video_settings->media_units_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
     video_settings->resolution = m_app_settings->media.resolution;
     video_settings->frame_rate = m_app_settings->media.frame_rate;
     video_settings->sampling_type = m_app_settings->media.sampling_type;
@@ -390,7 +390,7 @@ ReturnStatus MediaSenderApp::configure_video_types()
             return ReturnStatus::failure;
         }
         alpha_settings->header_data_split = m_app_settings->header_data_split;
-        alpha_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
+        alpha_settings->media_units_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
         alpha_settings->resolution = m_app_settings->media.resolution;
         alpha_settings->frame_rate = m_app_settings->media.frame_rate;
         alpha_settings->sampling_type = VideoSampling::KEY;
@@ -624,7 +624,7 @@ ReturnStatus MediaSenderApp::set_internal_media_essence_providers()
                 }
                 auto media_file_essence_provider = std::make_shared<MediaFileEssenceProvider>(
                     smpte_standard_config.media_file, smpte_standard_config.get_smpte_standard(),
-                    smpte_standard_config.bytes_per_frame, *m_header_allocator, true);
+                    smpte_standard_config.bytes_per_media_unit, *m_header_allocator, true);
                 rc = media_file_essence_provider->load_media_units();
                 if (rc != ReturnStatus::success) {
                     std::cerr << "Failed to load media units from video file" << std::endl;

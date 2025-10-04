@@ -84,7 +84,7 @@ void MediaStreamSettings::stream_param_set_stride_sizes(rmx_output_media_stream_
 
 void MediaStreamSettings::stream_param_set_packets_per_frame(rmx_output_media_stream_params& descr)
 {
-    rmx_output_media_set_packets_per_frame(&descr, m_media_settings.packets_in_frame_field);
+    rmx_output_media_set_packets_per_frame(&descr, m_media_settings.packets_in_media_unit);
 }
 
 void MediaStreamSettings::stream_param_set_pcp(rmx_output_media_stream_params& descr)

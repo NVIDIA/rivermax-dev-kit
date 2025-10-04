@@ -95,9 +95,9 @@ void ST_2110_20_MediaSettingsCalculator::calculate_tro_trs(double& tro, double& 
     auto& video_settings = m_media_settings;
 
     if (video_settings.video_scan_type == VideoScanType::Progressive) {
-        t_frame_ns = video_settings.frame_field_time_interval_ns;
+        t_frame_ns = video_settings.media_unit_time_interval_ns;
     } else {
-        t_frame_ns = video_settings.frame_field_time_interval_ns * 2;
+        t_frame_ns = video_settings.media_unit_time_interval_ns * 2;
     }
 
     if (video_settings.video_scan_type == VideoScanType::Progressive) {
@@ -123,9 +123,9 @@ void ST_2110_20_MediaSettingsCalculator::calculate_tro_trs(double& tro, double& 
     uint32_t packets_in_frame;
 
     if (video_settings.video_scan_type == VideoScanType::Progressive) {
-        packets_in_frame = video_settings.packets_in_frame_field;
+        packets_in_frame = video_settings.packets_in_media_unit;
     } else {
-        packets_in_frame = video_settings.packets_in_frame_field * 2;
+        packets_in_frame = video_settings.packets_in_media_unit * 2;
     }
 
     trs = (t_frame_ns * r_active) / packets_in_frame;
@@ -149,7 +149,7 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     uint32_t pgroups_in_line = (video_settings.resolution.width + pixels_in_pgroup - 1) / pixels_in_pgroup;
 
     float bytes_per_pixel = static_cast<float>(bytes_in_pgroup) / static_cast<float>(pixels_in_pgroup);
-    video_settings.bytes_per_frame = bytes_in_pgroup * pgroups_in_line * video_settings.resolution.height;
+    video_settings.bytes_per_media_unit = bytes_in_pgroup * pgroups_in_line * video_settings.resolution.height;
 
     uint32_t pgroups_in_packet = 1; /* Non-zero initialization for Coverity to avoid a false "divide by zero" error */
     for (uint32_t pkt_cnt = 1; pkt_cnt <= pgroups_in_line; pkt_cnt++) {
@@ -174,17 +174,17 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     }
 
     video_settings.pixels_per_packet = pgroups_in_packet * pixels_in_pgroup;
-    video_settings.packets_in_frame_field = static_cast<uint32_t>(video_settings.packets_in_line * video_settings.resolution.height);
+    video_settings.packets_in_media_unit = static_cast<uint32_t>(video_settings.packets_in_line * video_settings.resolution.height);
 
     bool chunk_size_applied = false;
     if (video_settings.packets_in_chunk) {
-        if (video_settings.packets_in_frame_field % video_settings.packets_in_chunk == 0) {
+        if (video_settings.packets_in_media_unit % video_settings.packets_in_chunk == 0) {
             chunk_size_applied = true;
             std::cout << "Using custom chunk size: " << video_settings.packets_in_chunk << std::endl;
         } else {
             std::cout << "Custom chunk size (" << video_settings.packets_in_chunk
                 << ") is ignored: must be divisor of packets in field ("
-                << video_settings.packets_in_frame_field << ")" << std::endl;
+                << video_settings.packets_in_media_unit << ")" << std::endl;
         }
     }
 
@@ -193,21 +193,21 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         video_settings.packets_in_chunk = lines_in_chunk * video_settings.packets_in_line;
     }
 
-    video_settings.frame_field_time_interval_ns =
+    video_settings.media_unit_time_interval_ns =
         NS_IN_SEC / static_cast<double>(video_settings.frame_rate.num) / video_settings.frame_rate.denom;
     video_settings.lines_in_frame_field = video_settings.resolution.height;
 
-    video_settings.ticks_per_frame =
+    video_settings.ticks_per_media_unit =
         (video_settings.sample_rate / (video_settings.frame_rate.num / static_cast<double>(video_settings.frame_rate.denom)));
 
     if (video_settings.video_scan_type == VideoScanType::Interlaced) {
-        video_settings.packets_in_frame_field /= 2;
+        video_settings.packets_in_media_unit /= 2;
         video_settings.lines_in_frame_field /= 2;
     }
 
-    video_settings.chunks_in_frame_field =
-        static_cast<size_t>(std::ceil(video_settings.packets_in_frame_field / static_cast<double>(video_settings.packets_in_chunk)));
-    video_settings.chunks_in_mem_block = video_settings.frames_fields_in_mem_block * video_settings.chunks_in_frame_field;
+    video_settings.chunks_in_media_unit =
+        static_cast<size_t>(std::ceil(video_settings.packets_in_media_unit / static_cast<double>(video_settings.packets_in_chunk)));
+    video_settings.chunks_in_mem_block = video_settings.media_units_in_mem_block * video_settings.chunks_in_media_unit;
     video_settings.packets_in_mem_block = video_settings.chunks_in_mem_block * video_settings.packets_in_chunk;
 
     video_settings.app_header_stride_size = align_up_pow2(video_settings.packet_app_header_size, get_cache_line_size());

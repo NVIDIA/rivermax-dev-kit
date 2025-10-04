@@ -56,7 +56,7 @@ ReturnStatus RTPMediaBufferWriter::write_buffer(void* payload_ptr, size_t length
     byte_t* current_packet_pointer;
     byte_t* current_payload_pointer;
 
-    while (stride < length_in_strides && m_send_data.packet_counter < m_media_settings.packets_in_frame_field) {
+    while (stride < length_in_strides && m_send_data.packet_counter < m_media_settings.packets_in_media_unit) {
         current_packet_pointer = header_pointer + (stride * m_media_settings.data_stride_size);
         current_payload_pointer = (current_packet_pointer + m_media_settings.protocol_header_size);
         build_rtp_header(current_packet_pointer);
@@ -80,7 +80,7 @@ ReturnStatus RTPMediaBufferWriter::write_buffer(void* header_ptr, void* payload_
     byte_t* current_packet_pointer;
     byte_t* current_payload_pointer;
 
-    while (stride < length_in_strides && m_send_data.packet_counter < m_media_settings.packets_in_frame_field) {
+    while (stride < length_in_strides && m_send_data.packet_counter < m_media_settings.packets_in_media_unit) {
         current_packet_pointer = header_pointer + (stride * m_media_settings.app_header_stride_size);
         current_payload_pointer = (payload_pointer + (stride * m_media_settings.data_stride_size));
         build_rtp_header(current_packet_pointer);
@@ -114,7 +114,7 @@ size_t RTPMediaBufferWriter::build_rtp_header_common(byte_t* buffer)
     p_rtp_header->sequence_number = htons(static_cast<uint16_t>(m_send_data.rtp_sequence));
     p_rtp_header->timestamp = htonl(static_cast<uint32_t>(m_send_data.rtp_timestamp));
     p_rtp_header->ssrc = htonl(m_ssrc);
-    p_rtp_header->marker = (m_send_data.packet_counter == m_media_settings.packets_in_frame_field - 1) ? 1 : 0;
+    p_rtp_header->marker = (m_send_data.packet_counter == m_media_settings.packets_in_media_unit - 1) ? 1 : 0;
 
     return sizeof(RTPHeader);
 }

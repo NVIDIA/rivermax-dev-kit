@@ -99,23 +99,23 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
         m_media_settings.packet_payload_size -= m_media_settings.protocol_header_size;
     }
     
-    // Set default packets per frame field if not provided
-    if (!m_media_settings.packets_in_frame_field) {
-        constexpr uint32_t PACKETS_PER_FRAME_FIELD = 100;
-        m_media_settings.packets_in_frame_field = PACKETS_PER_FRAME_FIELD;
+    // Set default packets per media unit if not provided
+    if (!m_media_settings.packets_in_media_unit) {
+        constexpr uint32_t PACKETS_PER_MEDIA_UNIT = 100;
+        m_media_settings.packets_in_media_unit = PACKETS_PER_MEDIA_UNIT;
     }
 
     // Validate and apply custom chunk size if provided
     bool chunk_size_applied = false;
     if (m_media_settings.packets_in_chunk > 0) {
-        if (m_media_settings.packets_in_frame_field % m_media_settings.packets_in_chunk == 0) {
+        if (m_media_settings.packets_in_media_unit % m_media_settings.packets_in_chunk == 0) {
             chunk_size_applied = true;
             std::cout << "Using custom audio chunk size: " << m_media_settings.packets_in_chunk 
                       << " packets per chunk" << std::endl;
         } else {
             std::cerr << "Warning: Custom chunk size (" << m_media_settings.packets_in_chunk
-                      << ") is not a divisor of packets in field ("
-                      << m_media_settings.packets_in_frame_field << "). Calculating optimal size." << std::endl;
+                      << ") is not a divisor of packets in media unit ("
+                      << m_media_settings.packets_in_media_unit << "). Calculating optimal size." << std::endl;
         }
     }
 
@@ -123,12 +123,12 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
         // Aim for ~20 packets per chunk (20ms chunks if ptime=1ms)
         constexpr uint32_t TARGET_PACKETS_PER_CHUNK = 20;
         
-        m_media_settings.packets_in_chunk = m_media_settings.packets_in_frame_field;
-        for (uint32_t chunk_cnt = 1; chunk_cnt <= m_media_settings.packets_in_frame_field; chunk_cnt++) {
-            if (m_media_settings.packets_in_frame_field % chunk_cnt != 0) {
+        m_media_settings.packets_in_chunk = m_media_settings.packets_in_media_unit;
+        for (uint32_t chunk_cnt = 1; chunk_cnt <= m_media_settings.packets_in_media_unit; chunk_cnt++) {
+            if (m_media_settings.packets_in_media_unit % chunk_cnt != 0) {
                 continue;
             }
-            uint32_t packets_per_chunk = m_media_settings.packets_in_frame_field / chunk_cnt;
+            uint32_t packets_per_chunk = m_media_settings.packets_in_media_unit / chunk_cnt;
             if (packets_per_chunk <= TARGET_PACKETS_PER_CHUNK) {
                 m_media_settings.packets_in_chunk = packets_per_chunk;
                 break;
@@ -137,13 +137,13 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
         
         std::cout << "Calculated audio chunk size: " << m_media_settings.packets_in_chunk 
                   << " packets per chunk (" 
-                  << (m_media_settings.packets_in_frame_field / m_media_settings.packets_in_chunk)
-                  << " chunks per frame)" << std::endl;
+                  << (m_media_settings.packets_in_media_unit / m_media_settings.packets_in_chunk)
+                  << " chunks per media unit)" << std::endl;
     }
 
-    // Calculate chunks per frame field
-    m_media_settings.chunks_in_frame_field =
-        m_media_settings.packets_in_frame_field / m_media_settings.packets_in_chunk;
+    // Calculate chunks per media unit
+    m_media_settings.chunks_in_media_unit =
+        m_media_settings.packets_in_media_unit / m_media_settings.packets_in_chunk;
     
     return ReturnStatus::success;
 }
@@ -158,21 +158,21 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_timing_parameters()
         return ReturnStatus::failure;
     }
     m_media_settings.sample_rate = rate_it->second;
-    m_media_settings.frame_field_time_interval_ns = static_cast<double>(m_media_settings.packets_in_frame_field * m_media_settings.ptime_usec * NS_IN_USEC);
-    m_media_settings.ticks_per_frame = (static_cast<double>(m_media_settings.sample_rate) * m_media_settings.frame_field_time_interval_ns) / static_cast<double>(NS_IN_SEC);
+    m_media_settings.media_unit_time_interval_ns = static_cast<double>(m_media_settings.packets_in_media_unit * m_media_settings.ptime_usec * NS_IN_USEC);
+    m_media_settings.ticks_per_media_unit = (static_cast<double>(m_media_settings.sample_rate) * m_media_settings.media_unit_time_interval_ns) / static_cast<double>(NS_IN_SEC);
     
     return ReturnStatus::success;
 }
 
 void ST_2110_30_MediaSettingsCalculator::calculate_memory_parameters()
 {
-    if (m_media_settings.frames_fields_in_mem_block == 0) {
-        m_media_settings.frames_fields_in_mem_block = m_media_settings.DEFAULT_NUM_OF_FRAMES_IN_MEM_BLOCK;
+    if (m_media_settings.media_units_in_mem_block == 0) {
+        m_media_settings.media_units_in_mem_block = m_media_settings.DEFAULT_NUM_OF_MEDIA_UNITS_IN_MEM_BLOCK;
     }
     
-    m_media_settings.chunks_in_mem_block = m_media_settings.frames_fields_in_mem_block * m_media_settings.chunks_in_frame_field;
+    m_media_settings.chunks_in_mem_block = m_media_settings.media_units_in_mem_block * m_media_settings.chunks_in_media_unit;
     m_media_settings.packets_in_mem_block = m_media_settings.chunks_in_mem_block * m_media_settings.packets_in_chunk;
-    m_media_settings.bytes_per_frame = m_media_settings.raw_packet_payload_size * m_media_settings.packets_in_frame_field;
+    m_media_settings.bytes_per_media_unit = m_media_settings.raw_packet_payload_size * m_media_settings.packets_in_media_unit;
 }
 
 void ST_2110_30_MediaSettingsCalculator::calculate_stride_parameters()

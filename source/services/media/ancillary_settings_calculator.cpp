@@ -56,20 +56,20 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
     }
     
     // Default to 1 packet for simple anc if not provided
-    if (m_media_settings.packets_in_frame_field == 0) {
-        m_media_settings.packets_in_frame_field = 1;
+    if (m_media_settings.packets_in_media_unit == 0) {
+        m_media_settings.packets_in_media_unit = 1;
     }
 
     // Validate and apply custom packets in chunk if provided
     constexpr uint32_t DEFAULT_PACKETS_PER_CHUNK = 1;
     if (m_media_settings.packets_in_chunk > 0) {
-        if (m_media_settings.packets_in_frame_field % m_media_settings.packets_in_chunk == 0) {
+        if (m_media_settings.packets_in_media_unit % m_media_settings.packets_in_chunk == 0) {
             std::cout << "Using custom ancillary chunk size: " << m_media_settings.packets_in_chunk
                       << " packets per chunk" << std::endl;
         } else {
             std::cerr << "Warning: Custom chunk size (" << m_media_settings.packets_in_chunk
-                      << ") is not a divisor of packets in field ("
-                      << m_media_settings.packets_in_frame_field << "). Using default (1)." << std::endl;
+                      << ") is not a divisor of packets in media unit ("
+                      << m_media_settings.packets_in_media_unit << "). Using default (1)." << std::endl;
             m_media_settings.packets_in_chunk = DEFAULT_PACKETS_PER_CHUNK;
         }
     } else {
@@ -77,9 +77,9 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
         m_media_settings.packets_in_chunk = DEFAULT_PACKETS_PER_CHUNK;
     }
 
-    // Calculate chunks per frame field
-    m_media_settings.chunks_in_frame_field =
-        m_media_settings.packets_in_frame_field / m_media_settings.packets_in_chunk;
+    // Calculate chunks per media unit
+    m_media_settings.chunks_in_media_unit =
+        m_media_settings.packets_in_media_unit / m_media_settings.packets_in_chunk;
     
     return ReturnStatus::success;
 }
@@ -88,18 +88,18 @@ void ST_2110_40_MediaSettingsCalculator::calculate_timing_parameters()
 {
     m_media_settings.sample_rate = MediaSettings::RTP_SAMPLE_RATE;
     double fps_value = static_cast<double>(m_media_settings.frame_rate.num) / m_media_settings.frame_rate.denom;
-    m_media_settings.frame_field_time_interval_ns = NS_IN_SEC / fps_value;
-    m_media_settings.ticks_per_frame = static_cast<double>(m_media_settings.sample_rate) / fps_value;
+    m_media_settings.media_unit_time_interval_ns = NS_IN_SEC / fps_value;
+    m_media_settings.ticks_per_media_unit = static_cast<double>(m_media_settings.sample_rate) / fps_value;
 }
 
 void ST_2110_40_MediaSettingsCalculator::calculate_memory_parameters()
 {
-    if (m_media_settings.frames_fields_in_mem_block == 0) {
-        m_media_settings.frames_fields_in_mem_block = m_media_settings.DEFAULT_NUM_OF_FRAMES_IN_MEM_BLOCK;
+    if (m_media_settings.media_units_in_mem_block == 0) {
+        m_media_settings.media_units_in_mem_block = m_media_settings.DEFAULT_NUM_OF_MEDIA_UNITS_IN_MEM_BLOCK;
     }
-    m_media_settings.chunks_in_mem_block = m_media_settings.frames_fields_in_mem_block * m_media_settings.chunks_in_frame_field;
+    m_media_settings.chunks_in_mem_block = m_media_settings.media_units_in_mem_block * m_media_settings.chunks_in_media_unit;
     m_media_settings.packets_in_mem_block = m_media_settings.chunks_in_mem_block * m_media_settings.packets_in_chunk;
-    m_media_settings.bytes_per_frame = m_media_settings.raw_packet_payload_size * m_media_settings.packets_in_frame_field;
+    m_media_settings.bytes_per_media_unit = m_media_settings.raw_packet_payload_size * m_media_settings.packets_in_media_unit;
 }
 
 void ST_2110_40_MediaSettingsCalculator::calculate_stride_parameters()
