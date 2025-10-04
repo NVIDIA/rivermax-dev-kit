@@ -24,6 +24,8 @@
 
 #include "rdk/services/buffer_wr/rtp_media_buffer_writer.h"
 #include "rdk/services/buffer_wr/rtp_video_buffer_writer.h"
+#include "rdk/services/buffer_wr/rtp_audio_buffer_writer.h"
+#include "rdk/services/buffer_wr/rtp_ancillary_buffer_writer.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -142,6 +144,42 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
             return std::unique_ptr<RTPMediaBufferWriter>(new RTPVideoBufferWriter(media_settings,
+                std::move(header_mem_utils), std::move(payload_mem_utils)));
+        }
+    },
+    {
+        {SMPTEStandard::ST_2110_30, false},
+        [](const MediaSettings& media_settings,
+            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
+        {
+            return std::unique_ptr<RTPMediaBufferWriter>(new RTPAudioBufferWriter(media_settings,
+                std::move(header_mem_utils), std::move(payload_mem_utils)));
+        }
+    },
+    {
+        {SMPTEStandard::ST_2110_30, true},
+        [](const MediaSettings& media_settings,
+            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
+        {
+            return std::unique_ptr<RTPMediaBufferWriter>(new RTPAudioBufferWriter(media_settings,
+                std::move(header_mem_utils), std::move(payload_mem_utils)));
+        }
+    },
+    {
+        {SMPTEStandard::ST_2110_40, false},
+        [](const MediaSettings& media_settings,
+            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
+        {
+            return std::unique_ptr<RTPMediaBufferWriter>(new RTPAncillaryBufferWriter(media_settings,
+                std::move(header_mem_utils), std::move(payload_mem_utils)));
+        }
+    },
+    {
+        {SMPTEStandard::ST_2110_40, true},
+        [](const MediaSettings& media_settings,
+            std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
+        {
+            return std::unique_ptr<RTPMediaBufferWriter>(new RTPAncillaryBufferWriter(media_settings,
                 std::move(header_mem_utils), std::move(payload_mem_utils)));
         }
     },

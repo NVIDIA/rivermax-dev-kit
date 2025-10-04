@@ -18,5 +18,7 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         rtp_media_buffer_writer.cpp
         rtp_video_buffer_writer.cpp
+        rtp_audio_buffer_writer.cpp
+        rtp_ancillary_buffer_writer.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
