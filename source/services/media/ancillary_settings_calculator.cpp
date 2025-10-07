@@ -17,6 +17,8 @@
  */
 
 #include <cstdint>
+#include <sstream>
+#include <iomanip>
 #include <iostream>
 
 #include "rdk/services/media/ancillary_settings_calculator.h"
@@ -30,9 +32,6 @@ namespace dev_kit
 {
 namespace services
 {
-
-//todo t2 : use def from sdp once merged
-
 
 ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
 {
@@ -133,8 +132,26 @@ std::string ST_2110_40_MediaSettingsCalculator::generate_media_sdp(
     const std::string& source_ip, const uint16_t source_port,
     const std::string& destination_ip, const uint16_t destination_port)
 {
-    std::string sdp_stub;
-    return sdp_stub;
+    auto session_description = SessionDescription::Builder(source_ip)
+                                   .set_session_id(SDPManager::generate_ntp_id())
+                                   .set_session_version(SDPManager::generate_ntp_id() + 1)
+                                   .set_session_name("SMPTE ST2110-40")
+                                   .build();
+
+    auto time_description = TimeDescription::Builder().build();
+
+    auto media_description =
+        SMPTE2110_40_MediaDescription::Builder(
+            destination_port, TransportProtocol::RTP_AVP, std::to_string(m_media_settings.payload_type), destination_ip
+        )
+            .set_source_filter(SourceFilterAttribute::Builder(destination_ip, source_ip).build())
+            .set_did_sdid(m_media_settings.did, m_media_settings.sdid)
+            .set_extra_format_specific_parameters(m_extra_parameters)
+            .build();
+    return SDPManager::Builder(std::move(session_description), std::move(time_description))
+        .add_media_description(std::move(media_description))
+        .build()
+        ->to_string();
 }
 
 std::string ST_2110_40_MediaSettingsCalculator::get_smpte_standard_name() const

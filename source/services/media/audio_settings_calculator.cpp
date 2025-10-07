@@ -18,6 +18,8 @@
 
 #include <cstdint>
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <iostream>
 #include <cstddef>
 #include <algorithm>
@@ -27,6 +29,7 @@
 #include "rdk/services/media/audio_settings_calculator.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/utils/defs.h"
+#include "rdk/services/utils/enum_utils.h"
 #include "rt_threads.h"
 
 namespace rivermax
@@ -209,8 +212,36 @@ std::string ST_2110_30_MediaSettingsCalculator::generate_media_sdp(
     const std::string& source_ip, const uint16_t source_port,
     const std::string& destination_ip, const uint16_t destination_port)
 {
-    std::string sdp_stub;
-    return sdp_stub;
+    auto session_description = SessionDescription::Builder(source_ip)
+                                   .set_session_id(SDPManager::generate_ntp_id())
+                                   .set_session_version(SDPManager::generate_ntp_id() + 1)
+                                   .set_session_name("SMPTE ST2110-30")
+                                   .build();
+
+    auto time_description = TimeDescription::Builder().build();
+
+    auto media_description =
+        SMPTE2110_30_MediaDescription::Builder(
+            destination_port, TransportProtocol::RTP_AVP, std::to_string(m_media_settings.payload_type), destination_ip
+        )
+            .set_source_filter(SourceFilterAttribute::Builder(destination_ip, source_ip).build())
+            .set_encoding(m_media_settings.encoding)
+            .set_sampling_rate(m_media_settings.sampling_rate)
+            .set_channels(m_media_settings.num_channels)
+            .set_ptime(m_media_settings.ptime_usec / 1000.0)
+            .set_timestamp_ref_clock(
+                m_media_settings.ref_clk_is_ptp ? TimestampRefClock::PTP : TimestampRefClock::LocalMAC
+            )
+            .set_timestamp_ref_clock_ptp_traceable(
+                m_media_settings.ref_clk_is_ptp && m_media_settings.refclk_id.empty()
+            )
+            .set_timestamp_ref_clock_local_mac(m_media_settings.refclk_id)
+            .set_extra_format_specific_parameters(m_extra_parameters)
+            .build();
+    return SDPManager::Builder(std::move(session_description), std::move(time_description))
+        .add_media_description(std::move(media_description))
+        .build()
+        ->to_string();
 }
 
 std::string ST_2110_30_MediaSettingsCalculator::get_smpte_standard_name() const
