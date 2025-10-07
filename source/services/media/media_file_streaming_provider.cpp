@@ -26,11 +26,11 @@
 using namespace rivermax::dev_kit::services;
 
 MediaFileStreamingProvider::MediaFileStreamingProvider(const std::string& file_path,
-    MediaType media_type, size_t frame_size, std::shared_ptr<BufferedMediaFrameProvider> frame_provider,
+    SMPTEStandard smpte_standard, size_t frame_size, std::shared_ptr<BufferedMediaFrameProvider> frame_provider,
     std::shared_ptr<MemoryAllocator> memory_allocator, bool loop,
     size_t sleep_duration_microseconds) :
     m_file_path(file_path),
-    m_media_type(media_type),
+    m_smpte_standard(smpte_standard),
     m_frame_size(frame_size),
     m_frame_provider(std::move(frame_provider)),
     m_memory_allocator(std::move(memory_allocator)),

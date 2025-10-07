@@ -31,7 +31,7 @@
 #include "rdk/services/sdp/sdp.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_calculator.h"
-#include "rdk/services/media/video_settings.h"
+#include "rdk/services/media/media_settings_video.h"
 
 namespace rivermax
 {
@@ -87,11 +87,11 @@ public:
     virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) override;
     /**
-     * @brief: Returns the media type name.
+     * @brief: Returns the SMPTE standard name.
      *
-     * @return: String representation of the SMPTE 2110-20 video media type.
+     * @return: String representation of the SMPTE 2110-20 video SMPTE standard.
      */
-    virtual std::string get_media_type_name() const override;
+    virtual std::string get_smpte_standard_name() const override;
     /**
      * @brief: Calculates TRO and TRS timing parameters.
      *

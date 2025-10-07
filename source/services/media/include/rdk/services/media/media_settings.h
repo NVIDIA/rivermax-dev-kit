@@ -84,11 +84,11 @@ struct MediaSettings
     size_t data_stride_size = 0;
     size_t app_header_stride_size = 0;
     /**
-     * @brief: Returns the media type.
+     * @brief: Returns the SMPTE standard.
      *
-     * @return: Media type.
+     * @return: SMPTE standard.
      */
-    virtual SMPTEStandard get_media_type() const = 0;
+    virtual SMPTEStandard get_smpte_standard() const = 0;
     std::shared_ptr<IMediaSettingsCalculator> media_settings_calculator;
     std::string media_file = "";
     bool dynamic_media_file_load = false;

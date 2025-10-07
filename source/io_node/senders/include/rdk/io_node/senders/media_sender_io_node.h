@@ -192,13 +192,13 @@ public:
      *
      * @param [in] stream_index: Stream index.
      * @param [in] frame_provider: Frame provider to set.
-     * @param [in] media_type: Media type.
+     * @param [in] smpte_standard: SMPTE standard.
      * @param [in] contains_payload: Flag indicating whether the frame provider contains payload.
      *
      * @return: Status of the operation.
      */
     ReturnStatus set_frame_provider(size_t stream_index, std::shared_ptr<IFrameProvider> frame_provider,
-        MediaType media_type = MediaType::Video, bool contains_payload = true);
+        SMPTEStandard smpte_standard, bool contains_payload = true);
     /**
      * @brief: Sets the synchronizer for the sender.
      *

@@ -49,9 +49,9 @@ public:
     static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_UHD = 32;
     static constexpr uint32_t DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK = 10;
     void init_default_values() override;
-    std::unordered_set<SMPTEStandard> enabled_media_types;
-    std::vector<std::unique_ptr<MediaSettings>> media_type_configs;
-    std::vector<std::pair<const MediaSettings&, size_t>> media_types_to_nodes;
+    std::unordered_set<SMPTEStandard> enabled_smpte_standards;
+    std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
+    std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
 };
 
 /**
@@ -111,10 +111,10 @@ private:
     /**
      * @brief: Media type configuration function map.
      *
-     * This static map contains functions for configuring different media types.
+     * This static map contains functions for configuring different SMPTE standards.
      * Each SMPTEStandard enum value maps to a function that configures that specific media type.
      */
-    static const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaSenderApp*)>> s_media_type_config_map;
+    static const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaSenderApp*)>> s_smpte_standard_config_map;
 public:
     /**
      * @brief: MediaSenderApp class constructor.
@@ -125,27 +125,27 @@ public:
     virtual ~MediaSenderApp() = default;
     ReturnStatus run() override;
     /**
-     * @brief: Initializes media types configuration.
+     * @brief: Initializes SMPTE standards configuration.
      *
-     * This method is responsible for initializing the configuration of different media types
+     * This method is responsible for initializing the configuration of different SMPTE standards
      * that will be used by the sender application.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus initialize_media_types();
+    ReturnStatus initialize_smpte_standards();
     ReturnStatus initialize() override;
     /**
      * @brief: Sets the frame provider for the specified stream index.
      *
      * @param [in] stream_index: Stream index.
      * @param [in] frame_provider: Framer provider pointer.
-     * @param [in] media_type: Media type.
+     * @param [in] smpte_standard: SMPTE standard.
      * @param [in] contains_payload: Flag indicating whether the frame provider contains payload.
      *
      * @return: Status of the operation.
      */
     ReturnStatus set_frame_provider(size_t stream_index, std::shared_ptr<IFrameProvider> frame_provider,
-        MediaType media_type = MediaType::Video, bool contains_payload = true);
+        SMPTEStandard smpte_standard, bool contains_payload = true);
 private:
     ReturnStatus initialize_app_settings() final;
     ReturnStatus post_load_settings() final;
@@ -184,12 +184,12 @@ private:
      */
     void configure_network_flows();
     /**
-     * @brief: Configures processing of enabled media types.
+     * @brief: Configures processing of enabled SMPTE standards.
      *
-     * This method is responsible to configure processing of enabled media types
+     * This method is responsible to configure processing of enabled SMPTE standards
      * for the sender application.
      */
-    ReturnStatus configure_media_types_processing();
+    ReturnStatus configure_smpte_standards_processing();
     /**
      * @brief: Initializes sender threads.
      *

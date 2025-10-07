@@ -674,7 +674,7 @@ void MediaSenderIONode::determine_memory_layout_for_single_block(
 }
 
 ReturnStatus MediaSenderIONode::set_frame_provider(size_t stream_index,
-    std::shared_ptr<IFrameProvider> frame_provider, MediaType media_type, bool contains_payload)
+    std::shared_ptr<IFrameProvider> frame_provider, SMPTEStandard smpte_standard, bool contains_payload)
 {
     if (frame_provider == nullptr) {
         std::cerr << "Invalid frame_provider" << std::endl;
@@ -687,7 +687,7 @@ ReturnStatus MediaSenderIONode::set_frame_provider(size_t stream_index,
 
     m_stream_packs[stream_index].frame_provider = std::move(frame_provider);
     std::unique_ptr<RTPMediaBufferWriter> buffer_writer = RTPMediaBufferWriter::get_rtp_media_buffer_writer(
-        media_type, contains_payload, m_media_settings,
+        smpte_standard, contains_payload, m_media_settings,
         m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
     if (buffer_writer) {
         m_stream_packs[stream_index].buffer_writer = std::move(buffer_writer);
@@ -782,7 +782,7 @@ void MediaSenderIONode::print_statistics(
     std::ostringstream oss;
     oss << " Sender: " << std::setw(3) << m_index
         << "  Streams: " << std::setw(3) << m_stream_packs.size()
-        << "  Type: " << std::setw(11) << std::left << m_media_settings.media_settings_calculator->get_media_type_name()
+        << "  Type: " << std::setw(11) << std::left << m_media_settings.media_settings_calculator->get_smpte_standard_name()
         << "  Frames sent: " << std::setw(3) << std::right << m_stats_sent_frame_field_counter
         << "  Bytes sent: " << std::setw(11) << bytes_sent
         << "  BW: " << std::setw(10) << std::fixed << std::setprecision(3) << mbps << " Mbps" << std::endl;

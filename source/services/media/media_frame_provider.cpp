@@ -121,7 +121,7 @@ void NullFrameProvider::set_frame_settings(FrameMetadata& metadata, size_t& fram
     auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
     frame_size = video_settings.bytes_per_frame;
     metadata.resolution = video_settings.resolution;
-    metadata.media_type = MediaType::Video;
+    metadata.smpte_standard = video_settings.get_smpte_standard();
 }
 
 std::shared_ptr<MediaFrame> NullFrameProvider::get_frame_blocking()
@@ -216,11 +216,11 @@ void BufferedMediaFrameProvider::stop()
     m_cv.notify_all();
 }
 
-MediaFileFrameProvider::MediaFileFrameProvider(const std::string &file_path, MediaType type,
+MediaFileFrameProvider::MediaFileFrameProvider(const std::string &file_path, SMPTEStandard smpte_standard,
     size_t frame_size, MemoryAllocator& mem_allocator, bool loop) :
     m_file_path(file_path),
     m_mem_allocator(mem_allocator),
-    m_media_type(type),
+    m_smpte_standard(smpte_standard),
     m_frame_size(frame_size),
     m_aligned_frame_size(mem_allocator.align_length(frame_size)),
     m_loop_frames(loop),

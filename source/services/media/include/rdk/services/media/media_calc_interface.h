@@ -75,14 +75,14 @@ public:
     virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) = 0;
     /**
-     * @brief: Returns the media type name.
+     * @brief: Returns the SMPTE standard name.
      *
      * This pure virtual method must be implemented by derived classes to return
-     * a string representation of their specific media type name.
+     * a string representation of their specific SMPTE standard name.
      *
-     * @return: String representation of the media type.
+     * @return: String representation of the SMPTE standard.
      */
-    virtual std::string get_media_type_name() const = 0;
+    virtual std::string get_smpte_standard_name() const = 0;
 };
 
 } // namespace services

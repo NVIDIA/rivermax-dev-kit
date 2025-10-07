@@ -252,7 +252,7 @@ std::string ST_2110_20_MediaSettingsCalculator::generate_media_sdp(
         .build()->to_string();
 }
 
-std::string ST_2110_20_MediaSettingsCalculator::get_media_type_name() const
+std::string ST_2110_20_MediaSettingsCalculator::get_smpte_standard_name() const
 {
     const auto& video_settings = m_media_settings;
     if (video_settings.sampling_type == VideoSampling::KEY) {

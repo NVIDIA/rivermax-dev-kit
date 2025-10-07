@@ -34,8 +34,8 @@ void MediaSenderSettings::init_default_values()
     media.frames_fields_in_mem_block = MediaSenderSettings::DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK;
     media.resolution = { FHD_WIDTH, FHD_HEIGHT };
     num_of_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
-    /* Before enabling other media types, video is enabled by default */
-    enabled_media_types.insert(SMPTEStandard::ST_2110_20);
+    /* Before enabling other SMPTE standards, video is enabled by default */
+    enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
 }
 
 ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaSenderSettings>& settings) const
@@ -177,9 +177,9 @@ ReturnStatus MediaSenderApp::initialize()
     }
 
     try {
-        rc = configure_media_types_processing();
+        rc = configure_smpte_standards_processing();
         if (rc == ReturnStatus::failure) {
-            std::cerr << "Failed to configure media types" << std::endl;
+            std::cerr << "Failed to configure SMPTE standards" << std::endl;
             return rc;
         }
         configure_network_flows();
@@ -284,13 +284,13 @@ void MediaSenderApp::configure_network_flows()
     uint16_t port;
 
     size_t total_num_of_flows = 0;
-    for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
+    for (const auto& node : m_media_sender_settings->smpte_standard_to_nodes) {
         total_num_of_flows += node.second;
     }
     m_flows.reserve(total_num_of_flows);
 
-    for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
-        auto& media_type_config = node.first;
+    for (const auto& node : m_media_sender_settings->smpte_standard_to_nodes) {
+        auto& smpte_standard_config = node.first;
         auto& num_of_streams = node.second;
         for (size_t i = 0; i < num_of_streams; i++) {
             if (dest_port_iteration) {
@@ -316,7 +316,7 @@ ReturnStatus MediaSenderApp::configure_video_types()
     }
     size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_video_threads;
 
-    m_media_sender_settings->media_types_to_nodes.clear();
+    m_media_sender_settings->smpte_standard_to_nodes.clear();
 
     bool alpha_enabled = m_app_settings->media.alpha_bit_depth != VideoBitDepth::Unknown;
 
@@ -348,9 +348,9 @@ ReturnStatus MediaSenderApp::configure_video_types()
         } else {
             num_of_streams_in_cur_thread = min_number_streams_per_thread;
         }
-        m_media_sender_settings->media_types_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
+        m_media_sender_settings->smpte_standard_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
     }
-    m_media_sender_settings->media_type_configs.push_back(std::move(video_settings));
+    m_media_sender_settings->smpte_standard_configs.push_back(std::move(video_settings));
 
     if (alpha_enabled) {
         auto alpha_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
@@ -380,30 +380,30 @@ ReturnStatus MediaSenderApp::configure_video_types()
             } else {
                 num_of_streams_in_cur_thread = min_number_streams_per_thread;
             }
-            m_media_sender_settings->media_types_to_nodes.push_back(
+            m_media_sender_settings->smpte_standard_to_nodes.push_back(
                 {*alpha_settings,
                  num_of_streams_in_cur_thread});
         }
-        m_media_sender_settings->media_type_configs.push_back(std::move(alpha_settings));
+        m_media_sender_settings->smpte_standard_configs.push_back(std::move(alpha_settings));
     }
     return ReturnStatus::success;
 }
 
-const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaSenderApp*)>> MediaSenderApp::s_media_type_config_map = {
+const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaSenderApp*)>> MediaSenderApp::s_smpte_standard_config_map = {
     {SMPTEStandard::ST_2110_20, [](MediaSenderApp* app) { return app->configure_video_types(); }},
 };
 
-ReturnStatus MediaSenderApp::configure_media_types_processing()
+ReturnStatus MediaSenderApp::configure_smpte_standards_processing()
 {
-    if (m_media_sender_settings->enabled_media_types.empty()) {
-        std::cerr << "No media types are enabled" << std::endl;
+    if (m_media_sender_settings->enabled_smpte_standards.empty()) {
+        std::cerr << "No SMPTE standards are enabled" << std::endl;
         return ReturnStatus::failure;
     }
     ReturnStatus rc = ReturnStatus::success;
-    for (const auto& media_type : m_media_sender_settings->enabled_media_types) {
-        auto it = s_media_type_config_map.find(media_type);
-        if (it == s_media_type_config_map.end()) {
-            std::cerr << "Unsupported media type: " << static_cast<int>(media_type) << std::endl;
+    for (const auto& smpte_standard : m_media_sender_settings->enabled_smpte_standards) {
+        auto it = s_smpte_standard_config_map.find(smpte_standard);
+        if (it == s_smpte_standard_config_map.end()) {
+            std::cerr << "Unsupported SMPTE standard: " << static_cast<int>(smpte_standard) << std::endl;
             return ReturnStatus::failure;
         }
         rc = it->second(this);
@@ -418,9 +418,9 @@ void MediaSenderApp::initialize_sender_threads()
 {
     size_t streams_offset = 0;
     size_t sender_idx = 0;
-    auto synchronizer = std::make_shared<LinearSynchronizer>(m_media_sender_settings->media_types_to_nodes.size());
-    for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
-        auto& media_type_config = node.first;
+    auto synchronizer = std::make_shared<LinearSynchronizer>(m_media_sender_settings->smpte_standard_to_nodes.size());
+    for (const auto& node : m_media_sender_settings->smpte_standard_to_nodes) {
+        auto& smpte_standard_config = node.first;
         auto num_of_streams = node.second;
         int sender_cpu_core;
         if (sender_idx < m_app_settings->app_threads_cores.size()) {
@@ -442,7 +442,7 @@ void MediaSenderApp::initialize_sender_threads()
         m_senders.push_back(std::make_unique<MediaSenderIONode>(
             network_address,
             *m_app_settings,
-            media_type_config,
+            smpte_standard_config,
             sender_idx,
             num_of_streams,
             sender_cpu_core,
@@ -457,7 +457,7 @@ void MediaSenderApp::initialize_sender_threads()
 }
 
 ReturnStatus MediaSenderApp::set_frame_provider(size_t stream_index,
-    std::shared_ptr<IFrameProvider> frame_provider, MediaType media_type, bool contains_payload)
+    std::shared_ptr<IFrameProvider> frame_provider, SMPTEStandard smpte_standard, bool contains_payload)
 {
     size_t sender_thread_index = 0;
     size_t sender_stream_index = 0;
@@ -469,7 +469,7 @@ ReturnStatus MediaSenderApp::set_frame_provider(size_t stream_index,
     }
 
     rc = m_senders[sender_thread_index]->set_frame_provider(
-        sender_stream_index, std::move(frame_provider), media_type, contains_payload);
+        sender_stream_index, std::move(frame_provider), smpte_standard, contains_payload);
 
     if (rc != ReturnStatus::success) {
         std::cerr << "Error setting frame provider for stream "
@@ -485,21 +485,21 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
     ReturnStatus rc;
     bool contains_payload = true;
     size_t sender_index = 0;
-    for (const auto& node : m_media_sender_settings->media_types_to_nodes) {
-        auto& media_type_config = node.first;
+    for (const auto& node : m_media_sender_settings->smpte_standard_to_nodes) {
+        auto& smpte_standard_config = node.first;
         auto num_of_streams = node.second;
         for(size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
-            if (media_type_config.media_file.empty() || !(media_type_config.dynamic_media_file_load)) {
-                frame_provider = std::make_shared<NullFrameProvider>(media_type_config);
+            if (smpte_standard_config.media_file.empty() || !(smpte_standard_config.dynamic_media_file_load)) {
+                frame_provider = std::make_shared<NullFrameProvider>(smpte_standard_config);
                 contains_payload = false;
             } else {
-                if (media_type_config.get_media_type() != SMPTEStandard::ST_2110_20) {
+                if (smpte_standard_config.get_smpte_standard() != SMPTEStandard::ST_2110_20) {
                     std::cerr << "Video file is not supported for other media types" << std::endl;
                     return ReturnStatus::failure;
                 }
                 auto media_file_frame_provider = std::make_shared<MediaFileFrameProvider>(
-                    media_type_config.media_file, MediaType::Video,
-                    media_type_config.bytes_per_frame, *m_header_allocator, true);
+                    smpte_standard_config.media_file, smpte_standard_config.get_smpte_standard(),
+                    smpte_standard_config.bytes_per_frame, *m_header_allocator, true);
                 rc = media_file_frame_provider->load_frames();
                 if (rc != ReturnStatus::success) {
                     std::cerr << "Failed to load frames from video file" << std::endl;
@@ -508,7 +508,7 @@ ReturnStatus MediaSenderApp::set_internal_frame_providers()
                 frame_provider = std::move(media_file_frame_provider);
             }
             rc = m_senders[sender_index]->set_frame_provider(
-                stream_index, std::move(frame_provider), MediaType::Video, contains_payload);
+                stream_index, std::move(frame_provider), smpte_standard_config.get_smpte_standard(), contains_payload);
             if (rc != ReturnStatus::success) {
                 std::cerr << "Error setting frame provider for stream "
                           << stream_index << " on sender " << sender_index << std::endl;

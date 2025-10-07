@@ -128,7 +128,7 @@ void RTPMediaBufferWriter::set_first_packet_timestamp(uint64_t packet_time_ns)
 rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_writer_factory = \
 {
     {
-        {MediaType::Video, false},
+        {SMPTEStandard::ST_2110_20, false},
         [](const MediaSettings& media_settings,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
@@ -137,7 +137,7 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
         }
     },
     {
-        {MediaType::Video, true},
+        {SMPTEStandard::ST_2110_20, true},
         [](const MediaSettings& media_settings,
             std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
         {
@@ -148,7 +148,7 @@ rtp_media_buffer_writer_factory_map_t RTPMediaBufferWriter::s_rtp_media_buffer_w
 };
 
 std::unique_ptr<RTPMediaBufferWriter> RTPMediaBufferWriter::get_rtp_media_buffer_writer(
-    MediaType type, bool contains_payload, const MediaSettings& media_settings,
+    SMPTEStandard type, bool contains_payload, const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
 {
     auto key = MediaBufferFactoryKey(type, contains_payload);

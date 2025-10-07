@@ -54,10 +54,10 @@ struct RTPStreamSendStats
  *
  * This struct represents the key used in the media buffer factory map
  * @ref rtp_media_buffer_writer_factory_map_t.
- * It consists of a @ref MediaType and a boolean indicating whether the buffer contains payload.
+ * It consists of a @ref SMPTEStandard and a boolean indicating whether the buffer contains payload.
  */
 struct MediaBufferFactoryKey {
-    MediaType media_type;
+    SMPTEStandard smpte_standard;
     bool contains_payload;
     /**
      * @brief: Equality operator for MediaBufferFactoryKey.
@@ -67,15 +67,15 @@ struct MediaBufferFactoryKey {
      * @return: True if both keys are equal, false otherwise.
      */
     bool operator==(const MediaBufferFactoryKey& other) const {
-        return media_type == other.media_type && contains_payload == other.contains_payload;
+        return smpte_standard == other.smpte_standard && contains_payload == other.contains_payload;
     }
     /**
      * @brief: Constructor for MediaBufferFactoryKey.
      *
-     * @param [in] _media_type: The media type.
+     * @param [in] _smpte_standard: The SMPTE standard.
      * @param [in] _contains_payload: Boolean indicating whether the buffer contains payload.
      */
-    MediaBufferFactoryKey(MediaType _media_type, bool _contains_payload) : media_type(_media_type), contains_payload(_contains_payload) {}
+    MediaBufferFactoryKey(SMPTEStandard _smpte_standard, bool _contains_payload) : smpte_standard(_smpte_standard), contains_payload(_contains_payload) {}
 };
 
 /**
@@ -92,8 +92,8 @@ struct MediaBufferFactoryKeyHash {
      * @return: The hash value of the key.
      */
     std::size_t operator()(const MediaBufferFactoryKey& key) const {
-        return std::hash<std::underlying_type_t<MediaType>>()(
-            static_cast<std::underlying_type_t<MediaType>>(key.media_type))
+        return std::hash<std::underlying_type_t<SMPTEStandard>>()(
+            static_cast<std::underlying_type_t<SMPTEStandard>>(key.smpte_standard))
             ^ (std::hash<bool>()(key.contains_payload) << 1);
     }
 };
@@ -101,7 +101,7 @@ struct MediaBufferFactoryKeyHash {
 /**
  * @brief: Factory map type for creating @ref RTPMediaBufferWriter instances.
  *
- * This map associates @ref MediaType values with factory functions that create
+ * This map associates @ref SMPTEStandard values with factory functions that create
  * instances of @ref RTPMediaBufferWriter or its derived classes.
  */
 class RTPMediaBufferWriter;
@@ -138,7 +138,7 @@ public:
     /**
      * @brief: Factory method to get an @ref RTPMediaBufferWriter instance.
      *
-     * @param [in] type: Stream type.
+     * @param [in] smpte_standard: SMPTE standard.
      * @param [in] contains_payload: Flag indicating whether the buffer contains payload.
      * @param [in] media_settings: Media settings.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
@@ -147,7 +147,7 @@ public:
      * @return: Unique pointer to an RTPMediaBufferWriter instance.
      */
     static std::unique_ptr<RTPMediaBufferWriter> get_rtp_media_buffer_writer(
-        MediaType type, bool contains_payload, const MediaSettings& media_settings,
+        SMPTEStandard smpte_standard, bool contains_payload, const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
     ReturnStatus write_buffer(void* payload_ptr, size_t length_in_strides) override;
     ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;

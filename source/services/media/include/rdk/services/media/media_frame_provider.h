@@ -150,7 +150,7 @@ public:
  * @brief: Holds metadata for a frame.
  */
 struct FrameMetadata {
-    MediaType media_type;
+    SMPTEStandard smpte_standard;
     Resolution resolution;
     uint32_t sequence_number = 0;
     /* Additional metadata */
@@ -353,7 +353,7 @@ class MediaFileFrameProvider : public IFrameProvider {
 protected:
     std::string m_file_path;
     MemoryAllocator& m_mem_allocator;
-    MediaType m_media_type;
+    SMPTEStandard m_smpte_standard;
     size_t m_frame_size;
     size_t m_aligned_frame_size;
     bool m_loop_frames;
@@ -368,12 +368,12 @@ public:
      * @brief: Constructor.
      *
      * @param [in] file_path: Path to the media file.
-     * @param [in] type: Type of stream.
+     * @param [in] smpte_standard: SMPTE standard.
      * @param [in] frame_size: Size of each frame.
      * @param [in] mem_allocator: Memory allocator to use.
      * @param [in] loop: Whether to loop frames.
      */
-    MediaFileFrameProvider(const std::string &file_path, MediaType type, size_t frame_size,
+    MediaFileFrameProvider(const std::string &file_path, SMPTEStandard smpte_standard, size_t frame_size,
         MemoryAllocator& mem_allocator, bool loop = false);
     /**
      * @brief: Destructor.

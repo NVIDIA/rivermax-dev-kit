@@ -50,7 +50,7 @@ class BufferedMediaFrameProvider;
 class MediaFileStreamingProvider {
 private:
     std::string m_file_path;
-    MediaType m_media_type;
+    SMPTEStandard m_smpte_standard;
     size_t m_frame_size;
     std::unique_ptr<MediaFramePool> m_frame_pool;
     std::shared_ptr<BufferedMediaFrameProvider> m_frame_provider;
@@ -70,14 +70,14 @@ public:
      * @brief: Constructor.
      *
      * @param [in] file_path: Path to the media file.
-     * @param [in] media_type: Type of media in the file.
+     * @param [in] smpte_standard: SMPTE standard.
      * @param [in] frame_size: Size of each frame in bytes.
      * @param [in] frame_provider: Shared pointer to a @ref BufferedMediaFrameProvider.
      * @param [in] memory_allocator: Shared pointer to a @ref MemoryAllocator.
      * @param [in] loop: Whether to loop through the file when reaching the end.
      * @param [in] sleep_duration_microseconds: Sleep duration in microseconds between reading frames.
      */
-    MediaFileStreamingProvider(const std::string& file_path, MediaType media_type,
+    MediaFileStreamingProvider(const std::string& file_path, SMPTEStandard smpte_standard,
         size_t frame_size, std::shared_ptr<BufferedMediaFrameProvider> frame_provider,
         std::shared_ptr<MemoryAllocator> memory_allocator, bool loop = false,
         size_t sleep_duration_microseconds = SLEEP_DURATION_MICROSECONDS);

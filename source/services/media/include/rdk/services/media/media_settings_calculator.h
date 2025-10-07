@@ -103,15 +103,15 @@ public:
      */
     virtual ~MediaSettingsCalculator() = default;
     /**
-     * @brief: Returns the name of the media type.
+     * @brief: Returns the name of the SMPTE standard.
      *
-     * @return: String representation of the media type name.
+     * @return: String representation of the SMPTE standard name.
      */
-    virtual std::string get_media_type_name() const override { return "Unknown"; }
+    virtual std::string get_smpte_standard_name() const override { return "Unknown"; }
 protected:
     /* Reference to the typed media settings being configured */
     SettingsType& m_media_settings;
-    /* Vector of format-specific parameters for the media type */
+    /* Vector of format-specific parameters for the SMPTE standard */
     const std::vector<FormatSpecificParameter> m_extra_parameters;
 };
 

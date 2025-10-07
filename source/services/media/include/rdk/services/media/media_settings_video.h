@@ -38,7 +38,7 @@ namespace services
 struct SMPTE_2110_20_MediaSettings : public MediaSettings
 {
     virtual ~SMPTE_2110_20_MediaSettings() = default;
-    virtual SMPTEStandard get_media_type() const override { return SMPTEStandard::ST_2110_20; };
+    virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_20; };
     Resolution resolution = { FHD_WIDTH, FHD_HEIGHT };
     FrameRate frame_rate = { 60 };
     VideoSampling sampling_type = VideoSampling::YCbCr_4_2_2;
