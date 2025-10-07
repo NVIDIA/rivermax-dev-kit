@@ -35,10 +35,8 @@ NullEssenceProvider::NullEssenceProvider(const MediaSettings& media_settings) :
 
 void NullEssenceProvider::set_media_unit_settings(MediaUnitMetadata& metadata, size_t& media_unit_size)
 {
-    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
-    media_unit_size = video_settings.bytes_per_media_unit;
-    metadata.resolution = video_settings.resolution;
-    metadata.smpte_standard = video_settings.get_smpte_standard();
+    media_unit_size = m_media_settings.bytes_per_media_unit;
+    metadata.smpte_standard = m_media_settings.get_smpte_standard();
 }
 
 std::shared_ptr<MediaUnit> NullEssenceProvider::get_media_unit_blocking()

@@ -151,8 +151,6 @@ public:
  */
 struct MediaUnitMetadata {
     SMPTEStandard smpte_standard;
-    Resolution resolution;
-    uint32_t sequence_number = 0;
     /* Additional metadata */
     std::unordered_map<std::string, std::string> additional_info;
 };
