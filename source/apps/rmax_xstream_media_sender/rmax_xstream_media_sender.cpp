@@ -211,7 +211,11 @@ ReturnStatus MediaSenderApp::initialize()
             return rc;
         }
         configure_network_flows();
-        initialize_sender_threads();
+        rc = initialize_sender_threads();
+        if (rc == ReturnStatus::failure) {
+            std::cerr << "Failed to initialize sender threads" << std::endl;
+            return rc;
+        }
         rc = configure_memory_layout();
         if (rc == ReturnStatus::failure) {
             std::cerr << "Failed to configure memory layout" << std::endl;
@@ -539,7 +543,7 @@ ReturnStatus MediaSenderApp::configure_smpte_standards_processing()
     return rc;
 }
 
-void MediaSenderApp::initialize_sender_threads()
+ReturnStatus MediaSenderApp::initialize_sender_threads()
 {
     size_t streams_offset = 0;
     size_t sender_idx = 0;
@@ -574,11 +578,16 @@ void MediaSenderApp::initialize_sender_threads()
             *m_memory_utils,
             MediaSenderApp::get_time_ns));
         m_senders[sender_idx]->initialize_send_flows(flows);
-        m_senders[sender_idx]->initialize_streams();
+        ReturnStatus rc = m_senders[sender_idx]->initialize_streams();
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to initialize streams for sender " << sender_idx << std::endl;
+            return rc;
+        }
         m_senders[sender_idx]->set_synchronizer(synchronizer);
         streams_offset += num_of_streams;
         sender_idx++;
     }
+    return ReturnStatus::success;
 }
 
 ReturnStatus MediaSenderApp::set_media_essence_provider(size_t stream_index,

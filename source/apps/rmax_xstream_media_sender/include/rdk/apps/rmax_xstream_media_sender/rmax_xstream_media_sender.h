@@ -213,8 +213,10 @@ private:
      * It will initiate objects with the relevant parameters.
      * The objects initialized in this method, will be the contexts to the std::thread objects
      * will run in @ref RmaxBaseApp::run_threads method.
+     *
+     * @return: Status of the operation.
      */
-    void initialize_sender_threads();
+     ReturnStatus initialize_sender_threads();
     /**
      * @brief: Returns current time in nanoseconds.
      *

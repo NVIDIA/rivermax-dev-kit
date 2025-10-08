@@ -148,7 +148,7 @@ void MediaSenderIONode::initialize_send_flows(const std::vector<TwoTupleFlow>& f
     }
 }
 
-void MediaSenderIONode::initialize_streams()
+ReturnStatus MediaSenderIONode::initialize_streams()
 {
     constexpr size_t flow_index = 0;  // For now, there is one flow per Tx stream.
     std::string destination_ip;
@@ -160,18 +160,30 @@ void MediaSenderIONode::initialize_streams()
         destination_ip = destination_flow.get_ip();
         destination_port = destination_flow.get_port();
 
-        auto network_address = TwoTupleFlow(
-            stream_idx++,
-            m_network_address.get_source_ip(),
-            m_network_address.get_source_port());
+        auto network_address = TwoTupleFlow(stream_idx++, m_network_address.get_source_ip(),
+                                            m_network_address.get_source_port());
 
         MediaStreamSettings stream_settings(network_address, destination_flow, m_media_settings,
-            m_dscp, m_pcp, m_ecn);
+                                            m_dscp, m_pcp, m_ecn);
 
         stream_pack.stream = std::make_unique<RtpVideoSendStream>(stream_settings);
-        stream_pack.buffer_writer = std::make_unique<RTPVideoMockBufferWriter>(m_media_settings,
-            m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
+
+        constexpr bool contains_payload = false;
+        std::unique_ptr<RTPMediaBufferWriter> buffer_writer =
+            RTPMediaBufferWriter::get_rtp_media_buffer_writer(
+                m_media_settings.get_media_type(), contains_payload, m_media_settings,
+                m_memory_utils.get_header_memory_utils(),
+                m_memory_utils.get_payload_memory_utils());
+
+        if (buffer_writer) {
+            stream_pack.buffer_writer = std::move(buffer_writer);
+        } else {
+            std::cerr << "Failed to create buffer writer for stream " << stream_idx << " of sender "
+                      << m_index << std::endl;
+            return ReturnStatus::failure;
+        }
     }
+    return ReturnStatus::success;
 }
 
 ReturnStatus MediaSenderIONode::initialize_memory_layout()

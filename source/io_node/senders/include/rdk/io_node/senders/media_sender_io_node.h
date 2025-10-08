@@ -161,8 +161,10 @@ public:
     void initialize_send_flows(const std::vector<TwoTupleFlow>& flows);
     /**
      * @brief: Initializes stream objects.
+     *
+     * @return: Status of the operation.
      */
-    void initialize_streams();
+    ReturnStatus initialize_streams();
     /**
      * @brief: Prints sender's parameters.
      *
