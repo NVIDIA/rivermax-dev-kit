@@ -160,7 +160,6 @@ ReturnStatus LatencyCLISettingsBuilder::add_cli_options(std::shared_ptr<LatencyS
 LatencyApp::LatencyApp(std::shared_ptr<ISettingsBuilder<LatencySettings>> settings_builder) :
     RmaxBaseApp(),
     m_settings_builder(std::move(settings_builder)),
-    m_media_settings{},
     m_tx_header_mreg{nullptr, 0, 0},
     m_is_tx_header_mreg_registered{false},
     m_tx_payload_mreg{nullptr, 0, 0},
@@ -309,20 +308,15 @@ ReturnStatus LatencyApp::initialize_threads()
                     TwoTupleFlow(0, m_app_settings->local_ip, m_latency_settings->receive_port));
             break;
         case LatencyMode::Media:
-            m_media_settings.frames_fields_in_mem_block = MediaSettings::MIN_FRAMES_FOR_SIMULTANEOUS_TX_AND_FILLUP;
-            m_media_settings.resolution = m_app_settings->media.resolution;
-            m_media_settings.frame_rate = m_app_settings->media.frame_rate;
-            m_media_settings.bit_depth = m_app_settings->media.color_bit_depth;
-            m_media_settings.ref_clk_is_ptp = true;
-            auto media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(m_media_settings);
-            if (!media_settings_calculator) {
-                std::cerr << "Failed to create media settings calculator for 2110-20" << std::endl;
-                return ReturnStatus::failure;
-            }
-            m_media_settings.media_settings_calculator = media_settings_calculator;
-            rc = media_settings_calculator->calculate_media_settings();
+            m_app_settings->ref_clk_is_ptp = true;
+            m_media_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(*m_app_settings);
+            m_media_settings->media_units_in_mem_block =
+                MediaSettings::MIN_MEDIA_UNITS_FOR_SIMULTANEOUS_TX_AND_FILLUP;
+
+            rc = m_media_settings->create_default_calculator();
             if (rc != ReturnStatus::success) {
-                std::cerr << "Failed to calculate media settings for 2110-20" << std::endl;
+                std::cerr << "Failed to create default calculator for 2110-20"
+                          << std::endl;
                 return rc;
             }
             if (m_latency_settings->client) {
@@ -331,14 +325,14 @@ ReturnStatus LatencyApp::initialize_threads()
                 }
                 m_io_node = std::unique_ptr<LatencyIONode>(
                         new MediaTxIONode(node_settings,
-                                          m_media_settings,
+                                          *m_media_settings,
                                           m_header_allocator->get_memory_utils(),
                                           m_payload_allocator->get_memory_utils(),
                                           LatencyApp::get_time_ns));
             } else {
                 m_io_node = std::unique_ptr<LatencyIONode>(
                         new MediaRxIONode(node_settings,
-                                          m_media_settings,
+                                          *m_media_settings,
                                           m_header_allocator->get_memory_utils(),
                                           m_payload_allocator->get_memory_utils(),
                                           LatencyApp::get_time_ns));

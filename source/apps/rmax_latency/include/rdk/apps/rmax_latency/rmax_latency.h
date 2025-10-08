@@ -142,7 +142,7 @@ private:
     /* Transmitter-Receiver objects container */
     std::unique_ptr<LatencyIONode> m_io_node;
     /* Media settings */
-    SMPTE_2110_20_MediaSettings m_media_settings;
+    std::unique_ptr<SMPTE_2110_20_MediaSettings> m_media_settings;
     /* Transmit header memory region */
     rmx_mem_region m_tx_header_mreg;
     /* Transmit header memory registration status */

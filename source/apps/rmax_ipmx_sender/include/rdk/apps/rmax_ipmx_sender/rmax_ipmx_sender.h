@@ -41,9 +41,9 @@ constexpr size_t DEFAULT_MEMORY_BUFFER_SIZE_IN_FRAMES = 10;
 struct IPMXSenderSettings : AppSettings
 {
 public:
-    std::unordered_set<SMPTEStandard> enabled_media_types;
-    std::vector<std::unique_ptr<MediaSettings>> media_type_configs;
-    std::vector<std::pair<const MediaSettings&, size_t>> media_types_to_nodes;
+    std::unordered_set<SMPTEStandard> enabled_smpte_standards;
+    std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
+    std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
     void init_default_values() override;
 };
 
@@ -168,11 +168,11 @@ private:
      */
     ReturnStatus configure_video_settings();
     /**
-     * @brief: Configures media settings for all enabled video types.
+     * @brief: Configures media settings for all enabled SMPTE standards.
      *
      * @return: Return status of the operation.
      */
-    ReturnStatus configure_media_types_processing();
+    ReturnStatus configure_smpte_standards_processing();
     /**
      * @brief: Assigns streams to the worker threads.
      *

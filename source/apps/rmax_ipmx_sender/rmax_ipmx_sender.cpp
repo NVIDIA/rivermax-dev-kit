@@ -21,7 +21,7 @@
 #include "rdk/apps/rmax_ipmx_sender/rmax_ipmx_sender.h"
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/clock.h"
-#include "rdk/services/media/media.h"
+#include "rdk/services/sdp/sdp_common_descriptions.h"
 
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::apps::rmax_ipmx_sender;
@@ -33,7 +33,7 @@ void IPMXSenderSettings::init_default_values()
     ref_clk_is_ptp = false;
     app_memory_alloc = true;
     register_memory = true;
-    enabled_media_types.insert(SMPTEStandard::ST_2110_20);
+    enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
 }
 
 ReturnStatus IPMXSenderSettingsValidator::validate(const std::shared_ptr<IPMXSenderSettings>& settings) const
@@ -136,9 +136,9 @@ ReturnStatus IPMXSenderApp::initialize()
     }
 
     try {
-        rc = configure_media_types_processing();
+        rc = configure_smpte_standards_processing();
         if (rc == ReturnStatus::failure) {
-            std::cerr << "Failed to configure media types" << std::endl;
+            std::cerr << "Failed to configure SMPTE standards" << std::endl;
             return rc;
         }
         assign_streams_to_threads();
@@ -283,13 +283,13 @@ void IPMXSenderApp::initialize_send_flows()
     uint16_t port;
 
     size_t total_num_of_flows = 0;
-    for (const auto& node : m_ipmx_sender_settings->media_types_to_nodes) {
+    for (const auto& node : m_ipmx_sender_settings->smpte_standard_to_nodes) {
         total_num_of_flows += node.second;
     }
     m_stream_dst_addresses.reserve(total_num_of_flows);
 
-    for (const auto& node : m_ipmx_sender_settings->media_types_to_nodes) {
-        auto& media_type_config = node.first;
+    for (const auto& node : m_ipmx_sender_settings->smpte_standard_to_nodes) {
+        auto& smpte_standard_config = node.first;
         auto& num_of_streams = node.second;
         for (size_t i = 0; i < num_of_streams; i++) {
             if (dest_port_iteration) {
@@ -317,34 +317,13 @@ ReturnStatus IPMXSenderApp::configure_video_settings()
     }
     size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_video_threads;
 
-    m_ipmx_sender_settings->media_types_to_nodes.clear();
+    m_ipmx_sender_settings->smpte_standard_to_nodes.clear();
 
-    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
-    video_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*video_settings, extra_ipmx_parameters);
-    if (!video_settings->media_settings_calculator) {
-        std::cerr << "Failed to create media settings calculator for 2110-20" << std::endl;
-        return ReturnStatus::failure;
-    }
-    video_settings->header_data_split = m_app_settings->header_data_split;
-    if (m_app_settings->num_of_packets_in_chunk_specified) {
-        video_settings->packets_in_chunk = m_app_settings->num_of_packets_in_chunk;
-    }
-    video_settings->frames_fields_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
-    video_settings->resolution = m_app_settings->media.resolution;
-    video_settings->frame_rate = m_app_settings->media.frame_rate;
-    video_settings->sampling_type = m_app_settings->media.sampling_type;
-    video_settings->bit_depth = m_app_settings->media.color_bit_depth;
-    auto rc = video_settings->media_settings_calculator->calculate_media_settings();
+    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(*m_app_settings);
+    auto rc = video_settings->create_default_calculator(extra_ipmx_parameters);
     if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to calculate media settings for 2110-20" << std::endl;
+        std::cerr << "Failed to create default calculator for 2110-20" << std::endl;
         return rc;
-    }
-
-    video_settings->ref_clk_is_ptp = m_app_settings->ref_clk_is_ptp;
-    if (m_app_settings->ref_clk_is_ptp) {
-        video_settings->refclk_id = "";
-    } else {
-        video_settings->refclk_id = m_app_settings->local_mac;
     }
 
     for (size_t idx = 0; idx < num_of_video_threads; idx++) {
@@ -354,18 +333,18 @@ ReturnStatus IPMXSenderApp::configure_video_settings()
         } else {
             num_of_streams_in_cur_thread = min_number_streams_per_thread;
         }
-        m_ipmx_sender_settings->media_types_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
+        m_ipmx_sender_settings->smpte_standard_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
     }
-    m_ipmx_sender_settings->media_type_configs.push_back(std::move(video_settings));
+    m_ipmx_sender_settings->smpte_standard_configs.push_back(std::move(video_settings));
     return ReturnStatus::success;
 }
 
-ReturnStatus IPMXSenderApp::configure_media_types_processing()
+ReturnStatus IPMXSenderApp::configure_smpte_standards_processing()
 {
-    if (m_ipmx_sender_settings->enabled_media_types.count(SMPTEStandard::ST_2110_20)) {
+    if (m_ipmx_sender_settings->enabled_smpte_standards.count(SMPTEStandard::ST_2110_20)) {
         return configure_video_settings();
     }
-    std::cerr << "No supported media types to configure" << std::endl;
+    std::cerr << "No supported SMPTE standards to configure" << std::endl;
     return ReturnStatus::failure;
 }
 
@@ -400,7 +379,7 @@ void IPMXSenderApp::initialize_sender_threads()
             src_address,
             flows,
             m_app_settings,
-            m_ipmx_sender_settings->media_types_to_nodes[sender_index].first,
+            m_ipmx_sender_settings->smpte_standard_to_nodes[sender_index].first,
             sender_index,
             sender_cpu_core));
         streams_offset += m_streams_per_thread[sender_index];
