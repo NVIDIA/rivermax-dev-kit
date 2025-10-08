@@ -611,7 +611,7 @@ void MediaRxIONode::receive_send()
     double tro;
     double trs;
 
-    auto video_calc = static_cast<ST_2110_20_MediaSettingsCalculator&>(*m_media_settings.media_settings_calculator);
+    const auto& video_calc = static_cast<const ST_2110_20_MediaSettingsCalculator&>(*m_media_settings.media_settings_calculator);
     video_calc.calculate_tro_trs(tro, trs);
 
     while (rc != ReturnStatus::failure && rc != ReturnStatus::signal_received &&

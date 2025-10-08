@@ -86,7 +86,7 @@ public:
      * @return: String representation of the SMPTE 2110-30 audio SMPTE standard.
      */
     virtual std::string get_smpte_standard_name() const override;
-    
+    virtual double align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const override;
     /**
      * @brief: Check if the given channel count is supported.
      *

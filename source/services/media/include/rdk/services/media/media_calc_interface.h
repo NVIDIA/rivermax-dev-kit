@@ -83,6 +83,18 @@ public:
      * @return: String representation of the SMPTE standard.
      */
     virtual std::string get_smpte_standard_name() const = 0;
+    /**
+     * @brief: Aligns a desired time to the nearest media unit boundary for the specific media type.
+     *
+     * This pure virtual method must be implemented by derived classes to align
+     * a given timestamp to the next valid media unit boundary based on their specific
+     * media type timing requirements and SMPTE standard specifications.
+     *
+     * @param [in] desired_time_ns: Desired time in nanoseconds to align.
+     *
+     * @return: Aligned time in nanoseconds, including media-specific transmission offsets.
+     */
+    virtual double align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const = 0;
 };
 
 } // namespace services

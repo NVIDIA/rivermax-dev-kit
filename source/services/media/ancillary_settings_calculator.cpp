@@ -142,6 +142,17 @@ std::string ST_2110_40_MediaSettingsCalculator::get_smpte_standard_name() const
     return "Ancillary";
 }
 
+double ST_2110_40_MediaSettingsCalculator::align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const
+{
+    double media_unit_interval_ns = m_media_settings.media_unit_time_interval_ns;
+    
+    // Find the next aligned media unit start time
+    uint64_t N = static_cast<uint64_t>(static_cast<double>(desired_time_ns) / media_unit_interval_ns + 1);
+    double first_packet_start_time_ns = N * media_unit_interval_ns;
+
+    return first_packet_start_time_ns;
+}
+
 } // namespace services
 } // namespace dev_kit
 } // namespace rivermax

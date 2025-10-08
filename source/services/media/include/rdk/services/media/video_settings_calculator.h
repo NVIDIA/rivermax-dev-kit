@@ -92,6 +92,7 @@ public:
      * @return: String representation of the SMPTE 2110-20 video SMPTE standard.
      */
     virtual std::string get_smpte_standard_name() const override;
+    virtual double align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const override;
     /**
      * @brief: Calculates TRO and TRS timing parameters.
      *
@@ -102,7 +103,7 @@ public:
      * @param [out] tro: The calculated TRO (Time Read Offset) value.
      * @param [out] trs: The calculated TRS (Time Read Spacing) value.
      */
-    void calculate_tro_trs(double& tro, double& trs);
+    void calculate_tro_trs(double& tro, double& trs) const;
     /**
      * @brief: Check if the given sampling type and bit depth are supported.
      *

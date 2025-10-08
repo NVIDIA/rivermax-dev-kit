@@ -86,7 +86,7 @@ bool ST_2110_20_MediaSettingsCalculator::is_bit_depth_supported(VideoSampling sa
     return false;
 }
 
-void ST_2110_20_MediaSettingsCalculator::calculate_tro_trs(double& tro, double& trs)
+void ST_2110_20_MediaSettingsCalculator::calculate_tro_trs(double& tro, double& trs) const
 {
     double t_frame_ns;
     double r_active;
@@ -259,6 +259,29 @@ std::string ST_2110_20_MediaSettingsCalculator::get_smpte_standard_name() const
         return "Video (Key)";
     }
     return "Video";
+}
+
+double ST_2110_20_MediaSettingsCalculator::align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const
+{
+    double t_frame_ns;
+
+    if (m_media_settings.video_scan_type == VideoScanType::Progressive) {
+        t_frame_ns = m_media_settings.media_unit_time_interval_ns;
+    }
+    else {
+        t_frame_ns = m_media_settings.media_unit_time_interval_ns * 2;
+    }
+
+    // Find the next aligned media unit start time
+    uint64_t N = static_cast<uint64_t>(static_cast<double>(desired_time_ns) / t_frame_ns + 1);
+    double first_packet_start_time_ns = N * t_frame_ns;
+
+    // Add TRO to the start time
+    double tro, trs;
+    calculate_tro_trs(tro, trs);
+    first_packet_start_time_ns += tro;
+
+    return first_packet_start_time_ns;
 }
 
 } // namespace services

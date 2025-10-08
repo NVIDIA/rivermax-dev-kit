@@ -68,7 +68,7 @@ private:
     */
     struct MediaStreamPack
     {
-        std::unique_ptr<RtpVideoSendStream> stream;
+        std::unique_ptr<MediaSendStream> stream;
         std::unique_ptr<MediaChunk> chunk_handler;
         std::unique_ptr<MediaStreamMemBlockset> mem_blockset;
         std::vector<TwoTupleFlow> flows;

@@ -166,12 +166,12 @@ ReturnStatus MediaSenderIONode::initialize_streams()
         MediaStreamSettings stream_settings(network_address, destination_flow, m_media_settings,
                                             m_dscp, m_pcp, m_ecn);
 
-        stream_pack.stream = std::make_unique<RtpVideoSendStream>(stream_settings);
+        stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);
 
         constexpr bool contains_payload = false;
         std::unique_ptr<RTPMediaBufferWriter> buffer_writer =
             RTPMediaBufferWriter::get_rtp_media_buffer_writer(
-                m_media_settings.get_media_type(), contains_payload, m_media_settings,
+                m_media_settings.get_smpte_standard(), contains_payload, m_media_settings,
                 m_memory_utils.get_header_memory_utils(),
                 m_memory_utils.get_payload_memory_utils());
 
@@ -491,10 +491,10 @@ void MediaSenderIONode::operator()()
     * in the same time and keep aligned during the run. It can be updated in the future.
     */
     uint64_t time_now_ns = get_time_now_ns();
+    uint64_t desired_start_time_ns = time_now_ns + DEFAULT_STREAM_START_OFFSET_NS;
     uint64_t send_time_ns = 0;
-    for (auto& stream_pack : m_stream_packs) {
-        send_time_ns = static_cast<uint64_t>(stream_pack.stream->calculate_send_time_ns(time_now_ns));
-    }
+    send_time_ns = static_cast<uint64_t>(
+        m_media_settings.media_settings_calculator->align_time_to_media_unit_boundary_ns(desired_start_time_ns));
 
     rc = coordinate_start_time(send_time_ns);
     if (rc != ReturnStatus::success) {
