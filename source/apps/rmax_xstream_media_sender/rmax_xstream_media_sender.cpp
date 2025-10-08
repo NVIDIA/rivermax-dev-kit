@@ -25,6 +25,9 @@
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/sdp/sdp_defs.h"
+#include "rdk/services/media/media_settings_video.h"
+#include "rdk/services/media/media_settings_audio.h"
+#include "rdk/services/media/media_settings_ancillary.h"
 
 using namespace rivermax::dev_kit::apps::rmax_xstream_media_sender;
 
@@ -339,178 +342,90 @@ void MediaSenderApp::configure_network_flows()
     }
 }
 
-ReturnStatus MediaSenderApp::configure_video_types()
+template<typename SettingsType>
+ReturnStatus MediaSenderApp::configure_media_type_helper(
+    std::unique_ptr<SettingsType> settings,
+    const std::string& smpte_standard_name)
 {
-    if(!m_app_settings->media.enable_video) {
-        return ReturnStatus::failure;
+    size_t num_of_threads = std::min<size_t>(
+        m_app_settings->num_of_threads,
+        m_app_settings->num_of_total_streams);
+
+    if (num_of_threads < m_app_settings->num_of_threads) {
+        std::cout << "The number of " << smpte_standard_name
+                  << " threads is limited to the number of streams ("
+                  << num_of_threads << ")" << std::endl;
     }
 
-    size_t num_of_video_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
-    if (num_of_video_threads < m_app_settings->num_of_threads) {
-        std::cout << "The number of video threads is limited to the number of streams ("
-            << num_of_video_threads << ")" << std::endl;
-    }
-    size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_video_threads;
+    size_t min_number_streams_per_thread =
+        m_app_settings->num_of_total_streams / num_of_threads;
 
-    bool alpha_enabled = m_app_settings->media.alpha_bit_depth != VideoBitDepth::Unknown;
-
-    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
-    video_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*video_settings);
-    if (!video_settings->media_settings_calculator) {
-        std::cerr << "Failed to create media settings calculator for 2110-20" << std::endl;
-        return ReturnStatus::failure;
-    }
-    video_settings->header_data_split = m_app_settings->header_data_split;
-    video_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
-    video_settings->media_units_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
-    video_settings->resolution = m_app_settings->media.resolution;
-    video_settings->frame_rate = m_app_settings->media.frame_rate;
-    video_settings->sampling_type = m_app_settings->media.sampling_type;
-    video_settings->bit_depth = m_app_settings->media.color_bit_depth;
-    video_settings->media_file = m_app_settings->video_file;
-    video_settings->dynamic_media_file_load = m_app_settings->dynamic_video_file_load;
-    ReturnStatus rc = video_settings->media_settings_calculator->calculate_media_settings();
+    ReturnStatus rc = settings->create_default_calculator();
     if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to calculate media settings for 2110-20" << std::endl;
+        std::cerr << "Failed to create default calculator for "
+                  << smpte_standard_name << std::endl;
         return rc;
     }
 
-    for (size_t idx = 0; idx < num_of_video_threads; idx++) {
+    for (size_t idx = 0; idx < num_of_threads; idx++) {
         size_t num_of_streams_in_cur_thread;
-        if (min_number_streams_per_thread * num_of_video_threads + idx < m_app_settings->num_of_total_streams) {
+        if (min_number_streams_per_thread * num_of_threads + idx <
+            m_app_settings->num_of_total_streams) {
             num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
         } else {
             num_of_streams_in_cur_thread = min_number_streams_per_thread;
         }
-        m_media_sender_settings->smpte_standard_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
+        m_media_sender_settings->smpte_standard_to_nodes.emplace_back(
+            *settings, num_of_streams_in_cur_thread);
     }
-    m_media_sender_settings->smpte_standard_configs.push_back(std::move(video_settings));
+    m_media_sender_settings->smpte_standard_configs.push_back(std::move(settings));
 
-    if (alpha_enabled) {
-        auto alpha_settings = std::make_unique<SMPTE_2110_20_MediaSettings>();
-        alpha_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*alpha_settings);
-        if (!alpha_settings->media_settings_calculator) {
-            std::cerr << "Failed to create media settings calculator for 2110-20 alpha/key stream" << std::endl;
-            return ReturnStatus::failure;
-        }
-        alpha_settings->header_data_split = m_app_settings->header_data_split;
-        alpha_settings->media_units_in_mem_block = m_app_settings->media.frames_fields_in_mem_block;
-        alpha_settings->resolution = m_app_settings->media.resolution;
-        alpha_settings->frame_rate = m_app_settings->media.frame_rate;
-        alpha_settings->sampling_type = VideoSampling::KEY;
-        alpha_settings->bit_depth = m_app_settings->media.alpha_bit_depth;
-        alpha_settings->colorimetry = Colorimetry::ALPHA;
-        alpha_settings->smpte_standard_number = SMPTEStandardNumber::ST2110_20_2021;
-        rc = alpha_settings->media_settings_calculator->calculate_media_settings();
-        if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to calculate media settings for 2110-20 alpha/key stream" << std::endl;
-            return rc;
-        }
-
-        for (size_t idx = 0; idx < num_of_video_threads; idx++) {
-            size_t num_of_streams_in_cur_thread;
-            if (min_number_streams_per_thread * num_of_video_threads + idx < m_app_settings->num_of_total_streams) {
-                num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
-            } else {
-                num_of_streams_in_cur_thread = min_number_streams_per_thread;
-            }
-            m_media_sender_settings->smpte_standard_to_nodes.push_back(
-                {*alpha_settings,
-                 num_of_streams_in_cur_thread});
-        }
-        m_media_sender_settings->smpte_standard_configs.push_back(std::move(alpha_settings));
-    }
     return ReturnStatus::success;
+}
+
+ReturnStatus MediaSenderApp::configure_video_types()
+{
+    if (!m_app_settings->media.enable_video) {
+        return ReturnStatus::failure;
+    }
+
+    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(*m_app_settings);
+    ReturnStatus rc = configure_media_type_helper(
+        std::move(video_settings), "2110-20");
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
+
+    if (m_app_settings->media.alpha_bit_depth != VideoBitDepth::Unknown) {
+        auto alpha_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(
+            *m_app_settings, true);
+        rc = configure_media_type_helper(
+            std::move(alpha_settings), "2110-20 alpha/key");
+    }
+
+    return rc;
 }
 
 ReturnStatus MediaSenderApp::configure_audio_types()
 {
-    if(!m_app_settings->media.enable_audio) {
+    if (!m_app_settings->media.enable_audio) {
         return ReturnStatus::failure;
     }
 
-    size_t num_of_audio_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
-    if (num_of_audio_threads < m_app_settings->num_of_threads) {
-        std::cout << "The number of audio threads is limited to the number of streams ("
-            << num_of_audio_threads << ")" << std::endl;
-    }
-    size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_audio_threads;
-
-    std::unique_ptr<SMPTE_2110_30_MediaSettings> audio_settings = std::make_unique<SMPTE_2110_30_MediaSettings>();
-    audio_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*audio_settings);
-    if (!audio_settings->media_settings_calculator) {
-        std::cerr << "Failed to create media settings calculator for 2110-30 audio" << std::endl;
-        return ReturnStatus::failure;
-    }
-    audio_settings->header_data_split = m_app_settings->header_data_split;
-    audio_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
-    audio_settings->sampling_rate = m_app_settings->media.audio_sampling_rate;
-    audio_settings->encoding = m_app_settings->media.audio_encoding;
-    audio_settings->num_channels = m_app_settings->media.audio_channels_num;
-    audio_settings->ptime_usec = m_app_settings->media.ptime_us;
-    
-    ReturnStatus rc = audio_settings->media_settings_calculator->calculate_media_settings();
-    if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to calculate media settings for 2110-30 audio" << std::endl;
-        return rc;
-    }
-
-    for (size_t idx = 0; idx < num_of_audio_threads; idx++) {
-        size_t num_of_streams_in_cur_thread;
-        if (min_number_streams_per_thread * num_of_audio_threads + idx < m_app_settings->num_of_total_streams) {
-            num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
-        } else {
-            num_of_streams_in_cur_thread = min_number_streams_per_thread;
-        }
-        m_media_sender_settings->smpte_standard_to_nodes.emplace_back(*audio_settings, num_of_streams_in_cur_thread);
-    }
-    m_media_sender_settings->smpte_standard_configs.push_back(std::move(audio_settings));
-
-    return ReturnStatus::success;
+    auto audio_settings = std::make_unique<SMPTE_2110_30_MediaSettings>(*m_app_settings);
+    return configure_media_type_helper(
+        std::move(audio_settings), "2110-30 audio");
 }
 
 ReturnStatus MediaSenderApp::configure_ancillary_types()
 {
-    if(!m_app_settings->media.enable_ancillary) {
+    if (!m_app_settings->media.enable_ancillary) {
         return ReturnStatus::failure;
     }
-    
-    size_t num_of_ancillary_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
-    if (num_of_ancillary_threads < m_app_settings->num_of_threads) {
-        std::cout << "The number of ancillary threads is limited to the number of streams ("
-            << num_of_ancillary_threads << ")" << std::endl;
-    }
-    size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_ancillary_threads;
-    
-    std::unique_ptr<SMPTE_2110_40_MediaSettings> ancillary_settings = std::make_unique<SMPTE_2110_40_MediaSettings>();
-    ancillary_settings->media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*ancillary_settings);
-    if (!ancillary_settings->media_settings_calculator) {
-        std::cerr << "Failed to create media settings calculator for 2110-40 ancillary" << std::endl;
-        return ReturnStatus::failure;
-    }
-    ancillary_settings->header_data_split = m_app_settings->header_data_split;
-    ancillary_settings->requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
-    ancillary_settings->did = m_app_settings->media.anc_did;
-    ancillary_settings->sdid = m_app_settings->media.anc_sdid;
-    ancillary_settings->user_data_size_bytes = m_app_settings->media.anc_data_size;
-    ReturnStatus rc = ancillary_settings->media_settings_calculator->calculate_media_settings();
-    if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to calculate media settings for 2110-40 ancillary" << std::endl;
-        return rc;
-    }
 
-    for (size_t idx = 0; idx < num_of_ancillary_threads; idx++) {
-        size_t num_of_streams_in_cur_thread;
-        if (min_number_streams_per_thread * num_of_ancillary_threads + idx < m_app_settings->num_of_total_streams) {
-            num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
-        } else {
-            num_of_streams_in_cur_thread = min_number_streams_per_thread;
-        }
-        m_media_sender_settings->smpte_standard_to_nodes.emplace_back(*ancillary_settings, num_of_streams_in_cur_thread);
-    }
-    m_media_sender_settings->smpte_standard_configs.push_back(std::move(ancillary_settings));
-
-    return ReturnStatus::success;
+    auto ancillary_settings = std::make_unique<SMPTE_2110_40_MediaSettings>(*m_app_settings);
+    return configure_media_type_helper(
+        std::move(ancillary_settings), "2110-40 ancillary");
 }
 
 const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaSenderApp*)>> MediaSenderApp::s_smpte_standard_config_map = {

@@ -20,8 +20,13 @@
 #define RDK_SERVICES_MEDIA_MEDIA_SETTINGS_VIDEO_H_
 
 #include <cstdint>
+#include <memory>
+#include <vector>
 
 #include "rdk/services/media/media_settings.h"
+#include "rdk/services/settings/app_settings.h"
+#include "rdk/services/media/media_calc_interface.h"
+#include "rdk/services/sdp/sdp_common_descriptions.h"
 
 namespace rivermax
 {
@@ -37,8 +42,20 @@ namespace services
  */
 struct SMPTE_2110_20_MediaSettings : public MediaSettings
 {
+    /**
+     * @brief: Default constructor.
+     */
+    SMPTE_2110_20_MediaSettings() = default;
+    /**
+     * @brief: Constructor from AppSettings.
+     *
+     * @param [in] app_settings: Application settings to configure from.
+     * @param [in] is_alpha_stream: Whether this is an alpha/key stream (default: false).
+     */
+    explicit SMPTE_2110_20_MediaSettings(const AppSettings& app_settings, bool is_alpha_stream = false);
     virtual ~SMPTE_2110_20_MediaSettings() = default;
     virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_20; };
+    
     Resolution resolution = { FHD_WIDTH, FHD_HEIGHT };
     FrameRate frame_rate = { 60 };
     VideoSampling sampling_type = VideoSampling::YCbCr_4_2_2;

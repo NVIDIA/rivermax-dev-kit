@@ -156,6 +156,20 @@ private:
     ReturnStatus initialize_connection_parameters() final;
 
     /**
+     * @brief: Generic helper for configuring media types.
+     *
+     * This template method handles the common logic for distributing streams across threads
+     * and configuring media settings.
+     *
+     * @tparam SettingsType: The media settings type.
+     * @param [in] settings: Media settings object.
+     * @param [in] smpte_standard_name: SMPTE standard identifier for logging.
+     *
+     * @return: Status of the operation.
+     */
+    template <typename SettingsType>
+    ReturnStatus configure_media_type_helper(std::unique_ptr<SettingsType> settings, const std::string& smpte_standard_name);
+    /**
      * @brief: Configures video types processing.
      *
      * This method is responsible for configuring video media types processing
@@ -163,21 +177,21 @@ private:
      *
      * @return: Status of the operation.
      */
-     ReturnStatus configure_video_types();
-        /**
+    ReturnStatus configure_video_types();
+    /**
      * @brief: Configures audio types processing.
      *
      * This method is responsible for configuring audio media types processing
      * for the sender application.
      */
-     ReturnStatus configure_audio_types();
-     /**
+    ReturnStatus configure_audio_types();
+    /**
      * @brief: Configures ancillary types processing.
      *
      * This method is responsible for configuring ancillary media types processing
      * for the sender application.
      */
-     ReturnStatus configure_ancillary_types();
+    ReturnStatus configure_ancillary_types();
     /**
      * @brief: Distributes streams across threads.
      *

@@ -22,9 +22,12 @@
 #include <cstdint>
 #include <vector>
 #include <cstddef>
+#include <memory>
 
 #include "rdk/services/sdp/sdp_defs.h"
 #include "rdk/services/media/media_settings.h"
+#include "rdk/services/settings/app_settings.h"
+#include "rdk/services/media/media_calc_interface.h"
 
 
 namespace rivermax
@@ -67,9 +70,19 @@ const std::vector<uint8_t> SUPPORTED_AUDIO_CHANNEL_COUNTS = {
  */
 struct SMPTE_2110_30_MediaSettings : public MediaSettings
 {
+    /**
+     * @brief: Default constructor.
+     */
+    SMPTE_2110_30_MediaSettings() = default;
+    /**
+     * @brief: Constructor from AppSettings.
+     *
+     * @param [in] app_settings: Application settings to configure from.
+     */
+    explicit SMPTE_2110_30_MediaSettings(const AppSettings& app_settings);
     virtual ~SMPTE_2110_30_MediaSettings() = default;
     virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_30; }
-
+    
     // ST 2110-30 specific parameters
     AudioSamplingRate sampling_rate = AudioSamplingRate::_48000;
     AudioEncoding encoding = AudioEncoding::L24;

@@ -22,9 +22,11 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "rdk/services/media/media_calc_interface.h"
 #include "rdk/services/sdp/sdp_defs.h"
+#include "rdk/services/sdp/sdp_common_descriptions.h"
 #include "rdk/services/media/media_defs.h"
 
 namespace rivermax
@@ -42,14 +44,28 @@ namespace services
 struct MediaSettings
 {
     virtual ~MediaSettings() = default;
-    
     /**
      * @brief: Returns the SMPTE standard.
      *
      * @return: SMPTE standard.
      */
     virtual SMPTEStandard get_smpte_standard() const = 0;
+    /**
+     * @brief: Set the media settings calculator.
+     *
+     * @param [in] calculator: Shared pointer to the calculator.
+     */
+    void set_calculator(std::shared_ptr<IMediaSettingsCalculator> calculator);
+    /**
+     * @brief: Create the default calculator.
+     *
+     * @param [in] extra_parameters: Optional format-specific parameters for calculator creation.
+     *
+     * @return: Status of the creation operation.
+     */
+    ReturnStatus create_default_calculator(const std::vector<FormatSpecificParameter>& extra_parameters = {});
 
+    /* Constants */
     static constexpr size_t MIN_MEDIA_UNITS_FOR_SIMULTANEOUS_TX_AND_FILLUP = 2;
     static constexpr uint32_t MAX_PAYLOAD_SIZE = 1440;
     static constexpr size_t DEFAULT_NUM_OF_MEDIA_UNITS_IN_MEM_BLOCK = 10;
