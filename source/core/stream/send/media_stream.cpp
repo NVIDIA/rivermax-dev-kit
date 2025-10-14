@@ -45,6 +45,11 @@ MediaStreamSettings::MediaStreamSettings(const TwoTupleFlow& source_address,
 {
     m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(source_address.get_ip(), source_address.get_port(),
         destination_address.get_ip(), destination_address.get_port());
+
+    std::cout << m_media_settings.media_settings_calculator->generate_media_dup_sdp(source_address.get_ip(), source_address.get_port(),
+        destination_address.get_ip(), destination_address.get_port(),
+        source_address.get_ip(), source_address.get_port(),
+        destination_address.get_ip(), destination_address.get_port()+1) << std::endl;
 }
 
 IStreamSettings<MediaStreamSettings, rmx_output_media_stream_params>::SetterSequence MediaStreamSettings::s_build_steps{

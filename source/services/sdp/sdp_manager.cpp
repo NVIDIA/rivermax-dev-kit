@@ -32,6 +32,9 @@ SDPManager::operator json() const
 
     sdp.merge_patch(*m_session_description);
     sdp.merge_patch(*m_time_description);
+    if (m_group_description) {
+        sdp.merge_patch(*m_group_description);
+    }
 
     for (const auto& media_description : m_media_descriptions) {
         sdp["media"].push_back(*media_description);

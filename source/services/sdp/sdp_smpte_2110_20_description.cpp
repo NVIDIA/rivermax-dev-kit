@@ -78,5 +78,9 @@ std::vector<json> SMPTE2110_20_MediaDescription::get_media_description_attribute
         attributes.insert(attributes.begin(), get_source_filter_attribute(*m_source_filter));
     }
 
+    if (!m_media_id.empty()) {
+        attributes.push_back(get_media_id_attribute(m_media_id));
+    }
+
     return attributes;
 }

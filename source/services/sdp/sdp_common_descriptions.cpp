@@ -60,6 +60,18 @@ TimeDescription::operator json() const
     return {{"timing", {{"start", m_start_time}, {"stop", m_stop_time}}}};
 }
 
+GroupDescription::operator json() const
+{
+    return {
+        {
+            "groups",
+            {
+                {{"type", m_semantics}, {"mids", m_id_a + " " + m_id_b}}
+            }
+        }
+    };
+}
+
 SourceFilterAttribute::operator json() const
 {
     return {
@@ -171,4 +183,9 @@ json BaseMediaDescription::get_maxptime_attribute(double maxptime_ms) const
     } else {
         return {{"maxptime", maxptime_ms}};
     }
+}
+
+json BaseMediaDescription::get_media_id_attribute(const std::string& media_id) const
+{
+    return {{"mid", media_id}};
 }

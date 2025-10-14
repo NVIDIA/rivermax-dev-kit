@@ -253,6 +253,66 @@ std::string ST_2110_20_MediaSettingsCalculator::generate_media_sdp(
         .build()->to_string();
 }
 
+std::string ST_2110_20_MediaSettingsCalculator::generate_media_dup_sdp(
+    const std::string& source_ip_a, const uint16_t source_port_a,
+        const std::string& destination_ip_a, const uint16_t destination_port_a,
+        const std::string& source_ip_b, const uint16_t source_port_b,
+        const std::string& destination_ip_b, const uint16_t destination_port_b)
+{
+    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+
+    auto session_description = SessionDescription::Builder(source_ip_a)
+        .set_session_id(SDPManager::generate_ntp_id())
+        .set_session_version(SDPManager::generate_ntp_id() + 1)
+        .set_session_name("SMPTE ST2110-20")
+        .build();
+
+    auto time_description = TimeDescription::Builder().build();
+
+    auto group_description = GroupDescription::Builder().set_id_a("one").set_id_b("other").build();
+
+    auto media_description_a = SMPTE2110_20_MediaDescription::Builder(
+        destination_port_a, TransportProtocol::RTP_AVP, std::to_string(video_settings.payload_type), destination_ip_a)
+        .set_source_filter(SourceFilterAttribute::Builder(destination_ip_a, source_ip_a).build())
+        .set_smpte_standard_number(video_settings.smpte_standard_number)
+        .set_sampling(video_settings.sampling_type)
+        .set_width(video_settings.resolution.width)
+        .set_height(video_settings.resolution.height)
+        .set_exact_frame_rate(video_settings.frame_rate)
+        .set_depth(video_settings.bit_depth)
+        .set_video_scan_type(video_settings.video_scan_type)
+        .set_colorimetry(video_settings.colorimetry)
+        .set_timestamp_ref_clock(video_settings.ref_clk_is_ptp ? TimestampRefClock::PTP : TimestampRefClock::LocalMAC)
+        .set_timestamp_ref_clock_ptp_traceable(video_settings.ref_clk_is_ptp && video_settings.refclk_id.empty())
+        .set_timestamp_ref_clock_local_mac(video_settings.refclk_id)
+        .set_extra_format_specific_parameters(m_extra_parameters)
+        .set_media_id("one")
+        .build();
+
+    auto media_description_b = SMPTE2110_20_MediaDescription::Builder(
+        destination_port_b, TransportProtocol::RTP_AVP, std::to_string(video_settings.payload_type), destination_ip_b)
+        .set_source_filter(SourceFilterAttribute::Builder(destination_ip_b, source_ip_b).build())
+        .set_smpte_standard_number(video_settings.smpte_standard_number)
+        .set_sampling(video_settings.sampling_type)
+        .set_width(video_settings.resolution.width)
+        .set_height(video_settings.resolution.height)
+        .set_exact_frame_rate(video_settings.frame_rate)
+        .set_depth(video_settings.bit_depth)
+        .set_video_scan_type(video_settings.video_scan_type)
+        .set_colorimetry(video_settings.colorimetry)
+        .set_timestamp_ref_clock(video_settings.ref_clk_is_ptp ? TimestampRefClock::PTP : TimestampRefClock::LocalMAC)
+        .set_timestamp_ref_clock_ptp_traceable(video_settings.ref_clk_is_ptp && video_settings.refclk_id.empty())
+        .set_timestamp_ref_clock_local_mac(video_settings.refclk_id)
+        .set_extra_format_specific_parameters(m_extra_parameters)
+        .set_media_id("other")
+        .build();
+
+    return SDPManager::Builder(std::move(session_description), std::move(time_description), std::move(group_description))
+        .add_media_description(std::move(media_description_a))
+        .add_media_description(std::move(media_description_b))
+        .build()->to_string();
+}
+
 std::string ST_2110_20_MediaSettingsCalculator::get_smpte_standard_name() const
 {
     const auto& video_settings = m_media_settings;

@@ -24,6 +24,7 @@
 #include <string>
 
 #include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/media/media_defs.h"
 
 namespace rivermax
 {
@@ -74,6 +75,11 @@ public:
      */
     virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) = 0;
+
+    virtual std::string generate_media_dup_sdp(const std::string& source_ip_a, const uint16_t source_port_a,
+        const std::string& destination_ip_a, const uint16_t destination_port_a,
+        const std::string& source_ip_b, const uint16_t source_port_b,
+        const std::string& destination_ip_b, const uint16_t destination_port_b) = 0;
     /**
      * @brief: Returns the SMPTE standard name.
      *

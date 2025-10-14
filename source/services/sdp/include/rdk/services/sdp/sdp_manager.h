@@ -118,6 +118,19 @@ public:
             m_instance->m_time_description = std::move(time_description);
         }
 
+
+        explicit Builder(
+            std::unique_ptr<SessionDescription> session_description, std::unique_ptr<TimeDescription> time_description,
+            std::unique_ptr<GroupDescription> group_description)
+            : ISDP::IBuilder<SDPManager, Builder>()
+        {
+            throw_if(!session_description || !time_description);
+
+            m_instance->m_session_description = std::move(session_description);
+            m_instance->m_time_description = std::move(time_description);
+            m_instance->m_group_description = std::move(group_description);
+        }
+
         // Setters for optional parameters:
 
         /**
@@ -132,6 +145,12 @@ public:
             m_instance->m_media_descriptions.push_back(std::move(media_description));
             return *this;
         }
+
+        Builder& add_group_description(std::unique_ptr<GroupDescription> group_description)
+        {
+            m_instance->m_group_description = std::move(group_description);
+            return *this;
+        }
     };
 
 private:
@@ -140,6 +159,7 @@ private:
 
     std::unique_ptr<SessionDescription> m_session_description;
     std::unique_ptr<TimeDescription> m_time_description;
+    std::unique_ptr<GroupDescription> m_group_description;
     std::vector<std::unique_ptr<BaseMediaDescription>> m_media_descriptions;
 
     friend class ISDP::IBuilder<SDPManager, Builder>;

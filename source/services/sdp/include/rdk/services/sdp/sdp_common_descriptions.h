@@ -242,6 +242,82 @@ private:
     friend class ISDP::IBuilder<TimeDescription, Builder>;
 };
 /**
+ * @brief: SDP Group description builder.
+ *
+ * This class is responsible for constructing the group description part of the SDP string.
+ * It is based on the RFC5888 specification.
+ *
+ * The following group description specifications are supported:
+ * --------------------------------------------------------------------------------------------------------
+ *     - Grouping:
+ *           a=group:<semantics> <identification-tag> <identification-tag>
+ * --------------------------------------------------------------------------------------------------------
+ */
+class GroupDescription : public ISDP
+{
+public:
+    ~GroupDescription() = default;
+    operator json() const override;
+    /**
+     * @brief: Builder class for constructing GroupDescription objects.
+     */
+    class Builder : public ISDP::IBuilder<GroupDescription, Builder>
+    {
+    public:
+        /**
+         * @brief: Constructor for mandatory parameters.
+         */
+        explicit Builder() : ISDP::IBuilder<GroupDescription, Builder>() {}
+
+        // Setters for optional parameters:
+
+        /**
+         * @brief: Sets the grouping semantics.
+         *
+         * This corresponds to the <semantics> field in "a=group" line in SDP as per RFC5888.
+         *
+         * @param [in] semantics: The grouping semantics.
+         *
+         * @return: Reference to the builder object.
+         */
+        Builder& set_semantics(const std::string& semantics) { return set(m_instance->m_semantics, semantics); }
+        /**
+         * @brief: Sets the first identification tag.
+         *
+         * This corresponds to the first <identification-tag> field in "a=group" line in SDP as per RFC5888.
+         *
+         * @param [in] id_a: The first identification tag.
+         *
+         * @return: Reference to the builder object.
+         */
+        Builder& set_id_a(const std::string& id_a) { return set(m_instance->m_id_a, id_a); }
+        /**
+         * @brief: Sets the second identification tag.
+         *
+         * This corresponds to the second <identification-tag> field in "a=group" line in SDP as per RFC5888.
+         *
+         * @param [in] id_b: The second identification tag.
+         *
+         * @return: Reference to the builder object.
+         */
+        Builder& set_id_b(const std::string& id_b) { return set(m_instance->m_id_b, id_b); }
+    };
+
+private:
+    /**
+     * @brief: Default constructor for GroupDescription.
+     *
+     * This constructor is private and only accessible by the Builder class.
+     */
+    GroupDescription() = default;
+
+    std::string m_semantics = "DUP";
+    std::string m_id_a;
+    std::string m_id_b;
+
+    friend class ISDP::IBuilder<GroupDescription, Builder>;
+};
+/**
  * @brief: Media format specific parameter.
  *
  * Defines the <format specific parameters> of Media Format Attribute:
@@ -682,6 +758,15 @@ protected:
      */
     json get_maxptime_attribute(double maxptime_ms) const;
 
+    /**
+     * @brief: Returns the media ID attribute.
+     *
+     * @param [in] media_id: The media ID.
+     *
+     * @return: The constructed media ID JSON attribute.
+     */
+    json get_media_id_attribute(const std::string& media_id) const;
+
     MediaType m_media_type = MediaType::Unknown;
     size_t m_transport_port = 0;
     TransportProtocol m_transport_protocol = TransportProtocol::Unknown;
@@ -689,6 +774,7 @@ protected:
     AddressType m_address_type = AddressType::IP4;
     std::string m_connection_address;
     size_t m_connection_ttl = 64;
+    std::string m_media_id;
 };
 
 } // namespace services
