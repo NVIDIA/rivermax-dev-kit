@@ -19,9 +19,6 @@
 #ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_ULP_PACKET_BUFFER_WRITER_INTERFACE_H_
 #define RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_ULP_PACKET_BUFFER_WRITER_INTERFACE_H_
 
-#include <cstddef>
-#include <memory>
-
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/services/media/media.h"
 

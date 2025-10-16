@@ -19,6 +19,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <memory>
 
 #include "rt_threads.h"
 

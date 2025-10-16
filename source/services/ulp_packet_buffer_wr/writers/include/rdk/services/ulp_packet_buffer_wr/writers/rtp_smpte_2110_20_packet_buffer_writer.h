@@ -19,10 +19,6 @@
 #ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_20_PACKET_BUFFER_WRITER_H_
 #define RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_20_PACKET_BUFFER_WRITER_H_
 
-#include <cstddef>
-#include <memory>
-
-#include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
 #include "rdk/services/ulp_packet_buffer_wr/common/rtp_smpte_2110_20_packet.h"
 

@@ -19,8 +19,10 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <memory>
 
 #include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_20_packet_buffer_writer.h"
+#include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
