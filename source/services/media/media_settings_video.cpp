@@ -30,11 +30,6 @@ SMPTE_2110_20_MediaSettings::SMPTE_2110_20_MediaSettings(const AppSettings& app_
 
     // Initialize ref clock settings
     ref_clk_is_ptp = app_settings.ref_clk_is_ptp;
-    if (app_settings.ref_clk_is_ptp) {
-        refclk_id = "";
-    } else {
-        refclk_id = app_settings.local_mac;
-    }
 
     // Initialize packets in chunk if specified
     if (app_settings.num_of_packets_in_chunk_specified) {

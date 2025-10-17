@@ -39,15 +39,36 @@ void IPMXSenderSettings::init_default_values()
 
 ReturnStatus IPMXSenderSettingsValidator::validate(const IPMXSenderSettings& settings) const
 {
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
+    if (settings.local_ips.empty() && settings.local_ip.empty()) {
+        std::cerr << "At least one local IP must be specified" << std::endl;
+        return ReturnStatus::failure;
+    }
+    if (!settings.local_ips.empty() && !settings.local_ip.empty()) {
+        std::cerr << "Cannot set both a single local IP and a local IP list" << std::endl;
+        return ReturnStatus::failure;
+    }
+    if (settings.local_ips.size() > 2) {
+        std::cerr << "Up to two local IP addresses is supported (1 for a single stream , 2 - for 2022-7 duplication)" << std::endl;
+        return ReturnStatus::failure;
+    }
+    if (settings.destination_ips.size() != settings.local_ips.size()) {
+        std::cerr << "Must be the same number of destination multicast IPs as number of local IPs" << std::endl;
+         return ReturnStatus::failure;
+    }
+    if (settings.destination_ports.size() != settings.local_ips.size()) {
+        std::cerr << "Must be the same number of destination ports as number of local IPs" << std::endl;
+        return ReturnStatus::failure;
+    }
+
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ips);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ips);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_ports);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -76,9 +97,14 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(IPMXSenderSettings& s
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
+    auto cli_option_ip = m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
+    auto cli_option_ips = m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IPS);
+    cli_option_ip->excludes(cli_option_ips);
+    cli_option_ips->excludes(cli_option_ip);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_IP)->needs(cli_option_ip);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_IPS)->needs(cli_option_ips);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT)->needs(cli_option_ip);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_PORTS)->needs(cli_option_ips);
     m_cli_parser_manager->add_option(CLIOptStr::THREADS);
     m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(
         StreamToThreadsValidator(settings.num_of_threads));
@@ -106,7 +132,6 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(IPMXSenderSettings& s
 IPMXSenderApp::IPMXSenderApp(std::unique_ptr<ISettingsBuilder<IPMXSenderSettings>> settings_builder) :
     BaseApp(),
     m_settings_builder(std::move(settings_builder)),
-    m_device_interface{},
     m_mem_region{nullptr, 0, 0}
 {
 }
@@ -159,6 +184,20 @@ ReturnStatus IPMXSenderApp::initialize()
     }
 
     m_obj_init_status = ReturnStatus::obj_init_success;
+    return ReturnStatus::success;
+}
+
+ReturnStatus IPMXSenderApp::post_load_settings()
+{
+    if (m_app_settings->local_ips.empty() && !m_app_settings->local_ip.empty()) {
+        m_app_settings->local_ips.push_back(m_app_settings->local_ip);
+    }
+    if (m_app_settings->destination_ips.empty() && !m_app_settings->destination_ip.empty()) {
+        m_app_settings->destination_ips.push_back(m_app_settings->destination_ip);
+    }
+    if (m_app_settings->destination_ports.empty()) {
+        m_app_settings->destination_ports.push_back(m_app_settings->destination_port);
+    }
     return ReturnStatus::success;
 }
 
@@ -219,7 +258,7 @@ ReturnStatus IPMXSenderApp::read_device_mac_address(const rmx_device* device, st
     return ReturnStatus::success;
 }
 
-ReturnStatus IPMXSenderApp::read_local_mac_address(std::string& mac) const
+ReturnStatus IPMXSenderApp::read_local_mac_address(const sockaddr_in& local_address, std::string& mac) const
 {
     ReturnStatus rc = ReturnStatus::failure;
     rmx_device_list* device_list;
@@ -233,7 +272,7 @@ ReturnStatus IPMXSenderApp::read_local_mac_address(std::string& mac) const
             std::cerr << "Error reading Rivermax device list" << std::endl;
             break;
         }
-        if (device_has_ip(device, m_local_address.sin_addr)) {
+        if (device_has_ip(device, local_address.sin_addr)) {
             rc = read_device_mac_address(device, mac);
             break;
         }
@@ -242,36 +281,32 @@ ReturnStatus IPMXSenderApp::read_local_mac_address(std::string& mac) const
     return rc;
 }
 
+ReturnStatus IPMXSenderApp::read_local_mac_addresses()
+{
+    for (const auto& local_address : m_local_addresses) {
+        std::string local_mac;
+        ReturnStatus rc = read_local_mac_address(local_address, local_mac);
+        if (rc != ReturnStatus::success) {
+            return rc;
+        }
+        m_ipmx_sender_settings->local_macs.push_back(local_mac);
+    }
+    return ReturnStatus::success;
+}
+
 ReturnStatus IPMXSenderApp::initialize_connection_parameters()
 {
     ReturnStatus rc = BaseApp::initialize_connection_parameters();
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = init_device_iface(m_device_interface);
-    if (rc != ReturnStatus::success) {
-        return rc;
-    }
-    return read_local_mac_address(m_app_settings->local_mac);
-}
-
-ReturnStatus IPMXSenderApp::init_device_iface(rmx_device_iface& device_iface)
-{
-    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_local_address.sin_addr);
-    if (status != RMX_OK) {
-        char str[INET_ADDRSTRLEN];
-        const char* s = inet_ntop(AF_INET, &(m_local_address.sin_addr), str, INET_ADDRSTRLEN);
-        std::cerr << "Failed to get device: " << (s ? str : "unknown") << " with status: "
-                  << status << std::endl;
-        return ReturnStatus::failure;
-    }
-    return ReturnStatus::success;
+    return read_local_mac_addresses();
 }
 
 ReturnStatus IPMXSenderApp::set_rivermax_clock()
 {
     std::cout << "Switching to PTP clock" << std::endl;
-    return set_rivermax_ptp_clock(&m_device_interface);
+    return set_rivermax_ptp_clock(&m_device_interfaces[0]);
 }
 
 void IPMXSenderApp::initialize_send_flows()
@@ -329,6 +364,13 @@ ReturnStatus IPMXSenderApp::configure_video_settings()
         return rc;
     }
 
+    video_settings->ref_clk_is_ptp = m_app_settings->ref_clk_is_ptp;
+    if (m_app_settings->ref_clk_is_ptp) {
+        video_settings->refclk_id = "";
+    } else {
+        video_settings->refclk_id = m_ipmx_sender_settings->local_macs[0]; // TODO: use the real index of 22-7 dup 
+    }
+
     for (size_t idx = 0; idx < num_of_video_threads; idx++) {
         size_t num_of_streams_in_cur_thread;
         if (min_number_streams_per_thread * num_of_video_threads + idx < m_app_settings->num_of_total_streams) {
@@ -373,7 +415,7 @@ void IPMXSenderApp::initialize_sender_threads()
         }
         auto src_address = TwoTupleFlow(
             sender_index,
-            m_app_settings->local_ip,
+            m_app_settings->local_ips[0], // TODO: check 2022-7
             m_app_settings->source_port);
         auto flows = std::vector<TwoTupleFlow>(
             m_stream_dst_addresses.begin() + streams_offset,
@@ -424,7 +466,7 @@ ReturnStatus IPMXSenderApp::allocate_app_memory()
     }
 
     rmx_mem_reg_params mem_registry;
-    rmx_init_mem_registry(&mem_registry, &m_device_interface);
+    rmx_init_mem_registry(&mem_registry, &m_device_interfaces[0]); // TODO: support 22-7 duplication
     rmx_status status = rmx_register_memory(&mreg, &mem_registry);
     if (status != RMX_OK) {
         std::cerr << "Failed to register payload memory with status: " << status << std::endl;

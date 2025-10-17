@@ -80,6 +80,10 @@ public:
      */
     virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) override;
+    virtual std::string generate_media_dup_sdp(const std::string& source_ip_a, const uint16_t source_port_a,
+        const std::string& destination_ip_a, const uint16_t destination_port_a,
+        const std::string& source_ip_b, const uint16_t source_port_b,
+        const std::string& destination_ip_b, const uint16_t destination_port_b) override { return ""; }
     /**
      * @brief: Returns the SMPTE standard name.
      *

@@ -683,6 +683,19 @@ public:
         {
             return this->set(this->m_instance->m_extra_format_specific_parameters, extra_format_specific_parameters);
         }
+        /**
+         * @brief: Sets the media ID.
+         *
+         * This corresponds to the <mid> field in "a=mid" attribute in SDP as per SMPTE ST 2110-20.
+         *
+         * @param [in] media_id: The media ID.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_media_id(const std::string& media_id)
+        {
+            return this->set(this->m_instance->m_media_id, media_id);
+        }
     };
 
 protected:

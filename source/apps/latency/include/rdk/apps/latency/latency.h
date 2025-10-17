@@ -169,7 +169,6 @@ public:
     ReturnStatus initialize() override;
 private:
     ReturnStatus initialize_app_settings() final;
-    ReturnStatus initialize_connection_parameters() final;
     ReturnStatus set_rivermax_clock() final;
     /**
      * @brief: Initializes receiver threads.
@@ -243,14 +242,6 @@ private:
      * @return: Pointer to allocated memory.
      */
     void* allocate_and_align_payload(size_t size);
-    /**
-     * @brief: Initialize NIC device interface.
-     *
-     * @param [in] device_iface: Device interface to cionfigure.
-     *
-     * @return: Return status of the operation.
-     */
-    ReturnStatus init_app_device_iface(rmx_device_iface& device_iface);
     /**
      * @brief: Returns the configured latency measurement mode.
      *

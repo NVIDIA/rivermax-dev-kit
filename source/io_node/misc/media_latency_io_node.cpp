@@ -74,7 +74,7 @@ ReturnStatus MediaTxIONode::initialize_send_stream()
     auto network_address = TwoTupleFlow(0, m_network_address.get_source_ip(),
                                         m_network_address.get_source_port());
 
-    MediaStreamSettings stream_settings(network_address, m_send_flow, m_media_settings);
+    MediaStreamSettings stream_settings(network_address, {m_send_flow}, m_media_settings);
     m_send_stream = std::shared_ptr<RtpVideoSendStream>(new RtpVideoSendStream(stream_settings));
     return ReturnStatus::success;
 }

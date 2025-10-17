@@ -162,7 +162,7 @@ ReturnStatus MediaSenderIONode::initialize_streams()
         auto network_address = TwoTupleFlow(stream_idx, m_network_address.get_source_ip(),
                                             m_network_address.get_source_port());
 
-        MediaStreamSettings stream_settings(network_address, destination_flow, m_media_settings,
+        MediaStreamSettings stream_settings(network_address, {destination_flow}, m_media_settings,
                                             m_dscp, m_pcp, m_ecn);
 
         stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);

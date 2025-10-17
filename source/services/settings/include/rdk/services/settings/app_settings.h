@@ -47,7 +47,6 @@ struct AppSettings
     int sleep_between_operations_us;
     bool sleep_between_operations;
     std::string local_ip;
-    std::string local_mac;
     std::vector<std::string> local_ips;
     std::string source_ip;
     std::vector<std::string> source_ips;

@@ -171,17 +171,8 @@ ReturnStatus GenericSenderApp::run()
 
 ReturnStatus GenericSenderApp::cleanup_rivermax_resources()
 {
-    rmx_device_iface device_iface;
-    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_local_address.sin_addr);
-    if (status != RMX_OK) {
-        char str[INET_ADDRSTRLEN];
-        const char* s = inet_ntop(AF_INET, &(m_local_address.sin_addr), str, INET_ADDRSTRLEN);
-        std::cerr << "Failed to get device: " << (s ? str : "unknown") << " with status: " << status << std::endl;
-        return ReturnStatus::failure;
-    }
-
     for (auto& mreg : m_mem_regions) {
-        status = rmx_deregister_memory(&mreg, &device_iface);
+        rmx_status status = rmx_deregister_memory(&mreg, &m_device_interfaces[0]);
         if (status != RMX_OK) {
             std::cerr << "Failed to de-register application memory with status: "
                 << status << std::endl;
@@ -227,17 +218,9 @@ ReturnStatus GenericSenderApp::allocate_app_memory()
         return ReturnStatus::failure;
     }
 
-    rmx_device_iface device_iface;
-    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_local_address.sin_addr);
-    if (status != RMX_OK) {
-        char str[INET_ADDRSTRLEN];
-        const char* s = inet_ntop(AF_INET, &(m_local_address.sin_addr), str, INET_ADDRSTRLEN);
-        std::cerr << "Failed to get device: " << (s ? str : "unknown") << " with status: " << status << std::endl;
-        return ReturnStatus::failure;
-    }
     rmx_mem_reg_params mem_registry;
-    rmx_init_mem_registry(&mem_registry, &device_iface);
-    status = rmx_register_memory(&mreg, &mem_registry);
+    rmx_init_mem_registry(&mem_registry, &m_device_interfaces[0]);
+    rmx_status status = rmx_register_memory(&mreg, &mem_registry);
     if (status != RMX_OK) {
         std::cerr << "Failed to register payload memory with status: " << status << std::endl;
         return ReturnStatus::failure;

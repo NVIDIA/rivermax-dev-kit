@@ -43,19 +43,54 @@ void MediaSenderSettings::init_default_values()
 
 ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& settings) const
 {
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
-    if (rc != ReturnStatus::success) {
-        return rc;
+    if (settings.local_ips.empty() && settings.local_ip.empty()) {
+        std::cerr << "At least one local IP must be specified" << std::endl;
+        return ReturnStatus::failure;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
-    if (rc != ReturnStatus::success) {
-        return rc;
+    if (!settings.local_ips.empty() && !settings.local_ip.empty()) {
+        std::cerr << "Cannot set both a single local IP and a local IP list" << std::endl;
+        return ReturnStatus::failure;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
-    if (rc != ReturnStatus::success) {
-        return rc;
+    if (!settings.local_ips.empty()) {
+        if (settings.local_ips.size() > 2) {
+            std::cerr << "Up to two local IP addresses is supported (1 for a single stream, 2 for 2022-7 duplication)" << std::endl;
+            return ReturnStatus::failure;
+        }
+        if (settings.destination_ips.size() != settings.local_ips.size()) {
+            std::cerr << "Must be the same number of destination IPs as number of local IPs" << std::endl;
+            return ReturnStatus::failure;
+        }
+        if (settings.destination_ports.size() != settings.local_ips.size()) {
+            std::cerr << "Must be the same number of destination ports as number of local IPs" << std::endl;
+            return ReturnStatus::failure;
+        }
+        ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ips);
+        if (rc != ReturnStatus::success) {
+            return rc;
+        }
+        rc = ValidatorUtils::validate_ip4_address(settings.destination_ips);
+        if (rc != ReturnStatus::success) {
+            return rc;
+        }
+        rc = ValidatorUtils::validate_ip4_port(settings.destination_ports);
+        if (rc != ReturnStatus::success) {
+            return rc;
+        }
+    } else {
+        ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
+        if (rc != ReturnStatus::success) {
+            return rc;
+        }
+        rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
+        if (rc != ReturnStatus::success) {
+            return rc;
+        }
+        rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
+        if (rc != ReturnStatus::success) {
+            return rc;
+        }
     }
-    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
+    ReturnStatus rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -94,9 +129,14 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
+    auto cli_option_ip = m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
+    auto cli_option_ips = m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IPS);
+    cli_option_ip->excludes(cli_option_ips);
+    cli_option_ips->excludes(cli_option_ip);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_IP)->needs(cli_option_ip);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_IPS)->needs(cli_option_ips);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT)->needs(cli_option_ip);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_PORTS)->needs(cli_option_ips);
     m_cli_parser_manager->add_option(CLIOptStr::THREADS);
     m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(
         StreamToThreadsValidator(settings.num_of_threads));
@@ -159,13 +199,23 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
 
 MediaSenderApp::MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder) :
     BaseApp(),
-    m_settings_builder(std::move(settings_builder)),
-    m_device_interface{}
+    m_settings_builder(std::move(settings_builder))
 {
 }
 
 ReturnStatus MediaSenderApp::post_load_settings()
 {
+    // Convert single IP/port to vector format if vectors are empty
+    if (m_app_settings->local_ips.empty() && !m_app_settings->local_ip.empty()) {
+        m_app_settings->local_ips.push_back(m_app_settings->local_ip);
+    }
+    if (m_app_settings->destination_ips.empty() && !m_app_settings->destination_ip.empty()) {
+        m_app_settings->destination_ips.push_back(m_app_settings->destination_ip);
+    }
+    if (m_app_settings->destination_ports.empty()) {
+        m_app_settings->destination_ports.push_back(m_app_settings->destination_port);
+    }
+
     if(m_app_settings->media.enable_video) {
         m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
     }
@@ -253,29 +303,13 @@ ReturnStatus MediaSenderApp::initialize()
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaSenderApp::initialize_connection_parameters()
-{
-    in_addr device_address;
-    if (inet_pton(AF_INET, m_app_settings->local_ip.c_str(), &device_address) != 1) {
-        std::cerr << "Failed to parse address of device " << m_app_settings->local_ip << std::endl;
-        return ReturnStatus::failure;
-    }
-    rmx_status status = rmx_retrieve_device_iface_ipv4(&m_device_interface, &device_address);
-    if (status != RMX_OK) {
-        std::cerr << "Failed to get device: " << m_app_settings->local_ip << " with status: " << status << std::endl;
-        return ReturnStatus::failure;
-    }
-
-    return ReturnStatus::success;
-}
-
 ReturnStatus MediaSenderApp::initialize_memory_strategy()
 {
-    std::vector<rmx_device_iface> device_interfaces = {m_device_interface};
+//////    std::vector<rmx_device_iface> device_interfaces = {};
     auto base_memory_strategy = std::make_unique<BaseMemoryStrategy>(
         *m_header_allocator, *m_payload_allocator,
         *m_memory_utils,
-        device_interfaces,
+        m_device_interfaces,
         m_num_paths_per_stream,
         m_app_settings->app_memory_alloc,
         m_app_settings->register_memory);
@@ -313,7 +347,7 @@ ReturnStatus MediaSenderApp::run()
 
 ReturnStatus MediaSenderApp::set_rivermax_clock()
 {
-    ReturnStatus rc = set_rivermax_ptp_clock(&m_device_interface);
+    ReturnStatus rc = set_rivermax_ptp_clock(&m_device_interfaces[0]);
     if(rc == ReturnStatus::success) {
         uint64_t ptp_time = 0;
         rc = get_rivermax_ptp_time_ns(ptp_time);
@@ -325,7 +359,7 @@ void MediaSenderApp::configure_network_flows()
 {
     // TODO: Make this controllable from application level.
     constexpr bool dest_port_iteration = false;
-    auto ip_vec = CLI::detail::split(m_app_settings->destination_ip, '.');
+    auto ip_vec = CLI::detail::split(m_app_settings->destination_ips[0], '.');
     auto ip_prefix_str = std::string(ip_vec[0] + "." + ip_vec[1] + "." + ip_vec[2] + ".");
     auto ip_last_octet = std::stoi(ip_vec[3]);
     size_t flow_index = 0;
@@ -343,11 +377,11 @@ void MediaSenderApp::configure_network_flows()
         auto& num_of_streams = node.second;
         for (size_t i = 0; i < num_of_streams; i++) {
             if (dest_port_iteration) {
-                ip << m_app_settings->destination_ip;
-                port = m_app_settings->destination_port + static_cast<uint16_t>(flow_index);
+                ip << m_app_settings->destination_ips[0];
+                port = m_app_settings->destination_ports[0] + static_cast<uint16_t>(flow_index);
             } else {
                 ip << ip_prefix_str << (ip_last_octet + flow_index) % IP_OCTET_LEN;
-                port = m_app_settings->destination_port;
+                port = m_app_settings->destination_ports[0];
             }
             m_flows.push_back(TwoTupleFlow(flow_index, ip.str(), port));
             ip.str("");
@@ -498,10 +532,10 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
         }
         auto network_address = FourTupleFlow(
             sender_idx,
-            m_app_settings->local_ip,
+            m_app_settings->local_ips[0],
             m_app_settings->source_port,
-            m_app_settings->destination_ip,
-            m_app_settings->destination_port);
+            m_app_settings->destination_ips[0],
+            m_app_settings->destination_ports[0]);
         auto flows = std::vector<TwoTupleFlow>(
             m_flows.begin() + streams_offset,
             m_flows.begin() + streams_offset + num_of_streams);

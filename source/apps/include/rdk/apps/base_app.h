@@ -59,8 +59,14 @@ protected:
     std::shared_ptr<void> m_rivermax_lib_handle = nullptr;
     /* Stream per thread distribution */
     std::unordered_map<size_t, size_t> m_streams_per_thread;
+
     /* Local NIC address */
-    sockaddr_in m_local_address;
+    std::vector<sockaddr_in> m_local_addresses;
+    /* NIC device interfaces */
+    std::vector<rmx_device_iface> m_device_interfaces;
+    /* Number of paths per stream */
+    size_t m_num_paths_per_stream = 0;
+
     /* Header memory allocator */
     std::shared_ptr<MemoryAllocator> m_header_allocator;
     /* Payload memory allocator */

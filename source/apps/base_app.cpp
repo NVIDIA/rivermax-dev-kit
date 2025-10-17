@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+//// #include <netinet/in.h>
 #include <string>
 #include <cstring>
 
@@ -43,13 +44,12 @@ BaseApp::BaseApp() :
     m_obj_init_status(ReturnStatus::obj_init_failure),
     m_app_settings(nullptr),
     m_rivermax_dev_kit(RivermaxDevKitFacade::get_instance()),
+    m_device_interfaces{},
     m_stats_reader(nullptr),
     m_memory_utils(nullptr)
 {
     m_signal_handler = m_rivermax_dev_kit.get_signal_handler(true);
     m_gpu_manager = m_rivermax_dev_kit.get_gpu_manager();
-
-    memset(&m_local_address, 0, sizeof(m_local_address));
 }
 
 BaseApp::~BaseApp()
@@ -187,12 +187,26 @@ ReturnStatus BaseApp::set_rivermax_clock()
 
 ReturnStatus BaseApp::initialize_connection_parameters()
 {
-    memset(&m_local_address, 0, sizeof(sockaddr_in));
-    m_local_address.sin_family = AF_INET;
-    int rc = inet_pton(AF_INET, m_app_settings->local_ip.c_str(), &m_local_address.sin_addr);
-    if (rc != 1) {
-        std::cerr << "Failed to parse local network address: " << m_app_settings->local_ip << std::endl;
-        return ReturnStatus::failure;
+    m_local_addresses.clear();
+    m_device_interfaces.clear();
+
+    for (const auto& local_ip : m_app_settings->local_ips) {
+        sockaddr_in local_address;
+        memset(&local_address, 0, sizeof(sockaddr_in));
+        local_address.sin_family = AF_INET;
+        int rc = inet_pton(AF_INET, local_ip.c_str(), &local_address.sin_addr);
+        if (rc != 1) {
+            std::cerr << "Failed to parse local network address: " << local_ip << std::endl;
+            return ReturnStatus::failure;
+        }
+        m_local_addresses.push_back(local_address);
+        rmx_device_iface device_interface;
+        rmx_status status = rmx_retrieve_device_iface_ipv4(&device_interface, &local_address.sin_addr);
+        if (status != RMX_OK) {
+            std::cerr << "Failed to get device: " << local_ip << " with status: " << status << std::endl;
+            return ReturnStatus::failure;
+        }
+        m_device_interfaces.push_back(device_interface);
     }
 
     return ReturnStatus::success;

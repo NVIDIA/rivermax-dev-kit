@@ -20,6 +20,7 @@
 #define RDK_APPS_IPMX_SENDER_IPMX_SENDER_H_
 
 #include <set>
+#include <string>
 
 #include "rdk/apps/base_app.h"
 
@@ -43,6 +44,7 @@ constexpr size_t DEFAULT_MEMORY_BUFFER_SIZE_IN_FRAMES = 10;
 struct IPMXSenderSettings : AppSettings
 {
 public:
+    std::vector<std::string> local_macs;
     std::set<SMPTEStandard> enabled_smpte_standards;
     std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
     std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
@@ -96,7 +98,6 @@ private:
     std::shared_ptr<IPMXSenderSettings> m_ipmx_sender_settings;
     std::vector<std::unique_ptr<IPMXSenderIONode>> m_senders;
     std::vector<TwoTupleFlow> m_stream_dst_addresses;
-    rmx_device_iface m_device_interface;
     rmx_mem_region m_mem_region;
 public:
     /**
@@ -110,6 +111,7 @@ public:
     ReturnStatus initialize() override;
 private:
     ReturnStatus initialize_app_settings() final;
+    ReturnStatus post_load_settings() final;
     ReturnStatus initialize_connection_parameters() final;
     ReturnStatus set_rivermax_clock() override;
     /**
@@ -220,11 +222,18 @@ private:
     /**
      * @brief: Obtains the MAC address of the local interface used by the application.
      *
+     * @param [in] local_address: Local address to get a MAC address for.
      * @param [out] mac: MAC address in text form.
      *
      * @return: Return status of the operation.
      */
-    ReturnStatus read_local_mac_address(std::string& mac) const;
+    ReturnStatus read_local_mac_address(const sockaddr_in& local_address, std::string& mac) const;
+    /**
+     * @brief: Obtains the MAC addresses of the local interfaces used by the application.
+     *
+     * @return: Return status of the operation.
+     */
+    ReturnStatus read_local_mac_addresses();
 };
 
 } // namespace ipmx_sender

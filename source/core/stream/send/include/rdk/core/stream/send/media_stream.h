@@ -59,7 +59,7 @@ public:
      * @param [in] pcp: PCP value.
      * @param [in] ecn: ECN value.
      */
-    MediaStreamSettings(const TwoTupleFlow& source_address, const TwoTupleFlow& destination_address, const MediaSettings& media_settings,
+    MediaStreamSettings(const TwoTupleFlow& source_address, const std::vector<TwoTupleFlow>& destination_addresses, const MediaSettings& media_settings,
             uint8_t dscp = 0, uint8_t pcp = 0, uint8_t ecn = 0);
     virtual ~MediaStreamSettings() = default;
     /**
@@ -69,7 +69,7 @@ public:
      */
     std::string get_sdp() const { return m_sdp; }
     TwoTupleFlow m_source_address;
-    TwoTupleFlow m_destination_address;
+    std::vector<TwoTupleFlow> m_destination_addresses;
     const MediaSettings& m_media_settings;
     std::string m_sdp;
     uint8_t m_dscp;

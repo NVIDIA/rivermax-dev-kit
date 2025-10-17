@@ -46,8 +46,6 @@ class ReceiverBaseApp : public BaseApp
 protected:
     /* Receiver objects container */
     std::vector<std::shared_ptr<ReceiverIONodeBase>> m_receivers;
-    /* NIC device interfaces */
-    std::vector<rmx_device_iface> m_device_interfaces;
     /* Is using extended sequence number */
     bool m_is_extended_sequence_number = false;
     /* Number of paths per stream */

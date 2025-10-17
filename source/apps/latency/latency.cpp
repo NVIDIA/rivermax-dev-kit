@@ -242,15 +242,6 @@ ReturnStatus LatencyApp::run()
     return ReturnStatus::success;
 }
 
-ReturnStatus LatencyApp::initialize_connection_parameters()
-{
-    ReturnStatus rc = BaseApp::initialize_connection_parameters();
-    if (rc != ReturnStatus::success) {
-        return rc;
-    }
-    return init_app_device_iface(m_device_interface);
-}
-
 ReturnStatus LatencyApp::set_rivermax_clock()
 {
     if (m_latency_settings->disable_ts) {
@@ -357,19 +348,6 @@ void* LatencyApp::allocate_and_align_payload(size_t size)
 {
     size = m_payload_allocator->align_length(size);
     return m_payload_allocator->allocate_aligned(size, m_payload_allocator->get_page_size());
-}
-
-ReturnStatus LatencyApp::init_app_device_iface(rmx_device_iface& device_iface)
-{
-    rmx_status status = rmx_retrieve_device_iface_ipv4(&device_iface, &m_local_address.sin_addr);
-    if (status != RMX_OK) {
-        char str[INET_ADDRSTRLEN];
-        const char* s = inet_ntop(AF_INET, &(m_local_address.sin_addr), str, INET_ADDRSTRLEN);
-        std::cerr << "Failed to get device: " << (s ? str : "unknown") << " with status: "
-                  << status << std::endl;
-        return ReturnStatus::failure;
-    }
-    return ReturnStatus::success;
 }
 
 ReturnStatus LatencyApp::allocate_app_memory()

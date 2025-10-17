@@ -86,23 +86,6 @@ public:
      */
     virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) override;
-    /**
-     * @brief: Generates SDP description for SMPTE 2110-20 video with duplicate media.
-     *
-     * This method generates a Session Description Protocol (SDP) description string
-     * for the SMPTE 2110-20 video stream with the specified network parameters.
-     *
-     * @param [in] source_ip_a: Source IP address for the first stream.
-     * @param [in] source_port_a: Source port number for the first stream.
-     * @param [in] destination_ip_a: Destination IP address for the first stream.
-     * @param [in] destination_port_a: Destination port number for the first stream.
-     * @param [in] source_ip_b: Source IP address for the second stream.
-     * @param [in] source_port_b: Source port number for the second stream.
-     * @param [in] destination_ip_b: Destination IP address for the second stream.
-     * @param [in] destination_port_b: Destination port number for the second stream.
-     *
-     * @return: SDP description string for the video stream.
-     */
     virtual std::string generate_media_dup_sdp(const std::string& source_ip_a, const uint16_t source_port_a,
         const std::string& destination_ip_a, const uint16_t destination_port_a,
         const std::string& source_ip_b, const uint16_t source_port_b,

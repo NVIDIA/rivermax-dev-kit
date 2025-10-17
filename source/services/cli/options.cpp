@@ -34,13 +34,13 @@
 using namespace rivermax::dev_kit::services;
 
 const char* CLIOptStr::LOCAL_IP = "-l,--local-ip";
-const char* CLIOptStr::LOCAL_IPS = "-l,--local-ips";
+const char* CLIOptStr::LOCAL_IPS = "--local-ips";
 const char* CLIOptStr::SRC_IP = "-s,--src-ip";
-const char* CLIOptStr::SRC_IPS = "-s,--src-ips";
+const char* CLIOptStr::SRC_IPS = "--src-ips";
 const char* CLIOptStr::DST_IP = "-d,--dst-ip";
-const char* CLIOptStr::DST_IPS = "-d,--dst-ips";
+const char* CLIOptStr::DST_IPS = "--dst-ips";
 const char* CLIOptStr::DST_PORT = "-p,--dst-port";
-const char* CLIOptStr::DST_PORTS = "-p,--dst-ports";
+const char* CLIOptStr::DST_PORTS = "--dst-ports";
 const char* CLIOptStr::THREADS = "-T,--threads";
 const char* CLIOptStr::FLOWS = "-F,--flows";
 const char* CLIOptStr::STREAMS = "-S,--streams";
@@ -164,7 +164,8 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         {
             return parser->add_option(CLIOptStr::LOCAL_IP,
                                       app_settings->local_ip,
-                                      "Local IP of the NIC")->check(CLI::ValidIPV4)->required();
+                                      "Local IP of the NIC")
+                            ->check(CLI::ValidIPV4);
         }
     },
     {
@@ -175,8 +176,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                                       app_settings->local_ips,
                                       "Local IPs of the NICs (comma-separated)")
                             ->delimiter(',')
-                            ->check(CLI::ValidIPV4)
-                            ->required();
+                            ->check(CLI::ValidIPV4);
         }
     },
     {
@@ -197,8 +197,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                                       app_settings->source_ips,
                                       "Source IP addresses (comma-separated)")
                             ->delimiter(',')
-                            ->check(CLI::ValidIPV4)
-                            ->required();
+                            ->check(CLI::ValidIPV4);
         }
     },
     {
@@ -208,7 +207,8 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_option(CLIOptStr::DST_IP,
                                       app_settings->destination_ip,
                                       "Destination IP of the connection",
-                                      true)->check(CLI::ValidIPV4);
+                                      true)
+                            ->check(CLI::ValidIPV4);
         }
     },
     {
@@ -219,8 +219,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                                       app_settings->destination_ips,
                                       "Destination IP addresses (comma-separated)")
                             ->delimiter(',')
-                            ->check(CLI::ValidIPV4)
-                            ->required();
+                            ->check(CLI::ValidIPV4);
         }
     },
     {
@@ -240,9 +239,8 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_option(CLIOptStr::DST_PORTS,
                                       app_settings->destination_ports,
                                       "Destination ports of the connection (comma-separated)",
-                                      true)
-                            ->delimiter(',')
-                            ->check(CLI::Range(MIN_PORT, MAX_PORT));
+                                      true)->delimiter(',')
+                                          ->check(CLI::Range(MIN_PORT, MAX_PORT));
         }
     },
     {
@@ -271,12 +269,10 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         CLIOptStr::STREAMS,
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
-            auto option = \
-                parser->add_option(CLIOptStr::STREAMS,
-                                   app_settings->num_of_total_streams,
-                                   "Number of total streams",
-                                    true)->check(CLI::PositiveNumber);
-            return option;
+            return parser->add_option(CLIOptStr::STREAMS,
+                                      app_settings->num_of_total_streams,
+                                      "Number of total streams",
+                                      true)->check(CLI::PositiveNumber);
         }
     },
     {

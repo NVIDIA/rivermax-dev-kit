@@ -75,7 +75,24 @@ public:
      */
     virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
         const std::string& destination_ip, const uint16_t destination_port) = 0;
-
+    /**
+     * @brief: Generates SDP description for the media type with SMPTE 2022-7 duplication.
+     *
+     * This pure virtual method must be implemented by derived classes to generate
+     * a Session Description Protocol (SDP) description string for their specific
+     * media type with the specified network parameters.
+     *
+     * @param [in] source_ip_a: Source IP address for the first stream.
+     * @param [in] source_port_a: Source port number for the first stream.
+     * @param [in] destination_ip_a: Destination IP address for the first stream.
+     * @param [in] destination_port_a: Destination port number for the first stream.
+     * @param [in] source_ip_b: Source IP address for the second stream.
+     * @param [in] source_port_b: Source port number for the second stream.
+     * @param [in] destination_ip_b: Destination IP address for the second stream.
+     * @param [in] destination_port_b: Destination port number for the second stream.
+     *
+     * @return: SDP description string for the media stream.
+     */
     virtual std::string generate_media_dup_sdp(const std::string& source_ip_a, const uint16_t source_port_a,
         const std::string& destination_ip_a, const uint16_t destination_port_a,
         const std::string& source_ip_b, const uint16_t source_port_b,

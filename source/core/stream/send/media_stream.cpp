@@ -32,24 +32,26 @@ using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
 MediaStreamSettings::MediaStreamSettings(const TwoTupleFlow& source_address,
-            const TwoTupleFlow& destination_address,
+            const std::vector<TwoTupleFlow>& destination_addresses,
             const MediaSettings& media_settings,
             uint8_t dscp, uint8_t pcp, uint8_t ecn) :
         IStreamSettings(s_build_steps),
         m_source_address(source_address),
-        m_destination_address(destination_address),
+        m_destination_addresses(destination_addresses),
         m_media_settings(media_settings),
         m_dscp(dscp),
         m_pcp(pcp),
         m_ecn(ecn)
 {
-    m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(source_address.get_ip(), source_address.get_port(),
-        destination_address.get_ip(), destination_address.get_port());
-
-    std::cout << m_media_settings.media_settings_calculator->generate_media_dup_sdp(source_address.get_ip(), source_address.get_port(),
-        destination_address.get_ip(), destination_address.get_port(),
-        source_address.get_ip(), source_address.get_port(),
-        destination_address.get_ip(), destination_address.get_port()+1) << std::endl;
+    if (destination_addresses.size() == 1) {
+        m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(source_address.get_ip(), source_address.get_port(),
+            destination_addresses[0].get_ip(), destination_addresses[0].get_port());
+    } else {
+        m_sdp = m_media_settings.media_settings_calculator->generate_media_dup_sdp(source_address.get_ip(), source_address.get_port(),
+            destination_addresses[0].get_ip(), destination_addresses[0].get_port(),
+            source_address.get_ip(), source_address.get_port(),
+            destination_addresses[1].get_ip(), destination_addresses[1].get_port());
+    }
 }
 
 IStreamSettings<MediaStreamSettings, rmx_output_media_stream_params>::SetterSequence MediaStreamSettings::s_build_steps{

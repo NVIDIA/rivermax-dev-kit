@@ -129,8 +129,6 @@ private:
     std::shared_ptr<MediaSenderSettings> m_media_sender_settings;
     /* Sender objects container */
     std::vector<std::shared_ptr<MediaSenderIONode>> m_senders;
-    /* NIC device interface */
-    rmx_device_iface m_device_interface;
     /* Number of paths per stream */
     size_t m_num_paths_per_stream = 1;
     /* Network send flows */
@@ -223,7 +221,6 @@ private:
     ReturnStatus post_load_settings() final;
     ReturnStatus initialize_memory_strategy() override;
     ReturnStatus set_rivermax_clock() override;
-    ReturnStatus initialize_connection_parameters() final;
     /**
      * @brief: Generic helper for configuring media types.
      *
