@@ -24,6 +24,7 @@
 #include "rdk/services/sdp/sdp_common_descriptions.h"
 #include "rdk/services/sdp/sdp_smpte_2110_20_description.h"
 #include "rdk/services/sdp/sdp_smpte_2110_30_description.h"
+#include "rdk/services/sdp/sdp_smpte_2110_40_description.h"
 #include "rdk/services/sdp/sdp_manager.h"
 
 #endif /* RDK_SERVICES_SDP_SDP_H_ */

@@ -26,6 +26,7 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         sdp_smpte_2110_20_description.cpp
         sdp_smpte_2110_30_description.cpp
+        sdp_smpte_2110_40_description.cpp
         sdp_common_descriptions.cpp
         sdp_manager.cpp
         sdp_defs.cpp

@@ -37,6 +37,7 @@ namespace services
  * in RFC 1890 section 6.
  */
 constexpr size_t VIDEO_RTP_CLOCK_RATE = 90000;
+constexpr size_t ANCILLARY_RTP_CLOCK_RATE = 90000;
 /**
  * @brief: Default RTP payload type for SMPTE ST 2110.
  *
@@ -46,6 +47,7 @@ constexpr size_t VIDEO_RTP_CLOCK_RATE = 90000;
  */
 constexpr std::uint8_t PAYLOAD_TYPE_ST_2110_20 = 96;
 constexpr std::uint8_t PAYLOAD_TYPE_ST_2110_30 = 97;
+constexpr std::uint8_t PAYLOAD_TYPE_ST_2110_40 = 100;
 /**
  * @brief: RTP payload type.
  *
@@ -61,6 +63,7 @@ constexpr std::uint8_t RTP_PAYLOAD_TYPE_MAX = 127;
  */
 constexpr std::uint8_t MEDIA_FORMAT_ST_2110_20 = PAYLOAD_TYPE_ST_2110_20;
 constexpr std::uint8_t MEDIA_FORMAT_ST_2110_30 = PAYLOAD_TYPE_ST_2110_30;
+constexpr std::uint8_t MEDIA_FORMAT_ST_2110_40 = PAYLOAD_TYPE_ST_2110_40;
 /**
  * @brief: Enum class for network type.
  *

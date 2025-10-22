@@ -26,6 +26,7 @@ target_sources(${PROJECT_NAME}
     PRIVATE
     smpte_2110_20_tests.cpp
     smpte_2110_30_tests.cpp
+    smpte_2110_40_tests.cpp
 )
 
 gtest_discover_tests(${PROJECT_NAME})
