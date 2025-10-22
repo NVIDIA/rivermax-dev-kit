@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+project(rivermax-dev-kit-utests-services-sdp)
+
+include(GoogleTest)
+
+add_executable(${PROJECT_NAME})
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+    rivermax-dev-kit-services
+    rivermax-dev-kit-utests-utils
+    GTest::gtest_main
+    GTest::gmock_main
+)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/sdp/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/utils/include
+)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+    smpte_2110_20_tests.cpp
+)
+
+gtest_discover_tests(${PROJECT_NAME})

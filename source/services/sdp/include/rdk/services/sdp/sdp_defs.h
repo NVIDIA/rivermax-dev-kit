@@ -19,6 +19,9 @@
 #ifndef RDK_SERVICES_SDP_SDP_DEFS_H_
 #define RDK_SERVICES_SDP_SDP_DEFS_H_
 
+#include <cstdint>
+#include <cstddef>
+
 namespace rivermax
 {
 namespace dev_kit
@@ -26,6 +29,36 @@ namespace dev_kit
 namespace services
 {
 
+/**
+ * @brief: Default RTP clock rates.
+ *
+ * This corresponds to <clock rate> field in a=rtpmap
+ * as defined in RFC4566 section 6 and its value as defined
+ * in RFC 1890 section 6.
+ */
+constexpr size_t VIDEO_RTP_CLOCK_RATE = 90000;
+/**
+ * @brief: Default RTP payload type for SMPTE ST 2110.
+ *
+ * This corresponds to <payload_type> filed in a=rtpmap
+ * as defined in RFC4566 section 6. Values correspond
+ * to the common SMPTE payload types.
+ */
+constexpr std::uint8_t PAYLOAD_TYPE_ST_2110_20 = 96;
+/**
+ * @brief: RTP payload type.
+ *
+ * This corresponds to RTP payload type which is 7-bit field
+ * defined in RFC3550 section 5.1.
+ */
+constexpr std::uint8_t RTP_PAYLOAD_TYPE_MAX = 127;
+/**
+ * @brief: Default media format for SMPTE ST 2110.
+ *
+ * This corresponds to <media_format> filed in "a=fmtp" defined in ST 2110-20
+ * and RFC 4566.
+ */
+constexpr std::uint8_t MEDIA_FORMAT_ST_2110_20 = PAYLOAD_TYPE_ST_2110_20;
 /**
  * @brief: Enum class for network type.
  *

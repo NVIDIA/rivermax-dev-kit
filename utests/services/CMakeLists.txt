@@ -15,3 +15,4 @@
 # limitations under the License.
 
 add_subdirectory(cpu)
+add_subdirectory(sdp)

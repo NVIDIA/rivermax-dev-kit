@@ -268,7 +268,7 @@ struct FormatSpecificParameter
  */
 struct MediaFormatAttribute
 {
-    size_t format;
+    uint8_t format;
     std::vector<FormatSpecificParameter> parameters;
 };
 /**
@@ -284,7 +284,7 @@ struct MediaFormatAttribute
  */
 struct RTPMapAttribute
 {
-    size_t payload_type;
+    uint8_t payload_type;
     std::string encoding_name;
     size_t clock_rate;
     std::string encoding_parameters;
@@ -470,6 +470,142 @@ public:
         {
             this->m_instance->m_connection_ttl = connection_ttl;
             return static_cast<ConcreteBuilder&>(*this);
+        }
+        /**
+         * @brief: Sets the source filter attribute.
+         *
+         * This corresponds to the "a=source-filter" attribute in SDP as per RFC4570.
+         *
+         * @param [in] source_filter: The source filter attribute.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_source_filter(std::shared_ptr<SourceFilterAttribute> source_filter)
+        {
+            return this->set(this->m_instance->m_source_filter, source_filter);
+        }
+        /**
+         * @brief: Sets the payload type.
+         *
+         * This corresponds to the <payload type> field in "a=rtpmap" attribute in SDP as per RFC4566.
+         *
+         * @param [in] payload_type: The payload type.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_payload_type(uint8_t payload_type)
+        {
+            return this->set(this->m_instance->m_payload_type, payload_type);
+        }
+        /**
+         * @brief: Sets the media format.
+         *
+         * This corresponds to the <format> field in "a=fmtp" attribute in SDP as per RFC4566.
+         *
+         * @param [in] media_format: The media format.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_media_format(uint8_t media_format)
+        {
+            return this->set(this->m_instance->m_media_format, media_format);
+        }
+        /**
+         * @brief: Sets the timestamp reference clock.
+         *
+         * This corresponds to the <ts-refclk> field in "a=ts-refclk" attribute in SDP as per SMPTE ST 2110-10.
+         *
+         * @param [in] timestamp_ref_clock: The timestamp reference clock.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_timestamp_ref_clock(TimestampRefClock timestamp_ref_clock)
+        {
+            return this->set(this->m_instance->m_timestamp_ref_clock, timestamp_ref_clock);
+        }
+        /**
+         * @brief: Sets the PTP grandmaster clock identity for the timestamp reference clock.
+         *
+         * This corresponds to the <grandmaster-clock-identity> field in "a=ts-refclk" attribute in SDP as per SMPTE ST
+         * 2110-10.
+         *
+         * @param [in] timestamp_ref_clock_ptp_grandmaster_clock_identity: The PTP grandmaster clock identity.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_timestamp_ref_clock_ptp_grandmaster_clock_identity(
+            const std::string& grandmaster_clock_identity)
+        {
+            return this->set(
+                this->m_instance->m_timestamp_ref_clock_ptp_grandmaster_clock_identity,
+                grandmaster_clock_identity);
+        }
+        /**
+         * @brief: Sets the PTP domain number for the timestamp reference clock.
+         *
+         * This corresponds to the <domain-number> field in "a=ts-refclk" attribute in SDP as per SMPTE ST 2110-10.
+         *
+         * @param [in] timestamp_ref_clock_ptp_domain_number: The PTP domain number.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_timestamp_ref_clock_ptp_domain_number(size_t domain_number)
+        {
+            return this->set(this->m_instance->m_timestamp_ref_clock_ptp_domain_number, domain_number);
+        }
+        /**
+         * @brief: Sets the traceable flag for the PTP timestamp reference clock.
+         *
+         * This corresponds to the <traceable> field in "a=ts-refclk" attribute in SDP as per SMPTE ST 2110-10.
+         *
+         * @param [in] timestamp_ref_clock_ptp_traceable: The traceable flag.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_timestamp_ref_clock_ptp_traceable(bool traceable)
+        {
+            return this->set(this->m_instance->m_timestamp_ref_clock_ptp_traceable, traceable);
+        }
+        /**
+         * @brief: Sets the local MAC address for the timestamp reference clock.
+         *
+         * This corresponds to the <localmac> field in "a=ts-refclk" attribute in SDP as per SMPTE ST 2110-10.
+         *
+         * @param [in] timestamp_ref_clock_local_mac: The local MAC address.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_timestamp_ref_clock_local_mac(const std::string& local_mac)
+        {
+            return this->set(this->m_instance->m_timestamp_ref_clock_local_mac, local_mac);
+        }
+        /**
+         * @brief: Sets the media clock.
+         *
+         * This corresponds to the <mediaclk> field in "a=mediaclk" attribute in SDP as per SMPTE ST 2110-10.
+         *
+         * @param [in] media_clock: The media clock.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_media_clock(MediaClock media_clock)
+        {
+            return this->set(this->m_instance->m_media_clock, media_clock);
+        }
+        /**
+         * @brief: Sets the extra format specific parameters.
+         *
+         * This corresponds to the <format specific parameters> field in "a=fmtp" attribute in SDP as per SMPTE ST 2110-20.
+         * It allows to add extra format specific parameters to the media description.
+         *
+         * @param [in] extra_format_specific_parameters: The extra format specific parameters.
+         *
+         * @return: Reference to the builder object.
+         */
+        ConcreteBuilder& set_extra_format_specific_parameters(
+            const std::vector<FormatSpecificParameter>& extra_format_specific_parameters)
+        {
+            return this->set(this->m_instance->m_extra_format_specific_parameters, extra_format_specific_parameters);
         }
     };
 

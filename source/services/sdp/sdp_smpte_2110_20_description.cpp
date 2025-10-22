@@ -62,7 +62,7 @@ std::vector<json> SMPTE2110_20_MediaDescription::get_media_description_attribute
     }
 
     std::vector<json> attributes = {
-        get_rtp_map_attribute({RTPMapAttribute{m_payload_type, "raw", 90000, ""}}),
+        get_rtp_map_attribute({RTPMapAttribute{m_payload_type, "raw", VIDEO_RTP_CLOCK_RATE, ""}}),
         get_media_format_specific_attribute({MediaFormatAttribute{m_media_format, std::move(format_specific_parameters)}}),
         get_media_clock_attribute(m_media_clock),
         get_ref_clock_timestamp_attribute(

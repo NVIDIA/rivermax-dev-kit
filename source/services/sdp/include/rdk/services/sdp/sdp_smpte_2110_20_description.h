@@ -88,43 +88,19 @@ public:
             const std::string& media_format_description,
             const std::string& connection_address)
             : BaseMediaDescription::Builder<Builder, SMPTE2110_20_MediaDescription>(
-                  MediaType::Video, transport_port, transport_protocol, media_format_description, connection_address) {}
+                  MediaType::Video, transport_port, transport_protocol, media_format_description, connection_address)
+        {
+            size_t payload_type_parsed = std::stoul(media_format_description);
+            if (payload_type_parsed > RTP_PAYLOAD_TYPE_MAX) {
+               throw "Invalid payload type";
+            }
+            uint8_t payload_type = static_cast<uint8_t>(payload_type_parsed);
+            m_instance->m_payload_type = payload_type;
+            m_instance->m_media_format = payload_type;
+        }
 
         // Setters for optional parameters:
 
-        /**
-         * @brief: Sets the source filter attribute.
-         *
-         * This corresponds to the "a=source-filter" attribute in SDP as per RFC4570.
-         *
-         * @param [in] source_filter: The source filter attribute.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_source_filter(std::shared_ptr<SourceFilterAttribute> source_filter)
-        {
-            return set(m_instance->m_source_filter, source_filter);
-        }
-        /**
-         * @brief: Sets the payload type.
-         *
-         * This corresponds to the <payload type> field in "a=rtpmap" attribute in SDP as per RFC4566.
-         *
-         * @param [in] payload_type: The payload type.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_payload_type(size_t payload_type) { return set(m_instance->m_payload_type, payload_type); }
-        /**
-         * @brief: Sets the media format.
-         *
-         * This corresponds to the <format> field in "a=fmtp" attribute in SDP as per RFC4566.
-         *
-         * @param [in] media_format: The media format.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_media_format(size_t media_format) { return set(m_instance->m_media_format, media_format); }
         /**
          * @brief: Sets the video sampling.
          *
@@ -283,101 +259,6 @@ public:
         {
             return set(m_instance->m_timestamp_delay, timestamp_delay);
         }
-        /**
-         * @brief: Sets the timestamp reference clock.
-         *
-         * This corresponds to the <ts-refclk> field in "a=ts-refclk" attribute in SDP as per SMPTE ST 2110-10.
-         *
-         * @param [in] timestamp_ref_clock: The timestamp reference clock.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_timestamp_ref_clock(TimestampRefClock timestamp_ref_clock)
-        {
-            return set(m_instance->m_timestamp_ref_clock, timestamp_ref_clock);
-        }
-        /**
-         * @brief: Sets the PTP grandmaster clock identity for the timestamp reference clock.
-         *
-         * This corresponds to the <grandmaster-clock-identity> field in "a=ts-refclk" attribute in SDP as per SMPTE ST
-         * 2110-10.
-         *
-         * @param [in] timestamp_ref_clock_ptp_grandmaster_clock_identity: The PTP grandmaster clock identity.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_timestamp_ref_clock_ptp_grandmaster_clock_identity(
-            const std::string& timestamp_ref_clock_ptp_grandmaster_clock_identity)
-        {
-            return set(
-                m_instance->m_timestamp_ref_clock_ptp_grandmaster_clock_identity,
-                timestamp_ref_clock_ptp_grandmaster_clock_identity
-            );
-        }
-        /**
-         * @brief: Sets the PTP domain number for the timestamp reference clock.
-         *
-         * This corresponds to the <domain-number> field in "a=ts-refclk" attribute in SDP as per SMPTE ST 2110-10.
-         *
-         * @param [in] timestamp_ref_clock_ptp_domain_number: The PTP domain number.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_timestamp_ref_clock_ptp_domain_number(size_t timestamp_ref_clock_ptp_domain_number)
-        {
-            return set(m_instance->m_timestamp_ref_clock_ptp_domain_number, timestamp_ref_clock_ptp_domain_number);
-        }
-        /**
-         * @brief: Sets the traceable flag for the PTP timestamp reference clock.
-         *
-         * This corresponds to the <traceable> field in "a=ts-refclk" attribute in SDP as per SMPTE ST 2110-10.
-         *
-         * @param [in] timestamp_ref_clock_ptp_traceable: The traceable flag.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_timestamp_ref_clock_ptp_traceable(bool timestamp_ref_clock_ptp_traceable)
-        {
-            return set(m_instance->m_timestamp_ref_clock_ptp_traceable, timestamp_ref_clock_ptp_traceable);
-        }
-        /**
-         * @brief: Sets the local MAC address for the timestamp reference clock.
-         *
-         * This corresponds to the <localmac> field in "a=ts-refclk" attribute in SDP as per SMPTE ST 2110-10.
-         *
-         * @param [in] timestamp_ref_clock_local_mac: The local MAC address.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_timestamp_ref_clock_local_mac(const std::string& timestamp_ref_clock_local_mac)
-        {
-            return set(m_instance->m_timestamp_ref_clock_local_mac, timestamp_ref_clock_local_mac);
-        }
-        /**
-         * @brief: Sets the media clock.
-         *
-         * This corresponds to the <mediaclk> field in "a=mediaclk" attribute in SDP as per SMPTE ST 2110-10.
-         *
-         * @param [in] media_clock: The media clock.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_media_clock(MediaClock media_clock) { return set(m_instance->m_media_clock, media_clock); }
-        /**
-         * @brief: Sets the extra format specific parameters.
-         *
-         * This corresponds to the <format specific parameters> field in "a=fmtp" attribute in SDP as per SMPTE ST 2110-20.
-         * It allows to add extra format specific parameters to the media description.
-         *
-         * @param [in] extra_format_specific_parameters: The extra format specific parameters.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_extra_format_specific_parameters(
-            const std::vector<FormatSpecificParameter>& extra_format_specific_parameters)
-        {
-            return set(m_instance->m_extra_format_specific_parameters, extra_format_specific_parameters);
-        }
     };
 
 private:
@@ -389,8 +270,8 @@ private:
     SMPTE2110_20_MediaDescription() = default;
 
     std::shared_ptr<SourceFilterAttribute> m_source_filter = nullptr;
-    size_t m_payload_type = 96;
-    size_t m_media_format = 96;
+    uint8_t m_payload_type = PAYLOAD_TYPE_ST_2110_20;
+    uint8_t m_media_format = MEDIA_FORMAT_ST_2110_20;
     VideoSampling m_sampling = VideoSampling::YCbCr_4_2_2;
     VideoBitDepth m_depth = VideoBitDepth::_10;
     size_t m_width = 1920;

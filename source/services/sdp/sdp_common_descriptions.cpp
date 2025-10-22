@@ -134,7 +134,7 @@ json BaseMediaDescription::get_media_format_specific_attribute(const std::vector
         if (!format_specific_str.empty()) {
             format_specific_str.erase(format_specific_str.size() - 2);
         }
-        fmtp_list.push_back({{"payload", format.format}, {"config", std::move(format_specific_str)}});
+        fmtp_list.push_back({{"payload", static_cast<size_t>(format.format)}, {"config", std::move(format_specific_str)}});
     }
 
     return {{"fmtp", std::move(fmtp_list)}};
@@ -145,7 +145,7 @@ json BaseMediaDescription::get_rtp_map_attribute(const std::vector<RTPMapAttribu
     json rtpmap_list = json::array();
     for (const auto& format : formats) {
         rtpmap_list.push_back(
-            {{"payload", format.payload_type},
+            {{"payload", static_cast<size_t>(format.payload_type)},
              {"codec", format.encoding_name},
              {"rate", format.clock_rate},
              {"encoding", format.encoding_parameters}}

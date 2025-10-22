@@ -35,7 +35,7 @@ constexpr EnumNameArray<NetworkFilterMode> EnumMapper<NetworkFilterMode>::names 
 };
 template <>
 constexpr EnumNameArray<MediaType> EnumMapper<MediaType>::names = {
-    "video", "audio"
+    "video"
 };
 template <>
 constexpr EnumNameArray<VideoSampling> EnumMapper<VideoSampling>::names = {
