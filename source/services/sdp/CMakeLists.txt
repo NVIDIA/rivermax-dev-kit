@@ -25,11 +25,13 @@ add_library(${PROJECT_NAME} OBJECT)
 target_sources(${PROJECT_NAME}
     PRIVATE
         sdp_smpte_2110_20_description.cpp
+        sdp_smpte_2110_30_description.cpp
         sdp_common_descriptions.cpp
         sdp_manager.cpp
         sdp_defs.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE
         rivermax-dev-kit-build

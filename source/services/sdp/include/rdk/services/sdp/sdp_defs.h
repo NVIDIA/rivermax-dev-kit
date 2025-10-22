@@ -45,6 +45,7 @@ constexpr size_t VIDEO_RTP_CLOCK_RATE = 90000;
  * to the common SMPTE payload types.
  */
 constexpr std::uint8_t PAYLOAD_TYPE_ST_2110_20 = 96;
+constexpr std::uint8_t PAYLOAD_TYPE_ST_2110_30 = 97;
 /**
  * @brief: RTP payload type.
  *
@@ -59,6 +60,7 @@ constexpr std::uint8_t RTP_PAYLOAD_TYPE_MAX = 127;
  * and RFC 4566.
  */
 constexpr std::uint8_t MEDIA_FORMAT_ST_2110_20 = PAYLOAD_TYPE_ST_2110_20;
+constexpr std::uint8_t MEDIA_FORMAT_ST_2110_30 = PAYLOAD_TYPE_ST_2110_30;
 /**
  * @brief: Enum class for network type.
  *
@@ -257,6 +259,117 @@ enum class MediaClock
 enum class TransportProtocol
 {
     RTP_AVP,
+
+    Unknown
+};
+/**
+ * @brief: Enum class for audio sampling rates.
+ *
+ * This corresponds to the clock rate in "a=rtpmap" attribute in SDP as per SMPTE ST 2110-30.
+ */
+enum class AudioSamplingRate
+{
+    _44100,
+    _48000,
+    _96000,
+
+    Unknown
+};
+/**
+ * @brief: Enum class for audio encoding names.
+ *
+ * This corresponds to the encoding name in "a=rtpmap" attribute in SDP as per SMPTE ST 2110-30.
+ */
+enum class AudioEncoding
+{
+    L16,
+    L20,
+    L24,
+
+    Unknown
+};
+/**
+ * @brief: Enum class for audio channel grouping symbols for channel-order.
+ *
+ * This corresponds to the channel-order=<convention> field of the a=fmtp
+ * as defined in SMPTE ST 2110-30:2017 section 6.2.2.
+ * Short and long names map to the same underlying value.
+ */
+enum class ChannelGroupingSymbol
+{
+    M = 0,                 Mono = 0,
+    DM = 1,                Dual_Mono = 1,
+    ST = 2,                Standard_Stereo = 2,
+    LtRt = 3,              Matrix_Stereo = 3,
+    _51 = 4,               _5_1_Surround = 4,
+    _71 = 5,               _7_1_Surround = 5,
+    _222 = 6,              _22_2_Surround = 6,
+    SGRP = 7,              One_SDI_Audio_Group = 7,
+
+    U01 = 101,             Undefined01 = U01,
+    U02,                   Undefined02 = U02,
+    U03,                   Undefined03 = U03,
+    U04,                   Undefined04 = U04,
+    U05,                   Undefined05 = U05,
+    U06,                   Undefined06 = U06,
+    U07,                   Undefined07 = U07,
+    U08,                   Undefined08 = U08,
+    U09,                   Undefined09 = U09,
+    U10,                   Undefined10 = U10,
+    U11,                   Undefined11 = U11,
+    U12,                   Undefined12 = U12,
+    U13,                   Undefined13 = U13,
+    U14,                   Undefined14 = U14,
+    U15,                   Undefined15 = U15,
+    U16,                   Undefined16 = U16,
+    U17,                   Undefined17 = U17,
+    U18,                   Undefined18 = U18,
+    U19,                   Undefined19 = U19,
+    U20,                   Undefined20 = U20,
+    U21,                   Undefined21 = U21,
+    U22,                   Undefined22 = U22,
+    U23,                   Undefined23 = U23,
+    U24,                   Undefined24 = U24,
+    U25,                   Undefined25 = U25,
+    U26,                   Undefined26 = U26,
+    U27,                   Undefined27 = U27,
+    U28,                   Undefined28 = U28,
+    U29,                   Undefined29 = U29,
+    U30,                   Undefined30 = U30,
+    U31,                   Undefined31 = U31,
+    U32,                   Undefined32 = U32,
+    U33,                   Undefined33 = U33,
+    U34,                   Undefined34 = U34,
+    U35,                   Undefined35 = U35,
+    U36,                   Undefined36 = U36,
+    U37,                   Undefined37 = U37,
+    U38,                   Undefined38 = U38,
+    U39,                   Undefined39 = U39,
+    U40,                   Undefined40 = U40,
+    U41,                   Undefined41 = U41,
+    U42,                   Undefined42 = U42,
+    U43,                   Undefined43 = U43,
+    U44,                   Undefined44 = U44,
+    U45,                   Undefined45 = U45,
+    U46,                   Undefined46 = U46,
+    U47,                   Undefined47 = U47,
+    U48,                   Undefined48 = U48,
+    U49,                   Undefined49 = U49,
+    U50,                   Undefined50 = U50,
+    U51,                   Undefined51 = U51,
+    U52,                   Undefined52 = U52,
+    U53,                   Undefined53 = U53,
+    U54,                   Undefined54 = U54,
+    U55,                   Undefined55 = U55,
+    U56,                   Undefined56 = U56,
+    U57,                   Undefined57 = U57,
+    U58,                   Undefined58 = U58,
+    U59,                   Undefined59 = U59,
+    U60,                   Undefined60 = U60,
+    U61,                   Undefined61 = U61,
+    U62,                   Undefined62 = U62,
+    U63,                   Undefined63 = U63,
+    U64,                   Undefined64 = U64,
 
     Unknown
 };

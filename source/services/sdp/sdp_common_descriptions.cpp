@@ -154,3 +154,21 @@ json BaseMediaDescription::get_rtp_map_attribute(const std::vector<RTPMapAttribu
 
     return {{"rtp", rtpmap_list}};
 }
+
+json BaseMediaDescription::get_ptime_attribute(double ptime_ms) const
+{
+    if (ptime_ms == static_cast<int>(ptime_ms)) {
+        return {{"ptime", static_cast<int>(ptime_ms)}};
+    } else {
+        return {{"ptime", ptime_ms}};
+    }
+}
+
+json BaseMediaDescription::get_maxptime_attribute(double maxptime_ms) const
+{
+    if (maxptime_ms == static_cast<int>(maxptime_ms)) {
+        return {{"maxptime", static_cast<int>(maxptime_ms)}};
+    } else {
+        return {{"maxptime", maxptime_ms}};
+    }
+}

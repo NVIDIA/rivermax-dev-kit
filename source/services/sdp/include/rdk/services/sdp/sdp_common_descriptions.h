@@ -665,6 +665,22 @@ protected:
      * @return: The constructed RTP map JSON attribute.
      */
     json get_rtp_map_attribute(const std::vector<RTPMapAttribute>& formats) const;
+    /**
+     * @brief: Returns the ptime attribute.
+     *
+     * @param [in] ptime_ms: The packet time in milliseconds.
+     *
+     * @return: The constructed ptime JSON attribute.
+     */
+    json get_ptime_attribute(double ptime_ms) const;
+    /**
+     * @brief: Returns the maxptime attribute.
+     *
+     * @param [in] maxptime_ms: The maximum packet time in milliseconds.
+     *
+     * @return: The constructed maxptime JSON attribute.
+     */
+    json get_maxptime_attribute(double maxptime_ms) const;
 
     MediaType m_media_type = MediaType::Unknown;
     size_t m_transport_port = 0;
