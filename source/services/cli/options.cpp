@@ -528,7 +528,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         {
             return parser->add_option(CLIOptStr::VIDEO_FRAME_RATE,
                                       app_settings->media.frame_rate,
-                                      "Video frame rate in format <numerator>/<denominator> or <integer>")
+                                      "Video frame rate in format <integer>")
                                       ->check(VideoFrameRateValidator())
                                       ->check(CLI::IsMember(SUPPORTED_VIDEO_FRAME_RATES))
                                       ->default_val(60);
