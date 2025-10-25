@@ -19,15 +19,15 @@
 #ifndef RDK_SERVICES_MEDIA_MEDIA_FILE_STREAMING_PROVIDER_H_
 #define RDK_SERVICES_MEDIA_MEDIA_FILE_STREAMING_PROVIDER_H_
 
+#include <atomic>
+#include <condition_variable>
+#include <fstream>
 #include <memory>
 #include <string>
-#include <atomic>
-#include <fstream>
 #include <thread>
-#include <condition_variable>
 
-#include "rdk/services/utils/defs.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
+#include "rdk/services/utils/defs.h"
 
 namespace rivermax
 {

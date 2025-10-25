@@ -19,17 +19,17 @@
 #ifndef RDK_SERVICES_MEDIA_MEDIA_SETTINGS_CALCULATOR_H_
 #define RDK_SERVICES_MEDIA_MEDIA_SETTINGS_CALCULATOR_H_
 
-#include <cstddef>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
-#include <vector>
-#include <unordered_map>
 #include <functional>
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
-#include "rdk/services/sdp/sdp.h"
-#include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_calc_interface.h"
+#include "rdk/services/media/media_settings.h"
+#include "rdk/services/sdp/sdp.h"
 
 namespace rivermax
 {

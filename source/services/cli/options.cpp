@@ -16,22 +16,20 @@
  * limitations under the License.
  */
 
-#include <memory>
 #include <cstring>
 #include <map>
+#include <memory>
+#include <rivermax_api.h>
 #include <vector>
 
-#include <rivermax_api.h>
-
-#include "CLI/CLI.hpp"
 #include "rt_threads.h"
 
+#include "rdk/services/cli/cli_manager.h"
+#include "rdk/services/cli/options.h"
+#include "rdk/services/cli/validators.h"
+#include "rdk/services/media/media.h"
 #include "rdk/services/sdp/sdp_defs.h"
 #include "rdk/services/utils/defs.h"
-#include "rdk/services/media/media.h"
-#include "rdk/services/cli/options.h"
-#include "rdk/services/cli/cli_manager.h"
-#include "rdk/services/cli/validators.h"
 
 using namespace rivermax::dev_kit::services;
 

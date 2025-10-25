@@ -16,15 +16,14 @@
  * limitations under the License.
  */
 
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <random>
 
 #include "rdk/services/media/media_file_essence_provider.h"
 #include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
-
 
 MediaFileEssenceProvider::MediaFileEssenceProvider(const std::string &file_path, SMPTEStandard smpte_standard,
     size_t media_unit_size, MemoryAllocator& mem_allocator, bool loop) :

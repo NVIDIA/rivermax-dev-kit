@@ -19,16 +19,15 @@
 #ifndef RDK_SERVICES_MEDIA_MEDIA_SETTINGS_AUDIO_H_
 #define RDK_SERVICES_MEDIA_MEDIA_SETTINGS_AUDIO_H_
 
-#include <cstdint>
-#include <vector>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <vector>
 
-#include "rdk/services/sdp/sdp_defs.h"
-#include "rdk/services/media/media_settings.h"
-#include "rdk/services/settings/app_settings.h"
 #include "rdk/services/media/media_calc_interface.h"
-
+#include "rdk/services/media/media_settings.h"
+#include "rdk/services/sdp/sdp_defs.h"
+#include "rdk/services/settings/app_settings.h"
 
 namespace rivermax
 {
@@ -36,9 +35,6 @@ namespace dev_kit
 {
 namespace services
 {
-
-
-
 /* Supported audio sampling frequencies */
 const std::vector<AudioSamplingRate> SUPPORTED_AUDIO_SAMPLING_RATES = {
     AudioSamplingRate::_44100,
@@ -61,7 +57,6 @@ const std::vector<uint8_t> SUPPORTED_AUDIO_CHANNEL_COUNTS = {
     8   // 7.1 surround
 };
 
-
 /**
  * @brief: SMPTE 2110-30 audio media settings.
  *
@@ -82,13 +77,12 @@ struct SMPTE_2110_30_MediaSettings : public MediaSettings
     explicit SMPTE_2110_30_MediaSettings(const AppSettings& app_settings);
     virtual ~SMPTE_2110_30_MediaSettings() = default;
     virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_30; }
-    
+
     // ST 2110-30 specific parameters
     AudioSamplingRate sampling_rate = AudioSamplingRate::_48000;
     AudioEncoding encoding = AudioEncoding::L24;
     uint8_t num_channels = 2;
     uint32_t ptime_usec = 1000;
-    
     // Calculated parameters
     uint32_t samples_per_packet = 0;
     size_t bytes_per_sample = 0;

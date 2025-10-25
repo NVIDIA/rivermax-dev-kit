@@ -20,14 +20,15 @@
 #include <unordered_map>
 
 #include "rt_threads.h"
+
 #include "rdk/apps/rmax_xstream_media_sender/rmax_xstream_media_sender.h"
 #include "rdk/apps/rmax_base_memory_strategy.h"
-#include "rdk/services/utils/defs.h"
-#include "rdk/services/utils/clock.h"
-#include "rdk/services/sdp/sdp_defs.h"
-#include "rdk/services/media/media_settings_video.h"
-#include "rdk/services/media/media_settings_audio.h"
 #include "rdk/services/media/media_settings_ancillary.h"
+#include "rdk/services/media/media_settings_audio.h"
+#include "rdk/services/media/media_settings_video.h"
+#include "rdk/services/sdp/sdp_defs.h"
+#include "rdk/services/utils/clock.h"
+#include "rdk/services/utils/defs.h"
 
 using namespace rivermax::dev_kit::apps::rmax_xstream_media_sender;
 

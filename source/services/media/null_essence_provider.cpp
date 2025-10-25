@@ -16,15 +16,14 @@
  * limitations under the License.
  */
 
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <random>
 
 #include "rdk/services/media/null_essence_provider.h"
 #include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
-
 
 NullEssenceProvider::NullEssenceProvider(const MediaSettings& media_settings) :
     m_media_settings(media_settings),

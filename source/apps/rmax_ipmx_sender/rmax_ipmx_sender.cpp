@@ -19,9 +19,9 @@
 #include "rt_threads.h"
 
 #include "rdk/apps/rmax_ipmx_sender/rmax_ipmx_sender.h"
-#include "rdk/services/utils/defs.h"
-#include "rdk/services/utils/clock.h"
 #include "rdk/services/sdp/sdp_common_descriptions.h"
+#include "rdk/services/utils/clock.h"
+#include "rdk/services/utils/defs.h"
 
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::apps::rmax_ipmx_sender;

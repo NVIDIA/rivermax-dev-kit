@@ -19,16 +19,16 @@
 #ifndef RDK_SERVICES_MEDIA_MEDIA_UNIT_POOL_H_
 #define RDK_SERVICES_MEDIA_MEDIA_UNIT_POOL_H_
 
+#include <atomic>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <vector>
-#include <condition_variable>
-#include <atomic>
 
-#include "rdk/services/utils/defs.h"
 #include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
+#include "rdk/services/utils/defs.h"
 
 namespace rivermax
 {
@@ -138,7 +138,7 @@ public:
      */
     MemoryLocation get_memory_location() const { return m_memory_location; }
 private:
-   /**
+    /**
      * @brief: Returns a media unit back to the pool.
      *
      * This method is called when a @ref MediaUnit is no longer in use and needs to be

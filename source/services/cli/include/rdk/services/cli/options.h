@@ -20,12 +20,11 @@
 #define RDK_SERVICES_CLI_OPTIONS_H_
 
 #include <climits>
-#include <unordered_map>
 #include <functional>
 #include <memory>
+#include <unordered_map>
 
 #include "CLI/CLI.hpp"
-
 #include "rdk/services/settings/app_settings.h"
 
 namespace rivermax

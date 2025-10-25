@@ -97,7 +97,7 @@ public:
 class LatencySettingsValidator : public ISettingsValidator<LatencySettings>
 {
 public:
-     ReturnStatus validate(const std::shared_ptr<LatencySettings>& settings) const override;
+    ReturnStatus validate(const std::shared_ptr<LatencySettings>& settings) const override;
 };
 
 /**

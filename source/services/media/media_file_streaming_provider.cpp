@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <thread>
 
 #include "rdk/services/media/media_file_streaming_provider.h"

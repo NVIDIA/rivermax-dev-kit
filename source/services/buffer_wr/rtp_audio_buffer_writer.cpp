@@ -21,8 +21,8 @@
 #include <cstring>
 
 #include "rdk/services/buffer_wr/rtp_audio_buffer_writer.h"
-#include "rdk/services/media/media_settings_audio.h"
 #include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_settings_audio.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -48,9 +48,9 @@ void RTPAudioBufferWriter::update_in_media_unit_state()
 {
     const auto& audio_settings = static_cast<const SMPTE_2110_30_MediaSettings&>(m_media_settings);
     uint32_t ticks_per_packet = static_cast<uint32_t>((m_media_settings.sample_rate * audio_settings.ptime_usec) / USEC_IN_SEC);
-    
+
     m_send_data.rtp_timestamp += ticks_per_packet;
-    
+
     // Track packet counter for media unit boundaries (but doesn't affect timestamp)
     if (++m_send_data.packet_counter >= m_media_settings.packets_in_media_unit) {
         m_send_data.packet_counter = 0;
@@ -64,7 +64,7 @@ size_t RTPAudioBufferWriter::build_rtp_header(byte_t* buffer)
     // Note: Marker bit is set in build_rtp_header_common: Set to 0 for all audio packets)
     size_t rtp_header_size = build_rtp_header_common(buffer);
     buffer[1] &= 0x7F;  // Clear marker bit (bit 7 of byte 1)
-    
+
     return rtp_header_size;
 }
 
@@ -74,4 +74,3 @@ size_t RTPAudioBufferWriter::fill_packet(byte_t* buffer)
     // Real implementation would copy audio samples here
     return m_media_settings.raw_packet_payload_size;
 }
-

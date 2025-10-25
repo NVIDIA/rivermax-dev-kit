@@ -16,28 +16,24 @@
  * limitations under the License.
  */
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
-#include <string>
-#include <sstream>
 #include <iomanip>
 #include <iostream>
-#include <cstddef>
-#include <algorithm>
+#include <sstream>
+#include <string>
 #include <unordered_map>
 
-#include "rdk/services/media/media_defs.h"
-#include "rdk/services/media/audio_settings_calculator.h"
-#include "rdk/services/error_handling/return_status.h"
-#include "rdk/services/utils/defs.h"
-#include "rdk/services/utils/enum_utils.h"
 #include "rt_threads.h"
 
-namespace rivermax
-{
-namespace dev_kit
-{
-namespace services
-{
+#include "rdk/services/media/audio_settings_calculator.h"
+#include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/media/media_defs.h"
+#include "rdk/services/utils/defs.h"
+#include "rdk/services/utils/enum_utils.h"
+
+using namespace rivermax::dev_kit::services;
 
 // Audio sampling rate to Hz value mapping
 const std::unordered_map<AudioSamplingRate, uint32_t> AUDIO_SAMPLING_RATE_MAP = {
@@ -55,53 +51,53 @@ const std::unordered_map<AudioEncoding, uint32_t> AUDIO_ENCODING_BIT_DEPTH_MAP =
 
 bool ST_2110_30_MediaSettingsCalculator::is_channel_count_supported(uint8_t num_channels)
 {
-    return std::find(SUPPORTED_AUDIO_CHANNEL_COUNTS.begin(), SUPPORTED_AUDIO_CHANNEL_COUNTS.end(), num_channels) 
+    return std::find(SUPPORTED_AUDIO_CHANNEL_COUNTS.begin(), SUPPORTED_AUDIO_CHANNEL_COUNTS.end(), num_channels)
            != SUPPORTED_AUDIO_CHANNEL_COUNTS.end();
 }
 
 ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
 {
     m_media_settings.packets_per_second = USEC_IN_SEC / m_media_settings.ptime_usec;
-    
+
     auto rate_it = AUDIO_SAMPLING_RATE_MAP.find(m_media_settings.sampling_rate);
     if (rate_it == AUDIO_SAMPLING_RATE_MAP.end()) {
-        std::cerr << "Error: Unsupported audio sampling rate: " 
+        std::cerr << "Error: Unsupported audio sampling rate: "
                   << static_cast<int>(m_media_settings.sampling_rate) << std::endl;
         return ReturnStatus::failure;
     }
     uint32_t sampling_rate_value = rate_it->second;
     m_media_settings.samples_per_packet = sampling_rate_value / m_media_settings.packets_per_second;
-    
+
     auto encoding_it = AUDIO_ENCODING_BIT_DEPTH_MAP.find(m_media_settings.encoding);
     if (encoding_it == AUDIO_ENCODING_BIT_DEPTH_MAP.end()) {
-        std::cerr << "Error: Unsupported audio encoding: " 
+        std::cerr << "Error: Unsupported audio encoding: "
                   << static_cast<int>(m_media_settings.encoding) << std::endl;
         return ReturnStatus::failure;
     }
     m_media_settings.bytes_per_sample = encoding_it->second / 8;
-    
+
     // Calculate payload size (samples * channels * bytes per sample)
-    size_t payload_size = m_media_settings.samples_per_packet * 
+    size_t payload_size = m_media_settings.samples_per_packet *
                           m_media_settings.num_channels *
                           m_media_settings.bytes_per_sample;
 
     m_media_settings.protocol_header_size = RTP_HEADER_SIZE;
     m_media_settings.raw_packet_payload_size = static_cast<uint16_t>(payload_size);
     m_media_settings.packet_payload_size = static_cast<uint16_t>(payload_size + m_media_settings.protocol_header_size);
-    
+
     // Validate packet size doesn't exceed UDP limit
     if (m_media_settings.packet_payload_size > MediaSettings::MAX_PAYLOAD_SIZE) {
-        std::cerr << "Error: Audio packet size (" << m_media_settings.packet_payload_size 
+        std::cerr << "Error: Audio packet size (" << m_media_settings.packet_payload_size
                   << " bytes) exceeds network limit (" << MediaSettings::MAX_PAYLOAD_SIZE << " bytes). "
                   << "Consider shorter ptime or fewer channels/lower bit depth." << std::endl;
         return ReturnStatus::failure;
     }
-    
+
     if (m_media_settings.header_data_split) {
         m_media_settings.packet_app_header_size = m_media_settings.protocol_header_size;
         m_media_settings.packet_payload_size -= m_media_settings.protocol_header_size;
     }
-    
+
     // Set default packets per media unit if not provided
     if (!m_media_settings.packets_in_media_unit) {
         constexpr uint32_t PACKETS_PER_MEDIA_UNIT = 100;
@@ -113,7 +109,7 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
     if (m_media_settings.packets_in_chunk > 0) {
         if (m_media_settings.packets_in_media_unit % m_media_settings.packets_in_chunk == 0) {
             chunk_size_applied = true;
-            std::cout << "Using custom audio chunk size: " << m_media_settings.packets_in_chunk 
+            std::cout << "Using custom audio chunk size: " << m_media_settings.packets_in_chunk
                       << " packets per chunk" << std::endl;
         } else {
             std::cerr << "Warning: Custom chunk size (" << m_media_settings.packets_in_chunk
@@ -125,7 +121,7 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
     if (!chunk_size_applied) {
         // Aim for ~20 packets per chunk (20ms chunks if ptime=1ms)
         constexpr uint32_t TARGET_PACKETS_PER_CHUNK = 20;
-        
+
         m_media_settings.packets_in_chunk = m_media_settings.packets_in_media_unit;
         for (uint32_t chunk_cnt = 1; chunk_cnt <= m_media_settings.packets_in_media_unit; chunk_cnt++) {
             if (m_media_settings.packets_in_media_unit % chunk_cnt != 0) {
@@ -137,9 +133,9 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
                 break;
             }
         }
-        
-        std::cout << "Calculated audio chunk size: " << m_media_settings.packets_in_chunk 
-                  << " packets per chunk (" 
+
+        std::cout << "Calculated audio chunk size: " << m_media_settings.packets_in_chunk
+                  << " packets per chunk ("
                   << (m_media_settings.packets_in_media_unit / m_media_settings.packets_in_chunk)
                   << " chunks per media unit)" << std::endl;
     }
@@ -147,7 +143,7 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
     // Calculate chunks per media unit
     m_media_settings.chunks_in_media_unit =
         m_media_settings.packets_in_media_unit / m_media_settings.packets_in_chunk;
-    
+
     return ReturnStatus::success;
 }
 
@@ -156,14 +152,14 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_timing_parameters()
     // Audio uses sampling rate as RTP clock rate (per ST 2110-30)
     auto rate_it = AUDIO_SAMPLING_RATE_MAP.find(m_media_settings.sampling_rate);
     if (rate_it == AUDIO_SAMPLING_RATE_MAP.end()) {
-        std::cerr << "Error: Unsupported audio sampling rate: " 
+        std::cerr << "Error: Unsupported audio sampling rate: "
                   << static_cast<int>(m_media_settings.sampling_rate) << std::endl;
         return ReturnStatus::failure;
     }
     m_media_settings.sample_rate = rate_it->second;
     m_media_settings.media_unit_time_interval_ns = static_cast<double>(m_media_settings.packets_in_media_unit * m_media_settings.ptime_usec * NS_IN_USEC);
     m_media_settings.ticks_per_media_unit = (static_cast<double>(m_media_settings.sample_rate) * m_media_settings.media_unit_time_interval_ns) / static_cast<double>(NS_IN_SEC);
-    
+
     return ReturnStatus::success;
 }
 
@@ -172,7 +168,7 @@ void ST_2110_30_MediaSettingsCalculator::calculate_memory_parameters()
     if (m_media_settings.media_units_in_mem_block == 0) {
         m_media_settings.media_units_in_mem_block = m_media_settings.DEFAULT_NUM_OF_MEDIA_UNITS_IN_MEM_BLOCK;
     }
-    
+
     m_media_settings.chunks_in_mem_block = m_media_settings.media_units_in_mem_block * m_media_settings.chunks_in_media_unit;
     m_media_settings.packets_in_mem_block = m_media_settings.chunks_in_mem_block * m_media_settings.packets_in_chunk;
     m_media_settings.bytes_per_media_unit = m_media_settings.raw_packet_payload_size * m_media_settings.packets_in_media_unit;
@@ -187,7 +183,7 @@ void ST_2110_30_MediaSettingsCalculator::calculate_stride_parameters()
 ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_media_settings()
 {
     if (!is_channel_count_supported(m_media_settings.num_channels)) {
-        std::cerr << "Unsupported channel count: " << static_cast<uint32_t>(m_media_settings.num_channels) 
+        std::cerr << "Unsupported channel count: " << static_cast<uint32_t>(m_media_settings.num_channels)
                   << " channels." << std::endl;
         return ReturnStatus::failure;
     }
@@ -196,12 +192,12 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_media_settings()
     if (status != ReturnStatus::success) {
         return status;
     }
-    
+
     status = calculate_timing_parameters();
     if (status != ReturnStatus::success) {
         return status;
     }
-    
+
     calculate_memory_parameters();
     calculate_stride_parameters();
 
@@ -252,14 +248,10 @@ std::string ST_2110_30_MediaSettingsCalculator::get_smpte_standard_name() const
 double ST_2110_30_MediaSettingsCalculator::align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const
 {
     double media_unit_interval_ns = m_media_settings.media_unit_time_interval_ns;
-    
+
     // Find the next aligned media unit start time
     uint64_t N = static_cast<uint64_t>(static_cast<double>(desired_time_ns) / media_unit_interval_ns + 1);
     double first_packet_start_time_ns = N * media_unit_interval_ns;
 
     return first_packet_start_time_ns;
 }
-
-} // namespace services
-} // namespace dev_kit
-} // namespace rivermax

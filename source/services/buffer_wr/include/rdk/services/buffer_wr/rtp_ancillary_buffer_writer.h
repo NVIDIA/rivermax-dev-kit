@@ -29,8 +29,8 @@ namespace services
 {
 
 /**
- * @brief Simple ancillary buffer writer for ST 2110-40 RTP packets.
- * 
+ * @brief: Simple ancillary buffer writer for ST 2110-40 RTP packets.
+ *
  * @note This is a simplified implementation for interim use.
  * A more comprehensive refactor is planned for the future.
  */
@@ -40,18 +40,15 @@ public:
     RTPAncillaryBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils);
-
     virtual ~RTPAncillaryBufferWriter() = default;
-
     /**
-     * @brief: Sets the next media unit to be processed.
+     * @brief: Set the next media unit (ancillary frame/packet group).
      *
      * @param [in] media_unit: Pointer to the media unit (ancillary data).
      *
      * @return: Return status of the operation.
      */
     ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
-
 protected:
     /**
      * @brief: Build ST 2110-40 RTP header with ancillary extension.
@@ -61,17 +58,14 @@ protected:
      * @return: The size of the RTP header written.
      */
     size_t build_rtp_header(byte_t* buffer) override;
-
     /**
-     * @brief Update packet counter and RTP state for ancillary.
+     * @brief: Update packet counter and RTP state for ancillary.
      */
     void update_in_media_unit_state() override;
-
     /**
-     * @brief Reset in-media unit state for new media unit.
+     * @brief: Reset in-media unit state for new media unit.
      */
     void reset_in_media_unit_state();
-
     /**
      * @brief: Fill packet with ancillary payload data (for mock implementation, does nothing).
      *
@@ -80,7 +74,6 @@ protected:
      * @return: The size of the data written.
      */
     size_t fill_packet(byte_t* buffer) override;
-
     /**
      * @brief: Build ST 2110-40 ancillary extension header.
      *
@@ -89,9 +82,11 @@ protected:
      * @return: The size of the extension header written.
      */
     size_t build_rtp_header_2110_40_extension(byte_t* buffer);
-
 private:
-    uint8_t m_field_indicator; ///< Field indicator for interlaced ancillary data
+    /**
+     * @brief: Field indicator for interlaced ancillary data.
+     */
+    uint8_t m_field_indicator; 
 };
 
 } // namespace services
@@ -99,4 +94,3 @@ private:
 } // namespace rivermax
 
 #endif // RDK_SERVICES_BUFFER_WR_RTP_ANCILLARY_BUFFER_WRITER_H_
-

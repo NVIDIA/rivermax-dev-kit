@@ -25,7 +25,7 @@
 using namespace rivermax::dev_kit::services;
 
 /**
- * @brief ST 2110-40 Ancillary RTP extension header.
+ * @brief: ST 2110-40 Ancillary RTP extension header.
  *
  * RTP header extension for ancillary data streams following the standard
  * RTP header. Provides extended sequence numbering, payload length, and
@@ -35,7 +35,7 @@ using namespace rivermax::dev_kit::services;
 struct AncillaryRTPExtension
 {
     /**
-     * @brief Set the field indicator value.
+     * @brief: Sets the field indicator value.
      *
      * @param [in] f: Field indicator (0=progressive, 1=field1, 2=field2).
      */
@@ -81,7 +81,7 @@ void RTPAncillaryBufferWriter::update_in_media_unit_state()
         // Timestamp changes every media unit (90kHz clock)
         m_send_data.rtp_timestamp += static_cast<uint32_t>(m_media_settings.ticks_per_media_unit);
         m_send_data.packet_counter = 0;
-        
+
         // Toggle field indicator for interlaced content
         // Note: This is simplified; real implementation should check video_scan_type
         m_field_indicator = (m_field_indicator == 0) ? 1 : 0;
@@ -99,23 +99,23 @@ size_t RTPAncillaryBufferWriter::build_rtp_header_2110_40_extension(byte_t* buff
        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
        | ANC_Count     |F|   reserved                                  |
        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
-    
+
     // Extended sequence number (upper 16 bits of 48-bit sequence)
     uint16_t extended_seq_num = htons(static_cast<uint16_t>(m_send_data.rtp_sequence >> 16));
     memcpy(buffer, &extended_seq_num, sizeof(extended_seq_num));
-    
+
     // Length field (payload length, excluding RTP headers)
     uint16_t length = htons(static_cast<uint16_t>(m_media_settings.raw_packet_payload_size));
     memcpy(buffer + 2, &length, sizeof(length));
-    
+
     // ANC_Count: simplified to 1 for now (number of ancillary data packets)
     buffer[4] = 1;
-    
+
     // F field (2 bits) + reserved (22 bits)
     buffer[5] = (m_field_indicator & 0x03) << 6;  // F is top 2 bits
     buffer[6] = 0;  // Reserved
     buffer[7] = 0;  // Reserved
-    
+
     return 8;  // Size of ST 2110-40 extension header
 }
 
@@ -124,10 +124,10 @@ size_t RTPAncillaryBufferWriter::build_rtp_header(byte_t* buffer)
     // Build standard RTP header (marker bit set correctly by base class)
     // Marker = 1 only on last packet of frame (packets_in_media_unit - 1)
     size_t rtp_header_size = build_rtp_header_common(buffer);
-    
+
     // Build ST 2110-40 extension header
     size_t extension_size = build_rtp_header_2110_40_extension(buffer + rtp_header_size);
-    
+
     return rtp_header_size + extension_size;
 }
 
@@ -137,4 +137,3 @@ size_t RTPAncillaryBufferWriter::fill_packet(byte_t* buffer)
     // Real implementation would copy ancillary data here
     return m_media_settings.raw_packet_payload_size;
 }
-

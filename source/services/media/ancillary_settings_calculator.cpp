@@ -17,21 +17,17 @@
  */
 
 #include <cstdint>
-#include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
+
+#include "rt_threads.h"
 
 #include "rdk/services/media/ancillary_settings_calculator.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/utils/defs.h"
-#include "rt_threads.h"
 
-namespace rivermax
-{
-namespace dev_kit
-{
-namespace services
-{
+using namespace rivermax::dev_kit::services;
 
 ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
 {
@@ -39,21 +35,21 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
     m_media_settings.protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
     m_media_settings.raw_packet_payload_size = SMPTE_2110_40_MediaSettings::ANCILLARY_DATA_HEADER_SIZE + m_media_settings.user_data_size_bytes;
     m_media_settings.packet_payload_size = m_media_settings.protocol_header_size + m_media_settings.raw_packet_payload_size;
-    
+
     // Packet size validation
     if (m_media_settings.packet_payload_size > MediaSettings::MAX_PAYLOAD_SIZE) {
-        std::cerr << "Error: Ancillary packet size (" << m_media_settings.packet_payload_size 
+        std::cerr << "Error: Ancillary packet size (" << m_media_settings.packet_payload_size
                   << " bytes) exceeds network limit (" << MediaSettings::MAX_PAYLOAD_SIZE << " bytes). "
                   << "Consider smaller user_data_size_bytes." << std::endl;
         return ReturnStatus::failure;
     }
-    
+
     // HDS for ANC keeps Anc Data Header with payload
     if (m_media_settings.header_data_split) {
         m_media_settings.packet_app_header_size = m_media_settings.protocol_header_size;
         m_media_settings.packet_payload_size -= m_media_settings.protocol_header_size;
     }
-    
+
     // Default to 1 packet for simple anc if not provided
     if (m_media_settings.packets_in_media_unit == 0) {
         m_media_settings.packets_in_media_unit = 1;
@@ -79,7 +75,7 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
     // Calculate chunks per media unit
     m_media_settings.chunks_in_media_unit =
         m_media_settings.packets_in_media_unit / m_media_settings.packets_in_chunk;
-    
+
     return ReturnStatus::success;
 }
 
@@ -111,16 +107,16 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_media_settings()
 {
     // Validate that user provided required DID/SDID values
     if (m_media_settings.did == 0 || m_media_settings.sdid == 0) {
-        std::cerr << "Error: DID (" << m_media_settings.did << ") and SDID (" << m_media_settings.sdid 
+        std::cerr << "Error: DID (" << m_media_settings.did << ") and SDID (" << m_media_settings.sdid
                   << ") must be provided (non-zero)." << std::endl;
         return ReturnStatus::failure;
     }
-    
+
     ReturnStatus status = calculate_packet_parameters();
     if (status != ReturnStatus::success) {
         return status;
     }
-    
+
     calculate_timing_parameters();
     calculate_memory_parameters();
     calculate_stride_parameters();
@@ -162,14 +158,10 @@ std::string ST_2110_40_MediaSettingsCalculator::get_smpte_standard_name() const
 double ST_2110_40_MediaSettingsCalculator::align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const
 {
     double media_unit_interval_ns = m_media_settings.media_unit_time_interval_ns;
-    
+
     // Find the next aligned media unit start time
     uint64_t N = static_cast<uint64_t>(static_cast<double>(desired_time_ns) / media_unit_interval_ns + 1);
     double first_packet_start_time_ns = N * media_unit_interval_ns;
 
     return first_packet_start_time_ns;
 }
-
-} // namespace services
-} // namespace dev_kit
-} // namespace rivermax

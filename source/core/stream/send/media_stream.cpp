@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <sstream>
-#include <chrono>
 #include <thread>
 
-#include "rdk/services/utils/defs.h"
-#include "rdk/services/media/media_settings.h"
 #include "rdk/core/stream/send/media_stream.h"
 #include "rdk/core/chunk/media_chunk.h"
 #include "rdk/core/flow/flow.h"
+#include "rdk/services/media/media_settings.h"
+#include "rdk/services/utils/defs.h"
 
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;

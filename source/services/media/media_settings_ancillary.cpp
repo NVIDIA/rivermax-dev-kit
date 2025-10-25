@@ -18,12 +18,7 @@
 
 #include "rdk/services/media/media_settings_ancillary.h"
 
-namespace rivermax
-{
-namespace dev_kit
-{
-namespace services
-{
+using namespace rivermax::dev_kit::services;
 
 SMPTE_2110_40_MediaSettings::SMPTE_2110_40_MediaSettings(const AppSettings& app_settings)
 {
@@ -40,7 +35,3 @@ SMPTE_2110_40_MediaSettings::SMPTE_2110_40_MediaSettings(const AppSettings& app_
     user_data_size_bytes = app_settings.media.anc_data_size;
     frame_rate = app_settings.media.frame_rate;
 }
-
-} // namespace services
-} // namespace dev_kit
-} // namespace rivermax

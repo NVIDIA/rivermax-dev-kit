@@ -16,28 +16,28 @@
  * limitations under the License.
  */
 
-#include <cstdint>
-#include <thread>
 #include <cstddef>
-#include <vector>
-#include <memory>
-#include <iostream>
-#include <sstream>
+#include <cstdint>
 #include <cstring>
+#include <iostream>
+#include <memory>
 #include <regex>
-
 #include <rivermax_api.h>
-#include "rdk/services/media/media_settings_video.h"
+#include <sstream>
+#include <thread>
+#include <vector>
+
 #include "rt_threads.h"
 
-#include "rdk/io_node/senders/ipmx_sender_io_node.h"
-#include "rdk/services/error_handling/error_handling.h"
-#include "rdk/services/cpu/cpu.h"
-#include "rdk/services/utils/defs.h"
-#include "rdk/services/media/media.h"
-#include "rdk/services/utils/enum_utils.h"
+#include "rdk/services/media/media_settings_video.h"
 #include "rdk/core/chunk/generic_chunk.h"
 #include "rdk/core/flow/flow.h"
+#include "rdk/io_node/senders/ipmx_sender_io_node.h"
+#include "rdk/services/cpu/cpu.h"
+#include "rdk/services/error_handling/error_handling.h"
+#include "rdk/services/media/media.h"
+#include "rdk/services/utils/defs.h"
+#include "rdk/services/utils/enum_utils.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;

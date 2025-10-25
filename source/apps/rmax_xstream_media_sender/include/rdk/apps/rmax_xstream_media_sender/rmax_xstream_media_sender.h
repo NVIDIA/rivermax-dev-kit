@@ -19,13 +19,13 @@
 #ifndef RDK_APPS_RMAX_XSTREAM_MEDIA_SENDER_RMAX_XSTREAM_MEDIA_SENDER_H_
 #define RDK_APPS_RMAX_XSTREAM_MEDIA_SENDER_RMAX_XSTREAM_MEDIA_SENDER_H_
 
-#include <memory>
 #include <functional>
+#include <memory>
 #include <unordered_map>
 
 #include "rdk/apps/rmax_base_app.h"
-#include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/app_media_settings.h"
+#include "rdk/services/media/media_settings.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;
@@ -60,7 +60,7 @@ public:
 class MediaSenderSettingsValidator : public ISettingsValidator<MediaSenderSettings>
 {
 public:
-     ReturnStatus validate(const std::shared_ptr<MediaSenderSettings>& settings) const override;
+    ReturnStatus validate(const std::shared_ptr<MediaSenderSettings>& settings) const override;
 };
 
 /**
@@ -147,14 +147,12 @@ public:
     ReturnStatus set_media_essence_provider(size_t stream_index,
                                             std::shared_ptr<IMediaEssenceProvider> essence_provider,
                                             SMPTEStandard smpte_standard, bool contains_payload = true);
-
 private:
     ReturnStatus initialize_app_settings() final;
     ReturnStatus post_load_settings() final;
     ReturnStatus initialize_memory_strategy() override;
     ReturnStatus set_rivermax_clock() override;
     ReturnStatus initialize_connection_parameters() final;
-
     /**
      * @brief: Generic helper for configuring media types.
      *
@@ -230,7 +228,7 @@ private:
      *
      * @return: Status of the operation.
      */
-     ReturnStatus initialize_sender_threads();
+    ReturnStatus initialize_sender_threads();
     /**
      * @brief: Returns current time in nanoseconds.
      *

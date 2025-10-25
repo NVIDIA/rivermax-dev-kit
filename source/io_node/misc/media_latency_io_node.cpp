@@ -16,24 +16,23 @@
  * limitations under the License.
  */
 
-#include <thread>
-#include <cstddef>
-#include <vector>
-#include <memory>
-#include <iostream>
-#include <ostream>
-#include <cstring>
 #include <chrono>
-
+#include <cstddef>
+#include <cstring>
+#include <iostream>
+#include <memory>
+#include <ostream>
 #include <rivermax_api.h>
 #include <rt_threads.h>
+#include <thread>
+#include <vector>
 
 #include "rdk/io_node/misc/media_latency_io_node.h"
+#include "rdk/core/stream/send/generic_stream.h"
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/media/media.h"
 #include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
-#include "rdk/core/stream/send/generic_stream.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::services;

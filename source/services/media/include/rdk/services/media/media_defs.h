@@ -19,13 +19,13 @@
 #ifndef RDK_SERVICES_MEDIA_MEDIA_DEFS_H_
 #define RDK_SERVICES_MEDIA_MEDIA_DEFS_H_
 
+#include <chrono>
 #include <cstdint>
-#include <string>
-#include <stdexcept>
 #include <iostream>
 #include <ostream>
+#include <stdexcept>
+#include <string>
 #include <vector>
-#include <chrono>
 
 #include "rdk/services/sdp/sdp_defs.h"
 
@@ -59,7 +59,7 @@ struct FrameRate
      *
      * @param [in] num: The numerator of the frame rate.
      */
-     FrameRate(uint16_t num) : num(num), denom(1) {}
+    FrameRate(uint16_t num) : num(num), denom(1) {}
     /**
      * @brief: Video frame rate constructor.
      *

@@ -19,12 +19,7 @@
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_calculator.h"
 
-namespace rivermax
-{
-namespace dev_kit
-{
-namespace services
-{
+using namespace rivermax::dev_kit::services;
 
 void MediaSettings::set_calculator(std::shared_ptr<IMediaSettingsCalculator> calculator)
 {
@@ -39,8 +34,3 @@ ReturnStatus MediaSettings::create_default_calculator(const std::vector<FormatSp
     }
     return media_settings_calculator->calculate_media_settings();
 }
-
-} // namespace services
-} // namespace dev_kit
-} // namespace rivermax
-

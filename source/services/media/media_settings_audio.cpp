@@ -18,12 +18,7 @@
 
 #include "rdk/services/media/media_settings_audio.h"
 
-namespace rivermax
-{
-namespace dev_kit
-{
-namespace services
-{
+using namespace rivermax::dev_kit::services;
 
 SMPTE_2110_30_MediaSettings::SMPTE_2110_30_MediaSettings(const AppSettings& app_settings)
 {
@@ -40,7 +35,3 @@ SMPTE_2110_30_MediaSettings::SMPTE_2110_30_MediaSettings(const AppSettings& app_
     num_channels = app_settings.media.audio_channels_num;
     ptime_usec = app_settings.media.ptime_us;
 }
-
-} // namespace services
-} // namespace dev_kit
-} // namespace rivermax

@@ -24,8 +24,8 @@
 #include <vector>
 
 #include "rdk/services/error_handling/return_status.h"
-#include "rdk/services/media/media_settings_calculator.h"
 #include "rdk/services/media/media_settings_ancillary.h"
+#include "rdk/services/media/media_settings_calculator.h"
 
 namespace rivermax
 {
@@ -88,7 +88,6 @@ public:
      */
     virtual std::string get_smpte_standard_name() const override;
     virtual double align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const override;
-
 private:
     /**
      * @brief: Calculates packet-specific parameters.
@@ -96,17 +95,14 @@ private:
      * @return: Status of the calculation operation.
      */
     ReturnStatus calculate_packet_parameters();
-
     /**
      * @brief: Calculates timing parameters.
      */
     void calculate_timing_parameters();
-
     /**
      * @brief: Calculates memory layout parameters.
      */
     void calculate_memory_parameters();
-
     /**
      * @brief: Calculates stride parameters for memory alignment.
      */

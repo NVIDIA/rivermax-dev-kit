@@ -17,16 +17,16 @@
  */
 
 #include <cstddef>
+#include <cstring>
 #include <iostream>
 #include <ostream>
-#include <cstring>
 
 #include "rt_threads.h"
 
-#include "rdk/io_node/common/rtp_video_send_stream.h"
-#include "rdk/services/utils/defs.h"
 #include "rdk/core/stream/send/media_stream.h"
+#include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/services/media/media_settings_video.h"
+#include "rdk/services/utils/defs.h"
 
 using namespace rivermax::dev_kit::io_node;
 using namespace rivermax::dev_kit::core;

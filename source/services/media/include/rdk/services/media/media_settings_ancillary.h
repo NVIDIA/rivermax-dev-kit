@@ -19,14 +19,13 @@
 #ifndef RDK_SERVICES_MEDIA_MEDIA_SETTINGS_ANCILLARY_H_
 #define RDK_SERVICES_MEDIA_MEDIA_SETTINGS_ANCILLARY_H_
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 
+#include "rdk/services/media/media_calc_interface.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/settings/app_settings.h"
-#include "rdk/services/media/media_calc_interface.h"
-
 
 namespace rivermax
 {

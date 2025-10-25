@@ -19,19 +19,21 @@
 #ifndef RDK_SERVICES_MEDIA_MEDIA_H_
 #define RDK_SERVICES_MEDIA_MEDIA_H_
 
+#include "rdk/services/media/app_media_settings.h"
 #include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/null_essence_provider.h"
+#include "rdk/services/media/media_file_essence_provider.h"
+#include "rdk/services/media/media_file_streaming_provider.h"
+#include "rdk/services/media/buffered_essence_provider.h"
+#include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_video.h"
-#include "rdk/services/media/app_media_settings.h"
-#include "rdk/services/media/media_settings_calculator.h"
-#include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/media/media_settings_audio.h"
 #include "rdk/services/media/media_settings_ancillary.h"
-#include "rdk/services/media/media_essence_provider.h"
-#include "rdk/services/media/buffered_essence_provider.h"
-#include "rdk/services/media/media_file_essence_provider.h"
-#include "rdk/services/media/null_essence_provider.h"
-#include "rdk/services/media/media_unit_pool.h"
-#include "rdk/services/media/media_file_streaming_provider.h"
+#include "rdk/services/media/media_settings_calculator.h"
+#include "rdk/services/media/video_settings_calculator.h"
+#include "rdk/services/media/audio_settings_calculator.h"
+#include "rdk/services/media/ancillary_settings_calculator.h"
 
 #endif /* RDK_SERVICES_MEDIA_MEDIA_H_ */

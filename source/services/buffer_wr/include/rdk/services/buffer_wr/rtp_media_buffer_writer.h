@@ -22,10 +22,8 @@
 #include <cstddef>
 #include <memory>
 
-#include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/buffer_wr/buffer_writer_interface.h"
-
-using namespace rivermax::dev_kit::services;
+#include "rdk/services/media/media_essence_provider.h"
 
 namespace rivermax
 {

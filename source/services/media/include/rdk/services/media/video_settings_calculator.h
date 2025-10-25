@@ -19,19 +19,19 @@
 #ifndef RDK_SERVICES_MEDIA_VIDEO_SETTINGS_CALCULATOR_H_
 #define RDK_SERVICES_MEDIA_VIDEO_SETTINGS_CALCULATOR_H_
 
-#include <cstddef>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
-#include <vector>
-#include <unordered_map>
 #include <functional>
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
 #include "rdk/services/error_handling/return_status.h"
-#include "rdk/services/sdp/sdp.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_calculator.h"
 #include "rdk/services/media/media_settings_video.h"
+#include "rdk/services/sdp/sdp.h"
 
 namespace rivermax
 {
@@ -97,7 +97,7 @@ public:
      * @brief: Calculates TRO and TRS timing parameters.
      *
      * This method calculates the TRO (Time Read Offset)
-     * and TRS (Time Read Spacing) timing parameters 
+     * and TRS (Time Read Spacing) timing parameters
      * according to SMPTE ST2110-20.
      *
      * @param [out] tro: The calculated TRO (Time Read Offset) value.

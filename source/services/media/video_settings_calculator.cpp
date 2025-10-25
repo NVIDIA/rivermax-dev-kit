@@ -20,19 +20,15 @@
 #include <string>
 #include <unordered_map>
 
-#include "rdk/services/media/media_settings_video.h"
-#include "rdk/services/media/video_settings_calculator.h"
-#include "rdk/services/error_handling/return_status.h"
-#include "rdk/services/utils/defs.h"
-#include "rdk/services/sdp/sdp_defs.h"
 #include "rt_threads.h"
 
-namespace rivermax
-{
-namespace dev_kit
-{
-namespace services
-{
+#include "rdk/services/media/video_settings_calculator.h"
+#include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/media/media_settings_video.h"
+#include "rdk/services/sdp/sdp_defs.h"
+#include "rdk/services/utils/defs.h"
+
+using namespace rivermax::dev_kit::services;
 
 using BytesPerPixelRatio = std::pair<uint32_t, uint32_t>;
 using VideoDepthPixelRatioMap =
@@ -44,7 +40,7 @@ using VideoDepthPixelRatioMap =
  * for different video sampling types (RGB, YCbCr 4:4:4, YCbCr 4:2:2, YCbCr 4:2:0, KEY) and
  * video bit depths (8-bit, 10-bit, 12-bit). The ratio is expressed as a pair {bytes, pixels}
  * where the actual bytes-per-pixel value is calculated as bytes/pixels.
- * 
+ *
  * The KEY sampling type is used for alpha channel in video.
  *
  * For example:
@@ -283,7 +279,3 @@ double ST_2110_20_MediaSettingsCalculator::align_time_to_media_unit_boundary_ns(
 
     return first_packet_start_time_ns;
 }
-
-} // namespace services
-} // namespace dev_kit
-} // namespace rivermax

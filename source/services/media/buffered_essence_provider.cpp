@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <random>
 
 #include "rdk/services/media/buffered_essence_provider.h"

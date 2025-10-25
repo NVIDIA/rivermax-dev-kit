@@ -18,12 +18,7 @@
 
 #include "rdk/services/media/media_settings_video.h"
 
-namespace rivermax
-{
-namespace dev_kit
-{
-namespace services
-{
+using namespace rivermax::dev_kit::services;
 
 SMPTE_2110_20_MediaSettings::SMPTE_2110_20_MediaSettings(const AppSettings& app_settings, bool is_alpha_stream)
 {
@@ -50,7 +45,7 @@ SMPTE_2110_20_MediaSettings::SMPTE_2110_20_MediaSettings(const AppSettings& app_
     frame_rate = app_settings.media.frame_rate;
     bit_depth = is_alpha_stream ? app_settings.media.alpha_bit_depth : app_settings.media.color_bit_depth;
     video_scan_type = app_settings.media.video_scan_type;
-    
+
     if (is_alpha_stream) {
         sampling_type = VideoSampling::KEY;
         colorimetry = Colorimetry::ALPHA;
@@ -65,7 +60,3 @@ SMPTE_2110_20_MediaSettings::SMPTE_2110_20_MediaSettings(const AppSettings& app_
         dynamic_media_file_load = app_settings.dynamic_video_file_load;
     }
 }
-
-} // namespace services
-} // namespace dev_kit
-} // namespace rivermax

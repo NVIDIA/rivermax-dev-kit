@@ -19,19 +19,19 @@
 #ifndef RDK_SERVICES_MEDIA_BUFFERED_ESSENCE_PROVIDER_H_
 #define RDK_SERVICES_MEDIA_BUFFERED_ESSENCE_PROVIDER_H_
 
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <queue>
-#include <mutex>
 #include <condition_variable>
+#include <cstdint>
 #include <fstream>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <string>
 #include <unordered_map>
 
 #include "rdk/services/media/media_essence_provider.h"
-#include "rdk/services/utils/defs.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
+#include "rdk/services/utils/defs.h"
 
 namespace rivermax
 {
@@ -59,7 +59,6 @@ private:
     size_t m_max_queue_size;
     /* Flag to indicate if the provider is stopping */
     bool m_stop;
-
 public:
     /**
      * @brief: Constructor.
@@ -71,7 +70,6 @@ public:
      * @brief: Destructor.
      */
     virtual ~BufferedEssenceProvider();
-
     std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
     std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     void stop() override;

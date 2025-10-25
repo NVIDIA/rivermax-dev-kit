@@ -23,8 +23,8 @@
 #include <vector>
 
 #include "rdk/services/error_handling/return_status.h"
-#include "rdk/services/media/media_settings_calculator.h"
 #include "rdk/services/media/media_settings_audio.h"
+#include "rdk/services/media/media_settings_calculator.h"
 
 namespace rivermax
 {
@@ -95,7 +95,6 @@ public:
      * @return: True if the channel count is supported, false otherwise.
      */
     static bool is_channel_count_supported(uint8_t num_channels);
-
 private:
     /**
      * @brief: Calculates audio packet parameters.
@@ -103,19 +102,16 @@ private:
      * @return: Status of the calculation operation.
      */
     ReturnStatus calculate_packet_parameters();
-    
     /**
      * @brief: Calculates audio timing parameters.
      *
      * @return: Status of the calculation operation.
      */
     ReturnStatus calculate_timing_parameters();
-    
     /**
      * @brief: Calculates audio memory parameters.
      */
     void calculate_memory_parameters();
-    
     /**
      * @brief: Calculates audio stride parameters.
      */

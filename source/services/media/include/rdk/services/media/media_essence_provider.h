@@ -19,18 +19,18 @@
 #ifndef RDK_SERVICES_MEDIA_MEDIA_ESSENCE_PROVIDER_H_
 #define RDK_SERVICES_MEDIA_MEDIA_ESSENCE_PROVIDER_H_
 
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <queue>
-#include <mutex>
 #include <condition_variable>
+#include <cstdint>
 #include <fstream>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <string>
 #include <unordered_map>
 
-#include "rdk/services/utils/defs.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
+#include "rdk/services/utils/defs.h"
 
 namespace rivermax
 {

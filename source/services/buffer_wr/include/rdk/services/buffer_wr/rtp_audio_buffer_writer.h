@@ -29,9 +29,9 @@ namespace services
 {
 
 /**
- * @brief Simple audio buffer writer for ST 2110-30 RTP packets.
- * 
- * @note This is a simplified implementation for interim use.
+ * @brief: Simple audio buffer writer for ST 2110-30 RTP packets.
+ *
+ * @note: This is a simplified implementation for interim use.
  * A more comprehensive refactor is planned for the future.
  */
 class RTPAudioBufferWriter : public RTPMediaBufferWriter
@@ -40,18 +40,15 @@ public:
     RTPAudioBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils);
-
     virtual ~RTPAudioBufferWriter() = default;
-
     /**
-     * @brief: Sets the next media unit to be processed.
+     * @brief: Set the next media unit (audio frame/packet group).
      *
      * @param [in] media_unit: Pointer to the media unit (audio sample).
      *
      * @return: Return status of the operation.
      */
     ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
-
 protected:
     /**
      * @brief: Build ST 2110-30 RTP header (no extension for audio).
@@ -61,17 +58,14 @@ protected:
      * @return: The size of the RTP header written.
      */
     size_t build_rtp_header(byte_t* buffer) override;
-
     /**
-     * @brief Update packet counter and RTP state for audio.
+     * @brief: Update packet counter and RTP state for audio.
      */
     void update_in_media_unit_state() override;
-
     /**
-     * @brief Reset in-media unit state for new media unit.
+     * @brief: Reset in-media unit state for new media unit.
      */
     void reset_in_media_unit_state();
-
     /**
      * @brief: Fill packet with audio payload data (for mock implementation, does nothing).
      *
@@ -87,4 +81,3 @@ protected:
 } // namespace rivermax
 
 #endif // RDK_SERVICES_BUFFER_WR_RTP_AUDIO_BUFFER_WRITER_H_
-

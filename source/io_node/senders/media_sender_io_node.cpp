@@ -18,23 +18,23 @@
 
 #include <chrono>
 #include <climits>
+#include <cstddef>
+#include <cstring>
 #include <iomanip>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <rivermax_api.h>
 #include <sstream>
 #include <thread>
-#include <cstddef>
 #include <vector>
-#include <memory>
-#include <iostream>
-#include <ostream>
-#include <cstring>
 
-#include <rivermax_api.h>
-#include "rdk/services/media/media_settings.h"
 #include "rt_threads.h"
 
+#include "rdk/services/media/media_settings.h"
 #include "rdk/io_node/senders/media_sender_io_node.h"
-#include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/cpu/cpu.h"
+#include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/media/media.h"
 
 using namespace std::chrono;

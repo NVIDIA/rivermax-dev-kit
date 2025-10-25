@@ -23,10 +23,10 @@
 #include <memory>
 #include <vector>
 
-#include "rdk/services/media/media_settings.h"
-#include "rdk/services/settings/app_settings.h"
 #include "rdk/services/media/media_calc_interface.h"
+#include "rdk/services/media/media_settings.h"
 #include "rdk/services/sdp/sdp_common_descriptions.h"
+#include "rdk/services/settings/app_settings.h"
 
 namespace rivermax
 {
@@ -55,7 +55,7 @@ struct SMPTE_2110_20_MediaSettings : public MediaSettings
     explicit SMPTE_2110_20_MediaSettings(const AppSettings& app_settings, bool is_alpha_stream = false);
     virtual ~SMPTE_2110_20_MediaSettings() = default;
     virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_20; };
-    
+
     Resolution resolution = { FHD_WIDTH, FHD_HEIGHT };
     FrameRate frame_rate = { 60 };
     VideoSampling sampling_type = VideoSampling::YCbCr_4_2_2;
