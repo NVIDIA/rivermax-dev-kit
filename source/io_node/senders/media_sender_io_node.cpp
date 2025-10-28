@@ -277,6 +277,11 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
         header_offset = m_media_settings.protocol_header_size;
     }
 
+    // Provide size arrays only if it contains valid information. Otherwise, for dynamic streams, no sizes are provided.
+    // Header sizes will also be nullptr for non-HDS streams.
+    uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
+    uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
+
     ReturnStatus rc;
     for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
         rc = fill_memblock_from_file(payload_memory_ptr, m_block_payload_memory_size,
@@ -291,13 +296,12 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
                 io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
             mem_blockset.set_block_memory(i, 1, payload_memory_ptr, m_block_payload_memory_size,
                 io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-            mem_blockset.set_block_layout(i, m_mem_block_payload_sizes.data(), m_mem_block_header_sizes.data());
             header_memory_ptr += m_block_header_memory_size;
         } else {
             mem_blockset.set_block_memory(i, 0, payload_memory_ptr, m_block_payload_memory_size,
                 io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-            mem_blockset.set_block_layout(i, m_mem_block_payload_sizes.data(), nullptr);
         }
+        mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
         payload_memory_ptr += m_block_payload_memory_size;
     }
     input_file.close();
@@ -308,19 +312,23 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     MediaStreamMemBlockset& mem_blockset, uint8_t* header_memory_ptr,
     uint8_t* payload_memory_ptr, const HeaderPayloadMemoryLayout& io_node_memory_layout)
 {
+    // Provide size arrays only if it contains valid information. Otherwise, for dynamic streams, no sizes are provided.
+    // Header sizes will also be nullptr for non-HDS streams.
+    uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
+    uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
+
     for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
         if (is_hds_on()) {
             mem_blockset.set_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
                 io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
             mem_blockset.set_block_memory(i, 1, payload_memory_ptr, m_block_payload_memory_size,
                 io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-            mem_blockset.set_block_layout(i, m_mem_block_payload_sizes.data(), m_mem_block_header_sizes.data());
             header_memory_ptr += m_block_header_memory_size;
         } else {
             mem_blockset.set_block_memory(i, 0, payload_memory_ptr, m_block_payload_memory_size,
                 io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-            mem_blockset.set_block_layout(i, m_mem_block_payload_sizes.data(), nullptr);
         }
+        mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
         payload_memory_ptr += m_block_payload_memory_size;
     }
     return ReturnStatus::success;
@@ -328,22 +336,26 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
 
 ReturnStatus MediaSenderIONode::initialize_mem_blockset(MediaStreamMemBlockset& mem_blockset)
 {
+    // Provide size arrays only if it contains valid information. Otherwise, for dynamic streams, no sizes are provided.
+    // Header sizes will also be nullptr for non-HDS streams.
+    uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
+    uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
+
     for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
-        if (is_hds_on()) {
-            mem_blockset.set_block_layout(i, m_mem_block_payload_sizes.data(), m_mem_block_header_sizes.data());
-        } else {
-            mem_blockset.set_block_layout(i, m_mem_block_payload_sizes.data(), nullptr);
-        }
+        mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
     }
     return ReturnStatus::success;
 }
 
 ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents()
 {
-    if (m_media_settings.packet_app_header_size) {
-        m_mem_block_header_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_app_header_size);
+    // Dynamic streams (ancillary) provides sizes at runtime. Otherwise, pre-fill size arrays.
+    if (!m_media_settings.needs_dynamic_packet_sizes()) {
+        if (m_media_settings.packet_app_header_size) {
+            m_mem_block_header_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_app_header_size);
+        }
+        m_mem_block_payload_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_payload_size);
     }
-    m_mem_block_payload_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_payload_size);
 
     for (auto& stream_pack : m_stream_packs) {
         stream_pack.mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
@@ -365,10 +377,13 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents()
 ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents(
     const HeaderPayloadMemoryLayout& memory_layout)
 {
-    if (m_media_settings.packet_app_header_size) {
-        m_mem_block_header_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_app_header_size);
+    // Dynamic streams (ancillary) provides sizes at runtime. Otherwise, pre-fill size arrays.
+    if (!m_media_settings.needs_dynamic_packet_sizes()) {
+        if (m_media_settings.packet_app_header_size) {
+            m_mem_block_header_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_app_header_size);
+        }
+        m_mem_block_payload_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_payload_size);
     }
-    m_mem_block_payload_sizes.resize(m_media_settings.packets_in_mem_block, m_media_settings.packet_payload_size);
 
     uint8_t* header_memory_ptr = static_cast<uint8_t*>(memory_layout.header_memory_ptr);
     uint8_t* payload_memory_ptr = static_cast<uint8_t*>(memory_layout.payload_memory_ptr);
