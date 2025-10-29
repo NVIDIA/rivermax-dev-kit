@@ -100,7 +100,11 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
     auto mem = m_cli_parser_manager->add_option(CLIOptStr::APP_MEMORY_ALLOC);
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE)->needs(mem);
     m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY)->needs(mem);
-    auto video_file = m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FILE)->needs(mem);
+    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FILE)->needs(mem)
+    ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_FILE)->needs(mem)
+    ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::DYNAMIC_FILE_LOADING);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_RESOLUTION)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FRAME_RATE)
@@ -115,7 +119,6 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ALPHA)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::DYNAMIC_FILE_LOADING)->needs(video_file);
     m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_AUDIO)
         ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
@@ -543,8 +546,10 @@ ReturnStatus MediaSenderApp::set_internal_media_essence_providers()
                 essence_provider = std::make_shared<NullEssenceProvider>(smpte_standard_config);
                 contains_payload = false;
             } else {
-                if (smpte_standard_config.get_smpte_standard() != SMPTEStandard::ST_2110_20) {
-                    std::cerr << "Video file is not supported for other media types" << std::endl;
+                auto smpte_standard = smpte_standard_config.get_smpte_standard();
+                if (smpte_standard != SMPTEStandard::ST_2110_20 &&
+                    smpte_standard != SMPTEStandard::ST_2110_30) {
+                    std::cerr << "Media file is only supported for video (ST 2110-20) and audio (ST 2110-30)" << std::endl;
                     return ReturnStatus::failure;
                 }
                 auto media_file_essence_provider = std::make_shared<MediaFileEssenceProvider>(
@@ -552,7 +557,7 @@ ReturnStatus MediaSenderApp::set_internal_media_essence_providers()
                     smpte_standard_config.bytes_per_media_unit, *m_header_allocator, true);
                 rc = media_file_essence_provider->load_media_units();
                 if (rc != ReturnStatus::success) {
-                    std::cerr << "Failed to load media units from video file" << std::endl;
+                    std::cerr << "Failed to load media units from file: " << smpte_standard_config.media_file << std::endl;
                     return rc;
                 }
                 essence_provider = std::move(media_file_essence_provider);

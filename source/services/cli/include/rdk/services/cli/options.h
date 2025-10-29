@@ -112,6 +112,7 @@ public:
     static const char* ENABLE_AUDIO;
     static const char* ENABLE_ANCILLARY;
     static const char* VIDEO_FILE;
+    static const char* AUDIO_FILE;
     static const char* DYNAMIC_FILE_LOADING;
     static const char* PTIME_US;
     static const char* AUDIO_SAMPLING_RATE;

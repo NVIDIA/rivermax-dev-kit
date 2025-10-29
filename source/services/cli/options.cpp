@@ -78,6 +78,7 @@ const char* CLIOptStr::ENABLE_ALPHA = "--enable-alpha";
 const char* CLIOptStr::ENABLE_AUDIO = "--enable-audio";
 const char* CLIOptStr::ENABLE_ANCILLARY = "--enable-ancillary";
 const char* CLIOptStr::VIDEO_FILE = "--vf,--video-file";
+const char* CLIOptStr::AUDIO_FILE = "--af,--audio-file";
 const char* CLIOptStr::DYNAMIC_FILE_LOADING = "--dfl,--dynamic-file-loading";
 const char* CLIOptStr::PTIME_US = "--apu,--audio-ptime-us";
 const char* CLIOptStr::AUDIO_SAMPLING_RATE = "--asr,--audio-sampling-rate";
@@ -586,12 +587,22 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         }
     },
     {
+        CLIOptStr::AUDIO_FILE,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::AUDIO_FILE,
+                                      app_settings->audio_file,
+                                      "Audio file to send")
+                                      ->check(CLI::ExistingFile);
+        }
+    },
+    {
         CLIOptStr::DYNAMIC_FILE_LOADING,
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
             return parser->add_flag(CLIOptStr::DYNAMIC_FILE_LOADING,
-                                      app_settings->dynamic_video_file_load,
-                                      "Enable dynamic file loading: Load video frames on the fly during transmission)");
+                                      app_settings->dynamic_media_file_load,
+                                      "Enable dynamic file loading: Load media frames on the fly during transmission)");
         }
     },
     {

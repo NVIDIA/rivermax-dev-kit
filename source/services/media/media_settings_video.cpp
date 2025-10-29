@@ -57,6 +57,6 @@ SMPTE_2110_20_MediaSettings::SMPTE_2110_20_MediaSettings(const AppSettings& app_
         colorimetry = Colorimetry::BT709;
         smpte_standard_number = SMPTEStandardNumber::ST2110_20_2017;
         media_file = app_settings.video_file;
-        dynamic_media_file_load = app_settings.dynamic_video_file_load;
+        dynamic_media_file_load = app_settings.dynamic_media_file_load;
     }
 }
