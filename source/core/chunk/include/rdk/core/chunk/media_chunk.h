@@ -59,6 +59,12 @@ public:
     MediaChunk(rmx_stream_id id, size_t packets_in_chunk, bool use_hds);
     virtual size_t get_length() const override { return m_length; }
     /**
+     * @brief: Sets the number of packets in the chunk.
+     *
+     * @param [in] length: Number of packets in the chunk.
+     */
+     void set_length(size_t length);
+    /**
      * @brief: Returns a pointer to the underlay payload array of the chunk.
      *
      * @returns: Pointer to the data sizes array.

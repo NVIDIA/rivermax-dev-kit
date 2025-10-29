@@ -38,6 +38,12 @@ MediaChunk::MediaChunk(rmx_stream_id stream_id, size_t packets_in_chunk, bool us
     rmx_output_media_init_chunk_handle(&m_chunk, stream_id);
 }
 
+void MediaChunk::set_length(size_t length)
+{
+    m_length = length;
+    rmx_output_media_set_chunk_packet_count(&m_chunk, length);
+}
+
 ReturnStatus MediaChunk::get_next_chunk()
 {
     rmx_status status = rmx_output_media_get_next_chunk(&m_chunk);
