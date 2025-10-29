@@ -20,7 +20,6 @@
 #define RDK_SERVICES_ULP_PACKET_BUFFER_WR_COMMON_RTP_SMPTE_2110_20_PACKET_H_
 
 #include "rdk/services/ulp_packet_buffer_wr/common/rtp_packet.h"
-#include "rdk/services/media/media.h"
 
 namespace rivermax
 {
@@ -44,8 +43,6 @@ struct RTP_SMPTE_2110_20_PacketContext : public RTPPacketContext
     uint16_t srd_offset = 0;                        /**< Offset of the first pixel of the payload data within the scan line */
     uint8_t rtp_interlace_field_indicator = 0;      /**< Identifies which field the scan line belongs to,
                                                          for interlaced data */
-    std::shared_ptr<MediaUnit> current_media_unit = nullptr;
-    size_t data_left_in_media_unit_in_bytes = 0;
 };
 
 /**

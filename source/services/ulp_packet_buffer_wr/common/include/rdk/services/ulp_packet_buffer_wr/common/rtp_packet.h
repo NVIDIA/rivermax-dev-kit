@@ -20,6 +20,7 @@
 #define RDK_SERVICES_ULP_PACKET_BUFFER_WR_COMMON_RTP_PACKET_H_
 
 #include "rdk/services/ulp_packet_buffer_wr/common/ulp_packet_interface.h"
+#include "rdk/services/media/media.h"
 
 namespace rivermax
 {
@@ -47,6 +48,8 @@ struct RTPPacketContext : public PacketContext
 
     uint32_t counter = 0;                /**< Packet counter */
     size_t payload_size = 0;             /**< Size of the RTP payload */
+    std::shared_ptr<MediaUnit> current_media_unit = nullptr;
+    size_t data_left_in_media_unit_in_bytes = 0;
 };
 
 /**

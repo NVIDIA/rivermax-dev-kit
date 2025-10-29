@@ -116,18 +116,6 @@ public:
      * @return: Return status of the operation.
      */
     ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
-    // Inherit the other overload of write_buffer
-    using RTPMediaPacketBufferWriter::write_buffer;
-    /**
-     * @brief: Writes a buffer to RTP packets.
-     *
-     * @param [in] header_ptr: Pointer to the header memory.
-     * @param [in] payload_ptr: Pointer to the payload memory.
-     * @param [in] length_in_strides: Length of the buffer in strides.
-     *
-     * @return: Status of the operation.
-     */
-    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
 };
 
 } // namespace services

@@ -73,17 +73,37 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType>::write_buffer(void* h
     assert(current_payload_pointer);
     uint64_t stride = 0;
     size_t header_size = 0;
-    size_t payload_size = 0;
     ReturnStatus status = ReturnStatus::success;
 
     while (stride < length_in_strides && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
         auto packet = create_packet(current_header_pointer, current_payload_pointer); // Header Data Split mode
         status = packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
-        status = packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
-        update_in_media_unit_state(header_size, payload_size);
+        update_in_media_unit_state(header_size, 0);
         current_header_pointer += m_media_settings.app_header_stride_size;
-        current_payload_pointer += m_media_settings.data_stride_size;
         stride++;
+    }
+
+    if (status != ReturnStatus::success) {
+        std::cerr << "Failed to fill RTP headers" << std::endl;
+        return status;
+    }
+
+    if (!m_rtp_packet_context->current_media_unit || !m_rtp_packet_context->current_media_unit->data || !m_rtp_packet_context->current_media_unit->data->get()) {
+        // Mock mode - Data was pre loaded / No media unit assigned
+        return ReturnStatus::success;
+    }
+
+    byte_t* unit_ptr = m_rtp_packet_context->current_media_unit->data->get() + (m_rtp_packet_context->current_media_unit->data->get_size() - m_rtp_packet_context->data_left_in_media_unit_in_bytes);
+    status = m_payload_mem_utils->memory_copy_2D(current_payload_pointer, m_media_settings.data_stride_size,
+        unit_ptr, m_media_settings.raw_packet_payload_size, m_media_settings.raw_packet_payload_size, 
+        stride, m_rtp_packet_context->current_media_unit->data->get_memory_location());
+
+    size_t data_copied = std::min(stride * m_media_settings.raw_packet_payload_size, m_rtp_packet_context->data_left_in_media_unit_in_bytes);
+    m_rtp_packet_context->data_left_in_media_unit_in_bytes -= data_copied;
+
+    if (status != ReturnStatus::success) {
+        std::cerr << "Failed to 2D copy" << std::endl;
+        return ReturnStatus::failure;
     }
     return ReturnStatus::success;
 }
