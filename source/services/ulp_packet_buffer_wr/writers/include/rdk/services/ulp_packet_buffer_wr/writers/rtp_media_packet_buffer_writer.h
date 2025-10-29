@@ -33,82 +33,30 @@ namespace services
 constexpr uint32_t DEFAULT_SSRC = 0x0eb51dbd;
 
 /**
- * @brief: Key for media buffer factory map.
- *
- * This struct represents the key used in the media buffer factory map
- * @ref rtp_media_packet_buffer_writer_factory_map_t.
- * It consists of a @ref SMPTEStandard and a boolean indicating whether the buffer contains payload.
- */
-struct MediaBufferFactoryKey {
-    SMPTEStandard smpte_standard;
-    bool contains_payload;
-    /**
-     * @brief: Equality operator for MediaBufferFactoryKey.
-     *
-     * @param [in] other: The other MediaBufferFactoryKey to compare with.
-     *
-     * @return: True if both keys are equal, false otherwise.
-     */
-    bool operator==(const MediaBufferFactoryKey& other) const {
-        return smpte_standard == other.smpte_standard && contains_payload == other.contains_payload;
-    }
-    /**
-     * @brief: Constructor for MediaBufferFactoryKey.
-     *
-     * @param [in] _smpte_standard: The SMPTE standard.
-     * @param [in] _contains_payload: Boolean indicating whether the buffer contains payload.
-     */
-    MediaBufferFactoryKey(SMPTEStandard _smpte_standard, bool _contains_payload) : smpte_standard(_smpte_standard), contains_payload(_contains_payload) {}
-};
-
-/**
- * @brief: Hash function for @ref MediaBufferFactoryKey.
- *
- * This struct provides a hash function for @ref MediaBufferFactoryKey to be used in unordered_map.
- */
-struct MediaBufferFactoryKeyHash {
-    /**
-     * @brief: Hashing operator for MediaBufferFactoryKey.
-     *
-     * @param [in] key: The MediaBufferFactoryKey to hash.
-     *
-     * @return: The hash value of the key.
-     */
-    std::size_t operator()(const MediaBufferFactoryKey& key) const {
-        return std::hash<std::underlying_type_t<SMPTEStandard>>()(
-            static_cast<std::underlying_type_t<SMPTEStandard>>(key.smpte_standard))
-            ^ (std::hash<bool>()(key.contains_payload) << 1);
-    }
-};
-
-/**
- * @brief: Factory map type for creating @ref RTPMediaPacketBufferWriter instances.
+ * @brief: Map type for creating @ref RTPMediaPacketBufferWriter instances.
  *
  * This map associates @ref SMPTEStandard values with factory functions that create
  * instances of @ref RTPMediaPacketBufferWriter or its derived classes.
  */
 typedef std::unordered_map<
-    MediaBufferFactoryKey,
+    SMPTEStandard,
     std::function<std::unique_ptr<IULPPacketBufferWriter>(const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)>,
-        MediaBufferFactoryKeyHash> rtp_media_packet_buffer_writer_factory_map_t;
+        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)>> rtp_media_packet_buffer_writer_factory_map_t;
 
-namespace factory {
-    /**
-     * @brief: Factory function to create RTP media buffer writers.
-     *
-     * @param [in] type: SMPTE standard type.
-     * @param [in] contains_payload: Flag indicating whether the buffer contains payload.
-     * @param [in] media_settings: Media settings.
-     * @param [in] header_mem_utils: Shared pointer to header memory utilities.
-     * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
-     *
-     * @return: Unique pointer to @ref IULPPacketBufferWriter instance.
-     */
-    std::unique_ptr<IULPPacketBufferWriter> create_rtp_media_packet_buffer_writer(
-        SMPTEStandard type, bool contains_payload, const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
-}
+/**
+ * @brief: Creates an RTP media packet buffer writer based on the provided parameters.
+ *
+ * @param [in] smpte_type: SMPTE standard type.
+ * @param [in] contains_payload: Flag indicating whether the buffer contains payload.
+ * @param [in] media_settings: Media settings.
+ * @param [in] header_mem_utils: Shared pointer to header memory utilities.
+ * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
+ *
+ * @return: Unique pointer to @ref IULPPacketBufferWriter instance.
+ */
+std::unique_ptr<IULPPacketBufferWriter> create_rtp_media_packet_buffer_writer(
+    SMPTEStandard smpte_type, bool contains_payload, const MediaSettings& media_settings,
+    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
 
 /**
  * @brief: Buffer writer for RTP packets.
@@ -120,12 +68,14 @@ namespace factory {
  * the pure virtual methods to build the RTP header, write payload,
  * update the in-media-unit state, and set the concrete stream properties.
  */
-template<typename PacketContextType>
+template<typename PacketContextType, typename RTPPacketType>
 class RTPMediaPacketBufferWriter : public IULPPacketBufferWriter
 {
 protected:
     const MediaSettings& m_media_settings;
     std::unique_ptr<PacketContextType> m_rtp_packet_context;
+    std::unique_ptr<RTPPacketType> m_rtp_packet;
+    bool m_mock_mode_enabled = false;
 
 public:
     /**
@@ -158,9 +108,9 @@ public:
      *
      * @return: Return status of the operation.
      */
-    virtual ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) { return ReturnStatus::success; };
+    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
     /**
-     * @brief: Sets the rtp timestamp for the first packet.
+     * @brief: Sets the RTP timestamp for the first packet.
      *
      * @param [in] packet_time_ns: The timestamp of the first packet.
      */
@@ -173,9 +123,10 @@ protected:
      * @param [in] media_settings: Media settings.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
+     * @param [in] enable_mock_mode: Flag to enable mock mode.
      */
     RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
+        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode = false);
     /**
      * @brief: Updates the in-media-unit state.
      *
@@ -184,16 +135,9 @@ protected:
      */
     virtual void update_in_media_unit_state(size_t header_size, size_t payload_size) = 0;
     /**
-     * @brief: Creates the appropriate packet type for this writer.
-     *
-     * @param [in] header_ptr: Pointer to the header buffer.
-     * @param [in] payload_ptr: Pointer to the payload buffer (optional for non-HDS mode).
-     *
-     * @return: Unique pointer to the created packet.
+     * @brief: Reset in-media unit state for new media unit.
      */
-    virtual std::unique_ptr<RTPPacket> create_packet(byte_t* header_ptr, byte_t* payload_ptr = nullptr) {
-        return std::make_unique<RTPPacket>(header_ptr, payload_ptr);
-    }
+    virtual void reset_in_media_unit_state() = 0;
 };
 
 } // namespace services

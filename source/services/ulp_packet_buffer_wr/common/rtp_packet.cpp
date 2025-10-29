@@ -37,7 +37,7 @@ struct RTPHeader {
     uint32_t ssrc;             /**< Synchronization source (SSRC) identifier */
 };
 
-ReturnStatus RTPPacket::fill_header(const PacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTPPacket::fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTPPacketContext&>(context);
 
@@ -60,26 +60,36 @@ ReturnStatus RTPPacket::fill_header(const PacketContext& context, size_t& size, 
 
     RTPHeader* p_rtp_header = reinterpret_cast<RTPHeader*>(m_header_ptr );
     p_rtp_header->version = rtp_packet_context.version;
-    p_rtp_header->padding = rtp_packet_context.padding ? 1 : 0;
-    p_rtp_header->extension = rtp_packet_context.extension ? 1 : 0;
+    p_rtp_header->padding = rtp_packet_context.padding;
+    p_rtp_header->extension = rtp_packet_context.extension;
     p_rtp_header->cc = rtp_packet_context.cc;
     p_rtp_header->payload_type = rtp_packet_context.payload_type;
     p_rtp_header->sequence_number = htons(rtp_packet_context.sequence);
     p_rtp_header->timestamp = htonl(rtp_packet_context.timestamp);
     p_rtp_header->ssrc = htonl(rtp_packet_context.ssrc);
-    p_rtp_header->marker = rtp_packet_context.marker ? 1 : 0;
+    p_rtp_header->marker = rtp_packet_context.marker;
 
     size = sizeof(RTPHeader);
     return ReturnStatus::success;
 }
 
-ReturnStatus RTPPacket::fill_payload(const PacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTPPacket::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTPPacketContext&>(context);
 
-    // Base implementation - just return payload size (no actual copying)
-    // Derived classes will override this for specific payload handling
-    size = rtp_packet_context.payload_size;
+    if (!rtp_packet_context.current_media_unit) {
+        // Mock writer case where no media unit is set
+        size = 0;
+        return ReturnStatus::success;
+    }
+
+    size = std::min(rtp_packet_context.payload_size, rtp_packet_context.data_left_in_media_unit_in_bytes);
+    byte_t* payload_in_frame_ptr = rtp_packet_context.current_media_unit->data->get() +
+        (rtp_packet_context.current_media_unit->data->get_size() - rtp_packet_context.data_left_in_media_unit_in_bytes);
+    if (m_payload_ptr  == nullptr) {
+        m_payload_ptr  = m_header_ptr  + get_header_size();
+    }
+    mem_utils->memory_copy(m_payload_ptr , payload_in_frame_ptr, size);
     return ReturnStatus::success;
 }
 

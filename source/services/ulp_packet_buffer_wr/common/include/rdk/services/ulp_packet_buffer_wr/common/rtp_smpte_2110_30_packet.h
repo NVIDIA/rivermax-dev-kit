@@ -29,10 +29,10 @@ namespace services
 {
 
 /**
- * @brief: Stub RTP packet structure for SMPTE 2110-30 audio data.
+ * @brief: Stub RTP packet structure for SMPTE 2110-30 audio samples.
  *
  * This class provides methods to build RTP headers and fill payloads specific to
- * SMPTE 2110-30 audio data packets.
+ * SMPTE 2110-30 audio samples packets.
  */
 class RTP_SMPTE_2110_30_Packet : public RTPPacket
 {
@@ -43,8 +43,37 @@ public:
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
-    RTP_SMPTE_2110_30_Packet(byte_t* header_ptr, byte_t* payload_ptr) 
+    RTP_SMPTE_2110_30_Packet(byte_t* header_ptr, byte_t* payload_ptr)
         : RTPPacket(header_ptr, payload_ptr) {}
+};
+
+/**
+ * @brief: Mock RTP packet structure for SMPTE 2110-30 audio samples.
+ */
+class RTP_SMPTE_2110_30_MockPacket : public RTP_SMPTE_2110_30_Packet
+{
+public:
+    /**
+     * @brief: Constructor for RTP_SMPTE_2110_30_MockPacket.
+     *
+     * Initializes the packet with header and optional payload memory pointers.
+     * The payload pointer is optional and used when Header Data Split mode is enabled.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory (optional).
+     */
+    RTP_SMPTE_2110_30_MockPacket(byte_t* header_ptr, byte_t* payload_ptr) :
+        RTP_SMPTE_2110_30_Packet(header_ptr, payload_ptr) {}
+    /**
+     * @brief: Fills the RTP SMPTE 2110-30 packet payload.
+     *
+     * @param [in] context: The packet context containing relevant information.
+     * @param [out] size: Reference to store the size of the filled payload.
+     * @param [in] mem_utils: Memory utilities for payload manipulation.
+     *
+     * @return: The status of the operation.
+     */
+    ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
 };
 
 } // namespace services

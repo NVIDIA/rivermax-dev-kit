@@ -32,20 +32,19 @@ namespace services
 {
 
 /**
- * @brief: Context for packet processing.
+ * @brief: Interface for packet context.
  *
- * This struct holds relevant information needed during packet construction.
+ * This struct serves as a base for specific packet context structures.
  */
-struct PacketContext
-{
-    uint32_t timestamp = 0;
+struct IPacketContext {
+    virtual ~IPacketContext() = default;
 };
 
 /**
  * @brief: Interface for Upper Layer Protocol (ULP) packets.
  *
  * This class provides an interface for building packet headers and payloads.
- * Derived classes must implement the @ref fill_header and @ref fill_payload 
+ * Derived classes must implement the @ref fill_header and @ref fill_payload
  * methods to handle the actual packet construction process.
  */
 class IULPPacket
@@ -71,6 +70,17 @@ public:
      */
     virtual ~IULPPacket() = default;
     /**
+     * @brief: Sets the packet pointers for header and payload.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory (optional).
+     */
+    void set_packet(byte_t* header_ptr, byte_t* payload_ptr = nullptr)
+    {
+        m_header_ptr = header_ptr;
+        m_payload_ptr = payload_ptr;
+    }
+    /**
      * @brief: Fills the packet header.
      *
      * @param [in] context: The packet context containing relevant information.
@@ -79,7 +89,7 @@ public:
      *
      * @return: The status of the operation.
      */
-    virtual ReturnStatus fill_header(const PacketContext& context, size_t& size, MemoryUtils* mem_utils = nullptr) = 0;
+    virtual ReturnStatus fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils = nullptr) = 0;
     /**
      * @brief: Fills the packet payload.
      *
@@ -89,7 +99,7 @@ public:
      *
      * @return: The status of the operation.
      */
-    virtual ReturnStatus fill_payload(const PacketContext& context, size_t& size, MemoryUtils* mem_utils = nullptr) = 0;
+    virtual ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils = nullptr) = 0;
     /**
      * @brief: Returns the size of the packet header.
      *

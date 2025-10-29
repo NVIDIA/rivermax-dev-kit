@@ -32,10 +32,10 @@ namespace services
 /**
  * @brief: Context for RTP packets.
  *
- * This struct extends @ref PacketContext with RTP-specific fields based on Section 5.1
+ * This struct extends @ref IPacketContext with RTP-specific fields based on Section 5.1
  * of RFC 3550 - RTP: A Transport Protocol for Real-Time Applications.
  */
-struct RTPPacketContext : public PacketContext
+struct RTPPacketContext : public IPacketContext
 {
     uint8_t version = 2;                 /**< RTP version, currently 2 */
     bool padding = false;                /**< Padding bit */
@@ -44,6 +44,7 @@ struct RTPPacketContext : public PacketContext
     uint8_t payload_type = 0;            /**< Payload type */
     bool marker = false;                 /**< Marker bit */
     uint16_t sequence = 0;               /**< 16-bit RTP sequence number */
+    uint32_t timestamp = 0;              /**< 32-bit RTP timestamp */
     uint32_t ssrc = 0;                   /**< Synchronization source (SSRC) identifier */
 
     uint32_t counter = 0;                /**< Packet counter */
@@ -68,7 +69,7 @@ public:
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
-    RTPPacket(byte_t* header_ptr, byte_t* payload_ptr): 
+    RTPPacket(byte_t* header_ptr, byte_t* payload_ptr):
         IULPPacket(header_ptr, payload_ptr) {}
     virtual ~RTPPacket() = default;
     /**
@@ -80,7 +81,7 @@ public:
      *
      * @return: The status of the operation.
      */
-    ReturnStatus fill_header(const PacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
+    ReturnStatus fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
     /**
      * @brief: Fills the RTP packet payload.
      *
@@ -90,7 +91,7 @@ public:
      *
      * @return: The status of the operation.
      */
-    ReturnStatus fill_payload(const PacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
+    ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
     /**
      * @brief: Returns the size of the RTP header.
      *

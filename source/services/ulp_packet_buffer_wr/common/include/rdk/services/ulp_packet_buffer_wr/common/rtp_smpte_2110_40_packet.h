@@ -34,8 +34,7 @@ namespace services
  *
  * This struct extends the @ref RTPPacketContext to include fields
  * specific to SMPTE 2110-40 ancillary data packets based on section 2.1 of
- * RFC 8331 - RTP Payload for Society of Motion Picture and Television Engineers (SMPTE)
- * ST 291-1 Ancillary Data.
+ * RFC 8331 - RTP Payload for SMPTE ST 291-1 Ancillary Data.
  */
 struct RTP_SMPTE_2110_40_PacketContext : public RTPPacketContext
 {
@@ -84,7 +83,7 @@ public:
      *
      * @return: The status of the operation.
      */
-    ReturnStatus fill_header(const PacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
+    ReturnStatus fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
     /**
      * @brief: Fills the RTP SMPTE 2110-40 packet payload.
      *
@@ -94,13 +93,42 @@ public:
      *
      * @return: The status of the operation.
      */
-    ReturnStatus fill_payload(const PacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
+    ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
     /**
      * @brief: Returns the size of the RTP SMPTE 2110-40 packet header.
      *
      * @return: The size of the RTP SMPTE 2110-40 packet header in bytes.
      */
     size_t get_header_size() const override;
+};
+
+/**
+ * @brief: Mock RTP packet structure for SMPTE 2110-40 ancillary data.
+ */
+class RTP_SMPTE_2110_40_MockPacket : public RTP_SMPTE_2110_40_Packet
+{
+public:
+    /**
+     * @brief: Constructor for RTP_SMPTE_2110_40_MockPacket.
+     *
+     * Initializes the packet with header and optional payload memory pointers.
+     * The payload pointer is optional and used when Header Data Split mode is enabled.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory (optional).
+     */
+    RTP_SMPTE_2110_40_MockPacket(byte_t* header_ptr, byte_t* payload_ptr) :
+        RTP_SMPTE_2110_40_Packet(header_ptr, payload_ptr) {}
+    /**
+     * @brief: Fills the RTP SMPTE 2110-40 packet payload.
+     *
+     * @param [in] context: The packet context containing relevant information.
+     * @param [out] size: Reference to store the size of the filled payload.
+     * @param [in] mem_utils: Memory utilities for payload manipulation.
+     *
+     * @return: The status of the operation.
+     */
+    ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
 };
 
 } // namespace services

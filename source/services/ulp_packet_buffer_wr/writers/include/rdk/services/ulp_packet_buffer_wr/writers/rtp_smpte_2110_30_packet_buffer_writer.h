@@ -30,45 +30,25 @@ namespace services
 {
 
 /**
- * @brief: Mock buffer writer for ST 2110-30 RTP packets.
+ * @brief: Buffer writer for ST 2110-30 RTP packets.
  *
- * This class serves as a mock implementation for writing RTP packets with audio payload.
- * It provides methods to set stream properties, update in-media-unit state, and build RTP headers.
+ * This class handles writing RTP packets with audio samples.
  */
-class RTP_SMPTE_2110_30_MockPacketBufferWriter : public RTPMediaPacketBufferWriter<RTPPacketContext>
+class RTP_SMPTE_2110_30_PacketBufferWriter : public RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_Packet>
 {
 public:
     /**
-     * @brief: Constructor for RTP_SMPTE_2110_30_MockPacketBufferWriter.
+     * @brief: Constructor for RTP_SMPTE_2110_30_PacketBufferWriter.
      *
      * @param [in] media_settings: Media settings.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
+     * @param [in] enable_mock_mode: Flag to enable mock mode.
      */
-    RTP_SMPTE_2110_30_MockPacketBufferWriter(const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-        RTPMediaPacketBufferWriter<RTPPacketContext>(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils)) {}
-    /**
-     * @brief: Sets the next media unit (audio sample).
-     *
-     * @param [in] media_unit: Pointer to the media unit (audio sample).
-     *
-     * @return: Return status of the operation.
-     */
-    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) override;
+    RTP_SMPTE_2110_30_PacketBufferWriter(const MediaSettings& media_settings,
+        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode);
 
 protected:
-    /**
-     * @brief: Creates a SMPTE 2110-30 Packet.
-     *
-     * @param [in] header_ptr: Pointer to the header memory.
-     * @param [in] payload_ptr: Pointer to the payload memory (optional).
-     *
-     * @return: Unique pointer to the created RTP packet.
-     */
-    std::unique_ptr<RTPPacket> create_packet(byte_t* header_ptr, byte_t* payload_ptr) override {
-        return std::make_unique<RTP_SMPTE_2110_30_Packet>(header_ptr, payload_ptr);
-    }
     /**
      * @brief: Updates the in-media-unit state.
      *
@@ -79,36 +59,7 @@ protected:
     /**
      * @brief: Reset in-media unit state for new media unit.
      */
-    void reset_in_media_unit_state();
-};
-
-/**
- * @brief: Buffer writer for ST 2110-30 RTP packets.
- *
- * @note: This is a simplified implementation for interim use.
- * A more comprehensive refactor is planned for the future.
- */
-class RTP_SMPTE_2110_30_PacketBufferWriter : public RTP_SMPTE_2110_30_MockPacketBufferWriter
-{
-public:
-    /**
-     * @brief: Constructor for RTP_SMPTE_2110_30_PacketBufferWriter.
-     *
-     * @param [in] media_settings: Media settings.
-     * @param [in] header_mem_utils: Shared pointer to header memory utilities.
-     * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
-     */
-    RTP_SMPTE_2110_30_PacketBufferWriter(const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
-        RTP_SMPTE_2110_30_MockPacketBufferWriter(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils)) {}
-    /**
-     * @brief: Sets the next media unit (audio sample).
-     *
-     * @param [in] media_unit: Pointer to the media unit (audio sample).
-     *
-     * @return: Return status of the operation.
-     */
-    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
+    void reset_in_media_unit_state() override;
 };
 
 } // namespace services

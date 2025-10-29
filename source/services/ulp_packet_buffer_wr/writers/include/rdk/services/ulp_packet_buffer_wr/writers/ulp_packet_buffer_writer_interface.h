@@ -91,7 +91,7 @@ public:
      *
      * @return: Return status of the operation.
      */
-    virtual ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> unit) = 0;
+    virtual ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) = 0;
     /**
      * @brief: Sets the timestamp for the first packet.
      *

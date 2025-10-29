@@ -27,21 +27,18 @@
 
 using namespace rivermax::dev_kit::services;
 
-RTP_SMPTE_2110_20_MockPacketBufferWriter::RTP_SMPTE_2110_20_MockPacketBufferWriter(const MediaSettings& media_settings,
-    std::shared_ptr<MemoryUtils> header_mem_utils, 
-    std::shared_ptr<MemoryUtils> payload_mem_utils)
-    : RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext>(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils))
+RTP_SMPTE_2110_20_PacketBufferWriter::RTP_SMPTE_2110_20_PacketBufferWriter(const MediaSettings& media_settings,
+    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)
+    : RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext, RTP_SMPTE_2110_20_Packet>(
+        media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
+    if (enable_mock_mode) {
+        m_rtp_packet = std::make_unique<RTP_SMPTE_2110_20_MockPacket>(nullptr, nullptr);
+    }
     m_rtp_packet_context->srd_length = media_settings.raw_packet_payload_size;
 }
 
-ReturnStatus RTP_SMPTE_2110_20_MockPacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
-{
-    reset_in_media_unit_state();
-    return ReturnStatus::success;
-}
-
-void RTP_SMPTE_2110_20_MockPacketBufferWriter::reset_in_media_unit_state()
+void RTP_SMPTE_2110_20_PacketBufferWriter::reset_in_media_unit_state()
 {
     m_rtp_packet_context->counter = 0;
     m_rtp_packet_context->line_number = 0;
@@ -49,7 +46,7 @@ void RTP_SMPTE_2110_20_MockPacketBufferWriter::reset_in_media_unit_state()
     m_rtp_packet_context->rtp_interlace_field_indicator = 0;
 }
 
-inline void RTP_SMPTE_2110_20_MockPacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size)
+inline void RTP_SMPTE_2110_20_PacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size)
 {
     auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
     m_rtp_packet_context->srd_length = video_settings.raw_packet_payload_size;
@@ -77,16 +74,4 @@ inline void RTP_SMPTE_2110_20_MockPacketBufferWriter::update_in_media_unit_state
     if (m_rtp_packet_context->data_left_in_media_unit_in_bytes == 0) {
         m_rtp_packet_context->current_media_unit = nullptr;
     }
-}
-
-ReturnStatus RTP_SMPTE_2110_20_PacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
-{
-    if (media_unit == nullptr || media_unit->data == nullptr) {
-        std::cerr << "Error: Media unit is null or media unit data is null" << std::endl;
-        return ReturnStatus::failure;
-    }
-    reset_in_media_unit_state();
-    m_rtp_packet_context->current_media_unit = std::move(media_unit);
-    m_rtp_packet_context->data_left_in_media_unit_in_bytes = m_rtp_packet_context->current_media_unit->data->get_size();
-    return ReturnStatus::success;
 }

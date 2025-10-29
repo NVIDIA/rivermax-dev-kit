@@ -18,6 +18,7 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         rtp_packet.cpp
         rtp_smpte_2110_20_packet.cpp
+        rtp_smpte_2110_30_packet.cpp
         rtp_smpte_2110_40_packet.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)

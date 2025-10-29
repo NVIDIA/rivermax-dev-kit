@@ -76,7 +76,32 @@ public:
      *
      * @return: The status of the operation.
      */
-    ReturnStatus fill_header(const PacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
+    ReturnStatus fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
+    /**
+     * @brief: Returns the size of the RTP SMPTE 2110-20 packet header.
+     *
+     * @return: The size of the RTP SMPTE 2110-20 packet header in bytes.
+     */
+    size_t get_header_size() const override;
+};
+
+/**
+ * @brief: Mock RTP packet structure for SMPTE 2110-20 video data.
+ */
+class RTP_SMPTE_2110_20_MockPacket : public RTP_SMPTE_2110_20_Packet
+{
+public:
+    /**
+     * @brief: Constructor for RTP_SMPTE_2110_20_MockPacket.
+     *
+     * Initializes the packet with header and optional payload memory pointers.
+     * The payload pointer is optional and used when Header Data Split mode is enabled.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory (optional).
+     */
+    RTP_SMPTE_2110_20_MockPacket(byte_t* header_ptr, byte_t* payload_ptr) :
+        RTP_SMPTE_2110_20_Packet(header_ptr, payload_ptr) {}
     /**
      * @brief: Fills the RTP SMPTE 2110-20 packet payload.
      *
@@ -86,13 +111,7 @@ public:
      *
      * @return: The status of the operation.
      */
-    ReturnStatus fill_payload(const PacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
-    /**
-     * @brief: Returns the size of the RTP SMPTE 2110-20 packet header.
-     *
-     * @return: The size of the RTP SMPTE 2110-20 packet header in bytes.
-     */
-    size_t get_header_size() const override;
+    ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
 };
 
 } // namespace services

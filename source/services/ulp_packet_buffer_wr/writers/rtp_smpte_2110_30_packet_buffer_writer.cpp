@@ -26,18 +26,22 @@
 
 using namespace rivermax::dev_kit::services;
 
-ReturnStatus RTP_SMPTE_2110_30_MockPacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+RTP_SMPTE_2110_30_PacketBufferWriter::RTP_SMPTE_2110_30_PacketBufferWriter(const MediaSettings& media_settings,
+    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)
+    : RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_Packet>(
+        media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
-    reset_in_media_unit_state();
-    return ReturnStatus::success;
+    if (enable_mock_mode) {
+        m_rtp_packet = std::make_unique<RTP_SMPTE_2110_30_MockPacket>(nullptr, nullptr);
+    }
 }
 
-void RTP_SMPTE_2110_30_MockPacketBufferWriter::reset_in_media_unit_state()
+void RTP_SMPTE_2110_30_PacketBufferWriter::reset_in_media_unit_state()
 {
     m_rtp_packet_context->counter = 0;
 }
 
-void RTP_SMPTE_2110_30_MockPacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size) 
+void RTP_SMPTE_2110_30_PacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size)
 {
     const auto& audio_settings = static_cast<const SMPTE_2110_30_MediaSettings&>(m_media_settings);
     uint32_t ticks_per_packet = static_cast<uint32_t>((m_media_settings.sample_rate * audio_settings.ptime_usec) / USEC_IN_SEC);
@@ -49,10 +53,9 @@ void RTP_SMPTE_2110_30_MockPacketBufferWriter::update_in_media_unit_state(size_t
         m_rtp_packet_context->counter = 0;
     }
     m_rtp_packet_context->sequence++;
-}
 
-ReturnStatus RTP_SMPTE_2110_30_PacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
-{
-    // Todo: Implement actual media unit handling.
-    return ReturnStatus::success;
+    m_rtp_packet_context->data_left_in_media_unit_in_bytes -= payload_size;
+    if (m_rtp_packet_context->data_left_in_media_unit_in_bytes == 0) {
+        m_rtp_packet_context->current_media_unit = nullptr;
+    }
 }

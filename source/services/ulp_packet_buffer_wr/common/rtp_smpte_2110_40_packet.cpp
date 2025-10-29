@@ -26,8 +26,8 @@ using namespace rivermax::dev_kit::services;
  * @brief: ST 2110-40 Ancillary RTP extension header.
  *
  * RTP header extension for ancillary data streams following the standard
- * RTP header based on section 2.1 of RFC 8331 - RTP Payload for Society of
- * Motion Picture and Television Engineers (SMPTE) ST 291-1 Ancillary Data.
+ * RTP header based on section 2.1 of RFC 8331 - RTP Payload for SMPTE ST
+ * 291-1 Ancillary Data.
  */
 struct AncillaryRTPExtension
 {
@@ -53,17 +53,17 @@ RTP_SMPTE_2110_40_Packet::RTP_SMPTE_2110_40_Packet(byte_t* header_ptr, byte_t* p
 {
 }
 
-ReturnStatus RTP_SMPTE_2110_40_Packet::fill_header(const PacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTP_SMPTE_2110_40_Packet::fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTP_SMPTE_2110_40_PacketContext&>(context);
 
     ReturnStatus status = RTPPacket::fill_header(context, size, mem_utils);
 
     /**
-     * @brief: ST 2110-40 Ancillary RTP Header Extension Format
+     * @brief: ST 2110-40 Ancillary RTP Header Extension Format.
      *
-     * Using extended RTP format based on RFC 8331 - RTP Payload for Society of 
-     * Motion Picture and Television Engineers (SMPTE) ST 291-1 Ancillary Data.
+     * Using extended RTP format based on RFC 8331 - RTP Payload for SMPTE ST 291-1
+     * Ancillary Data.
      *
      * 0                   1                   2                   3
      * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -71,7 +71,7 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_header(const PacketContext& context,
      * |    Extended Sequence Number   |           Length              |
      * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      * | ANC_Count     |F|   reserved                                  |
-     * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ 
+     * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
 
     AncillaryRTPExtension* p_ancillary_header = reinterpret_cast<AncillaryRTPExtension*>(m_header_ptr  + size);
@@ -86,12 +86,17 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_header(const PacketContext& context,
     return status;
 }
 
-ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const PacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTP_SMPTE_2110_40_PacketContext&>(context);
     // Mock implementation: no actual payload filling
     // TODO : Implement actual payload filling based on ancillary data structure
     /**
+     * @brief: ST 2110-40 Ancillary RTP Payload Format.
+     *
+     * Each Ancillary payload is filled with a single ANC packet structure based
+     * on RFC 8331 - RTP Payload for SMPTE ST 291-1 Ancillary Data.
+     *
      *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      *  |C|   Line_Number=9     |   Horizontal_Offset   |S| StreamNum=0 |
      *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -100,8 +105,8 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const PacketContext& context
      *                           User_Data_Words...
      *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      *              |   Checksum_Word   |         word_align            |
-     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ 
-    */
+     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     */
     size = rtp_packet_context.payload_size;
     return ReturnStatus::success;
 }
@@ -109,4 +114,29 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const PacketContext& context
 size_t RTP_SMPTE_2110_40_Packet::get_header_size() const
 {
     return RTPPacket::get_header_size() + sizeof(AncillaryRTPExtension);
+}
+
+ReturnStatus RTP_SMPTE_2110_40_MockPacket::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
+{
+    const auto& rtp_packet_context = static_cast<const RTP_SMPTE_2110_40_PacketContext&>(context);
+    // Mock implementation: no actual payload filling
+    // TODO : Implement actual payload filling based on ancillary data structure
+    /**
+     * @brief: ST 2110-40 Ancillary RTP Payload Format.
+     *
+     * Each Ancillary payload is filled with a single ANC packet structure based
+     * on RFC 8331 - RTP Payload for SMPTE ST 291-1 Ancillary Data.
+     *
+     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *  |C|   Line_Number=9     |   Horizontal_Offset   |S| StreamNum=0 |
+     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *  |         DID       |        SDID       |  Data_Count=0x84  |
+     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *                           User_Data_Words...
+     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *              |   Checksum_Word   |         word_align            |
+     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     */
+    size = rtp_packet_context.payload_size;
+    return ReturnStatus::success;
 }

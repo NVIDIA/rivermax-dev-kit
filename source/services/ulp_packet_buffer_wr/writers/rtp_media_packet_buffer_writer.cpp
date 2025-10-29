@@ -30,9 +30,9 @@
 
 using namespace rivermax::dev_kit::services;
 
-template<typename PacketContextType>
-RTPMediaPacketBufferWriter<PacketContextType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
-    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils) :
+template<typename PacketContextType, typename RTPPacketType>
+RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
+    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode) :
     IULPPacketBufferWriter(std::move(header_mem_utils), std::move(payload_mem_utils)),
     m_media_settings(media_settings)
 {
@@ -40,32 +40,46 @@ RTPMediaPacketBufferWriter<PacketContextType>::RTPMediaPacketBufferWriter(const 
     m_rtp_packet_context->ssrc = DEFAULT_SSRC; // Simulated SSRC.
     m_rtp_packet_context->payload_type = media_settings.payload_type;
     m_rtp_packet_context->payload_size = media_settings.raw_packet_payload_size;
+    m_rtp_packet = std::make_unique<RTPPacketType>(nullptr, nullptr);
+    m_mock_mode_enabled = enable_mock_mode;
 }
 
-template<typename PacketContextType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType>::write_buffer(void* payload_ptr, size_t length_in_strides)
+template<typename PacketContextType, typename RTPPacketType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+{
+    if (media_unit == nullptr || media_unit->data == nullptr) {
+        std::cerr << "Error: Media unit is null or media unit data is null" << std::endl;
+        return ReturnStatus::failure;
+    }
+    reset_in_media_unit_state();
+    m_rtp_packet_context->current_media_unit = std::move(media_unit);
+    m_rtp_packet_context->data_left_in_media_unit_in_bytes = m_rtp_packet_context->current_media_unit->data->get_size();
+    return ReturnStatus::success;
+}
+
+template<typename PacketContextType, typename RTPPacketType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write_buffer(void* payload_ptr, size_t length_in_strides)
 {
     byte_t* current_packet_pointer = reinterpret_cast<byte_t*>(payload_ptr);
     assert(current_packet_pointer);
     uint64_t stride = 0;
     size_t header_size = 0;
     size_t payload_size = 0;
-    ReturnStatus status = ReturnStatus::success;
-    
+
     while (stride < length_in_strides && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
-        // No Header Data split mode
-        auto packet = create_packet(current_packet_pointer);
-        status = packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
-        status = packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
+        m_rtp_packet->set_packet(current_packet_pointer);
+        // Skip ReturnStatus testing for performance reasons
+        (void)m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        (void)m_rtp_packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
         update_in_media_unit_state(header_size, payload_size);
         current_packet_pointer += m_media_settings.data_stride_size;
         stride++;
     }
-    return status;
+    return ReturnStatus::success;
 }
 
-template<typename PacketContextType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType>::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
+template<typename PacketContextType, typename RTPPacketType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
 {
     byte_t* current_header_pointer = reinterpret_cast<byte_t*>(header_ptr);
     byte_t* current_payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);
@@ -76,8 +90,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType>::write_buffer(void* h
     ReturnStatus status = ReturnStatus::success;
 
     while (stride < length_in_strides && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
-        auto packet = create_packet(current_header_pointer, current_payload_pointer); // Header Data Split mode
-        status = packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        m_rtp_packet->set_packet(current_header_pointer, current_payload_pointer); // Header Data Split mode
+        status = m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
         update_in_media_unit_state(header_size, 0);
         current_header_pointer += m_media_settings.app_header_stride_size;
         stride++;
@@ -88,17 +102,21 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType>::write_buffer(void* h
         return status;
     }
 
-    if (!m_rtp_packet_context->current_media_unit || !m_rtp_packet_context->current_media_unit->data || !m_rtp_packet_context->current_media_unit->data->get()) {
+    if (m_mock_mode_enabled) {
         // Mock mode - Data was pre loaded / No media unit assigned
         return ReturnStatus::success;
     }
 
-    byte_t* unit_ptr = m_rtp_packet_context->current_media_unit->data->get() + (m_rtp_packet_context->current_media_unit->data->get_size() - m_rtp_packet_context->data_left_in_media_unit_in_bytes);
+    byte_t* media_unit_ptr =
+        m_rtp_packet_context->current_media_unit->data->get() + (m_rtp_packet_context->current_media_unit->data->get_size() - \
+        m_rtp_packet_context->data_left_in_media_unit_in_bytes);
     status = m_payload_mem_utils->memory_copy_2D(current_payload_pointer, m_media_settings.data_stride_size,
-        unit_ptr, m_media_settings.raw_packet_payload_size, m_media_settings.raw_packet_payload_size, 
+        media_unit_ptr, m_media_settings.raw_packet_payload_size, m_media_settings.raw_packet_payload_size,
         stride, m_rtp_packet_context->current_media_unit->data->get_memory_location());
 
-    size_t data_copied = std::min(stride * m_media_settings.raw_packet_payload_size, m_rtp_packet_context->data_left_in_media_unit_in_bytes);
+    size_t data_copied = std::min(
+        stride * m_media_settings.raw_packet_payload_size,
+        m_rtp_packet_context->data_left_in_media_unit_in_bytes);
     m_rtp_packet_context->data_left_in_media_unit_in_bytes -= data_copied;
 
     if (status != ReturnStatus::success) {
@@ -108,8 +126,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType>::write_buffer(void* h
     return ReturnStatus::success;
 }
 
-template<typename PacketContextType>
-void RTPMediaPacketBufferWriter<PacketContextType>::set_initial_timestamp(uint64_t packet_time_ns)
+template<typename PacketContextType, typename RTPPacketType>
+void RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::set_initial_timestamp(uint64_t packet_time_ns)
 {
     m_rtp_packet_context->timestamp = static_cast<uint32_t>(
         time_to_rtp_timestamp(packet_time_ns, static_cast<int>(m_media_settings.sample_rate)));
@@ -120,34 +138,32 @@ template<typename WriterType>
 std::unique_ptr<IULPPacketBufferWriter> create_writer(
     const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils,
-    std::shared_ptr<MemoryUtils> payload_mem_utils)
+    std::shared_ptr<MemoryUtils> payload_mem_utils,
+    bool enable_mock_mode)
 {
     return std::unique_ptr<WriterType>(new WriterType(media_settings,
-        std::move(header_mem_utils), std::move(payload_mem_utils)));
+        std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode));
 }
 
 static rtp_media_packet_buffer_writer_factory_map_t s_rtp_media_packet_buffer_writer_factory = {
-    {{SMPTEStandard::ST_2110_20, false}, create_writer<RTP_SMPTE_2110_20_MockPacketBufferWriter>},
-    {{SMPTEStandard::ST_2110_20, true},  create_writer<RTP_SMPTE_2110_20_PacketBufferWriter>},
-    {{SMPTEStandard::ST_2110_30, false}, create_writer<RTP_SMPTE_2110_30_MockPacketBufferWriter>},
-    {{SMPTEStandard::ST_2110_30, true},  create_writer<RTP_SMPTE_2110_30_PacketBufferWriter>},
-    {{SMPTEStandard::ST_2110_40, false}, create_writer<RTP_SMPTE_2110_40_MockPacketBufferWriter>},
-    {{SMPTEStandard::ST_2110_40, true},  create_writer<RTP_SMPTE_2110_40_PacketBufferWriter>}
+    {SMPTEStandard::ST_2110_20, create_writer<RTP_SMPTE_2110_20_PacketBufferWriter>},
+    {SMPTEStandard::ST_2110_30, create_writer<RTP_SMPTE_2110_30_PacketBufferWriter>},
+    {SMPTEStandard::ST_2110_40, create_writer<RTP_SMPTE_2110_40_PacketBufferWriter>}
 };
 
-std::unique_ptr<IULPPacketBufferWriter> factory::create_rtp_media_packet_buffer_writer(
-    SMPTEStandard type, bool contains_payload, const MediaSettings& media_settings,
+std::unique_ptr<IULPPacketBufferWriter> rivermax::dev_kit::services::create_rtp_media_packet_buffer_writer(
+    SMPTEStandard smpte_type, bool contains_payload, const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
 {
-    auto key = MediaBufferFactoryKey(type, contains_payload);
-    auto iter = s_rtp_media_packet_buffer_writer_factory.find(key);
+    auto iter = s_rtp_media_packet_buffer_writer_factory.find(smpte_type);
     if (iter != s_rtp_media_packet_buffer_writer_factory.end()) {
-        return iter->second(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils));
+        return iter->second(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), !contains_payload);
     }
     return nullptr;
 }
 
 // Explicit template instantiation
-template class RTPMediaPacketBufferWriter<RTPPacketContext>;
-template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext>;
-template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext>;
+template class RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacket>;
+template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext, RTP_SMPTE_2110_20_Packet>;
+template class RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_Packet>;
+template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet>;
