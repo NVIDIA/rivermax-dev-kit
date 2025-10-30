@@ -26,6 +26,7 @@ SMPTE_2110_30_MediaSettings::SMPTE_2110_30_MediaSettings(const AppSettings& app_
     header_data_split = app_settings.header_data_split;
     requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
     media_units_in_mem_block = app_settings.media.frames_fields_in_mem_block;
+    payload_type = PAYLOAD_TYPE_ST_2110_30;
     media_file = app_settings.audio_file;
     dynamic_media_file_load = app_settings.dynamic_media_file_load;
 

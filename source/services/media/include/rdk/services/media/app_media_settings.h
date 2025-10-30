@@ -61,7 +61,6 @@ struct AppMediaSettings
     size_t protocol_header_size = 0;
     size_t packet_payload_size = 0;
     size_t raw_packet_payload_size = 0;
-    uint8_t payload_type = 96;
     uint16_t pixels_per_packet = 0;
     bool enable_video = false;
     bool enable_audio = false;
