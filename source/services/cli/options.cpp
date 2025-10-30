@@ -85,7 +85,7 @@ const char* CLIOptStr::AUDIO_SAMPLING_RATE = "--asr,--audio-sampling-rate";
 const char* CLIOptStr::AUDIO_ENCODING = "--ae,--audio-encoding";
 const char* CLIOptStr::ANCILLARY_DID = "--and,--ancillary-did";
 const char* CLIOptStr::ANCILLARY_SDID = "--ans,--ancillary-sdid";
-const char* CLIOptStr::ANCILLARY_DATA_SIZE = "--ands,--ancillary-data-size";
+const char* CLIOptStr::ANCILLARY_DATA_WORDS_COUNT = "--anc,--ancillary-data-words-count";
 
 const char* CLIGroupStr::VIDEO_FORMAT_OPTIONS = "Video format options";
 const char* CLIGroupStr::AUDIO_FORMAT_OPTIONS = "Audio format options";
@@ -676,11 +676,11 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         }
     },
     {
-        CLIOptStr::ANCILLARY_DATA_SIZE,
+        CLIOptStr::ANCILLARY_DATA_WORDS_COUNT,
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
-            return parser->add_option(CLIOptStr::ANCILLARY_DATA_SIZE,
-                                    app_settings->media.anc_data_size,
+            return parser->add_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT,
+                                    app_settings->media.anc_data_words_count,
                                     "Ancillary data size");
         }
     },

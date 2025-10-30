@@ -86,21 +86,21 @@ public:
      * @brief: Writes a buffer to RTP packets when Header Data Split mode is off.
      *
      * @param [in] payload_ptr: Pointer to the payload memory.
-     * @param [in] length_in_strides: Length of the buffer in strides.
+     * @param [in] buffer_length: Length of the buffer in strides.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus write_buffer(void* payload_ptr, size_t length_in_strides) override;
+    ReturnStatus write_buffer(void* payload_ptr, size_t buffer_length) override;
     /**
      * @brief: Writes a buffer to RTP packets when Header Data Split mode is on.
      *
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory.
-     * @param [in] length_in_strides: Length of the buffer in strides.
+     * @param [in] buffer_length: Length of the buffer in strides.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides) override;
+    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length) override;
     /**
      * @brief: Sets the next media unit to be processed.
      *

@@ -71,7 +71,7 @@ struct AppMediaSettings
     uint8_t audio_channels_num = 2;
     uint16_t anc_did = 0;
     uint16_t anc_sdid = 0;
-    uint16_t anc_data_size = 128;
+    uint16_t anc_data_words_count = 128;
 };
 
 }  // namespace services

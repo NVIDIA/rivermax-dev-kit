@@ -32,6 +32,12 @@ RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const
     if (enable_mock_mode) {
         m_rtp_packet = std::make_unique<RTP_SMPTE_2110_40_MockPacket>(nullptr, nullptr);
     }
+    auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
+    // TODO: Support multiple ancillary packets in a single RTP packet.
+    // These fields should be calculated based on media unit data / metadata.
+    m_rtp_packet_context->did = ancillary_settings.did;
+    m_rtp_packet_context->sdid = ancillary_settings.sdid;
+    m_rtp_packet_context->user_data_words_count = ancillary_settings.user_data_words_count;
 }
 
 void RTP_SMPTE_2110_40_PacketBufferWriter::reset_in_media_unit_state()
@@ -56,5 +62,28 @@ void RTP_SMPTE_2110_40_PacketBufferWriter::update_in_media_unit_state(size_t hea
     }
     // Set Marker bit on last ANC data RTP packet for a field (for interlaced video).
     m_rtp_packet_context->marker = (m_rtp_packet_context->counter == ancillary_settings.packets_in_media_unit - 1) ? 1 : 0;
+    m_rtp_packet_context->sequence++;
     m_rtp_packet_context->extended_sequence_number++;
+}
+
+ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length)
+{
+    byte_t* current_header_pointer = reinterpret_cast<byte_t*>(header_ptr);
+    byte_t* current_payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);
+    assert(current_header_pointer);
+    assert(current_payload_pointer);
+    uint64_t stride = 0;
+    size_t header_size = 0;
+    size_t payload_size = 0;
+
+    while (stride < buffer_length && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
+        m_rtp_packet->set_packet(current_header_pointer, current_payload_pointer);
+        (void)m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        (void)m_rtp_packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
+        update_in_media_unit_state(header_size, payload_size);
+        current_header_pointer += m_media_settings.app_header_stride_size;
+        current_payload_pointer += m_media_settings.data_stride_size;
+        stride++;
+    }
+    return ReturnStatus::success;
 }

@@ -25,6 +25,7 @@
 
 #include "rdk/services/media/ancillary_settings_calculator.h"
 #include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/ulp_packet_buffer_wr/common/rtp_smpte_2110_40_packet.h"
 #include "rdk/services/utils/defs.h"
 
 using namespace rivermax::dev_kit::services;
@@ -32,15 +33,16 @@ using namespace rivermax::dev_kit::services;
 ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
 {
     // Calculate actual packet size
-    m_media_settings.protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
-    m_media_settings.raw_packet_payload_size = SMPTE_2110_40_MediaSettings::ANCILLARY_DATA_HEADER_SIZE + m_media_settings.user_data_size_bytes;
+    m_media_settings.protocol_header_size = RTP_ST_2110_40_ANCILLARY_HEADER_SIZE;
+    // TODO: Extend to support multiple ancillary data packets per RTP packet
+    m_media_settings.raw_packet_payload_size = AncillaryDataPacketWriter::calculate_packet_size(m_media_settings.user_data_words_count);
     m_media_settings.packet_payload_size = m_media_settings.protocol_header_size + m_media_settings.raw_packet_payload_size;
 
     // Packet size validation
     if (m_media_settings.packet_payload_size > MediaSettings::MAX_PAYLOAD_SIZE) {
         std::cerr << "Error: Ancillary packet size (" << m_media_settings.packet_payload_size
                   << " bytes) exceeds network limit (" << MediaSettings::MAX_PAYLOAD_SIZE << " bytes). "
-                  << "Consider smaller user_data_size_bytes." << std::endl;
+                  << "Consider smaller user_data_words_count." << std::endl;
         return ReturnStatus::failure;
     }
 

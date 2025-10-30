@@ -60,6 +60,17 @@ protected:
      * @brief: Reset in-media unit state for new media unit.
      */
     void reset_in_media_unit_state() override;
+    using RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet>::write_buffer;
+    /**
+     * @brief: Writes RTP packet buffer when Header Data Split mode is on.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory.
+     * @param [in] buffer_length: Length of the buffer in strides.
+     *
+     * @return: Status of the operation.
+     */
+    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length) override;
 };
 
 } // namespace services

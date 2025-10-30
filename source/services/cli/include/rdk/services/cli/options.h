@@ -119,7 +119,7 @@ public:
     static const char* AUDIO_ENCODING;
     static const char* ANCILLARY_DID;
     static const char* ANCILLARY_SDID;
-    static const char* ANCILLARY_DATA_SIZE;
+    static const char* ANCILLARY_DATA_WORDS_COUNT;
 };
 /**
  * @brief: CLI groups string key.

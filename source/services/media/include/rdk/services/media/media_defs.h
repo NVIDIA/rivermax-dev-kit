@@ -210,6 +210,15 @@ constexpr size_t NS_IN_MSEC = std::chrono::nanoseconds{ std::chrono::millisecond
 constexpr size_t USEC_IN_SEC = std::chrono::microseconds{ std::chrono::seconds{ 1 } }.count();
 constexpr uint8_t LEAP_SECONDS = 37;
 constexpr uint64_t DEFAULT_STREAM_START_OFFSET_NS = NS_IN_SEC;
+/* Bit masks and sizes */
+constexpr size_t BYTE_SIZE_BITS = 8;
+constexpr size_t WORD_SIZE_BITS = 32;
+constexpr uint32_t MASK_7BIT = 0x7F;
+constexpr uint32_t MASK_8BIT = 0xFF;
+constexpr uint32_t MASK_9BIT = 0x1FF;
+constexpr uint32_t MASK_10BIT = 0x3FF;
+constexpr uint32_t MASK_11BIT = 0x7FF;
+constexpr uint32_t MASK_12BIT = 0xFFF;
 /* Resolution constants */
 constexpr size_t FHD_WIDTH = 1920;
 constexpr size_t FHD_HEIGHT = 1080;
@@ -226,6 +235,19 @@ constexpr size_t RTP_HEADER_CSRC_GRANULARITY_BYTES = 4;
 constexpr size_t RTP_SINGLE_SRD_HEADER_SIZE = RTP_HEADER_SRD_SIZE + RTP_HEADER_EXT_SEQ_NUM_SIZE;
 constexpr size_t RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE = \
     RTP_HEADER_SIZE + RTP_SINGLE_SRD_HEADER_SIZE;
+constexpr size_t RTP_ST_2110_40_HEADER_EXT_SIZE = 8;
+constexpr size_t RTP_ST_2110_40_ANCILLARY_HEADER_SIZE = \
+    RTP_HEADER_SIZE + RTP_ST_2110_40_HEADER_EXT_SIZE;
+constexpr size_t RTP_ST_2110_40_DATA_WORD_SIZE_BITS = 10;
+constexpr size_t RTP_ST_2110_40_CHECKSUM_SIZE_BITS = 10;
+constexpr size_t RTP_ST_2110_40_PARITY_BIT_POSITION = 8;
+constexpr size_t RTP_ST_2110_40_INVERSE_PARITY_BIT_POSITION = 9;
+constexpr size_t RTP_ST_2110_40_C_FLAG_BIT_POSITION = 31;
+constexpr size_t RTP_ST_2110_40_LINE_NUMBER_BIT_POSITION = 20;
+constexpr size_t RTP_ST_2110_40_HORIZONTAL_OFFSET_BIT_POSITION = 8;
+constexpr size_t RTP_ST_2110_40_S_FLAG_BIT_POSITION = 7;
+constexpr size_t RTP_ST_2110_40_CHECKSUM_MSB_POSITION = 8;
+constexpr size_t RTP_ST_2110_40_CHECKSUM_INVERSE_BIT_POSITION = 9;
 constexpr uint32_t RTP_SEQUENCE_NUMBER_MASK_16BIT = 0xFFFF;
 constexpr uint32_t RTP_SEQUENCE_NUMBER_MASK_32BIT = 0xFFFFFFFF;
 constexpr uint8_t RTP_VERSION_MASK = 0xC0;

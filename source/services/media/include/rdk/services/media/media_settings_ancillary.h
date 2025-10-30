@@ -58,7 +58,7 @@ struct SMPTE_2110_40_MediaSettings : public MediaSettings
     static constexpr uint16_t ANCILLARY_DATA_HEADER_SIZE = 8;
     uint16_t did = 0;
     uint16_t sdid = 0;
-    uint16_t user_data_size_bytes = 128;
+    uint16_t user_data_words_count = 128;
     FrameRate frame_rate = {60};
 };
 

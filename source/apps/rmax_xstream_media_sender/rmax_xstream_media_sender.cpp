@@ -134,7 +134,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
         ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_SDID)
         ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_DATA_SIZE)
+    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT)
         ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
 
     return ReturnStatus::success;

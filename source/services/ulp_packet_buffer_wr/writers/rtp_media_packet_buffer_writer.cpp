@@ -58,7 +58,7 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::set_n
 }
 
 template<typename PacketContextType, typename RTPPacketType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write_buffer(void* payload_ptr, size_t length_in_strides)
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write_buffer(void* payload_ptr, size_t buffer_length)
 {
     byte_t* current_packet_pointer = reinterpret_cast<byte_t*>(payload_ptr);
     assert(current_packet_pointer);
@@ -66,7 +66,7 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write
     size_t header_size = 0;
     size_t payload_size = 0;
 
-    while (stride < length_in_strides && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
+    while (stride < buffer_length && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
         m_rtp_packet->set_packet(current_packet_pointer);
         // Skip ReturnStatus testing for performance reasons
         (void)m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
@@ -79,7 +79,7 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write
 }
 
 template<typename PacketContextType, typename RTPPacketType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write_buffer(void* header_ptr, void* payload_ptr, size_t length_in_strides)
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length)
 {
     byte_t* current_header_pointer = reinterpret_cast<byte_t*>(header_ptr);
     byte_t* current_payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);
@@ -89,7 +89,7 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write
     size_t header_size = 0;
     ReturnStatus status = ReturnStatus::success;
 
-    while (stride < length_in_strides && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
+    while (stride < buffer_length && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
         m_rtp_packet->set_packet(current_header_pointer, current_payload_pointer); // Header Data Split mode
         status = m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
         update_in_media_unit_state(header_size, 0);

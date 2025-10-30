@@ -45,13 +45,79 @@ struct RTP_SMPTE_2110_40_PacketContext : public RTPPacketContext
                                                   relation to video fields */
     bool c_flag = false;                     /**< Color channel flag */
     uint16_t line_number = 0;                /**< Line number of the ANC data */
-    uint16_t horizontal_offset = 0;          /**< Horizontal offset of the ANC data */
+    uint16_t horizontal_offset = 0;          /**< 10-bit words horizontal offset of the ANC data */
     bool s_flag = false;                     /**< Data stream flag */
     uint8_t stream_number = 0;               /**< Data stream number */
     uint8_t did = 0;                         /**< Data identification word */
     uint8_t sdid = 0;                        /**< Secondary data identification word */
-    std::vector<uint8_t> user_data;          /**< User data */
-    size_t user_data_size_bytes = 16;        /**< User data size in bytes */
+    uint16_t user_data_words_count = 16;     /**< User data 10-bit words count */
+};
+
+/**
+ * @brief: Helper class to write ancillary data payloads into a buffer.
+ *
+ * Provides methods to write ancillary data packets that are carried in the RTP payload
+ * based on section 2.1 of RFC 8331 - RTP Payload for SMPTE ST 291-1 Ancillary Data.
+ */
+class AncillaryDataPacketWriter
+{
+private:
+    /**
+     * @brief: Calculate even parity for a byte.
+     *
+     * @param [in] value: Byte value to calculate parity for.
+     *
+     * @return: Even parity bit (0 or 1).
+     */
+    static uint8_t calculate_even_parity(uint8_t value);
+    /**
+     * @brief: Adds parity bits to a byte to form a 10-bit word.
+     *
+     * @param [in] data: Byte value to add parity bits to.
+     *
+     * @return: 10-bit word with parity bits.
+     */
+    static uint16_t add_parity_bits(uint8_t data);
+    /**
+     * @brief: Calculates checksum for ancillary data packet.
+     *
+     * @param [in] packed_words: Vector of packed 10-bit words.
+     *
+     * @return: Calculated checksum (9 bits).
+     */
+    static uint16_t calculate_checksum(const std::vector<uint16_t>& packed_words);
+    /**
+     * @brief: Packs 10-bit words into a byte buffer.
+     *
+     * @param [in] words: Pointer to array of 10-bit words.
+     * @param [in] word_count: Number of 10-bit words.
+     * @param [out] buffer: Pointer to output byte buffer.
+     *
+     * @return: Number of bytes written to the buffer.
+     */
+    static size_t pack_10bit_words(const uint16_t* words, size_t word_count, uint8_t* buffer);
+
+public:
+    AncillaryDataPacketWriter() {}
+    /**
+     * @brief: Writes ancillary data packet into the buffer.
+     *
+     * @param [out] buffer: Pointer to the buffer to write the packet into.
+     * @param [in] user_data_bytes: Pointer to array of 8-bit user data words (before parity bits are added).
+     * @param [in] rtp_packet_context: Context containing ancillary data packet information.
+     *
+     * @return: Total number of bytes written to the buffer.
+     */
+    static size_t write_ancillary_data(byte_t* buffer, byte_t* user_data_bytes,
+                                       const RTP_SMPTE_2110_40_PacketContext& rtp_packet_context);
+    /**
+     * @brief: Calculates the size of the ancillary data packet.
+     *
+     * @param [in] user_data_words_count: Number of 10-bit words in user data.
+     *
+     * @return: Size of the ancillary data packet in bytes.
+     */
+    static uint16_t calculate_packet_size(uint16_t user_data_words_count);
 };
 
 /**
@@ -62,6 +128,8 @@ struct RTP_SMPTE_2110_40_PacketContext : public RTPPacketContext
  */
 class RTP_SMPTE_2110_40_Packet : public RTPPacket
 {
+protected:
+    AncillaryDataPacketWriter m_ancillary_data_packet_writer;
 public:
     /**
      * @brief: Constructor for RTP_SMPTE_2110_40_Packet.
@@ -107,6 +175,11 @@ public:
  */
 class RTP_SMPTE_2110_40_MockPacket : public RTP_SMPTE_2110_40_Packet
 {
+private:
+    // Temporary variables to track data initialization and avoid redundant fills
+    // TODO: Refactor this logic and provide a payload that already contains the ancillary data
+    void* m_data_ptr;
+    bool initialized = false;
 public:
     /**
      * @brief: Constructor for RTP_SMPTE_2110_40_MockPacket.
@@ -118,7 +191,11 @@ public:
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
     RTP_SMPTE_2110_40_MockPacket(byte_t* header_ptr, byte_t* payload_ptr) :
-        RTP_SMPTE_2110_40_Packet(header_ptr, payload_ptr) {}
+        RTP_SMPTE_2110_40_Packet(header_ptr, payload_ptr) {
+            // Temporary initialization and will be removed in future refactor
+            m_data_ptr = payload_ptr;
+            initialized = false;
+        }
     /**
      * @brief: Fills the RTP SMPTE 2110-40 packet payload.
      *
