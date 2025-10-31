@@ -92,9 +92,19 @@ public:
      *
      * @param [in] desired_time_ns: Desired time in nanoseconds to align.
      *
-     * @return: Aligned time in nanoseconds, including media-specific transmission offsets.
+     * @return: Aligned time in nanoseconds at the media unit boundary.
      */
     virtual double align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const = 0;
+    /**
+     * @brief: Returns the transmit offset value in nanoseconds.
+     *
+     * This method returns the transmit offset value for the media type,
+     * which is the time offset between the frame boundary and when packets should
+     * actually be transmitted.
+     *
+     * @return: Transmit offset value in nanoseconds.
+     */
+    virtual double get_transmit_offset_ns() const { return 0.0; }
 };
 
 } // namespace services

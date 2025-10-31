@@ -94,6 +94,12 @@ public:
     virtual std::string get_smpte_standard_name() const override;
     virtual double align_time_to_media_unit_boundary_ns(uint64_t desired_time_ns) const override;
     /**
+     * @brief: Returns the transmit offset value in nanoseconds.
+     *
+     * @return: Transmit offset value in nanoseconds.
+     */
+    virtual double get_transmit_offset_ns() const override;
+    /**
      * @brief: Calculates TRO and TRS timing parameters.
      *
      * This method calculates the TRO (Time Read Offset)

@@ -452,17 +452,64 @@ ReturnStatus MediaSenderIONode::coordinate_start_time(uint64_t& send_time_ns)
         return ReturnStatus::success;
     }
 
-    auto start_time_checker = [&](uint64_t proposed_time) {
-        if (proposed_time - send_time_ns < NS_IN_USEC) {
+    uint64_t initial_requested_time_ns = send_time_ns;
+    auto start_time_checker = [&](uint64_t proposed_time_ns) {
+        /**
+         * @brief: Align proposed time to interval boundaries
+         *
+         * Example: interval_ns = 1000 nanoseconds
+         *
+         * Timeline showing interval boundaries:
+         *
+         *     0         1000        2000        3000        4000
+         *     |-----------|-----------|-----------|-----------|
+         *     START     BOUNDARY    BOUNDARY    BOUNDARY    BOUNDARY
+         *
+         *
+         * CASE 1: Proposed time is very close to a boundary (ACCEPTS)
+         *
+         *     0         1000        2000        3000
+         *     |-----------|-----------|-----------|
+         *                             ^ proposed at 1999 or 2001
+         *                             (within margin of boundary 2000)
+         *     Result: Return 0 (no adjustment needed)
+         *
+         *
+         * CASE 2: Proposed time is in the middle (REJECTS - needs adjustment)
+         *
+         *     0         1000        2000        3000
+         *     |-----------|-----------|-----------|
+         *                      ^      ^
+         *                   proposed  next boundary
+         *                    at 1500  at 2000
+         *                      |------|
+         *                   adjustment = 500ns
+         *
+         *     Result: Return 500 (push forward 500ns to reach boundary 2000)
+         *
+         *
+         * This logic ensures timing happens at interval boundaries with a small margin of error.
+         */
+        uint64_t interval_ns = static_cast<uint64_t>(m_media_settings.media_unit_time_interval_ns);
+
+        // Calculate how far the proposition is from requested time.
+        int64_t offset_from_initial_ns = static_cast<int64_t>(proposed_time_ns) - static_cast<int64_t>(initial_requested_time_ns);
+
+        // Calculate the offset from the nearest interval boundary.
+        int64_t interval_offset_ns = offset_from_initial_ns % interval_ns;
+
+        // If it's 1us or less from nearest boundary, no adjustment needed.
+        if (interval_offset_ns < NS_IN_USEC || (interval_ns - interval_offset_ns) < NS_IN_USEC) {
             return 0;
         }
-        int skip_media_units = 0;
-        uint64_t new_start_time;
-        do {
-            skip_media_units++;
-            new_start_time = send_time_ns + m_media_settings.media_unit_time_interval_ns * skip_media_units;
-        } while (proposed_time > new_start_time);
-        return static_cast<int>(new_start_time - proposed_time);
+
+        // Otherwise, calculate the offset to the next interval boundary.
+        int64_t next_interval_offset_ns = ((offset_from_initial_ns / interval_ns) + 1) * interval_ns;
+        uint64_t new_start_time_ns = initial_requested_time_ns + next_interval_offset_ns;
+
+        // Return the adjustment needed to align to the next interval boundary.
+        int adjustment_ns = static_cast<int>(new_start_time_ns - proposed_time_ns);
+        return adjustment_ns;
     };
 
     uint64_t coordinated_start_time_ns = 0;
@@ -471,6 +518,20 @@ ReturnStatus MediaSenderIONode::coordinate_start_time(uint64_t& send_time_ns)
         std::cerr << "Failed to request coordinated start time" << std::endl;
         return rc;
     }
+
+    if (coordinated_start_time_ns != initial_requested_time_ns) {
+        int64_t time_adjustment_ns = static_cast<int64_t>(coordinated_start_time_ns - initial_requested_time_ns);
+        uint64_t interval_ns = static_cast<uint64_t>(m_media_settings.media_unit_time_interval_ns);
+        int64_t unit_adjustment = time_adjustment_ns / interval_ns;
+
+        std::string stream_name = m_media_settings.media_settings_calculator->get_smpte_standard_name();
+        std::ostringstream oss;
+        oss << "[Time Coordination] Sender[" << m_index << "] " << stream_name << ": adjusted "
+            << (time_adjustment_ns / 1e6) << " ms"
+            << " (" << unit_adjustment << " units)" << std::endl;
+        std::cout << oss.str() << std::flush;
+    }
+
     send_time_ns = coordinated_start_time_ns;
     return ReturnStatus::success;
 }
@@ -492,16 +553,17 @@ void MediaSenderIONode::operator()()
     */
     uint64_t time_now_ns = get_time_now_ns();
     uint64_t desired_start_time_ns = time_now_ns + DEFAULT_STREAM_START_OFFSET_NS;
-    uint64_t send_time_ns = 0;
-    send_time_ns = static_cast<uint64_t>(
-        m_media_settings.media_settings_calculator->align_time_to_media_unit_boundary_ns(desired_start_time_ns));
+    double aligned_time_ns = m_media_settings.media_settings_calculator->align_time_to_media_unit_boundary_ns(desired_start_time_ns);
+    uint64_t send_time_ns = static_cast<uint64_t>(aligned_time_ns);
 
     rc = coordinate_start_time(send_time_ns);
     if (rc != ReturnStatus::success) {
         return;
     }
 
-    const double start_send_time_ns = send_time_ns;
+    double start_send_time_ns = static_cast<double>(send_time_ns);
+    double transmit_offset_ns = m_media_settings.media_settings_calculator->get_transmit_offset_ns();
+    start_send_time_ns += transmit_offset_ns;
 
     for (auto& stream_pack : m_stream_packs) {
         stream_pack.packet_buffer_writer->set_initial_timestamp(start_send_time_ns);
