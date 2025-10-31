@@ -23,6 +23,7 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <vector>
 
 #include "rdk/services/error_handling/return_status.h"
 
@@ -138,6 +139,8 @@ private:
     std::condition_variable m_cv;
     /* Status of the synchronization operation */
     ReturnStatus m_sync_status;
+    /* Vector to store each thread's checker function */
+    std::vector<std::function<int(uint64_t)>> m_checkers;
 };
 
 } // namespace services

@@ -25,6 +25,7 @@ void LinearSynchronizer::reset() {
     m_request_count = 0;
     m_new_candidate_time = 0;
     m_sync_status = ReturnStatus::success;
+    m_checkers.clear();
 }
 
 ReturnStatus LinearSynchronizer::request(uint64_t requested_time, std::function<int(uint64_t)> checker,
@@ -32,6 +33,7 @@ ReturnStatus LinearSynchronizer::request(uint64_t requested_time, std::function<
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_new_candidate_time = std::max(m_new_candidate_time, requested_time);
+    m_checkers.push_back(checker);
     m_request_count++;
 
     if (m_request_count < m_num_of_threads) {
@@ -46,8 +48,8 @@ ReturnStatus LinearSynchronizer::request(uint64_t requested_time, std::function<
             any_negative = false;
             int max_checker_result = 0;
 
-            for (size_t i = 0; i < m_num_of_threads; ++i) {
-                int checker_result = checker(proposed_time);
+            for (const auto& checker_function : m_checkers) {
+                int checker_result = checker_function(proposed_time);
                 if (checker_result == 0) {
                     continue;
                 } else if (checker_result < 0) {
