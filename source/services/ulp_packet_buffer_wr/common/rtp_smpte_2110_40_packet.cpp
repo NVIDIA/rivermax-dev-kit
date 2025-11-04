@@ -80,10 +80,10 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_header(const IPacketContext& context
     p_ancillary_header->extended_sequence_number = htons(high_bits);
 
     // TODO: Support multiple ancillary packets in a single RTP packet.
-    // Calculate actual ancillary count based on media unit data.
-    uint16_t ancillary_data_packet_size = AncillaryDataPacketWriter::calculate_packet_size(rtp_packet_context.user_data_words_count);
+    // Calculate actual ancillary count based on media unit data. Can be zero for empty ancillary data packets.
+    uint16_t ancillary_data_packet_size = AncillaryDataPacketWriter::calculate_packet_size(rtp_packet_context.ancillary_data_descriptor.ancillary_data_header.user_data_words_count);
     p_ancillary_header->length = htons(ancillary_data_packet_size);
-    p_ancillary_header->anc_count = rtp_packet_context.ancillary_count;
+    p_ancillary_header->anc_count = 1;
     p_ancillary_header->set_field_indicator(rtp_packet_context.field_indicator);
 
     size = size + sizeof(AncillaryRTPExtension);
@@ -116,13 +116,12 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const IPacketContext& contex
     }
 
     size = 0;
-    // TODO: Change this to fill multiple ANC packets. Currently only a single ANC packet is filled.
-    // All the ancillary packet fields should be taken from the media unit.
-    uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(rtp_packet_context.user_data_words_count);
-    if (size + ancillary_data_packet_size < rtp_packet_context.payload_size) {
+    // Initial implementation uses one RTP packet per ancillary data packet. Can be optimized to fill multiple ANC packets in a single RTP packet later.
+    // Only fill payload if ancillary data packet has user data content
+    uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(rtp_packet_context.ancillary_data_descriptor.ancillary_data_header.user_data_words_count);
+    if (ancillary_data_packet_size > 0 && size + ancillary_data_packet_size < rtp_packet_context.payload_size) {
         byte_t* user_data_bytes = rtp_packet_context.current_media_unit->data->get();
-        // TODO: Use current_media_unit metadata to fill the ancillary packet fields.
-        size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, user_data_bytes, rtp_packet_context);
+        size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, user_data_bytes, rtp_packet_context.ancillary_data_descriptor);
     }
 
     return ReturnStatus::success;
@@ -173,7 +172,7 @@ ReturnStatus RTP_SMPTE_2110_40_MockPacket::fill_payload(const IPacketContext& co
         return ReturnStatus::success;
     }
 
-    uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(rtp_packet_context.user_data_words_count);
+    uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(rtp_packet_context.ancillary_data_descriptor.ancillary_data_header.user_data_words_count);
     if (ancillary_data_packet_size > rtp_packet_context.payload_size) {
         // Not enough space in payload buffer
         size = 0;
@@ -181,7 +180,7 @@ ReturnStatus RTP_SMPTE_2110_40_MockPacket::fill_payload(const IPacketContext& co
     }
     // Note: In mock mode, we fill the ancillary data with zeroed user data.
     // write_ancillary_data first construct the ancillary packet and then overwrite the pointer data.
-    size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, m_payload_ptr, rtp_packet_context);
+    size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, m_payload_ptr, rtp_packet_context.ancillary_data_descriptor);
 
     return ReturnStatus::success;
 }
@@ -237,7 +236,7 @@ size_t AncillaryDataPacketWriter::pack_10bit_words(const uint16_t* words, size_t
 }
 
 size_t AncillaryDataPacketWriter::write_ancillary_data(byte_t* buffer, byte_t* user_data_bytes,
-                                                       const RTP_SMPTE_2110_40_PacketContext& rtp_packet_context)
+                                                       const AncillaryDataDescriptor& ancillary_data_descriptor)
 {
     uint8_t* ptr = buffer;
     /**
@@ -253,24 +252,24 @@ size_t AncillaryDataPacketWriter::write_ancillary_data(byte_t* buffer, byte_t* u
      *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
     uint32_t word1 = 0;
-    word1 |= (rtp_packet_context.c_flag ? 1 : 0) << RTP_ST_2110_40_C_FLAG_BIT_POSITION;
-    word1 |= (rtp_packet_context.line_number & MASK_11BIT) << RTP_ST_2110_40_LINE_NUMBER_BIT_POSITION;
-    word1 |= (rtp_packet_context.horizontal_offset & MASK_12BIT) << RTP_ST_2110_40_HORIZONTAL_OFFSET_BIT_POSITION;
-    word1 |= (rtp_packet_context.s_flag ? 1 : 0) << RTP_ST_2110_40_S_FLAG_BIT_POSITION;
-    word1 |= (rtp_packet_context.stream_number & MASK_7BIT);
+    word1 |= (ancillary_data_descriptor.ancillary_data_header.c_flag ? 1 : 0) << RTP_ST_2110_40_C_FLAG_BIT_POSITION;
+    word1 |= (ancillary_data_descriptor.ancillary_data_header.line_number & MASK_11BIT) << RTP_ST_2110_40_LINE_NUMBER_BIT_POSITION;
+    word1 |= (ancillary_data_descriptor.ancillary_data_header.horizontal_offset & MASK_12BIT) << RTP_ST_2110_40_HORIZONTAL_OFFSET_BIT_POSITION;
+    word1 |= (ancillary_data_descriptor.ancillary_data_header.s_flag ? 1 : 0) << RTP_ST_2110_40_S_FLAG_BIT_POSITION;
+    word1 |= (ancillary_data_descriptor.ancillary_data_header.stream_number & MASK_7BIT);
 
     // Prepare all the 10-bit words (DID, SDID, Data_Count, User Data and Checksum)
     // and pack them into the buffer, aligned to 32 bits.
-    uint16_t did_with_parity = add_parity_bits(rtp_packet_context.did);
-    uint16_t sdid_with_parity = add_parity_bits(rtp_packet_context.sdid);
-    uint16_t data_count_with_parity = add_parity_bits(static_cast<uint8_t>(rtp_packet_context.user_data_words_count));
+    uint16_t did_with_parity = add_parity_bits(ancillary_data_descriptor.ancillary_data_header.did);
+    uint16_t sdid_with_parity = add_parity_bits(ancillary_data_descriptor.ancillary_data_header.sdid);
+    uint16_t data_count_with_parity = add_parity_bits(static_cast<uint8_t>(ancillary_data_descriptor.ancillary_data_header.user_data_words_count));
 
     std::vector<uint16_t> packed_words;
     packed_words.push_back(did_with_parity);
     packed_words.push_back(sdid_with_parity);
     packed_words.push_back(data_count_with_parity);
-    for (size_t i = 0; i < rtp_packet_context.user_data_words_count; ++i) {
-        uint16_t word = add_parity_bits(user_data_bytes[i]);
+    for (size_t i = 0; i < ancillary_data_descriptor.ancillary_data_header.user_data_words_count; ++i) {
+        uint16_t word = add_parity_bits(user_data_bytes[ancillary_data_descriptor.user_data_offset + i]);
         packed_words.push_back(word);
     }
 
@@ -290,6 +289,10 @@ size_t AncillaryDataPacketWriter::write_ancillary_data(byte_t* buffer, byte_t* u
 
 uint16_t AncillaryDataPacketWriter::calculate_packet_size(uint16_t user_data_words_count)
 {
+    if (user_data_words_count == 0) {
+        return 0;
+    }
+
     uint16_t ancillary_packet_bits = (user_data_words_count * RTP_ST_2110_40_DATA_WORD_SIZE_BITS \
         + RTP_ST_2110_40_CHECKSUM_SIZE_BITS);
     uint16_t ancillary_packet_padding_bits = WORD_SIZE_BITS - (ancillary_packet_bits % WORD_SIZE_BITS);

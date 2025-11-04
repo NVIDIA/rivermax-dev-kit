@@ -21,6 +21,7 @@
 
 #include "rdk/services/ulp_packet_buffer_wr/common/rtp_packet.h"
 #include "rdk/services/media/media.h"
+#include "rdk/services/media/ancillary_metadata.h"
 
 namespace rivermax
 {
@@ -38,19 +39,12 @@ namespace services
  */
 struct RTP_SMPTE_2110_40_PacketContext : public RTPPacketContext
 {
-    uint32_t extended_sequence_number = 0;   /**< 32-bit extended sequence number */
-    uint16_t length;                         /**< Number of octets of the ANC data RTP payload */
-    uint32_t ancillary_count = 1;            /**< Number of ancillary data packets */
-    uint8_t field_indicator = 0;             /**< Field indicator specifying RTP timestamp
-                                                  relation to video fields */
-    bool c_flag = false;                     /**< Color channel flag */
-    uint16_t line_number = 0;                /**< Line number of the ANC data */
-    uint16_t horizontal_offset = 0;          /**< 10-bit words horizontal offset of the ANC data */
-    bool s_flag = false;                     /**< Data stream flag */
-    uint8_t stream_number = 0;               /**< Data stream number */
-    uint8_t did = 0;                         /**< Data identification word */
-    uint8_t sdid = 0;                        /**< Secondary data identification word */
-    uint16_t user_data_words_count = 16;     /**< User data 10-bit words count */
+    uint32_t extended_sequence_number = 0;             /**< 32-bit extended sequence number */
+    uint16_t length;                                   /**< Number of octets of the ANC data RTP payload */
+    uint32_t ancillary_count = 0;                      /**< Number of ancillary data packets */
+    uint8_t field_indicator = 0;                       /**< Field indicator specifying RTP timestamp
+                                                            relation to video fields */
+    AncillaryDataDescriptor ancillary_data_descriptor; /**< Ancillary data descriptor */
 };
 
 /**
@@ -104,12 +98,12 @@ public:
      *
      * @param [out] buffer: Pointer to the buffer to write the packet into.
      * @param [in] user_data_bytes: Pointer to array of 8-bit user data words (before parity bits are added).
-     * @param [in] rtp_packet_context: Context containing ancillary data packet information.
+     * @param [in] ancillary_data_header: Ancillary data header containing ancillary data packet information.
      *
      * @return: Total number of bytes written to the buffer.
      */
     static size_t write_ancillary_data(byte_t* buffer, byte_t* user_data_bytes,
-                                       const RTP_SMPTE_2110_40_PacketContext& rtp_packet_context);
+                                       const AncillaryDataDescriptor& ancillary_data_descriptor);
     /**
      * @brief: Calculates the size of the ancillary data packet.
      *

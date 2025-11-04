@@ -32,12 +32,20 @@ RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const
     if (enable_mock_mode) {
         m_rtp_packet = std::make_unique<RTP_SMPTE_2110_40_MockPacket>(nullptr, nullptr);
     }
-    auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
-    // TODO: Support multiple ancillary packets in a single RTP packet.
-    // These fields should be calculated based on media unit data / metadata.
-    m_rtp_packet_context->did = ancillary_settings.did;
-    m_rtp_packet_context->sdid = ancillary_settings.sdid;
-    m_rtp_packet_context->user_data_words_count = ancillary_settings.user_data_words_count;
+}
+
+ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+{
+    ReturnStatus status = RTPMediaPacketBufferWriter::set_next_media_unit(std::move(media_unit));
+    if (status != ReturnStatus::success) {
+        return status;
+    }
+
+    if (!m_metadata_ptr->ancillary_data.empty()) {
+        m_rtp_packet_context->ancillary_data_descriptor = m_metadata_ptr->ancillary_data[0];
+    }
+
+    return ReturnStatus::success;
 }
 
 void RTP_SMPTE_2110_40_PacketBufferWriter::reset_in_media_unit_state()
@@ -64,6 +72,13 @@ void RTP_SMPTE_2110_40_PacketBufferWriter::update_in_media_unit_state(size_t hea
     m_rtp_packet_context->marker = (m_rtp_packet_context->counter == ancillary_settings.packets_in_media_unit - 1) ? 1 : 0;
     m_rtp_packet_context->sequence++;
     m_rtp_packet_context->extended_sequence_number++;
+
+    // Update ancillary data header for next packet if anc packets left in media unit
+    if (m_rtp_packet_context->counter < m_metadata_ptr->ancillary_data.size()) {
+        m_rtp_packet_context->ancillary_data_descriptor = m_metadata_ptr->ancillary_data[m_rtp_packet_context->counter];
+    } else {
+        m_rtp_packet_context->ancillary_data_descriptor = AncillaryDataDescriptor{};
+    }
 }
 
 ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length)

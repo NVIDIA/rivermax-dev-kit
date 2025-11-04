@@ -52,6 +52,14 @@ public:
 
 protected:
     /**
+     * @brief: Set the next media unit and populate initial packet context from ancillary metadata.
+     *
+     * @param [in] media_unit: Pointer to the media unit containing ancillary data.
+     *
+     * @return: Status of the operation.
+     */
+    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
+    /**
      * @brief: Updates the packet counter and RTP state for ancillary.
      *
      * @param [in] header_size: Size of the processed header.
