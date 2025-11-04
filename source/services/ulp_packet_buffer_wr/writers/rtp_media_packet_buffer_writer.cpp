@@ -24,14 +24,15 @@
 #include "rt_threads.h"
 
 #include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
+#include "rdk/services/media/ancillary_metadata.h"
 #include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_20_packet_buffer_writer.h"
 #include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_30_packet_buffer_writer.h"
 #include "rdk/services/ulp_packet_buffer_wr/writers/rtp_smpte_2110_40_packet_buffer_writer.h"
 
 using namespace rivermax::dev_kit::services;
 
-template<typename PacketContextType, typename RTPPacketType>
-RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
+template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
+RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode) :
     IULPPacketBufferWriter(std::move(header_mem_utils), std::move(payload_mem_utils)),
     m_media_settings(media_settings)
@@ -44,12 +45,27 @@ RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::RTPMediaPacketBuff
     m_mock_mode_enabled = enable_mock_mode;
 }
 
-template<typename PacketContextType, typename RTPPacketType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
     if (media_unit == nullptr || media_unit->data == nullptr) {
         std::cerr << "Error: Media unit is null or media unit data is null" << std::endl;
         return ReturnStatus::failure;
+    }
+
+    // Validate metadata type only once, or until validation succeeds
+    if (unlikely(!m_metadata_validated)) {
+        m_metadata_ptr = dynamic_cast<const MetadataType*>(media_unit->metadata.get());
+        if (!m_metadata_ptr) {
+            std::cerr << "Error: Invalid metadata type for buffer writer. "
+                      << "Expected: " << typeid(MetadataType).name()
+                      << ", Received: " << (media_unit->metadata ? typeid(*media_unit->metadata).name() : "null")
+                      << std::endl;
+            return ReturnStatus::failure;
+        }
+        m_metadata_validated = true;
+    } else {
+        m_metadata_ptr = static_cast<const MetadataType*>(media_unit->metadata.get());
     }
     reset_in_media_unit_state();
     m_rtp_packet_context->current_media_unit = std::move(media_unit);
@@ -57,8 +73,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::set_n
     return ReturnStatus::success;
 }
 
-template<typename PacketContextType, typename RTPPacketType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write_buffer(void* payload_ptr, size_t buffer_length)
+template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::write_buffer(void* payload_ptr, size_t buffer_length)
 {
     byte_t* current_packet_pointer = reinterpret_cast<byte_t*>(payload_ptr);
     assert(current_packet_pointer);
@@ -78,8 +94,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write
     return ReturnStatus::success;
 }
 
-template<typename PacketContextType, typename RTPPacketType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length)
+template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length)
 {
     byte_t* current_header_pointer = reinterpret_cast<byte_t*>(header_ptr);
     byte_t* current_payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);
@@ -126,8 +142,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::write
     return ReturnStatus::success;
 }
 
-template<typename PacketContextType, typename RTPPacketType>
-void RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType>::set_initial_timestamp(uint64_t packet_time_ns)
+template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
+void RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::set_initial_timestamp(uint64_t packet_time_ns)
 {
     m_rtp_packet_context->timestamp = static_cast<uint32_t>(
         time_to_rtp_timestamp(packet_time_ns, static_cast<int>(m_media_settings.sample_rate)));
@@ -163,7 +179,7 @@ std::unique_ptr<IULPPacketBufferWriter> rivermax::dev_kit::services::create_rtp_
 }
 
 // Explicit template instantiation
-template class RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacket>;
-template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext, RTP_SMPTE_2110_20_Packet>;
-template class RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_Packet>;
-template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet>;
+template class RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacket, MediaUnitMetadata>;
+template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext, RTP_SMPTE_2110_20_Packet, MediaUnitMetadata>;
+template class RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_Packet, MediaUnitMetadata>;
+template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>;

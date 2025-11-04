@@ -68,13 +68,15 @@ std::unique_ptr<IULPPacketBufferWriter> create_rtp_media_packet_buffer_writer(
  * the pure virtual methods to build the RTP header, write payload,
  * update the in-media-unit state, and set the concrete stream properties.
  */
-template<typename PacketContextType, typename RTPPacketType>
+template<typename PacketContextType, typename RTPPacketType, typename MetadataType = MediaUnitMetadata>
 class RTPMediaPacketBufferWriter : public IULPPacketBufferWriter
 {
 protected:
     const MediaSettings& m_media_settings;
     std::unique_ptr<PacketContextType> m_rtp_packet_context;
     std::unique_ptr<RTPPacketType> m_rtp_packet;
+    const MetadataType* m_metadata_ptr = nullptr;
+    bool m_metadata_validated = false;
     bool m_mock_mode_enabled = false;
 
 public:

@@ -26,7 +26,7 @@ using namespace rivermax::dev_kit::services;
 
 RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)
-    : RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet>(
+    : RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>(
         media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
     if (enable_mock_mode) {

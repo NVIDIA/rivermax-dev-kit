@@ -19,6 +19,7 @@
 #ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_40_PACKET_BUFFER_WRITER_H_
 #define RDK_SERVICES_ULP_PACKET_BUFFER_WR_WRITERS_RTP_SMPTE_2110_40_PACKET_BUFFER_WRITER_H_
 
+#include "rdk/services/media/ancillary_metadata.h"
 #include "rdk/services/ulp_packet_buffer_wr/writers/rtp_media_packet_buffer_writer.h"
 #include "rdk/services/ulp_packet_buffer_wr/common/rtp_smpte_2110_40_packet.h"
 
@@ -33,8 +34,9 @@ namespace services
  * @brief: Buffer writer for ST 2110-40 RTP packets.
  *
  * This class handles writing RTP packets with ancillary data.
+ * Ancillary data header will be taken from specialized metadata.
  */
-class RTP_SMPTE_2110_40_PacketBufferWriter : public RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet>
+class RTP_SMPTE_2110_40_PacketBufferWriter : public RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>
 {
 public:
     /**
@@ -60,7 +62,7 @@ protected:
      * @brief: Reset in-media unit state for new media unit.
      */
     void reset_in_media_unit_state() override;
-    using RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet>::write_buffer;
+    using RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>::write_buffer;
     /**
      * @brief: Writes RTP packet buffer when Header Data Split mode is on.
      *
