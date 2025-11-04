@@ -21,6 +21,7 @@
 #include <random>
 
 #include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/ancillary_metadata.h"
 #include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
@@ -124,5 +125,14 @@ std::shared_ptr<MediaUnitMetadata> MediaUnit::create_metadata(
         }
     }
 
-    return std::make_shared<MediaUnitMetadata>(smpte_standard);
+    std::shared_ptr<MediaUnitMetadata> metadata_instance;
+    switch (smpte_standard) {
+        case SMPTEStandard::ST_2110_40:
+            metadata_instance = std::make_shared<AncillaryMediaUnitMetadata>();
+            break;
+        default:
+            metadata_instance = std::make_shared<MediaUnitMetadata>(smpte_standard);
+            break;
+    }
+    return metadata_instance;
 }
