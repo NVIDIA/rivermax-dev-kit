@@ -29,19 +29,11 @@ NullEssenceProvider::NullEssenceProvider(const MediaSettings& media_settings) :
     m_media_settings(media_settings),
     m_media_unit_not_available_probability(0.0f)
 {
-    set_media_unit_settings(m_cached_metadata, m_cached_media_unit_size);
-}
-
-void NullEssenceProvider::set_media_unit_settings(MediaUnitMetadata& metadata, size_t& media_unit_size)
-{
-    media_unit_size = m_media_settings.bytes_per_media_unit;
-    metadata.smpte_standard = m_media_settings.get_smpte_standard();
 }
 
 std::shared_ptr<MediaUnit> NullEssenceProvider::get_media_unit_blocking()
 {
-    auto media_unit = std::make_shared<MediaUnit>(m_cached_media_unit_size);
-    media_unit->add_metadata(m_cached_metadata);
+    auto media_unit = std::make_shared<MediaUnit>(m_media_settings.bytes_per_media_unit, m_media_settings.get_smpte_standard());
     return media_unit;
 }
 

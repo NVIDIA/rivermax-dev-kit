@@ -20,10 +20,12 @@
 
 using namespace rivermax::dev_kit::services;
 
-MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, MemoryAllocator& mem_allocator) :
+MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SMPTEStandard smpte_standard,
+    MemoryAllocator& mem_allocator) :
     m_media_unit_size(media_unit_size),
     m_media_unit_count(media_unit_count),
-    m_memory_location(mem_allocator.get_memory_location())
+    m_memory_location(mem_allocator.get_memory_location()),
+    m_smpte_standard(smpte_standard)
 {
     m_total_memory_size = media_unit_count * media_unit_size;
     m_total_memory_size = mem_allocator.align_length(m_total_memory_size);
@@ -37,18 +39,19 @@ MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, Me
     m_all_media_units.reserve(media_unit_count);
     for (size_t i = 0; i < media_unit_count; ++i) {
         byte_t* media_unit_memory = m_memory_block + (i * media_unit_size);
-        m_all_media_units.emplace_back(media_unit_memory, media_unit_size, m_memory_location);
+        m_all_media_units.emplace_back(media_unit_memory, media_unit_size, m_smpte_standard, m_memory_location);
         m_available_indices.push(i);
     }
 }
 
-MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, byte_t* memory_block, size_t memory_size,
-    MemoryLocation memory_location) :
+MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SMPTEStandard smpte_standard,
+    byte_t* memory_block, size_t memory_size, MemoryLocation memory_location) :
     m_memory_block(memory_block),
     m_media_unit_size(media_unit_size),
     m_media_unit_count(media_unit_count),
     m_total_memory_size(media_unit_count * media_unit_size),
-    m_memory_location(memory_location)
+    m_memory_location(memory_location),
+    m_smpte_standard(smpte_standard)
 {
     if (!m_memory_block) {
         throw std::runtime_error("No memory provided for for MediaUnitPool");
@@ -62,7 +65,7 @@ MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, by
     m_all_media_units.reserve(media_unit_count);
     for (size_t index = 0; index < media_unit_count; ++index) {
         byte_t* unit_memory = memory_block + (index * media_unit_size);
-        m_all_media_units.emplace_back(unit_memory, media_unit_size, m_memory_location);
+        m_all_media_units.emplace_back(unit_memory, media_unit_size, m_smpte_standard, m_memory_location);
         m_available_indices.push(index);
     }
 }

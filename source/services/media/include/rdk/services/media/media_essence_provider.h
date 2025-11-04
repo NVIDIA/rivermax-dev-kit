@@ -22,6 +22,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -149,11 +150,28 @@ public:
 /**
  * @brief: Holds metadata for a media unit.
  */
-struct MediaUnitMetadata {
+struct MediaUnitMetadata
+{
     SMPTEStandard smpte_standard;
     /* Additional metadata */
     std::unordered_map<std::string, std::string> additional_info;
+
+    explicit MediaUnitMetadata(SMPTEStandard _smpte_standard) :
+        smpte_standard(_smpte_standard)
+    {
+    }
+    virtual ~MediaUnitMetadata() = default;
 };
+
+/**
+ * @brief: Callback type for custom metadata factory.
+ *
+ * Allows users to provide custom metadata creation logic.
+ * The callback receives the SMPTE standard and should return a
+ * shared_ptr to the appropriate metadata type, or nullptr to
+ * use default ones.
+ */
+using MetadataFactoryCallback = std::function<std::shared_ptr<MediaUnitMetadata>(SMPTEStandard)>;
 
 /**
  * @brief: Represents a media unit with data and metadata.
@@ -178,32 +196,41 @@ struct MediaUnit {
      * @brief: Constructor that allocates its own memory.
      *
      * @param [in] buffer_size: Size of the buffer to allocate.
+     * @param [in] smpte_standard: SMPTE standard to determine metadata type.
+     * @param [in] custom_factory: Optional custom metadata factory callback.
      */
-    MediaUnit(size_t buffer_size);
+    MediaUnit(size_t buffer_size, SMPTEStandard smpte_standard, MetadataFactoryCallback custom_factory = nullptr);
     /**
-     * @brief: Constructor for external memory provided as a raw pointer.
+     * @brief: Constructor for external raw pointer.
      *
      * @param [in] external_buffer: Pointer to the external buffer.
      * @param [in] buffer_size: Size of the external buffer.
+     * @param [in] smpte_standard: SMPTE standard to determine metadata type.
      * @param [in] memory_location: Memory location of the external buffer.
+     * @param [in] custom_factory: Optional custom metadata factory callback.
      */
-    MediaUnit(byte_t* external_buffer, size_t buffer_size,
-        MemoryLocation memory_location = MemoryLocation::Host);
+    MediaUnit(byte_t* external_buffer,  size_t buffer_size, SMPTEStandard smpte_standard,
+        MemoryLocation memory_location = MemoryLocation::Host, MetadataFactoryCallback custom_factory = nullptr);
     /**
-     * @brief: Constructor for external memory provided as a shared_ptr.
+     * @brief: Constructor for external shared_ptr.
      *
      * @param [in] shared_buffer: Shared pointer to the external buffer.
      * @param [in] buffer_size: Size of the external buffer.
+     * @param [in] smpte_standard: SMPTE standard to determine metadata type.
      * @param [in] memory_location: Memory location of the external buffer.
+     * @param [in] custom_factory: Optional custom metadata factory callback.
      */
-    MediaUnit(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
-        MemoryLocation memory_location = MemoryLocation::Host);
+    MediaUnit(const std::shared_ptr<byte_t>& shared_buffer,  size_t buffer_size, SMPTEStandard smpte_standard,
+        MemoryLocation memory_location = MemoryLocation::Host, MetadataFactoryCallback custom_factory = nullptr);
     /**
-     * @brief: Constructor for external memory provided as a unique_ptr.
+     * @brief: Constructor for external IMediaUnitBuffer.
      *
-     * @param [in] unit_data: Unique pointer to an @ref IMediaUnitBuffer implementation.
+     * @param [in] unit_buffer: Unique pointer to an @ref IMediaUnitBuffer implementation.
+     * @param [in] smpte_standard: SMPTE standard to determine metadata type.
+     * @param [in] custom_factory: Optional custom metadata factory callback.
      */
-    MediaUnit(std::unique_ptr<IMediaUnitBuffer>&& unit_data);
+    MediaUnit(std::unique_ptr<IMediaUnitBuffer>&& unit_buffer, SMPTEStandard smpte_standard,
+        MetadataFactoryCallback custom_factory = nullptr);
     MediaUnit(const MediaUnit&) = delete;
     MediaUnit& operator=(const MediaUnit&) = delete;
     MediaUnit(MediaUnit&&) noexcept = default;
@@ -214,6 +241,19 @@ struct MediaUnit {
      * @param [in] metadata_: Metadata to add.
      */
     void add_metadata(const MediaUnitMetadata& metadata_)  { metadata = std::make_shared<MediaUnitMetadata>(metadata_); }
+
+private:
+    /**
+     * @brief: Helper function to create metadata based on SMPTE standard.
+     *
+     * @param [in] smpte_standard: SMPTE standard.
+     * @param [in] custom_factory: Optional custom factory.
+     *
+     * @return: Shared pointer to created metadata.
+     */
+    static std::shared_ptr<MediaUnitMetadata> create_metadata(
+        SMPTEStandard smpte_standard,
+        MetadataFactoryCallback custom_factory);
 };
 
 /**

@@ -77,27 +77,33 @@ private:
     std::atomic<bool> m_stop{false};
     /* Memory location used for allocation */
     MemoryLocation m_memory_location;
+    /* SMPTE standard for media units */
+    SMPTEStandard m_smpte_standard;
 public:
     /**
      * @brief: Constructor.
      *
      * @param [in] media_unit_count: Number of media units to allocate in the pool.
      * @param [in] media_unit_size: Size of each media unit in bytes.
+     * @param [in] smpte_standard: SMPTE standard for media units.
      * @param [in] mem_allocator: Memory allocator to use.
      */
-    MediaUnitPool(size_t media_unit_count, size_t media_unit_size, MemoryAllocator& mem_allocator);
+    MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SMPTEStandard smpte_standard,
+        MemoryAllocator& mem_allocator);
     /**
      * @brief: Constructor for external memory.
      *
      * @param [in] media_unit_count: Number of media units in the pool.
      * @param [in] media_unit_size: Size of each media unit in bytes.
+     * @param [in] smpte_standard: SMPTE standard for media units.
      * @param [in] memory_block: Pointer to the external memory block.
      * @param [in] memory_size: Size of the external memory block in bytes.
      * @param [in] memory_location: Memory location of the external memory block.
      *
      * @throws std::invalid_argument if the provided memory is insufficient.
      */
-    MediaUnitPool(size_t media_unit_count, size_t media_unit_size, byte_t* memory_block, size_t memory_size,
+    MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SMPTEStandard smpte_standard,
+        byte_t* memory_block, size_t memory_size,
         MemoryLocation memory_location = MemoryLocation::Host);
     /**
      * @brief: Destructor.

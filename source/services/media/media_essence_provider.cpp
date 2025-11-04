@@ -84,28 +84,45 @@ MediaUnitBuffer& MediaUnitBuffer::operator=(MediaUnitBuffer&& other) noexcept
     return *this;
 }
 
-MediaUnit::MediaUnit(size_t buffer_size) :
+MediaUnit::MediaUnit(size_t buffer_size, SMPTEStandard smpte_standard,
+    MetadataFactoryCallback custom_factory) :
     data(std::make_unique<MediaUnitBuffer>(buffer_size)),
-    metadata(nullptr)
+    metadata(create_metadata(smpte_standard, std::move(custom_factory)))
 {
 }
 
-MediaUnit::MediaUnit(byte_t* external_buffer, size_t buffer_size,
-    MemoryLocation memory_location) :
+MediaUnit::MediaUnit(byte_t* external_buffer, size_t buffer_size, SMPTEStandard smpte_standard,
+    MemoryLocation memory_location, MetadataFactoryCallback custom_factory) :
     data(std::make_unique<MediaUnitBuffer>(external_buffer, buffer_size, memory_location)),
-    metadata(nullptr)
+    metadata(create_metadata(smpte_standard, std::move(custom_factory)))
 {
 }
 
 MediaUnit::MediaUnit(const std::shared_ptr<byte_t>& shared_buffer, size_t buffer_size,
-    MemoryLocation memory_location) :
+    SMPTEStandard smpte_standard, MemoryLocation memory_location,
+    MetadataFactoryCallback custom_factory) :
     data(std::make_unique<MediaUnitBuffer>(shared_buffer, buffer_size, memory_location)),
-    metadata(nullptr)
+    metadata(create_metadata(smpte_standard, std::move(custom_factory)))
 {
 }
 
-MediaUnit::MediaUnit(std::unique_ptr<IMediaUnitBuffer>&& unit_buffer) :
+MediaUnit::MediaUnit(std::unique_ptr<IMediaUnitBuffer>&& unit_buffer, SMPTEStandard smpte_standard,
+    MetadataFactoryCallback custom_factory) :
     data(std::move(unit_buffer)),
-    metadata(nullptr)
+    metadata(create_metadata(smpte_standard, std::move(custom_factory)))
 {
+}
+
+std::shared_ptr<MediaUnitMetadata> MediaUnit::create_metadata(
+    SMPTEStandard smpte_standard, MetadataFactoryCallback custom_factory)
+{
+    // Try custom factory first and fallback to default if invalid
+    if (custom_factory) {
+        auto custom_metadata = custom_factory(smpte_standard);
+        if (custom_metadata) {
+            return custom_metadata;
+        }
+    }
+
+    return std::make_shared<MediaUnitMetadata>(smpte_standard);
 }

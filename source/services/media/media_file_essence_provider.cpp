@@ -126,8 +126,8 @@ ReturnStatus MediaFileEssenceProvider::read_media_units(byte_t* file_memory_buff
         }
 
         mem_utils->memory_copy(cur_unit_ptr, temp_buffer.get(), m_media_unit_size);
-        auto media_unit = std::make_shared<MediaUnit>(cur_unit_ptr, m_media_unit_size);
-        m_media_unit_queue.push(media_unit);
+        auto media_unit = std::make_shared<MediaUnit>(cur_unit_ptr, m_media_unit_size, m_smpte_standard);
+        m_media_unit_queue.push(std::move(media_unit));
 
         m_cv.notify_one();
         unit_index++;

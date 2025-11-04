@@ -48,7 +48,7 @@ MediaFileStreamingProvider::MediaFileStreamingProvider(
 
     m_memory_utils = m_memory_allocator->get_memory_utils();
     m_media_unit_pool = std::make_unique<MediaUnitPool>(
-        MEMORY_POOL_MEDIA_UNIT_COUNT, m_media_unit_size, *m_memory_allocator);
+        MEMORY_POOL_MEDIA_UNIT_COUNT, m_media_unit_size, m_smpte_standard, *m_memory_allocator);
 }
 
 MediaFileStreamingProvider::~MediaFileStreamingProvider()
@@ -132,11 +132,6 @@ void MediaFileStreamingProvider::operator()()
         if (bytes_read < static_cast<std::streamsize>(m_media_unit_size)) {
             m_memory_utils->memory_set(media_unit->data->get() + bytes_read, 0, m_media_unit_size - bytes_read);
         }
-
-        // Add unit metadata
-        MediaUnitMetadata metadata;
-        metadata.smpte_standard = m_smpte_standard;
-        media_unit->add_metadata(metadata);
 
         while (!m_stop && SignalHandler::get_received_signal() < 0) {
             if (m_essence_provider->add_media_unit(media_unit) == ReturnStatus::success) {

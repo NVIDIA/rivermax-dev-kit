@@ -45,8 +45,6 @@ namespace services
 class NullEssenceProvider : public IMediaEssenceProvider {
 protected:
     const MediaSettings& m_media_settings;
-    MediaUnitMetadata m_cached_metadata;
-    size_t m_cached_media_unit_size;
     float m_media_unit_not_available_probability;
 public:
     /**
@@ -72,13 +70,6 @@ public:
      */
     float get_media_unit_not_available_probability() const  { return m_media_unit_not_available_probability; }
 private:
-    /**
-     * @brief: Sets media unit settings based on the stream type.
-     *
-     * @param [in] metadata: Metadata to set.
-     * @param [in] media_unit_size: Size of the media unit to set.
-     */
-    void set_media_unit_settings(MediaUnitMetadata& metadata, size_t& media_unit_size);
     /**
      * @brief: Determines if a media unit should be available based on the probability.
      *
