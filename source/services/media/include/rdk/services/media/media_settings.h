@@ -51,6 +51,12 @@ struct MediaSettings
      */
     virtual SMPTEStandard get_smpte_standard() const = 0;
     /**
+     * @brief: Returns if dynamic packet sizes are needed.
+     *
+     * @return: True if dynamic packet sizes are needed, false otherwise.
+     */
+     virtual bool needs_dynamic_packet_sizes() const { return false; }
+    /**
      * @brief: Set the media settings calculator.
      *
      * @param [in] calculator: Shared pointer to the calculator.

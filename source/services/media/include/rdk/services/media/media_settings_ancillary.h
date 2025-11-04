@@ -54,11 +54,12 @@ struct SMPTE_2110_40_MediaSettings : public MediaSettings
     explicit SMPTE_2110_40_MediaSettings(const AppSettings& app_settings);
     virtual ~SMPTE_2110_40_MediaSettings() = default;
     virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_40; }
+    virtual bool needs_dynamic_packet_sizes() const override { return true; }
 
     static constexpr uint16_t ANCILLARY_DATA_HEADER_SIZE = 8;
     uint16_t did = 0;
     uint16_t sdid = 0;
-    uint16_t user_data_words_count = 128;
+    uint16_t max_user_data_words_count = DEFAULT_ANCILLARY_DATA_WORDS_COUNT;
     FrameRate frame_rate = {60};
 };
 

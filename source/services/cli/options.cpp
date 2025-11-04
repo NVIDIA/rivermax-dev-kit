@@ -662,7 +662,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
             return parser->add_option(CLIOptStr::ANCILLARY_DID,
-                                    app_settings->media.anc_did,
+                                    app_settings->media.ancillary_did,
                                     "Ancillary Data Identification (DID)");
         }
     },
@@ -671,7 +671,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
             return parser->add_option(CLIOptStr::ANCILLARY_SDID,
-                                    app_settings->media.anc_sdid,
+                                    app_settings->media.ancillary_sdid,
                                     "Ancillary Secondary Data Identification (SDID)");
         }
     },
@@ -680,8 +680,8 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
             return parser->add_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT,
-                                    app_settings->media.anc_data_words_count,
-                                    "Ancillary data size");
+                                    app_settings->media.ancillary_data_words_count,
+                                    "Ancillary data words count");
         }
     },
 };

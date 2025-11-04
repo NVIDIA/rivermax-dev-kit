@@ -31,8 +31,8 @@ SMPTE_2110_40_MediaSettings::SMPTE_2110_40_MediaSettings(const AppSettings& app_
     dynamic_media_file_load = false;
 
     // Initialize SMPTE 2110-40 specific fields
-    did = app_settings.media.anc_did;
-    sdid = app_settings.media.anc_sdid;
-    user_data_words_count = app_settings.media.anc_data_words_count;
+    did = app_settings.media.ancillary_did;
+    sdid = app_settings.media.ancillary_sdid;
+    max_user_data_words_count = app_settings.media.ancillary_data_words_count;
     frame_rate = app_settings.media.frame_rate;
 }

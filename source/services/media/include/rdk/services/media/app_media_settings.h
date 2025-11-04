@@ -69,9 +69,9 @@ struct AppMediaSettings
     AudioSamplingRate audio_sampling_rate = AudioSamplingRate::_48000;
     AudioEncoding audio_encoding = AudioEncoding::L24;
     uint8_t audio_channels_num = 2;
-    uint16_t anc_did = 0;
-    uint16_t anc_sdid = 0;
-    uint16_t anc_data_words_count = 128;
+    uint16_t ancillary_did = 0;
+    uint16_t ancillary_sdid = 0;
+    uint16_t ancillary_data_words_count = DEFAULT_ANCILLARY_DATA_WORDS_COUNT;
 };
 
 }  // namespace services

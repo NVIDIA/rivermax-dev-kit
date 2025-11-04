@@ -255,6 +255,8 @@ constexpr uint8_t RTP_VERSION_2 = 0x80;
 constexpr uint8_t RTP_M_BIT_MASK = 0x80;
 /* Video constants */
 constexpr size_t VIDEO_TRO_DEFAULT_MODIFICATION = 2;
+/* Ancillary data constants */
+constexpr size_t DEFAULT_ANCILLARY_DATA_WORDS_COUNT = 128;
 /* Supported video resolutions */
 const std::vector<Resolution> SUPPORTED_VIDEO_RESOLUTIONS = {
     { FHD_WIDTH, FHD_HEIGHT },
