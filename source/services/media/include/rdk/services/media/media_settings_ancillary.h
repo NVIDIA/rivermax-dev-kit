@@ -35,6 +35,15 @@ namespace services
 {
 
 /**
+ * @brief: Ancillary data identifier pair (DID and SDID).
+ */
+struct AncillaryDataIdentifier
+{
+    uint16_t did;
+    uint16_t sdid;
+};
+
+/**
  * @brief: SMPTE 2110-40 ancillary media settings.
  *
  * The struct will be used to hold media parameters for
@@ -57,8 +66,7 @@ struct SMPTE_2110_40_MediaSettings : public MediaSettings
     virtual bool needs_dynamic_packet_sizes() const override { return true; }
 
     static constexpr uint16_t ANCILLARY_DATA_HEADER_SIZE = 8;
-    uint16_t did = 0;
-    uint16_t sdid = 0;
+    std::vector<AncillaryDataIdentifier> data_identifiers;
     uint16_t max_user_data_words_count = DEFAULT_ANCILLARY_DATA_WORDS_COUNT;
     FrameRate frame_rate = {60};
 };

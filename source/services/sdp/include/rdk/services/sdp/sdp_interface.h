@@ -77,6 +77,10 @@ public:
 
     protected:
         IBuilder() : m_instance(new ConcreteSessionDescription()) {}
+        IBuilder(const IBuilder&) = delete;
+        IBuilder& operator=(const IBuilder&) = delete;
+        IBuilder(IBuilder&&) = default;
+        IBuilder& operator=(IBuilder&&) = default;
         virtual ~IBuilder() = default;
         /**
          * @brief: Sets the member variable with the given value.

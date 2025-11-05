@@ -94,10 +94,9 @@ void ST_2110_40_MediaSettingsCalculator::calculate_stride_parameters()
 
 ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_media_settings()
 {
-    // Validate that user provided required DID/SDID values
-    if (m_media_settings.did == 0 || m_media_settings.sdid == 0) {
-        std::cerr << "Error: DID (" << m_media_settings.did << ") and SDID (" << m_media_settings.sdid
-                  << ") must be provided (non-zero)." << std::endl;
+    // Validate that at least one ancillary data identifier is declared
+    if (m_media_settings.data_identifiers.empty()) {
+        std::cerr << "Error: No ancillary data identifiers (DID/SDID) declared." << std::endl;
         return ReturnStatus::failure;
     }
 
@@ -125,14 +124,23 @@ std::string ST_2110_40_MediaSettingsCalculator::generate_media_sdp(
 
     auto time_description = TimeDescription::Builder().build();
 
-    auto media_description =
-        SMPTE2110_40_MediaDescription::Builder(
-            destination_port, TransportProtocol::RTP_AVP, std::to_string(m_media_settings.payload_type), destination_ip
-        )
-            .set_source_filter(SourceFilterAttribute::Builder(destination_ip, source_ip).build())
-            .set_did_sdid(m_media_settings.did, m_media_settings.sdid)
-            .set_extra_format_specific_parameters(m_extra_parameters)
-            .build();
+    auto media_description_builder = SMPTE2110_40_MediaDescription::Builder(
+        destination_port, 
+        TransportProtocol::RTP_AVP, 
+        std::to_string(m_media_settings.payload_type), 
+        destination_ip
+    );
+
+    media_description_builder.set_source_filter(
+        SourceFilterAttribute::Builder(destination_ip, source_ip).build()
+    );
+
+    for (const auto& identifier : m_media_settings.data_identifiers) {
+        media_description_builder.add_did_sdid(identifier.did, identifier.sdid);
+    }
+    media_description_builder.set_extra_format_specific_parameters(m_extra_parameters);
+
+    auto media_description = media_description_builder.build();
     return SDPManager::Builder(std::move(session_description), std::move(time_description))
         .add_media_description(std::move(media_description))
         .build()
