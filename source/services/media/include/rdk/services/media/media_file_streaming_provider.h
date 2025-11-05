@@ -26,6 +26,7 @@
 #include <string>
 #include <thread>
 
+#include "rdk/services/media/media_file_reader.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/services/utils/defs.h"
 
@@ -58,9 +59,9 @@ private:
     std::atomic<bool> m_stop{false};
     std::condition_variable m_cv;
     std::mutex m_mutex;
-    std::ifstream m_input_file;
     std::atomic<bool> m_initialized{false};
     size_t m_sleep_duration_microseconds;
+    MediaFileReader m_file_reader;
     static constexpr auto SLEEP_DURATION_MICROSECONDS = 10000;
     static constexpr auto MEMORY_POOL_MEDIA_UNIT_COUNT = 15;
 public:

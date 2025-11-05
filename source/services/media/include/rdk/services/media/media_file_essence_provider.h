@@ -29,6 +29,7 @@
 #include <unordered_map>
 
 #include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_file_reader.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/services/utils/defs.h"
@@ -56,10 +57,10 @@ protected:
     bool m_loop_media_units;
     bool m_stop;
     bool m_media_units_loaded;
-    std::ifstream m_input_file;
     std::queue<std::shared_ptr<MediaUnit>> m_media_unit_queue;
     std::mutex m_mutex;
     std::condition_variable m_cv;
+    MediaFileReader m_file_reader;
 public:
     /**
      * @brief: Constructor.

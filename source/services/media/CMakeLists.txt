@@ -22,6 +22,7 @@ target_include_directories(${PROJECT_NAME} INTERFACE include)
 target_sources(rivermax-dev-kit-services
     PRIVATE
         ipmx.cpp
+        media_file_reader.cpp
         media_file_streaming_provider.cpp
         media_unit_pool.cpp
         media_essence_provider.cpp

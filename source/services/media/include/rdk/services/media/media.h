@@ -21,6 +21,7 @@
 
 #include "rdk/services/media/app_media_settings.h"
 #include "rdk/services/media/media_defs.h"
+#include "rdk/services/media/media_file_reader.h"
 #include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/media/null_essence_provider.h"
 #include "rdk/services/media/media_file_essence_provider.h"

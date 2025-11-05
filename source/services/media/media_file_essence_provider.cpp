@@ -34,7 +34,8 @@ MediaFileEssenceProvider::MediaFileEssenceProvider(const std::string &file_path,
     m_aligned_media_unit_size(mem_allocator.align_length(media_unit_size)),
     m_loop_media_units(loop),
     m_stop(false),
-    m_media_units_loaded(false)
+    m_media_units_loaded(false),
+    m_file_reader(file_path, mem_allocator.get_memory_utils(), false)
 {
 }
 
@@ -45,9 +46,6 @@ MediaFileEssenceProvider::~MediaFileEssenceProvider()
         m_stop = true;
     }
     m_cv.notify_all();
-    if (m_input_file.is_open()) {
-        m_input_file.close();
-    }
 }
 
 std::shared_ptr<MediaUnit> MediaFileEssenceProvider::get_media_unit_blocking()
@@ -98,7 +96,6 @@ ReturnStatus MediaFileEssenceProvider::read_media_units(byte_t* file_memory_buff
 {
     size_t unit_index = 0;
     byte_t* cur_unit_ptr = file_memory_buffer;
-    auto temp_buffer = std::make_unique<byte_t[]>(m_media_unit_size);
     auto mem_utils = m_mem_allocator.get_memory_utils();
     if (!mem_utils) {
         std::cerr << "Failed to get memory utils" << std::endl;
@@ -106,26 +103,17 @@ ReturnStatus MediaFileEssenceProvider::read_media_units(byte_t* file_memory_buff
     }
 
     while (true) {
-        m_input_file.read(reinterpret_cast<char*>(temp_buffer.get()), m_media_unit_size);
-        std::streamsize bytes_read = m_input_file.gcount();
-
-        if (bytes_read == 0) {
-            // If we reached EOF, break out normally.
-            if (m_input_file.eof()) {
-                break;
-            }
-            // If not EOF but still no data read, then an error occurred.
-            if (m_input_file.fail() && !m_input_file.eof()) {
-                std::cerr << "Failed to read media unit: " << unit_index << " from file: " << m_file_path << std::endl;
-                return ReturnStatus::failure;
-            }
+        size_t bytes_read = 0;
+        auto rc = m_file_reader.read_and_copy(cur_unit_ptr, m_media_unit_size, bytes_read);
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to read media unit: " << unit_index << " from file: " << m_file_path << std::endl;
+            return rc;
         }
 
-        if (bytes_read < static_cast<std::streamsize>(m_media_unit_size)) {
-            break;
+        if (bytes_read == 0 || bytes_read < m_media_unit_size) {
+            break;  // EOF or partial read
         }
 
-        mem_utils->memory_copy(cur_unit_ptr, temp_buffer.get(), m_media_unit_size);
         auto media_unit = std::make_shared<MediaUnit>(cur_unit_ptr, m_media_unit_size, m_smpte_standard);
         m_media_unit_queue.push(std::move(media_unit));
 
@@ -142,20 +130,23 @@ ReturnStatus MediaFileEssenceProvider::load_media_units()
     if (m_media_units_loaded) {
         return ReturnStatus::success;
     }
-    m_input_file.open(m_file_path, std::ios::binary);
-    if (!m_input_file.is_open()) {
+
+    auto rc = m_file_reader.open();
+    if (rc != ReturnStatus::success) {
         std::cerr << "Failed to open file: " << m_file_path << std::endl;
-        return ReturnStatus::failure;
+        return rc;
     }
 
-    m_input_file.clear();
-    m_input_file.seekg(0, std::ios::end);
-    size_t file_size = m_input_file.tellg();
-    m_input_file.seekg(0, std::ios::beg);
+    size_t file_size = 0;
+    rc = m_file_reader.get_file_size(file_size);
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to get file size: " << m_file_path << std::endl;
+        return rc;
+    }
 
     byte_t* file_memory_buffer = nullptr;
     size_t required_memory_size = 0;
-    auto rc = allocate_media_units_memory(file_size, file_memory_buffer, required_memory_size);
+    rc = allocate_media_units_memory(file_size, file_memory_buffer, required_memory_size);
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to allocate memory for file: " << m_file_path << std::endl;
         return rc;
