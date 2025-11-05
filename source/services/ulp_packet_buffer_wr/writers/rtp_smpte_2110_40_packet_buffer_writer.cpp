@@ -30,7 +30,11 @@ RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const
         media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
     if (enable_mock_mode) {
+        const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(media_settings);
         m_rtp_packet = std::make_unique<RTP_SMPTE_2110_40_MockPacket>(nullptr, nullptr);
+        m_rtp_packet_context->ancillary_data_descriptor.ancillary_data_header.did = ancillary_settings.data_identifiers[m_rtp_packet_context->counter].did;
+        m_rtp_packet_context->ancillary_data_descriptor.ancillary_data_header.sdid = ancillary_settings.data_identifiers[m_rtp_packet_context->counter].sdid;
+        m_rtp_packet_context->ancillary_data_descriptor.ancillary_data_header.user_data_words_count = ancillary_settings.max_user_data_words_count;
     }
 }
 
