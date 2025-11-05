@@ -89,20 +89,24 @@ public:
      *
      * @param [in] payload_ptr: Pointer to the payload memory.
      * @param [in] buffer_length: Length of the buffer in strides.
+     * @param [in] payload_sizes: Optional array to fill with actual payload sizes if not nullptr.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus write_buffer(void* payload_ptr, size_t buffer_length) override;
+    ReturnStatus write_buffer(void* payload_ptr, size_t buffer_length, uint16_t* payload_sizes = nullptr) override;
     /**
      * @brief: Writes a buffer to RTP packets when Header Data Split mode is on.
      *
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory.
      * @param [in] buffer_length: Length of the buffer in strides.
+     * @param [in] header_sizes: Optional array to fill with actual header sizes if not nullptr.
+     * @param [in] payload_sizes: Optional array to fill with actual payload sizes if not nullptr.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length) override;
+    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length,
+                              uint16_t* header_sizes = nullptr, uint16_t* payload_sizes = nullptr) override;
     /**
      * @brief: Sets the next media unit to be processed.
      *
@@ -117,6 +121,17 @@ public:
      * @param [in] packet_time_ns: The timestamp of the first packet.
      */
     void set_initial_timestamp(uint64_t packet_time_ns) override;
+    /**
+     * @brief: Returns the number of packets needed for the next chunk.
+     *
+     * Returns fixed value from media settings by default.
+     *
+     * @return: Number of packets for the next chunk.
+     */
+    size_t get_num_packets_for_next_chunk() const override
+    {
+        return m_media_settings.packets_in_chunk;
+    }
 
 protected:
     /**

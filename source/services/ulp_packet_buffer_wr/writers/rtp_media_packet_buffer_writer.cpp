@@ -74,7 +74,7 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
 }
 
 template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::write_buffer(void* payload_ptr, size_t buffer_length)
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::write_buffer(void* payload_ptr, size_t buffer_length, uint16_t* payload_sizes)
 {
     byte_t* current_packet_pointer = reinterpret_cast<byte_t*>(payload_ptr);
     assert(current_packet_pointer);
@@ -95,7 +95,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
 }
 
 template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length)
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length,
+                                                                          uint16_t* header_sizes, uint16_t* payload_sizes)
 {
     byte_t* current_header_pointer = reinterpret_cast<byte_t*>(header_ptr);
     byte_t* current_payload_pointer = reinterpret_cast<byte_t*>(payload_ptr);

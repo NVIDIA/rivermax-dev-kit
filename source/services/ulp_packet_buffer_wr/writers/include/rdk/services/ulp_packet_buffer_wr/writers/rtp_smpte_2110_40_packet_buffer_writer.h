@@ -49,8 +49,28 @@ public:
      */
     RTP_SMPTE_2110_40_PacketBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode);
-
-protected:
+    /**
+     * @brief: Writes RTP packet buffer when Header Data Split mode is off.
+     *
+     * @param [in] payload_ptr: Pointer to the payload memory (header + payload together).
+     * @param [in] buffer_length: Length of the buffer in strides.
+     * @param [in] payload_sizes: Optional array to fill with actual payload sizes if not nullptr.
+     *
+     * @return: Status of the operation.
+     */
+    ReturnStatus write_buffer(void* payload_ptr, size_t buffer_length, uint16_t* payload_sizes = nullptr) override;
+    /**
+     * @brief: Writes RTP packet buffer when Header Data Split mode is on.
+     *
+     * @param [in] header_ptr: Pointer to the header memory.
+     * @param [in] payload_ptr: Pointer to the payload memory.
+     * @param [in] buffer_length: Length of the buffer in strides.
+     * @param [in] header_sizes: Optional array to fill with actual header sizes if not nullptr.
+     * @param [in] payload_sizes: Optional array to fill with actual payload sizes if not nullptr.
+     *
+     * @return: Status of the operation.
+     */
+    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length, uint16_t* header_sizes = nullptr, uint16_t* payload_sizes = nullptr) override;
     /**
      * @brief: Set the next media unit and populate initial packet context from ancillary metadata.
      *
@@ -58,7 +78,18 @@ protected:
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
+     ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) override;
+    /**
+     * @brief: Returns the number of packets needed for the next chunk.
+     *
+     * Returns packets required for the current media unit.
+     *
+     * @return: Number of packets for the next chunk.
+     */
+     size_t get_num_packets_for_next_chunk() const override;
+
+protected:
+    
     /**
      * @brief: Updates the packet counter and RTP state for ancillary.
      *
@@ -70,17 +101,15 @@ protected:
      * @brief: Reset in-media unit state for new media unit.
      */
     void reset_in_media_unit_state() override;
-    using RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>::write_buffer;
     /**
-     * @brief: Writes RTP packet buffer when Header Data Split mode is on.
+     * @brief: Calculates number of packets needed for current media unit.
      *
-     * @param [in] header_ptr: Pointer to the header memory.
-     * @param [in] payload_ptr: Pointer to the payload memory.
-     * @param [in] buffer_length: Length of the buffer in strides.
+     * Helper function to compute the number of RTP packets required
+     * for the current media unit based on ANC packet count and chunk distribution.
      *
-     * @return: Status of the operation.
+     * @return: Number of packets for the media unit.
      */
-    ReturnStatus write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length) override;
+    size_t get_num_packets_for_media_unit() const;
 };
 
 } // namespace services
