@@ -713,5 +713,5 @@ std::pair<bool, uint16_t> parse_fmtp_uint_param(const std::string &token, const 
   catch (const std::out_of_range &) {
     std::cerr << "Attribute a=fmtp has out-of-range parameter value " << token.substr(0, token.size()-1) << "." << std::endl;
   }
-  return {false, 0};
+  return {false, static_cast<uint16_t>(0)};
 }
