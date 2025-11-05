@@ -45,37 +45,25 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
         return ReturnStatus::failure;
     }
 
-    // HDS for ANC keeps Anc Data Header with payload
+    // HDS for ancillary keeps data header with payload
     if (m_media_settings.header_data_split) {
         m_media_settings.packet_app_header_size = m_media_settings.protocol_header_size;
         m_media_settings.packet_payload_size -= m_media_settings.protocol_header_size;
     }
 
-    // Default to 1 packet for simple anc if not provided
+    // Packets per media unit can vary for ancillary streams. Define max amount.
+    constexpr uint32_t DEFAULT_MAX_PACKETS_PER_MEDIA_UNIT = 10;
     if (m_media_settings.packets_in_media_unit == 0) {
-        m_media_settings.packets_in_media_unit = 1;
+        m_media_settings.packets_in_media_unit = DEFAULT_MAX_PACKETS_PER_MEDIA_UNIT;
+    }
+    if (m_media_settings.chunks_in_media_unit == 0) {
+        m_media_settings.chunks_in_media_unit = 1;
     }
 
-    // Validate and apply custom packets in chunk if provided
-    constexpr uint32_t DEFAULT_PACKETS_PER_CHUNK = 1;
-    if (m_media_settings.packets_in_chunk > 0) {
-        if (m_media_settings.packets_in_media_unit % m_media_settings.packets_in_chunk == 0) {
-            std::cout << "Using custom ancillary chunk size: " << m_media_settings.packets_in_chunk
-                      << " packets per chunk" << std::endl;
-        } else {
-            std::cerr << "Warning: Custom chunk size (" << m_media_settings.packets_in_chunk
-                      << ") is not a divisor of packets in media unit ("
-                      << m_media_settings.packets_in_media_unit << "). Using default (1)." << std::endl;
-            m_media_settings.packets_in_chunk = DEFAULT_PACKETS_PER_CHUNK;
-        }
-    } else {
-        // Default: 1 packet per chunk for simple ancillary
-        m_media_settings.packets_in_chunk = DEFAULT_PACKETS_PER_CHUNK;
-    }
-
-    // Calculate chunks per media unit
-    m_media_settings.chunks_in_media_unit =
-        m_media_settings.packets_in_media_unit / m_media_settings.packets_in_chunk;
+    // Derive max packets per chunk from other settings. This will be updated at runtime.
+    m_media_settings.packets_in_chunk =
+        (m_media_settings.packets_in_media_unit + m_media_settings.chunks_in_media_unit - 1) /
+        m_media_settings.chunks_in_media_unit;
 
     return ReturnStatus::success;
 }
