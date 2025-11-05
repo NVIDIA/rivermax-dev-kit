@@ -206,10 +206,10 @@ inline uint16_t AncillaryDataPacketWriter::calculate_checksum(const std::vector<
 {
     uint16_t sum = 0;
     for (size_t i = 0; i < packed_words.size(); ++i) {
-        sum += (packed_words[i] & MASK_9BIT);
+        sum = (sum + (packed_words[i] & MASK_9BIT)) & MASK_9BIT; // Ignore carry beyond the 9th bit
     }
     uint8_t inverse_bit = ((sum & MASK_9BIT) >> RTP_ST_2110_40_CHECKSUM_MSB_POSITION) ? 0 : 1;
-    return (inverse_bit << RTP_ST_2110_40_CHECKSUM_INVERSE_BIT_POSITION) | (sum & MASK_8BIT);
+    return (inverse_bit << RTP_ST_2110_40_CHECKSUM_INVERSE_BIT_POSITION) | (sum & MASK_9BIT);
 }
 
 size_t AncillaryDataPacketWriter::pack_10bit_words(const uint16_t* words, size_t word_count, uint8_t* buffer)
