@@ -604,13 +604,16 @@ void MediaSenderIONode::operator()()
             return stream_pack.packet_buffer_writer->write_buffer(
                 stream_pack.chunk_handler->get_app_hdr_ptr(),
                 stream_pack.chunk_handler->get_data_ptr(),
-                stream_pack.chunk_handler->get_length());
+                stream_pack.chunk_handler->get_length(),
+                stream_pack.chunk_handler->get_app_hdr_sizes_array(),
+                stream_pack.chunk_handler->get_data_sizes_array());
         };
     } else {
         write_buffer_callback = [](auto& stream_pack) {
             return stream_pack.packet_buffer_writer->write_buffer(
                 stream_pack.chunk_handler->get_data_ptr(),
-                stream_pack.chunk_handler->get_length());
+                stream_pack.chunk_handler->get_length(),
+                stream_pack.chunk_handler->get_data_sizes_array());
         };
     }
 
@@ -626,6 +629,8 @@ void MediaSenderIONode::operator()()
         }
         do {
             for (auto& stream_pack : m_stream_packs) {
+                size_t num_packets_for_chunk = stream_pack.packet_buffer_writer->get_num_packets_for_next_chunk();
+                stream_pack.chunk_handler->set_length(num_packets_for_chunk);
                 do {
                     rc = stream_pack.stream->blocking_get_next_chunk(*stream_pack.chunk_handler, BLOCKING_CHUNK_RETRIES);
                 } while (unlikely(rc == ReturnStatus::no_free_chunks));
