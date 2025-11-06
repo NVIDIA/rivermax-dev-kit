@@ -56,6 +56,10 @@ void RTP_SMPTE_2110_40_PacketBufferWriter::reset_in_media_unit_state()
 {
     m_rtp_packet_context->counter = 0;
     m_rtp_packet_context->field_indicator = 0;
+
+    // Start with valid marker state if media unit has only 1 packet
+    size_t total_packets_in_media_unit = get_num_packets_for_media_unit();
+    m_rtp_packet_context->marker = (total_packets_in_media_unit <= 1) ? 1 : 0;
 }
 
 size_t RTP_SMPTE_2110_40_PacketBufferWriter::get_num_packets_for_media_unit() const
