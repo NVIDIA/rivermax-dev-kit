@@ -117,9 +117,8 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const IPacketContext& contex
 
     size = 0;
     // Initial implementation uses one RTP packet per ancillary data packet. Can be optimized to fill multiple ANC packets in a single RTP packet later.
-    // Only fill payload if ancillary data packet has user data content
     uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(rtp_packet_context.ancillary_data_descriptor.ancillary_data_header.user_data_words_count);
-    if (ancillary_data_packet_size > 0 && size + ancillary_data_packet_size < rtp_packet_context.payload_size) {
+    if (size + ancillary_data_packet_size <= rtp_packet_context.payload_size) {
         byte_t* user_data_bytes = rtp_packet_context.current_media_unit->data->get();
         size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, user_data_bytes, rtp_packet_context.ancillary_data_descriptor);
     }
@@ -214,8 +213,10 @@ inline uint16_t AncillaryDataPacketWriter::calculate_checksum(const std::vector<
 
 size_t AncillaryDataPacketWriter::pack_10bit_words(const uint16_t* words, size_t word_count, uint8_t* buffer)
 {
-    size_t padding_in_bits = (WORD_SIZE_BITS - (word_count % WORD_SIZE_BITS)) % WORD_SIZE_BITS;
-    size_t size_in_bytes = (word_count * RTP_ST_2110_40_DATA_WORD_SIZE_BITS + padding_in_bits) / BYTE_SIZE_BITS;
+    // Calculate padding bits required to align total bits to 32-bit word boundaries
+    size_t total_bits = word_count * RTP_ST_2110_40_DATA_WORD_SIZE_BITS;
+    size_t padding_in_bits = (WORD_SIZE_BITS - (total_bits % WORD_SIZE_BITS)) % WORD_SIZE_BITS;
+    size_t size_in_bytes = (total_bits + padding_in_bits) / BYTE_SIZE_BITS;
     // Clear buffer for padding bits
     memset(buffer, 0, size_in_bytes);
     size_t bit_pos = 0;
@@ -289,13 +290,9 @@ size_t AncillaryDataPacketWriter::write_ancillary_data(byte_t* buffer, byte_t* u
 
 uint16_t AncillaryDataPacketWriter::calculate_packet_size(uint16_t user_data_words_count)
 {
-    if (user_data_words_count == 0) {
-        return 0;
-    }
-
-    uint16_t ancillary_packet_bits = (user_data_words_count * RTP_ST_2110_40_DATA_WORD_SIZE_BITS \
-        + RTP_ST_2110_40_CHECKSUM_SIZE_BITS);
-    uint16_t ancillary_packet_padding_bits = WORD_SIZE_BITS - (ancillary_packet_bits % WORD_SIZE_BITS);
+    uint16_t packet_word_count = RTP_ST_2110_40_DID_WORD_COUNT + RTP_ST_2110_40_SDID_WORD_COUNT + RTP_ST_2110_40_DATA_COUNT_WORD_COUNT + user_data_words_count;
+    uint16_t ancillary_packet_bits = packet_word_count * RTP_ST_2110_40_DATA_WORD_SIZE_BITS + RTP_ST_2110_40_CHECKSUM_SIZE_BITS;
+    uint16_t ancillary_packet_padding_bits = (WORD_SIZE_BITS - (ancillary_packet_bits % WORD_SIZE_BITS)) % WORD_SIZE_BITS;
     uint16_t ancillary_data_packet_payload_bytes = (ancillary_packet_bits + ancillary_packet_padding_bits) / 8;
-    return ancillary_data_packet_payload_bytes + SMPTE_2110_40_MediaSettings::ANCILLARY_DATA_HEADER_SIZE;
+    return ancillary_data_packet_payload_bytes + RTP_ST_2110_40_FIXED_DATA_HEADER_SIZE;
 }
