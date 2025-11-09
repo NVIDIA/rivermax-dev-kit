@@ -28,17 +28,21 @@ using namespace rivermax::dev_kit::apps::rmax_xstream_media_sender;
 constexpr const char* APP_DESCRIPTION = "NVIDIA Rivermax media sender demo app ";
 constexpr const char* APP_EXAMPLES = \
     "\nExamples:\n"
-    "  1. rmax_xstream_media_sender --local-ip 1.2.3.4 --video-resolution"
+    "  1. rmax_xstream_media_sender --local-ip 1.2.3.4 --enable-video --video-resolution"
     " 1920x1080 --video-frame-rate 60 -v\n"
-    "  2. rmax_xstream_media_sender --local-ip 1.2.3.4 --video-resolution"
+    "  2. rmax_xstream_media_sender --local-ip 1.2.3.4 --enable-video --video-resolution"
     " 1920x1080 --video-frame-rate 60 --dst-ip 234.5.6.7 --dst-port 2000\n"
-    "  3. rmax_xstream_media_sender --local-ip 1.2.3.4 --video-resolution"
+    "  3. rmax_xstream_media_sender --local-ip 1.2.3.4 --enable-video --video-resolution"
     " 1920x1080 --video-frame-rate 60 --streams 10\n"
-    "  4. rmax_xstream_media_sender --local-ip 1.2.3.4 --video-resolution"
+    "  4. rmax_xstream_media_sender --local-ip 1.2.3.4 --enable-video --video-resolution"
     " 1920x1080 --video-frame-rate 60 --threads 2 --streams 10 -a 1,2 -c 3\n"
-    "  5. rmax_xstream_media_sender -l 1.2.3.4 -d  224.1.1.2 -p 50001 --vr"
-    " 1920x1080 --vfr 60 --vs 1 -m -M -A 2 -r -g 0 -v -i 5 -a 9 --vf"
-    " input_file.ycbcr --dfl\n";
+    "  5. rmax_xstream_media_sender -l 1.2.3.4 -d  224.1.1.2 -p 50001 --enable-video --vr"
+    " 1920x1080 --vfr 60 --vs 1 -m -M -A 2 -r -g 0 -v -i 5 -a 9 --vf input_file.ycbcr --dfl\n"
+    "  6. rmax_xstream_media_sender --local-ip 1.2.3.4 -m --enable-audio --audio-file"
+    " input_file.wav --audio-sampling-rate 48000 --audio-encoding L24 --audio-ptime-us 1000\n"
+    "  7. rmax_xstream_media_sender --local-ip 1.2.3.4 --enable-ancillary\n"
+    "  8. rmax_xstream_media_sender --local-ip 1.2.3.4 --enable-video --video-file video_file.ycbcr"
+    " --enable-audio --audio-file audio_file.wav --audio-sampling-rate 48000 --enable-ancillary\n";
 
 int main(int argc, const char* argv[])
 {

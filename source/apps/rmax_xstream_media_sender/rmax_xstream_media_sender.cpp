@@ -66,8 +66,11 @@ ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaS
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    if (settings->register_memory && !settings->app_memory_alloc) {
-        std::cerr << "Register memory option is supported only with application memory allocation" << std::endl;
+    if (!settings->media.enable_video && !settings->media.enable_audio && !settings->media.enable_ancillary) {
+        std::cerr << "At least one media type must be enabled: "
+                  << CLIOptStr::ENABLE_VIDEO << ", "
+                  << CLIOptStr::ENABLE_AUDIO << ", or "
+                  << CLIOptStr::ENABLE_ANCILLARY << std::endl;
         return ReturnStatus::failure;
     }
     return ReturnStatus::success;
@@ -100,10 +103,12 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
     auto mem = m_cli_parser_manager->add_option(CLIOptStr::APP_MEMORY_ALLOC);
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE)->needs(mem);
     m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY)->needs(mem);
+    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_VIDEO)
+        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ALPHA)
+        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FILE)->needs(mem)
-    ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_FILE)->needs(mem)
-    ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::DYNAMIC_FILE_LOADING);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_RESOLUTION)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
@@ -115,12 +120,10 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ALPHA_BIT_DEPTH)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_VIDEO)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ALPHA)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_AUDIO)
+        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_FILE)->needs(mem)
         ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::PTIME_US)
         ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
