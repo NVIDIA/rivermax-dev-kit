@@ -16,3 +16,4 @@
 
 add_subdirectory(cpu)
 add_subdirectory(sdp)
+add_subdirectory(ulp_packet_buffer_wr)
