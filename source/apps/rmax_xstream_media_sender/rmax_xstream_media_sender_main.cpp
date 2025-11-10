@@ -41,8 +41,8 @@ constexpr const char* APP_EXAMPLES = \
     "  6. rmax_xstream_media_sender --local-ip 1.2.3.4 -m --enable-audio --audio-file"
     " input_file.wav --audio-sampling-rate 48000 --audio-encoding L24 --audio-ptime-us 1000\n"
     "  7. rmax_xstream_media_sender --local-ip 1.2.3.4 --enable-ancillary\n"
-    "  8. rmax_xstream_media_sender --local-ip 1.2.3.4 --enable-video --video-file video_file.ycbcr"
-    " --enable-audio --audio-file audio_file.wav --audio-sampling-rate 48000 --enable-ancillary\n";
+    "  8. rmax_xstream_media_sender --local-ip 1.2.3.4 -m --enable-video --vf video_file.ycbcr"
+    " --enable-audio --af audio_file.wav --asr 48000 --enable-ancillary\n";
 
 int main(int argc, const char* argv[])
 {

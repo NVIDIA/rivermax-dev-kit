@@ -73,6 +73,13 @@ ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaS
                   << CLIOptStr::ENABLE_ANCILLARY << std::endl;
         return ReturnStatus::failure;
     }
+    bool media_file_used = (!settings->video_file.empty() || !settings->audio_file.empty());
+    bool valid_memory_strategy = settings->app_memory_alloc || settings->dynamic_media_file_load;
+    if (media_file_used && !valid_memory_strategy) {
+        std::cerr << "Error: Application memory allocation or dynamic file loading must"
+                     " be enabled when media files are used" << std::endl;
+        return ReturnStatus::failure;
+    }
     return ReturnStatus::success;
 }
 
@@ -107,7 +114,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ALPHA)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FILE)->needs(mem)
+    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FILE)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::DYNAMIC_FILE_LOADING);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_RESOLUTION)
@@ -123,7 +130,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
     m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_AUDIO)
         ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_FILE)->needs(mem)
+    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_FILE)
         ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::PTIME_US)
         ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
