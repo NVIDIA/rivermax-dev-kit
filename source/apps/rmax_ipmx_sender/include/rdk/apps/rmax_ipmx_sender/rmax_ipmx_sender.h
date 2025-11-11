@@ -53,7 +53,7 @@ public:
 class IPMXSenderSettingsValidator : public ISettingsValidator<IPMXSenderSettings>
 {
 public:
-     ReturnStatus validate(const std::shared_ptr<IPMXSenderSettings>& settings) const override;
+     ReturnStatus validate(const IPMXSenderSettings& settings) const override;
 };
 
 /**
@@ -73,14 +73,14 @@ public:
     IPMXSenderCLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<IPMXSenderSettings>> validator) :
-        CLISettingsBuilder<IPMXSenderSettings>(argc, argv, app_description, app_examples, std::move(validator)) {}
+        const ISettingsValidator<IPMXSenderSettings>& validator) :
+        CLISettingsBuilder<IPMXSenderSettings>(argc, argv, app_description, app_examples, validator) {}
     virtual ~IPMXSenderCLISettingsBuilder() = default;
 protected:
-    ReturnStatus add_cli_options(std::shared_ptr<IPMXSenderSettings>& settings) override;
+    ReturnStatus add_cli_options(IPMXSenderSettings& settings) override;
 };
 
-using IPMXSenderExternalSettingsBuilder = ExternalSettingsBuilder<IPMXSenderSettings>;
+using IPMXSenderUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<IPMXSenderSettings>;
 
 /**
  * @brief: IPMX Sender application.
@@ -89,7 +89,7 @@ class IPMXSenderApp : public RmaxBaseApp
 {
 private:
     /* Settings builder pointer */
-    std::shared_ptr<ISettingsBuilder<IPMXSenderSettings>> m_settings_builder;
+    std::unique_ptr<ISettingsBuilder<IPMXSenderSettings>> m_settings_builder;
     /* Application settings pointer */
     std::shared_ptr<IPMXSenderSettings> m_ipmx_sender_settings;
     std::vector<std::unique_ptr<IPMXSenderIONode>> m_senders;
@@ -102,7 +102,7 @@ public:
      *
      * @param [in] settings_builder: Settings builder pointer.
      */
-    IPMXSenderApp(std::shared_ptr<ISettingsBuilder<IPMXSenderSettings>> settings_builder);
+    IPMXSenderApp(std::unique_ptr<ISettingsBuilder<IPMXSenderSettings>> settings_builder);
     virtual ~IPMXSenderApp() = default;
     ReturnStatus run() override;
     ReturnStatus initialize() override;

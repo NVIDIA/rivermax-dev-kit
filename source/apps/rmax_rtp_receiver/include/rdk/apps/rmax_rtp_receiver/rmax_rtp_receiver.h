@@ -48,7 +48,7 @@ public:
 class RTPReceiverSettingsValidator : public ISettingsValidator<RTPReceiverSettings>
 {
 public:
-     ReturnStatus validate(const std::shared_ptr<RTPReceiverSettings>& settings) const override;
+     ReturnStatus validate(const RTPReceiverSettings& settings) const override;
 };
 
 /**
@@ -68,14 +68,14 @@ public:
     RTPReceiverCLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<RTPReceiverSettings>> validator) :
-        CLISettingsBuilder<RTPReceiverSettings>(argc, argv, app_description, app_examples, std::move(validator)) {}
+        const ISettingsValidator<RTPReceiverSettings>& validator) :
+        CLISettingsBuilder<RTPReceiverSettings>(argc, argv, app_description, app_examples, validator) {}
     virtual ~RTPReceiverCLISettingsBuilder() = default;
 protected:
-    ReturnStatus add_cli_options(std::shared_ptr<RTPReceiverSettings>& settings) override;
+    ReturnStatus add_cli_options(RTPReceiverSettings& settings) override;
 };
 
-using RTPReceiverExternalSettingsBuilder = ExternalSettingsBuilder<RTPReceiverSettings>;
+using RTPReceiverUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<RTPReceiverSettings>;
 /**
  * @brief: RTP receiver application.
  *
@@ -90,7 +90,7 @@ class RTPReceiverApp : public RmaxReceiverBaseApp
 {
 private:
     /* Settings builder pointer */
-    std::shared_ptr<ISettingsBuilder<RTPReceiverSettings>> m_settings_builder;
+    std::unique_ptr<ISettingsBuilder<RTPReceiverSettings>> m_settings_builder;
     /* Application settings pointer */
     std::shared_ptr<RTPReceiverSettings> m_rtp_receiver_settings;
     /* Network recv flows */
@@ -101,7 +101,7 @@ public:
      *
      * @param [in] settings_builder: Settings builder pointer.
      */
-    RTPReceiverApp(std::shared_ptr<ISettingsBuilder<RTPReceiverSettings>> settings_builder);
+    RTPReceiverApp(std::unique_ptr<ISettingsBuilder<RTPReceiverSettings>> settings_builder);
     /**
      * @brief: RTPReceiverApp class destructor.
      */

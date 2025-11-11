@@ -33,49 +33,49 @@ void IPOReceiverSettings::init_default_values()
     max_packets_in_rx_chunk = 0;
 }
 
-ReturnStatus IPOReceiverSettingsValidator::validate(const std::shared_ptr<IPOReceiverSettings>& settings) const
+ReturnStatus IPOReceiverSettingsValidator::validate(const IPOReceiverSettings& settings) const
 {
-    if (settings->source_ips.empty()) {
+    if (settings.source_ips.empty()) {
         std::cerr << "Must be at least one source IP" << std::endl;
         return ReturnStatus::failure;
     }
-    if (settings->destination_ips.size() != settings->source_ips.size()) {
+    if (settings.destination_ips.size() != settings.source_ips.size()) {
         std::cerr << "Must be the same number of destination multicast IPs as number of source IPs" << std::endl;
          return ReturnStatus::failure;
     }
-    if (settings->local_ips.size() != settings->source_ips.size()) {
+    if (settings.local_ips.size() != settings.source_ips.size()) {
         std::cerr << "Must be the same number of NIC addresses as number of source IPs" << std::endl;
         return ReturnStatus::failure;
     }
-    if (settings->destination_ports.size() != settings->source_ips.size()) {
+    if (settings.destination_ports.size() != settings.source_ips.size()) {
         std::cerr << "Must be the same number of destination ports as number of source IPs" << std::endl;
         return ReturnStatus::failure;
     }
-    if (settings->packet_app_header_size == 0 && settings->register_memory) {
+    if (settings.packet_app_header_size == 0 && settings.register_memory) {
         std::cerr << "Memory registration is supported only in header-data split mode" << std::endl;
          return ReturnStatus::failure;
     }
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->source_ips);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.source_ips);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->local_ips);
+    rc = ValidatorUtils::validate_ip4_address(settings.local_ips);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->destination_ips);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ips);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->destination_ports);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_ports);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->internal_thread_core);
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->app_threads_cores);
+    rc = ValidatorUtils::validate_core(settings.app_threads_cores);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -83,7 +83,7 @@ ReturnStatus IPOReceiverSettingsValidator::validate(const std::shared_ptr<IPORec
     return ReturnStatus::success;
 }
 
-ReturnStatus IPOReceiverCLISettingsBuilder::add_cli_options(std::shared_ptr<IPOReceiverSettings>& settings)
+ReturnStatus IPOReceiverCLISettingsBuilder::add_cli_options(IPOReceiverSettings& settings)
 {
     if (m_cli_parser_manager == nullptr) {
         std::cerr << "CLI parser manager is not initialized" << std::endl;
@@ -112,14 +112,14 @@ ReturnStatus IPOReceiverCLISettingsBuilder::add_cli_options(std::shared_ptr<IPOR
     m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
     CLI::App_p parser = m_cli_parser_manager->get_parser();
-    parser->add_option("-D,--max-pd", settings->max_path_differential_us, "Maximum path differential, us", true)
+    parser->add_option("-D,--max-pd", settings.max_path_differential_us, "Maximum path differential, us", true)
         ->check(CLI::Range(1, USECS_IN_SECOND));
-    parser->add_flag("-X,--ext-seq-num", settings->is_extended_sequence_number,
+    parser->add_flag("-X,--ext-seq-num", settings.is_extended_sequence_number,
         "Parse extended sequence number from RTP payload");
     return ReturnStatus::success;
 }
 
-IPOReceiverApp::IPOReceiverApp(std::shared_ptr<ISettingsBuilder<IPOReceiverSettings>> settings_builder) :
+IPOReceiverApp::IPOReceiverApp(std::unique_ptr<ISettingsBuilder<IPOReceiverSettings>> settings_builder) :
     RmaxReceiverBaseApp(),
     m_settings_builder(std::move(settings_builder))
 {
@@ -153,7 +153,7 @@ ReturnStatus IPOReceiverApp::initialize_app_settings()
         return ReturnStatus::failure;
     }
     m_ipo_receiver_settings = std::make_shared<IPOReceiverSettings>();
-    ReturnStatus rc = m_settings_builder->build(m_ipo_receiver_settings);
+    ReturnStatus rc = m_settings_builder->build(*m_ipo_receiver_settings);
     if (rc == ReturnStatus::success) {
         m_app_settings = m_ipo_receiver_settings;
         return ReturnStatus::success;

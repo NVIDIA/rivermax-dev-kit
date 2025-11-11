@@ -56,7 +56,7 @@ public:
 class IPOReceiverSettingsValidator : public ISettingsValidator<IPOReceiverSettings>
 {
 public:
-     ReturnStatus validate(const std::shared_ptr<IPOReceiverSettings>& settings) const override;
+     ReturnStatus validate(const IPOReceiverSettings& settings) const override;
 };
 
 /**
@@ -77,14 +77,14 @@ public:
     IPOReceiverCLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<IPOReceiverSettings>> validator) :
-        CLISettingsBuilder<IPOReceiverSettings>(argc, argv, app_description, app_examples, std::move(validator)) {}
+        const ISettingsValidator<IPOReceiverSettings>& validator) :
+        CLISettingsBuilder<IPOReceiverSettings>(argc, argv, app_description, app_examples, validator) {}
     virtual ~IPOReceiverCLISettingsBuilder() = default;
 protected:
-    ReturnStatus add_cli_options(std::shared_ptr<IPOReceiverSettings>& settings) override;
+    ReturnStatus add_cli_options(IPOReceiverSettings& settings) override;
 };
 
-using IPOReceiverExternalSettingsBuilder = ExternalSettingsBuilder<IPOReceiverSettings>;
+using IPOReceiverUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<IPOReceiverSettings>;
 /**
  *
  * @brief: IPO Receiver application.
@@ -95,7 +95,7 @@ class IPOReceiverApp : public RmaxReceiverBaseApp
 {
 private:
     /* Settings builder pointer */
-    std::shared_ptr<ISettingsBuilder<IPOReceiverSettings>> m_settings_builder;
+    std::unique_ptr<ISettingsBuilder<IPOReceiverSettings>> m_settings_builder;
     /* Application settings pointer */
     std::shared_ptr<IPOReceiverSettings> m_ipo_receiver_settings;
     /* Network recv flows */
@@ -106,7 +106,7 @@ public:
      *
      * @param [in] settings_builder: Settings builder pointer.
      */
-    IPOReceiverApp(std::shared_ptr<ISettingsBuilder<IPOReceiverSettings>> settings_builder);
+    IPOReceiverApp(std::unique_ptr<ISettingsBuilder<IPOReceiverSettings>> settings_builder);
     /**
      * @brief: IPOReceiverApp class destructor.
      */

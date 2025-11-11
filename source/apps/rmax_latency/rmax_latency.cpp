@@ -59,44 +59,44 @@ void LatencySettings::init_default_values()
     register_memory = true;
 }
 
-ReturnStatus LatencySettingsValidator::validate(const std::shared_ptr<LatencySettings>& settings) const
+ReturnStatus LatencySettingsValidator::validate(const LatencySettings& settings) const
 {
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->local_ip);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->destination_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->destination_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->receive_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.receive_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->receive_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.receive_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->internal_thread_core);
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->app_threads_cores);
+    rc = ValidatorUtils::validate_core(settings.app_threads_cores);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    if (settings->register_memory && !settings->app_memory_alloc) {
+    if (settings.register_memory && !settings.app_memory_alloc) {
         std::cerr << "Register memory option is supported only with application memory allocation" << std::endl;
         return ReturnStatus::failure;
     }
 #ifdef CUDA_ENABLED
-    if (settings->gpu_id != INVALID_GPU_ID) {
-        if (((settings->latency_mode == LatencyMode::Frame) || (settings->latency_mode == LatencyMode::PingPong)) &&
-            (settings->packet_payload_size <= RTP_HEADER_SIZE)) {
+    if (settings.gpu_id != INVALID_GPU_ID) {
+        if (((settings.latency_mode == LatencyMode::Frame) || (settings.latency_mode == LatencyMode::PingPong)) &&
+            (settings.packet_payload_size <= RTP_HEADER_SIZE)) {
             std::cerr << "Packet length with GPU-Direct must be at least " << RTP_HEADER_SIZE + 1 << " bytes" << std::endl;
             return ReturnStatus::failure;
         }
@@ -106,7 +106,7 @@ ReturnStatus LatencySettingsValidator::validate(const std::shared_ptr<LatencySet
     return ReturnStatus::success;
 }
 
-ReturnStatus LatencyCLISettingsBuilder::add_cli_options(std::shared_ptr<LatencySettings>& settings)
+ReturnStatus LatencyCLISettingsBuilder::add_cli_options(LatencySettings& settings)
 {
     if (m_cli_parser_manager == nullptr) {
         std::cerr << "CLI parser manager is not initialized" << std::endl;
@@ -118,26 +118,26 @@ ReturnStatus LatencyCLISettingsBuilder::add_cli_options(std::shared_ptr<LatencyS
     m_cli_parser_manager->add_option(CLIOptStr::DST_PORT)->
             description("Send stream destination port");
     auto parser = m_cli_parser_manager->get_parser();
-    parser->add_option("-r,--receive-ip", settings->receive_ip,
+    parser->add_option("-r,--receive-ip", settings.receive_ip,
                        "Receive stream destination IP", true)->
                        check(CLI::ValidIPV4);
-    parser->add_option("-o,--receive-port", settings->receive_port,
+    parser->add_option("-o,--receive-port", settings.receive_port,
                        "Receive stream destination port", true)->
                        check(CLI::Range(MIN_PORT, MAX_PORT));
-    parser->add_option("-m,--measure", settings->measure_interval_sec,
+    parser->add_option("-m,--measure", settings.measure_interval_sec,
                        "Measurement interval, sec", true)->
                        check(CLI::PositiveNumber);
-    parser->add_flag("-c,--client", settings->client,
+    parser->add_flag("-c,--client", settings.client,
                      "Operate as client, if not specified - operate as server");
-    parser->add_flag("--disable-ts", settings->disable_ts,
+    parser->add_flag("--disable-ts", settings.disable_ts,
                      "Disable processing of realtime completion timestamps");
-    parser->add_flag("--disable-percent", settings->disable_percentile,
+    parser->add_flag("--disable-percent", settings.disable_percentile,
                      "Disable percentile calculation");
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_RESOLUTION)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FRAME_RATE)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    parser->add_option("--mode", settings->latency_mode,
+    parser->add_option("--mode", settings.latency_mode,
                        "Latency measurement mode", true)->
                        transform(CLI::Transformer(oper_modes));
     m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
@@ -157,7 +157,7 @@ ReturnStatus LatencyCLISettingsBuilder::add_cli_options(std::shared_ptr<LatencyS
     return ReturnStatus::success;
 }
 
-LatencyApp::LatencyApp(std::shared_ptr<ISettingsBuilder<LatencySettings>> settings_builder) :
+LatencyApp::LatencyApp(std::unique_ptr<ISettingsBuilder<LatencySettings>> settings_builder) :
     RmaxBaseApp(),
     m_settings_builder(std::move(settings_builder)),
     m_tx_header_mreg{nullptr, 0, 0},
@@ -177,7 +177,7 @@ ReturnStatus LatencyApp::initialize_app_settings()
         return ReturnStatus::failure;
     }
     m_latency_settings = std::make_shared<LatencySettings>();
-    ReturnStatus rc = m_settings_builder->build(m_latency_settings);
+    ReturnStatus rc = m_settings_builder->build(*m_latency_settings);
     if (rc == ReturnStatus::success) {
         m_app_settings = m_latency_settings;
         return ReturnStatus::success;

@@ -40,41 +40,41 @@ void MediaSenderSettings::init_default_values()
     num_of_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
 }
 
-ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaSenderSettings>& settings) const
+ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& settings) const
 {
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->local_ip);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->destination_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->destination_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->internal_thread_core);
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->app_threads_cores);
+    rc = ValidatorUtils::validate_core(settings.app_threads_cores);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->statistics_reader_core);
+    rc = ValidatorUtils::validate_core(settings.statistics_reader_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    if (!settings->media.enable_video && !settings->media.enable_audio && !settings->media.enable_ancillary) {
+    if (!settings.media.enable_video && !settings.media.enable_audio && !settings.media.enable_ancillary) {
         std::cerr << "At least one media type must be enabled: "
                   << CLIOptStr::ENABLE_VIDEO << ", "
                   << CLIOptStr::ENABLE_AUDIO << ", or "
                   << CLIOptStr::ENABLE_ANCILLARY << std::endl;
         return ReturnStatus::failure;
     }
-    bool media_file_used = (!settings->video_file.empty() || !settings->audio_file.empty());
-    bool valid_memory_strategy = settings->app_memory_alloc || settings->dynamic_media_file_load;
+    bool media_file_used = (!settings.video_file.empty() || !settings.audio_file.empty());
+    bool valid_memory_strategy = settings.app_memory_alloc || settings.dynamic_media_file_load;
     if (media_file_used && !valid_memory_strategy) {
         std::cerr << "Error: Application memory allocation or dynamic file loading must"
                      " be enabled when media files are used" << std::endl;
@@ -83,7 +83,7 @@ ReturnStatus MediaSenderSettingsValidator::validate(const std::shared_ptr<MediaS
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<MediaSenderSettings>& settings)
+ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings& settings)
 {
     if (m_cli_parser_manager == nullptr) {
         std::cerr << "CLI parser manager is not initialized" << std::endl;
@@ -94,7 +94,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
     m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
     m_cli_parser_manager->add_option(CLIOptStr::THREADS);
     m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(
-        StreamToThreadsValidator(settings->num_of_threads));
+        StreamToThreadsValidator(settings.num_of_threads));
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
     m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
@@ -150,7 +150,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Medi
     return ReturnStatus::success;
 }
 
-MediaSenderApp::MediaSenderApp(std::shared_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder) :
+MediaSenderApp::MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder) :
     RmaxBaseApp(),
     m_settings_builder(std::move(settings_builder)),
     m_device_interface{}
@@ -201,7 +201,7 @@ ReturnStatus MediaSenderApp::initialize_app_settings()
         return ReturnStatus::failure;
     }
     m_media_sender_settings = std::make_shared<MediaSenderSettings>();
-    ReturnStatus rc = m_settings_builder->build(m_media_sender_settings);
+    ReturnStatus rc = m_settings_builder->build(*m_media_sender_settings);
     if (rc == ReturnStatus::success) {
         m_app_settings = m_media_sender_settings;
         return ReturnStatus::success;

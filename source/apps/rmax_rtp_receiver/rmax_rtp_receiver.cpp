@@ -28,37 +28,37 @@ void RTPReceiverSettings::init_default_values()
     is_extended_sequence_number = false;
 }
 
-ReturnStatus RTPReceiverSettingsValidator::validate(const std::shared_ptr<RTPReceiverSettings>& settings) const
+ReturnStatus RTPReceiverSettingsValidator::validate(const RTPReceiverSettings& settings) const
 {
 #if defined(CUDA_ENABLED) && !defined(TEGRA_ENABLED)
-    if (settings->gpu_id != INVALID_GPU_ID && settings->packet_app_header_size == 0) {
+    if (settings.gpu_id != INVALID_GPU_ID && settings.packet_app_header_size == 0) {
         std::cerr << "GPU Direct is supported only in header-data split mode\n"
                 << "Please specify application header size." << std::endl;
         return ReturnStatus::failure;
     }
 #endif
 
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->source_ip);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.source_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->local_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->destination_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->destination_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->internal_thread_core);
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->app_threads_cores);
+    rc = ValidatorUtils::validate_core(settings.app_threads_cores);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -66,7 +66,7 @@ ReturnStatus RTPReceiverSettingsValidator::validate(const std::shared_ptr<RTPRec
     return ReturnStatus::success;
 }
 
-ReturnStatus RTPReceiverCLISettingsBuilder::add_cli_options(std::shared_ptr<RTPReceiverSettings>& settings)
+ReturnStatus RTPReceiverCLISettingsBuilder::add_cli_options(RTPReceiverSettings& settings)
 {
     if (m_cli_parser_manager == nullptr) {
         std::cerr << "CLI parser manager is not initialized" << std::endl;
@@ -95,12 +95,12 @@ ReturnStatus RTPReceiverCLISettingsBuilder::add_cli_options(std::shared_ptr<RTPR
     m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
     CLI::App_p parser = m_cli_parser_manager->get_parser();
-    parser->add_flag("-X,--ext-seq-num", settings->is_extended_sequence_number,
+    parser->add_flag("-X,--ext-seq-num", settings.is_extended_sequence_number,
         "Parse extended sequence number from RTP payload");
     return ReturnStatus::success;
 }
 
-RTPReceiverApp::RTPReceiverApp(std::shared_ptr<ISettingsBuilder<RTPReceiverSettings>> settings_builder) :
+RTPReceiverApp::RTPReceiverApp(std::unique_ptr<ISettingsBuilder<RTPReceiverSettings>> settings_builder) :
     RmaxReceiverBaseApp(),
     m_settings_builder(std::move(settings_builder))
 {
@@ -129,7 +129,7 @@ ReturnStatus RTPReceiverApp::initialize_app_settings()
         return ReturnStatus::failure;
     }
     m_rtp_receiver_settings = std::make_shared<RTPReceiverSettings>();
-    ReturnStatus rc = m_settings_builder->build(m_rtp_receiver_settings);
+    ReturnStatus rc = m_settings_builder->build(*m_rtp_receiver_settings);
     if (rc == ReturnStatus::success) {
         m_app_settings = m_rtp_receiver_settings;
         return ReturnStatus::success;

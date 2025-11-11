@@ -48,7 +48,7 @@ public:
 class GenericSenderSettingsValidator : public ISettingsValidator<GenericSenderSettings>
 {
 public:
-     ReturnStatus validate(const std::shared_ptr<GenericSenderSettings>& settings) const override;
+     ReturnStatus validate(const GenericSenderSettings& settings) const override;
 };
 
 /**
@@ -68,14 +68,14 @@ public:
     GenericSenderCLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<GenericSenderSettings>> validator) :
-        CLISettingsBuilder<GenericSenderSettings>(argc, argv, app_description, app_examples, std::move(validator)) {}
+        const ISettingsValidator<GenericSenderSettings>& validator) :
+        CLISettingsBuilder<GenericSenderSettings>(argc, argv, app_description, app_examples, validator) {}
     virtual ~GenericSenderCLISettingsBuilder() = default;
 protected:
-    ReturnStatus add_cli_options(std::shared_ptr<GenericSenderSettings>& settings) override;
+    ReturnStatus add_cli_options(GenericSenderSettings& settings) override;
 };
 
-using GenericSenderExternalSettingsBuilder = ExternalSettingsBuilder<GenericSenderSettings>;
+using GenericSenderUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<GenericSenderSettings>;
 /**
  * @brief: Generic Sender application.
  *
@@ -85,7 +85,7 @@ class GenericSenderApp : public RmaxBaseApp
 {
 private:
     /* Settings builder pointer */
-    std::shared_ptr<ISettingsBuilder<GenericSenderSettings>> m_settings_builder;
+    std::unique_ptr<ISettingsBuilder<GenericSenderSettings>> m_settings_builder;
     /* Application settings pointer */
     std::shared_ptr<GenericSenderSettings> m_generic_sender_settings;
     /* Sender objects container */
@@ -104,7 +104,7 @@ public:
      *
      * @param [in] settings_builder: Settings builder pointer.
      */
-    GenericSenderApp(std::shared_ptr<ISettingsBuilder<GenericSenderSettings>> settings_builder);
+    GenericSenderApp(std::unique_ptr<ISettingsBuilder<GenericSenderSettings>> settings_builder);
     virtual ~GenericSenderApp() = default;
     ReturnStatus run() override;
     ReturnStatus initialize() override;

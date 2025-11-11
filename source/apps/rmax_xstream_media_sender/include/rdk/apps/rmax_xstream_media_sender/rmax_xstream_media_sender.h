@@ -60,7 +60,7 @@ public:
 class MediaSenderSettingsValidator : public ISettingsValidator<MediaSenderSettings>
 {
 public:
-    ReturnStatus validate(const std::shared_ptr<MediaSenderSettings>& settings) const override;
+    ReturnStatus validate(const MediaSenderSettings& settings) const override;
 };
 
 /**
@@ -76,18 +76,19 @@ public:
      * @param [in] argv: CLI arguments strings array.
      * @param [in] app_description: Application description string for the CLI usage.
      * @param [in] app_examples: Application examples string for the CLI usage.
+     * @param [in] validator: A const reference to the settings validator.
      */
     MediaSenderCLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<MediaSenderSettings>> validator) :
-        CLISettingsBuilder<MediaSenderSettings>(argc, argv, app_description, app_examples, std::move(validator)) {}
+        const ISettingsValidator<MediaSenderSettings>& validator) :
+        CLISettingsBuilder<MediaSenderSettings>(argc, argv, app_description, app_examples, validator) {}
     virtual ~MediaSenderCLISettingsBuilder() = default;
 protected:
-    ReturnStatus add_cli_options(std::shared_ptr<MediaSenderSettings>& settings) override;
+    ReturnStatus add_cli_options(MediaSenderSettings& settings) override;
 };
 
-using MediaSenderExternalSettingsBuilder = ExternalSettingsBuilder<MediaSenderSettings>;
+using MediaSenderUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<MediaSenderSettings>;
 /**
  * @brief: Media Sender application.
  *
@@ -97,7 +98,7 @@ class MediaSenderApp : public RmaxBaseApp
 {
 private:
     /* Settings builder pointer */
-    std::shared_ptr<ISettingsBuilder<MediaSenderSettings>> m_settings_builder;
+    std::unique_ptr<ISettingsBuilder<MediaSenderSettings>> m_settings_builder;
     /* Application settings pointer */
     std::shared_ptr<MediaSenderSettings> m_media_sender_settings;
     /* Sender objects container */
@@ -121,7 +122,7 @@ public:
      *
      * @param [in] settings_builder: Settings builder pointer.
      */
-    MediaSenderApp(std::shared_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder);
+    MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder);
     virtual ~MediaSenderApp() = default;
     ReturnStatus run() override;
     /**

@@ -44,11 +44,11 @@ namespace services
  * 2. Create Validator Class:
  *    - Define a class that validates the settings for your application.
  *      This class should have a method to validate the settings:
- *          ReturnStatus validate(const std::shared_ptr<SettingsType>& settings) const
+ *          ReturnStatus validate(const SettingsType& settings) const
  *
  * 4. Implement Settings Builder Classes:
  *    - Implement desired settings builder classes by extending `CLISettingsBuilder`,
- *      and `ExternalSettingsBuilder` with your custom initializer and validator.
+ *      and `UserProvidedSettingsBuilder` with your custom initializer and validator.
  */
 
 /**
@@ -69,11 +69,11 @@ public:
     /**
      * @brief: Validates the application settings.
      *
-     * @param [in] settings: A shared pointer to the application settings.
+     * @param [in] settings: A const reference to the application settings.
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus validate(const std::shared_ptr<SettingsType>& settings) const = 0;
+    virtual ReturnStatus validate(const SettingsType& settings) const = 0;
 };
 
 /**
@@ -94,11 +94,11 @@ public:
     /**
      * @brief: Builds the application settings.
      *
-     * @param [in] settings: A shared pointer to the application settings.
+     * @param [out] settings: A reference to the application settings to populate.
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus build(std::shared_ptr<SettingsType> settings) = 0;
+    virtual ReturnStatus build(SettingsType& settings) = 0;
 };
 
 /**
@@ -112,21 +112,43 @@ template <typename SettingsType>
 class SettingsBuilderBase : public ISettingsBuilder<SettingsType>
 {
 protected:
-    std::shared_ptr<ISettingsValidator<SettingsType>> m_validator;
+    const ISettingsValidator<SettingsType>& m_validator;
 public:
     /**
      * @brief: Constructor for SettingsBuilderBase.
      *
-     * @param [in] validator: A shared pointer to the settings validator.
+     * @param [in] validator: A const reference to the settings validator.
      */
-    SettingsBuilderBase(std::shared_ptr<ISettingsValidator<SettingsType>> validator) :
-        m_validator(std::move(validator)) {}
+    SettingsBuilderBase(const ISettingsValidator<SettingsType>& validator) :
+        m_validator(validator) {}
 };
 
 /**
  * @brief: Command line settings builder.
  *
  * This class provides functionality for building settings from command line arguments.
+ * The settings are initialized with default values, populated from CLI arguments, and validated.
+ *
+ * Usage Pattern:
+ * @code
+ * // 1. Get CLI arguments: argc and argv from main function
+ *
+ * // 2. Create validator object:
+ * AppSettingsValidator validator;
+ *
+ * // 3. Create settings builder with CLI arguments:
+ * auto builder = std::make_unique<AppCLISettingsBuilder>(
+ *     argc, argv, "App Description", "Usage Examples", validator);
+ *
+ * // 4. Pass settings builder to application:
+ * auto app = App(std::move(builder));
+ * auto status = app.initialize();  // Settings created and populated from CLI
+ *
+ * // 5. Run application:
+ * if (status == ReturnStatus::success) {
+ *     app.run();
+ * }
+ * @endcode
  *
  * @tparam SettingsType: The type of the settings to build.
  */
@@ -147,13 +169,13 @@ public:
      * @param [in] argv: The command line arguments.
      * @param [in] app_description: The description of the application.
      * @param [in] app_examples: Examples of how to use the application.
-     * @param [in] validator: A shared pointer to the settings validator.
+     * @param [in] validator: A const reference to the settings validator.
      */
     CLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<SettingsType>> validator) :
-        SettingsBuilderBase<SettingsType>(std::move(validator)),
+        const ISettingsValidator<SettingsType>& validator) :
+        SettingsBuilderBase<SettingsType>(validator),
         m_app_description(app_description), m_app_examples(app_examples),
         m_argc(argc), m_argv(argv) {}
     /**
@@ -163,11 +185,11 @@ public:
     /**
      * @brief: Builds the application settings.
      *
-     * @param [in] settings: A shared pointer to the application settings.
+     * @param [out] settings: A reference to the application settings to populate.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus build(std::shared_ptr<SettingsType> settings) override;
+    ReturnStatus build(SettingsType& settings) override;
 protected:
     /**
      * @brief: Adds CLI options and/or arguments to the parser.
@@ -177,7 +199,7 @@ protected:
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus add_cli_options(std::shared_ptr<SettingsType>& settings) { return ReturnStatus::success; }
+    virtual ReturnStatus add_cli_options(SettingsType& settings) { return ReturnStatus::success; }
     /**
      * @brief: Parses the CLI arguments.
      *
@@ -190,51 +212,88 @@ protected:
     /**
      * @brief: Initializes the CLI parser manager.
      *
-     * @param [in] settings: A shared pointer to the application settings.
+     * @param [in] settings: A reference to the application settings.
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus init_cli_parser_manager(std::shared_ptr<SettingsType> settings);
+    virtual ReturnStatus init_cli_parser_manager(SettingsType& settings);
 };
 
 /**
- * @brief: External settings builder.
+ * @brief: User-provided settings builder.
  *
- * This class provides functionality for building settings from external sources.
+ * This class provides functionality for transferring user-provided settings to the application.
+ * The caller creates and fills the settings structure directly before passing it to this builder.
+ * During @ref build(), the settings are validated and moved into the application's settings object.
+ * After @ref build(), the source settings object will be in a moved-from (invalid) state.
+ *
+ * Usage Pattern:
+ * @code
+ * // 1. Create and fill settings:
+ * auto settings = std::make_shared<AppSettings>();
+ * settings->init_default_values();
+ * settings->field1 = "value1";
+ * settings->field2 = "value2";
+ * // ... fill other fields
+ *
+ * // 2. Create validator object:
+ * AppSettingsValidator validator;
+ *
+ * // 3. Create settings builder with user-provided settings (explicit move required):
+ * auto builder = std::make_unique<AppUserProvidedSettingsBuilder>(
+ *     std::move(*settings), validator);
+ *
+ * // 4. Pass settings builder to application:
+ * auto app = App(std::move(builder));
+ * auto status = app.initialize();  // Settings transferred to app here
+ *
+ * // 5. Run application:
+ * if (status == ReturnStatus::success) {
+ *     app.run();
+ * }
+ *
+ * // WARNING: 'settings' is now in a moved-from state and should not be used
+ * @endcode
  *
  * @tparam SettingsType: The type of the settings to build.
  */
 template <typename SettingsType>
-class ExternalSettingsBuilder : public SettingsBuilderBase<SettingsType>
+class UserProvidedSettingsBuilder : public SettingsBuilderBase<SettingsType>
 {
 private:
-    std::shared_ptr<SettingsType> m_external_settings;
+    SettingsType m_user_provided_settings;
 public:
     /**
-     * @brief: Constructor for ExternalSettingsBuilder.
+     * @brief: Constructor for UserProvidedSettingsBuilder.
      *
-     * @param [in] external_settings: A shared pointer to the external settings.
-     * @param [in] validator: A shared pointer to the settings validator.
+     * @param [in] user_provided_settings: An rvalue reference to the user-provided settings.
+     * @param [in] validator: A const reference to the settings validator.
      */
-    ExternalSettingsBuilder(std::shared_ptr<SettingsType> external_settings,
-        std::shared_ptr<ISettingsValidator<SettingsType>> validator) :
-        SettingsBuilderBase<SettingsType>(validator), m_external_settings(external_settings) {}
+    UserProvidedSettingsBuilder(SettingsType&& user_provided_settings,
+        const ISettingsValidator<SettingsType>& validator) :
+        SettingsBuilderBase<SettingsType>(validator), m_user_provided_settings(std::move(user_provided_settings)) {}
     /**
-     * @brief: Destructor for ExternalSettingsBuilder.
+     * @brief: Destructor for UserProvidedSettingsBuilder.
      */
-    ~ExternalSettingsBuilder() = default;
+    ~UserProvidedSettingsBuilder() = default;
     /**
-     * @brief: Builds the application settings.
+     * @brief: Builds the application settings by moving from user-provided settings.
      *
-     * @param [in] settings: A shared pointer to the application settings.
+     * This method validates the user-provided settings, then moves them into the provided
+     * settings parameter. After this call, m_user_provided_settings will be in a moved-from state.
+     *
+     * @param [out] settings: A reference to the application settings to populate.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus build(std::shared_ptr<SettingsType> settings) override {
-        *settings = *m_external_settings;
-        if (this->m_validator) {
-            return this->m_validator->validate(settings);
+    ReturnStatus build(SettingsType& settings) override {
+        auto rc = this->m_validator.validate(m_user_provided_settings);
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to validate user-provided settings" << std::endl;
+            return rc;
         }
+        settings = std::move(m_user_provided_settings);
+
         return ReturnStatus::success;
     }
 };
@@ -251,16 +310,16 @@ template <typename SourceSettingsType, typename TargetSettingsType>
 class ConversionSettingsBuilder : public SettingsBuilderBase<TargetSettingsType>
 {
 private:
-    std::shared_ptr<SourceSettingsType> m_source_settings;
+    const SourceSettingsType& m_source_settings;
 public:
     /**
      * @brief: Constructor for @ref ConversionSettingsBuilder.
      *
-     * @param [in] source_settings: A shared pointer to the source settings.
-     * @param [in] validator: A shared pointer to the target settings validator.
+     * @param [in] source_settings: A const reference to the source settings.
+     * @param [in] validator: A const reference to the target settings validator.
      */
-    ConversionSettingsBuilder(std::shared_ptr<SourceSettingsType> source_settings,
-        std::shared_ptr<ISettingsValidator<TargetSettingsType>> validator) :
+    ConversionSettingsBuilder(const SourceSettingsType& source_settings,
+        const ISettingsValidator<TargetSettingsType>& validator) :
         SettingsBuilderBase<TargetSettingsType>(validator), m_source_settings(source_settings) {}
     /**
      * @brief: Destructor for @ref ConversionSettingsBuilder.
@@ -269,50 +328,43 @@ public:
     /**
      * @brief: Builds the application settings by converting from source settings.
      *
-     * @param [in] target_settings: A shared pointer to the target application settings.
+     * @param [out] target_settings: A reference to the target application settings to populate.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus build(std::shared_ptr<TargetSettingsType> target_settings) override;
+    ReturnStatus build(TargetSettingsType& target_settings) override;
 protected:
     /**
      * @brief: Converts source settings to target settings.
      *
      * Override this method to implement the conversion logic from source settings to target settings.
      *
-     * @param [in] source_settings: A shared pointer to the source settings.
-     * @param [out] target_settings: A shared pointer to the target settings.
+     * @param [in] source_settings: A const reference to the source settings.
+     * @param [out] target_settings: A reference to the target settings to populate.
      *
      * @return: Status of the operation.
      */
-    virtual ReturnStatus convert_settings(const std::shared_ptr<SourceSettingsType>& source_settings,
-                                          std::shared_ptr<TargetSettingsType>& target_settings) = 0;
+    virtual ReturnStatus convert_settings(const SourceSettingsType& source_settings,
+                                          TargetSettingsType& target_settings) = 0;
 };
 
 template <typename SourceSettingsType, typename TargetSettingsType>
 ReturnStatus ConversionSettingsBuilder<SourceSettingsType, TargetSettingsType>::build(
-    std::shared_ptr<TargetSettingsType> target_settings) {
-    if (m_source_settings == nullptr) {
-        std::cerr << "Source settings are null" << std::endl;
-        return ReturnStatus::failure;
-    }
-    target_settings->init_default_values();
+    TargetSettingsType& target_settings) {
+    target_settings.init_default_values();
     auto rc = convert_settings(m_source_settings, target_settings);
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to convert settings" << std::endl;
         return rc;
     }
 
-    if (this->m_validator) {
-        return this->m_validator->validate(target_settings);
-    }
-    return ReturnStatus::success;
+    return this->m_validator.validate(target_settings);
 }
 
 template <typename SettingsType>
-ReturnStatus CLISettingsBuilder<SettingsType>::build(std::shared_ptr<SettingsType> settings)
+ReturnStatus CLISettingsBuilder<SettingsType>::build(SettingsType& settings)
 {
-    settings->init_default_values();
+    settings.init_default_values();
 
     auto rc = this->init_cli_parser_manager(settings);
     if (rc != ReturnStatus::success) {
@@ -334,21 +386,20 @@ ReturnStatus CLISettingsBuilder<SettingsType>::build(std::shared_ptr<SettingsTyp
         return rc;
     }
 
-    if (this->m_validator) {
-        rc = this->m_validator->validate(settings);
-        if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to validate settings" << std::endl;
-            return rc;
-        }
+    rc = this->m_validator.validate(settings);
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to validate settings" << std::endl;
+        return rc;
     }
 
     return ReturnStatus::success;
 }
 
 template <typename SettingsType>
-ReturnStatus CLISettingsBuilder<SettingsType>::init_cli_parser_manager(std::shared_ptr<SettingsType> settings)
+ReturnStatus CLISettingsBuilder<SettingsType>::init_cli_parser_manager(SettingsType& settings)
 {
-    m_cli_parser_manager = std::make_shared<CLIParserManager>(m_app_description, m_app_examples, settings);
+    std::shared_ptr<SettingsType> settings_ptr(&settings, [](SettingsType*){});
+    m_cli_parser_manager = std::make_shared<CLIParserManager>(m_app_description, m_app_examples, settings_ptr);
 
     auto rc = m_cli_parser_manager->initialize();
     if (rc != ReturnStatus::success) {

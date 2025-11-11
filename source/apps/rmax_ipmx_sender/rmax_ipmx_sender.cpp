@@ -36,40 +36,40 @@ void IPMXSenderSettings::init_default_values()
     enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
 }
 
-ReturnStatus IPMXSenderSettingsValidator::validate(const std::shared_ptr<IPMXSenderSettings>& settings) const
+ReturnStatus IPMXSenderSettingsValidator::validate(const IPMXSenderSettings& settings) const
 {
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->local_ip);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->destination_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->destination_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->internal_thread_core);
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->app_threads_cores);
+    rc = ValidatorUtils::validate_core(settings.app_threads_cores);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->statistics_reader_core);
+    rc = ValidatorUtils::validate_core(settings.statistics_reader_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    if (settings->register_memory && !settings->app_memory_alloc) {
+    if (settings.register_memory && !settings.app_memory_alloc) {
         std::cerr << "Register memory option is supported only with application memory allocation" << std::endl;
         return ReturnStatus::failure;
     }
     return ReturnStatus::success;
 }
 
-ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<IPMXSenderSettings>& settings)
+ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(IPMXSenderSettings& settings)
 {
     if (m_cli_parser_manager == nullptr) {
         std::cerr << "CLI parser manager is not initialized" << std::endl;
@@ -80,7 +80,7 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<IPMXS
     m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
     m_cli_parser_manager->add_option(CLIOptStr::THREADS);
     m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(
-        StreamToThreadsValidator(settings->num_of_threads));
+        StreamToThreadsValidator(settings.num_of_threads));
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
     m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
@@ -92,7 +92,7 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<IPMXS
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FRAME_RATE)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     // TODO: move PTP flag to App
-    parser->add_flag("--ptp", settings->ref_clk_is_ptp,
+    parser->add_flag("--ptp", settings.ref_clk_is_ptp,
                      "Use NIC RTC as a PTP-synchronized Common Reference clock");
     auto stats_enabled = m_cli_parser_manager->add_option(CLIOptStr::ENABLE_STATS_READER);
     auto stats_core = m_cli_parser_manager->add_option(CLIOptStr::STATS_CORE)->needs(stats_enabled);
@@ -100,7 +100,7 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<IPMXS
     return ReturnStatus::success;
 }
 
-IPMXSenderApp::IPMXSenderApp(std::shared_ptr<ISettingsBuilder<IPMXSenderSettings>> settings_builder) :
+IPMXSenderApp::IPMXSenderApp(std::unique_ptr<ISettingsBuilder<IPMXSenderSettings>> settings_builder) :
     RmaxBaseApp(),
     m_settings_builder(std::move(settings_builder)),
     m_device_interface{},
@@ -115,7 +115,7 @@ ReturnStatus IPMXSenderApp::initialize_app_settings()
         return ReturnStatus::failure;
     }
     m_ipmx_sender_settings = std::make_shared<IPMXSenderSettings>();
-    ReturnStatus rc = m_settings_builder->build(m_ipmx_sender_settings);
+    ReturnStatus rc = m_settings_builder->build(*m_ipmx_sender_settings);
     if (rc == ReturnStatus::success) {
         m_app_settings = m_ipmx_sender_settings;
         return ReturnStatus::success;

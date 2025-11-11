@@ -29,36 +29,36 @@ void GenericSenderSettings::init_default_values()
     register_memory = true;
 }
 
-ReturnStatus GenericSenderSettingsValidator::validate(const std::shared_ptr<GenericSenderSettings>& settings) const
+ReturnStatus GenericSenderSettingsValidator::validate(const GenericSenderSettings& settings) const
 {
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->local_ip);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->destination_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->destination_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->internal_thread_core);
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->app_threads_cores);
+    rc = ValidatorUtils::validate_core(settings.app_threads_cores);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    if (settings->rate.bps > 0 && settings->rate.max_burst_in_packets == 0) {
+    if (settings.rate.bps > 0 && settings.rate.max_burst_in_packets == 0) {
         std::cerr << "Maximum allowed burst size per flow must be greater than 0 when Rate limit is set" << std::endl;
         return ReturnStatus::failure;
     }
     return ReturnStatus::success;
 }
 
-ReturnStatus GenericSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<GenericSenderSettings>& settings)
+ReturnStatus GenericSenderCLISettingsBuilder::add_cli_options(GenericSenderSettings& settings)
 {
     if (m_cli_parser_manager == nullptr) {
         std::cerr << "CLI parser manager is not initialized" << std::endl;
@@ -70,7 +70,7 @@ ReturnStatus GenericSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Ge
     m_cli_parser_manager->add_option(CLIOptStr::THREADS);
     m_cli_parser_manager->add_option(CLIOptStr::FLOWS);
     m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(StreamToThreadsFlowsValidator(
-        settings->num_of_threads, settings->num_of_total_flows));
+        settings.num_of_threads, settings.num_of_total_flows));
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
     m_cli_parser_manager->add_option(CLIOptStr::CHUNKS);
     m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
@@ -91,7 +91,7 @@ ReturnStatus GenericSenderCLISettingsBuilder::add_cli_options(std::shared_ptr<Ge
     return ReturnStatus::success;
 }
 
-GenericSenderApp::GenericSenderApp(std::shared_ptr<ISettingsBuilder<GenericSenderSettings>> settings_builder) :
+GenericSenderApp::GenericSenderApp(std::unique_ptr<ISettingsBuilder<GenericSenderSettings>> settings_builder) :
     RmaxBaseApp(),
     m_settings_builder(std::move(settings_builder))
 {
@@ -112,7 +112,7 @@ ReturnStatus GenericSenderApp::initialize_app_settings()
         return ReturnStatus::failure;
     }
     m_generic_sender_settings = std::make_shared<GenericSenderSettings>();
-    ReturnStatus rc = m_settings_builder->build(m_generic_sender_settings);
+    ReturnStatus rc = m_settings_builder->build(*m_generic_sender_settings);
     if (rc == ReturnStatus::success) {
         m_app_settings = m_generic_sender_settings;
         return ReturnStatus::success;

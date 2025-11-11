@@ -97,7 +97,7 @@ public:
 class LatencySettingsValidator : public ISettingsValidator<LatencySettings>
 {
 public:
-    ReturnStatus validate(const std::shared_ptr<LatencySettings>& settings) const override;
+    ReturnStatus validate(const LatencySettings& settings) const override;
 };
 
 /**
@@ -118,14 +118,14 @@ public:
     LatencyCLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<LatencySettings>> validator) :
-        CLISettingsBuilder<LatencySettings>(argc, argv, app_description, app_examples, std::move(validator)) {}
+        const ISettingsValidator<LatencySettings>& validator) :
+        CLISettingsBuilder<LatencySettings>(argc, argv, app_description, app_examples, validator) {}
     virtual ~LatencyCLISettingsBuilder() = default;
 protected:
-    ReturnStatus add_cli_options(std::shared_ptr<LatencySettings>& settings) override;
+    ReturnStatus add_cli_options(LatencySettings& settings) override;
 };
 
-using LatencyExternalSettingsBuilder = ExternalSettingsBuilder<LatencySettings>;
+using LatencyUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<LatencySettings>;
 
 /**
  * @brief: Latency measurement application.
@@ -136,7 +136,7 @@ class LatencyApp : public RmaxBaseApp
 {
 private:
     /* Settings builder pointer */
-    std::shared_ptr<ISettingsBuilder<LatencySettings>> m_settings_builder;
+    std::unique_ptr<ISettingsBuilder<LatencySettings>> m_settings_builder;
     /* Application settings pointer */
     std::shared_ptr<LatencySettings> m_latency_settings;
     /* Transmitter-Receiver objects container */
@@ -163,7 +163,7 @@ public:
      *
      * @param [in] settings_builder: Settings builder pointer.
      */
-    LatencyApp(std::shared_ptr<ISettingsBuilder<LatencySettings>> settings_builder);
+    LatencyApp(std::unique_ptr<ISettingsBuilder<LatencySettings>> settings_builder);
     virtual ~LatencyApp() = default;
     ReturnStatus run() override;
     ReturnStatus initialize() override;

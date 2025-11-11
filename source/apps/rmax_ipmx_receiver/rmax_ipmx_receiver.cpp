@@ -58,41 +58,41 @@ void IPMXReceiverSettings::init_default_values()
     rtcp_thread_core = INVALID_CORE_NUMBER;
 }
 
-ReturnStatus IPMXReceiverSettingsValidator::validate(const std::shared_ptr<IPMXReceiverSettings>& settings) const
+ReturnStatus IPMXReceiverSettingsValidator::validate(const IPMXReceiverSettings& settings) const
 {
 #if defined(CUDA_ENABLED) && !defined(TEGRA_ENABLED)
-    if (settings->gpu_id != INVALID_GPU_ID && settings->packet_app_header_size == 0) {
+    if (settings.gpu_id != INVALID_GPU_ID && settings.packet_app_header_size == 0) {
         std::cerr << "GPU Direct is supported only in header-data split mode\n"
                 << "Please specify application header size." << std::endl;
         return ReturnStatus::failure;
     }
 #endif
 
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->source_ip);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.source_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->local_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->destination_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->destination_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->internal_thread_core);
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->app_threads_cores);
+    rc = ValidatorUtils::validate_core(settings.app_threads_cores);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->rtcp_thread_core);
+    rc = ValidatorUtils::validate_core(settings.rtcp_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -100,7 +100,7 @@ ReturnStatus IPMXReceiverSettingsValidator::validate(const std::shared_ptr<IPMXR
     return ReturnStatus::success;
 }
 
-ReturnStatus IPMXReceiverCLISettingsBuilder::add_cli_options(std::shared_ptr<IPMXReceiverSettings>& settings)
+ReturnStatus IPMXReceiverCLISettingsBuilder::add_cli_options(IPMXReceiverSettings& settings)
 {
     if (m_cli_parser_manager == nullptr) {
         std::cerr << "CLI parser manager is not initialized" << std::endl;
@@ -129,14 +129,14 @@ ReturnStatus IPMXReceiverCLISettingsBuilder::add_cli_options(std::shared_ptr<IPM
     m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
     CLI::App_p parser = m_cli_parser_manager->get_parser();
-    parser->add_flag("-X,--ext-seq-num", settings->is_extended_sequence_number,
+    parser->add_flag("-X,--ext-seq-num", settings.is_extended_sequence_number,
         "Parse extended sequence number from RTP payload");
-    parser->add_option("-r,--rtcp-core", settings->rtcp_thread_core,
+    parser->add_option("-r,--rtcp-core", settings.rtcp_thread_core,
         "RTCP receiver thread core");
     return ReturnStatus::success;
 }
 
-IPMXReceiverApp::IPMXReceiverApp(std::shared_ptr<ISettingsBuilder<IPMXReceiverSettings>> settings_builder) :
+IPMXReceiverApp::IPMXReceiverApp(std::unique_ptr<ISettingsBuilder<IPMXReceiverSettings>> settings_builder) :
     RmaxReceiverBaseApp(),
     m_settings_builder(std::move(settings_builder))
 {
@@ -172,7 +172,7 @@ ReturnStatus IPMXReceiverApp::initialize_app_settings()
         return ReturnStatus::failure;
     }
     m_ipmx_receiver_settings = std::make_shared<IPMXReceiverSettings>();
-    ReturnStatus rc = m_settings_builder->build(m_ipmx_receiver_settings);
+    ReturnStatus rc = m_settings_builder->build(*m_ipmx_receiver_settings);
     if (rc == ReturnStatus::success) {
         m_app_settings = m_ipmx_receiver_settings;
         initialize_rtcp_ionode_settings();

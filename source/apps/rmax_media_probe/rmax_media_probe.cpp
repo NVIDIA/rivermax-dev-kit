@@ -30,29 +30,29 @@ void MediaProbeSettings::init_default_values()
     register_memory = true;
 }
 
-ReturnStatus MediaProbeSettingsValidator::validate(const std::shared_ptr<MediaProbeSettings>& settings) const
+ReturnStatus MediaProbeSettingsValidator::validate(const MediaProbeSettings& settings) const
 {
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings->source_ip);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.source_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->local_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings->destination_ip);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings->destination_port);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->internal_thread_core);
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_core(settings->app_threads_cores);
+    rc = ValidatorUtils::validate_core(settings.app_threads_cores);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -60,7 +60,7 @@ ReturnStatus MediaProbeSettingsValidator::validate(const std::shared_ptr<MediaPr
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaProbeCLISettingsBuilder::add_cli_options(std::shared_ptr<MediaProbeSettings>& settings)
+ReturnStatus MediaProbeCLISettingsBuilder::add_cli_options(MediaProbeSettings& settings)
 {
     if (m_cli_parser_manager == nullptr) {
         std::cerr << "CLI parser manager is not initialized" << std::endl;
@@ -82,16 +82,16 @@ ReturnStatus MediaProbeCLISettingsBuilder::add_cli_options(std::shared_ptr<Media
     m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
     CLI::App_p parser = m_cli_parser_manager->get_parser();
-    auto video_cli_flag = parser->add_flag("--video", settings->is_video_enabled,
+    auto video_cli_flag = parser->add_flag("--video", settings.is_video_enabled,
         "Parse video stream");
-    auto alpha_cli_flag = parser->add_flag("--alpha", settings->is_alpha_enabled,
+    auto alpha_cli_flag = parser->add_flag("--alpha", settings.is_alpha_enabled,
         "Parse alpha stream");
     alpha_cli_flag->needs(video_cli_flag);
 
     return ReturnStatus::success;
 }
 
-MediaProbeApp::MediaProbeApp(std::shared_ptr<ISettingsBuilder<MediaProbeSettings>> settings_builder) :
+MediaProbeApp::MediaProbeApp(std::unique_ptr<ISettingsBuilder<MediaProbeSettings>> settings_builder) :
     RmaxReceiverBaseApp(),
     m_settings_builder(std::move(settings_builder))
 {
@@ -128,7 +128,7 @@ ReturnStatus MediaProbeApp::initialize_app_settings()
         return ReturnStatus::failure;
     }
     m_media_probe_settings = std::make_shared<MediaProbeSettings>();
-    ReturnStatus rc = m_settings_builder->build(m_media_probe_settings);
+    ReturnStatus rc = m_settings_builder->build(*m_media_probe_settings);
     if (rc == ReturnStatus::success) {
         m_app_settings = m_media_probe_settings;
         return ReturnStatus::success;

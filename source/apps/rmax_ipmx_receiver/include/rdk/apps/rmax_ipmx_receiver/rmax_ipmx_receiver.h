@@ -100,7 +100,7 @@ public:
 class IPMXReceiverSettingsValidator : public ISettingsValidator<IPMXReceiverSettings>
 {
 public:
-    ReturnStatus validate(const std::shared_ptr<IPMXReceiverSettings>& settings) const override;
+    ReturnStatus validate(const IPMXReceiverSettings& settings) const override;
 };
 
 /**
@@ -120,14 +120,14 @@ public:
     IPMXReceiverCLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<IPMXReceiverSettings>> validator) :
-        CLISettingsBuilder<IPMXReceiverSettings>(argc, argv, app_description, app_examples, std::move(validator)) {}
+        const ISettingsValidator<IPMXReceiverSettings>& validator) :
+        CLISettingsBuilder<IPMXReceiverSettings>(argc, argv, app_description, app_examples, validator) {}
     virtual ~IPMXReceiverCLISettingsBuilder() = default;
 protected:
-    ReturnStatus add_cli_options(std::shared_ptr<IPMXReceiverSettings>& settings) override;
+    ReturnStatus add_cli_options(IPMXReceiverSettings& settings) override;
 };
 
-using IPMXReceiverProvidedSettingsBuilder = ExternalSettingsBuilder<IPMXReceiverSettings>;
+using IPMXReceiverUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<IPMXReceiverSettings>;
 /**
  * @brief: IPMX receiver application.
  *
@@ -141,7 +141,7 @@ class IPMXReceiverApp : public RmaxReceiverBaseApp
 {
 private:
     /* Settings builder pointer */
-    std::shared_ptr<ISettingsBuilder<IPMXReceiverSettings>> m_settings_builder;
+    std::unique_ptr<ISettingsBuilder<IPMXReceiverSettings>> m_settings_builder;
     /* Application settings pointer */
     std::shared_ptr<IPMXReceiverSettings> m_ipmx_receiver_settings;
     /* RTCP receiver settings */
@@ -157,7 +157,7 @@ public:
      *
      * @param [in] settings_builder: Settings builder pointer.
      */
-    IPMXReceiverApp(std::shared_ptr<ISettingsBuilder<IPMXReceiverSettings>> settings_builder);
+    IPMXReceiverApp(std::unique_ptr<ISettingsBuilder<IPMXReceiverSettings>> settings_builder);
     /**
      * @brief: IPMXReceiverApp class destructor.
      */

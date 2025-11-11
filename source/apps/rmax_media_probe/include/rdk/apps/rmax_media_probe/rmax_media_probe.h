@@ -62,7 +62,7 @@ public:
      * @param [in] settings: Shared pointer to the settings to validate.
      * @return: Return status indicating validation success or failure.
      */
-    ReturnStatus validate(const std::shared_ptr<MediaProbeSettings>& settings) const override;
+    ReturnStatus validate(const MediaProbeSettings& settings) const override;
 };
 
 /**
@@ -82,8 +82,8 @@ public:
     MediaProbeCLISettingsBuilder(int argc, const char** argv,
         const std::string& app_description,
         const std::string& app_examples,
-        std::shared_ptr<ISettingsValidator<MediaProbeSettings>> validator) :
-        CLISettingsBuilder<MediaProbeSettings>(argc, argv, app_description, app_examples, std::move(validator)) {}
+        const ISettingsValidator<MediaProbeSettings>& validator) :
+        CLISettingsBuilder<MediaProbeSettings>(argc, argv, app_description, app_examples, validator) {}
     virtual ~MediaProbeCLISettingsBuilder() = default;
 protected:
     /**
@@ -92,13 +92,13 @@ protected:
      * @param [in,out] settings: Shared pointer to the settings to configure.
      * @return: Return status indicating success or failure.
      */
-    ReturnStatus add_cli_options(std::shared_ptr<MediaProbeSettings>& settings) override;
+    ReturnStatus add_cli_options(MediaProbeSettings& settings) override;
 };
 
 /**
  * @brief: External settings builder for Rivermax Media Probe.
  */
-using MediaProbeExternalSettingsBuilder = ExternalSettingsBuilder<MediaProbeSettings>;
+using MediaProbeUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<MediaProbeSettings>;
 /**
  * @brief: Media Probe application.
  *
@@ -118,7 +118,7 @@ class MediaProbeApp : public RmaxReceiverBaseApp
 {
 private:
     /* Settings builder pointer */
-    std::shared_ptr<ISettingsBuilder<MediaProbeSettings>> m_settings_builder;
+    std::unique_ptr<ISettingsBuilder<MediaProbeSettings>> m_settings_builder;
     /* Application settings pointer */
     std::shared_ptr<MediaProbeSettings> m_media_probe_settings;
     /* Network recv flows */
@@ -134,7 +134,7 @@ public:
      *
      * @param [in] settings_builder: Settings builder pointer.
      */
-    MediaProbeApp(std::shared_ptr<ISettingsBuilder<MediaProbeSettings>> settings_builder);
+    MediaProbeApp(std::unique_ptr<ISettingsBuilder<MediaProbeSettings>> settings_builder);
     /**
      * @brief: MediaProbeApp class destructor.
      */
