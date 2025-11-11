@@ -75,7 +75,6 @@ protected:
     const MediaSettings& m_media_settings;
     std::unique_ptr<PacketContextType> m_rtp_packet_context;
     std::unique_ptr<RTPPacketType> m_rtp_packet;
-    const MetadataType* m_metadata_ptr = nullptr;
     bool m_metadata_validated = false;
     bool m_mock_mode_enabled = false;
 

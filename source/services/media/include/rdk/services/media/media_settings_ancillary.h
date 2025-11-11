@@ -67,6 +67,7 @@ struct SMPTE_2110_40_MediaSettings : public MediaSettings
 
     std::vector<AncillaryDataIdentifier> data_identifiers;
     uint16_t max_user_data_words_count = DEFAULT_ANCILLARY_DATA_WORDS_COUNT;
+    uint16_t max_ancillary_data_packets_per_packet = DEFAULT_ANCILLARY_DATA_PACKETS_PER_PACKET;
     FrameRate frame_rate = {60};
 };
 

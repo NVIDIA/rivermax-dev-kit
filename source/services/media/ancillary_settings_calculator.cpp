@@ -34,16 +34,8 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
 {
     // Calculate maximum packet size. Ancillary data packet size will be adjusted at runtime.
     m_media_settings.protocol_header_size = RTP_ST_2110_40_ANCILLARY_HEADER_SIZE;
-    m_media_settings.raw_packet_payload_size = AncillaryDataPacketWriter::calculate_packet_size(m_media_settings.max_user_data_words_count);
+    m_media_settings.raw_packet_payload_size = MediaSettings::MAX_PAYLOAD_SIZE - m_media_settings.protocol_header_size;
     m_media_settings.packet_payload_size = m_media_settings.protocol_header_size + m_media_settings.raw_packet_payload_size;
-
-    // Packet size validation
-    if (m_media_settings.packet_payload_size > MediaSettings::MAX_PAYLOAD_SIZE) {
-        std::cerr << "Error: Ancillary packet size (" << m_media_settings.packet_payload_size
-                  << " bytes) exceeds network limit (" << MediaSettings::MAX_PAYLOAD_SIZE << " bytes). "
-                  << "Consider smaller max_user_data_words_count." << std::endl;
-        return ReturnStatus::failure;
-    }
 
     // HDS for ancillary keeps data header with payload
     if (m_media_settings.header_data_split) {
@@ -97,6 +89,14 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_media_settings()
     // Validate that at least one ancillary data identifier is declared
     if (m_media_settings.data_identifiers.empty()) {
         std::cerr << "Error: No ancillary data identifiers (DID/SDID) declared." << std::endl;
+        return ReturnStatus::failure;
+    }
+    if (m_media_settings.max_ancillary_data_packets_per_packet == 0) {
+        std::cerr << "Error: max_ancillary_data_packets_per_packet must be greater than 0." << std::endl;
+        return ReturnStatus::failure;
+    }
+    if (m_media_settings.max_user_data_words_count == 0) {
+        std::cerr << "Error: max_user_data_words_count must be greater than 0." << std::endl;
         return ReturnStatus::failure;
     }
 

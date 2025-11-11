@@ -44,7 +44,23 @@ struct RTP_SMPTE_2110_40_PacketContext : public RTPPacketContext
     uint32_t ancillary_count = 0;                      /**< Number of ancillary data packets */
     uint8_t field_indicator = 0;                       /**< Field indicator specifying RTP timestamp
                                                             relation to video fields */
-    AncillaryDataDescriptor ancillary_data_descriptor; /**< Ancillary data descriptor */
+    size_t descriptor_start_index = 0;                 /**< Index of first descriptor to pack in this RTP packet */
+    size_t descriptor_count_in_packet = 0;             /**< Number of descriptors to pack in this RTP packet */
+
+    /**
+     * @brief: Returns the ancillary descriptors from the current media unit metadata.
+     *
+     * @return: Pointer to ancillary descriptors vector.
+     */
+    const std::vector<AncillaryDataDescriptor>* get_ancillary_descriptors() const
+    {
+        if (!current_media_unit || !current_media_unit->metadata) {
+            return nullptr;
+        }
+        auto* ancillary_metadata = static_cast<AncillaryMediaUnitMetadata*>(
+            current_media_unit->metadata.get());
+        return &ancillary_metadata->ancillary_data;
+    }
 };
 
 /**

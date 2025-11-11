@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cstring>
 
 #include "rdk/services/ulp_packet_buffer_wr/common/rtp_smpte_2110_40_packet.h"
@@ -79,11 +80,26 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_header(const IPacketContext& context
     uint16_t high_bits = (rtp_packet_context.extended_sequence_number >> 16) & RTP_SEQUENCE_NUMBER_MASK_16BIT;
     p_ancillary_header->extended_sequence_number = htons(high_bits);
 
-    // TODO: Support multiple ancillary packets in a single RTP packet.
-    // Calculate actual ancillary count based on media unit data. Can be zero for empty ancillary data packets.
-    uint16_t ancillary_data_packet_size = AncillaryDataPacketWriter::calculate_packet_size(rtp_packet_context.ancillary_data_descriptor.ancillary_data_header.user_data_words_count);
-    p_ancillary_header->length = htons(ancillary_data_packet_size);
-    p_ancillary_header->anc_count = 1;
+    // Calculate total length and count for all packed descriptors
+    uint16_t total_length = 0;
+    uint8_t ancillary_packet_count = 0;
+    const auto* _descriptors = rtp_packet_context.get_ancillary_descriptors();
+    if (_descriptors && rtp_packet_context.descriptor_count_in_packet > 0) {
+        const std::vector<AncillaryDataDescriptor>& descriptors = *_descriptors;
+        size_t end_index = std::min(
+            rtp_packet_context.descriptor_start_index + rtp_packet_context.descriptor_count_in_packet,
+            descriptors.size());
+
+        for (size_t i = rtp_packet_context.descriptor_start_index; i < end_index; ++i) {
+            uint16_t ancillary_packet_size = AncillaryDataPacketWriter::calculate_packet_size(
+                descriptors[i].ancillary_data_header.user_data_words_count);
+            total_length += ancillary_packet_size;
+            ancillary_packet_count++;
+        }
+    }
+
+    p_ancillary_header->length = htons(total_length);
+    p_ancillary_header->anc_count = ancillary_packet_count;
     p_ancillary_header->set_field_indicator(rtp_packet_context.field_indicator);
 
     size = size + sizeof(AncillaryRTPExtension);
@@ -97,8 +113,8 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const IPacketContext& contex
     /**
      * @brief: ST 2110-40 Ancillary RTP Payload Format.
      *
-     * Each Ancillary payload is filled with a single ANC packet structure based
-     * on RFC 8331 - RTP Payload for SMPTE ST 291-1 Ancillary Data.
+     * Multiple Ancillary data packets can be packed into a single RTP payload
+     * based on RFC 8331 - RTP Payload for SMPTE ST 291-1 Ancillary Data.
      *
      *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      *  |C|   Line_Number=9     |   Horizontal_Offset   |S| StreamNum=0 |
@@ -116,11 +132,29 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const IPacketContext& contex
     }
 
     size = 0;
-    // Initial implementation uses one RTP packet per ancillary data packet. Can be optimized to fill multiple ANC packets in a single RTP packet later.
-    uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(rtp_packet_context.ancillary_data_descriptor.ancillary_data_header.user_data_words_count);
-    if (size + ancillary_data_packet_size <= rtp_packet_context.payload_size) {
-        byte_t* user_data_bytes = rtp_packet_context.current_media_unit->data->get();
-        size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, user_data_bytes, rtp_packet_context.ancillary_data_descriptor);
+    byte_t* current_payload_ptr = m_payload_ptr;
+    byte_t* user_data_bytes = rtp_packet_context.current_media_unit->data->get();
+
+    const auto* _descriptors = rtp_packet_context.get_ancillary_descriptors();
+    if (_descriptors && rtp_packet_context.descriptor_count_in_packet > 0) {
+        const std::vector<AncillaryDataDescriptor>& descriptors = *_descriptors;
+        size_t end_index = std::min(
+            rtp_packet_context.descriptor_start_index + rtp_packet_context.descriptor_count_in_packet,
+            descriptors.size());
+
+        for (size_t i = rtp_packet_context.descriptor_start_index; i < end_index; ++i) {
+            const auto& descriptor = descriptors[i];
+            uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(
+                descriptor.ancillary_data_header.user_data_words_count);
+            if (size + ancillary_data_packet_size > rtp_packet_context.payload_size) {
+                break;
+            }
+
+            size_t written = m_ancillary_data_packet_writer.write_ancillary_data(
+                current_payload_ptr, user_data_bytes, descriptor);
+            current_payload_ptr += written;
+            size += written;
+        }
     }
 
     return ReturnStatus::success;
@@ -171,15 +205,22 @@ ReturnStatus RTP_SMPTE_2110_40_MockPacket::fill_payload(const IPacketContext& co
         return ReturnStatus::success;
     }
 
-    uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(rtp_packet_context.ancillary_data_descriptor.ancillary_data_header.user_data_words_count);
-    if (ancillary_data_packet_size > rtp_packet_context.payload_size) {
-        // Not enough space in payload buffer
-        size = 0;
-        return ReturnStatus::failure;
+    const auto* _descriptors = rtp_packet_context.get_ancillary_descriptors();
+    if (_descriptors && rtp_packet_context.descriptor_start_index < _descriptors->size()) {
+        const std::vector<AncillaryDataDescriptor>& descriptors = *_descriptors;
+        const auto& descriptor = descriptors[rtp_packet_context.descriptor_start_index];
+        uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(
+            descriptor.ancillary_data_header.user_data_words_count);
+        if (ancillary_data_packet_size > rtp_packet_context.payload_size) {
+            size = 0;
+            return ReturnStatus::failure;
+        }
+        // Note: In mock mode, we fill the ancillary data with zeroed user data.
+        // write_ancillary_data first construct the ancillary packet and then overwrite the pointer data.
+        size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, m_payload_ptr, descriptor);
+    } else {
+        size = rtp_packet_context.payload_size;
     }
-    // Note: In mock mode, we fill the ancillary data with zeroed user data.
-    // write_ancillary_data first construct the ancillary packet and then overwrite the pointer data.
-    size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, m_payload_ptr, rtp_packet_context.ancillary_data_descriptor);
 
     return ReturnStatus::success;
 }

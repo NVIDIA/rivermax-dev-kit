@@ -38,6 +38,9 @@ namespace services
  */
 class RTP_SMPTE_2110_40_PacketBufferWriter : public RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>
 {
+protected:
+    size_t m_cached_packets_in_media_unit = 0;
+
 public:
     /**
      * @brief: Constructor for RTP_SMPTE_2110_40_PacketBufferWriter.
@@ -89,7 +92,7 @@ public:
      size_t get_num_packets_for_next_chunk() const override;
 
 protected:
-    
+
     /**
      * @brief: Updates the packet counter and RTP state for ancillary.
      *
@@ -109,7 +112,35 @@ protected:
      *
      * @return: Number of packets for the media unit.
      */
-    size_t get_num_packets_for_media_unit() const;
+    size_t calculate_packets_for_media_unit() const;
+    /**
+     * @brief: Calculates how many descriptors can fit in one RTP packet starting from given index.
+     *
+     * @param [in] descriptors: Const reference to vector of ancillary data descriptors.
+     * @param [in] start_index: Starting index in the descriptor array.
+     * @param [in] max_payload_size: Maximum payload size in bytes.
+     * @param [in] max_ancillary_data_packets_per_packet: Maximum number of ancillary data packets per RTP packet.
+     *
+     * @return: Number of descriptors that can fit.
+     */
+    static size_t calculate_descriptors_in_packet(
+        const std::vector<AncillaryDataDescriptor>& descriptors,
+        size_t start_index,
+        size_t max_payload_size,
+        size_t max_ancillary_data_packets_per_packet);
+    /**
+     * @brief: Calculates the actual number of RTP packets needed for all descriptors.
+     *
+     * @param [in] descriptors: Const reference to vector of ancillary data descriptors.
+     * @param [in] max_payload_size: Maximum payload size in bytes.
+     * @param [in] max_ancillary_data_packets_per_packet: Maximum number of ancillary data packets per RTP packet.
+     *
+     * @return: Number of RTP packets required.
+     */
+    static size_t calculate_rtp_packets_for_descriptors(
+        const std::vector<AncillaryDataDescriptor>& descriptors,
+        size_t max_payload_size,
+        size_t max_ancillary_data_packets_per_packet);
 };
 
 } // namespace services

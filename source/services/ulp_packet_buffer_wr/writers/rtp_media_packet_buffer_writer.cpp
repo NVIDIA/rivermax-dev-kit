@@ -55,8 +55,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
 
     // Validate metadata type only once, or until validation succeeds
     if (unlikely(!m_metadata_validated)) {
-        m_metadata_ptr = dynamic_cast<const MetadataType*>(media_unit->metadata.get());
-        if (!m_metadata_ptr) {
+        const auto* metadata_ptr = dynamic_cast<const MetadataType*>(media_unit->metadata.get());
+        if (!metadata_ptr) {
             std::cerr << "Error: Invalid metadata type for buffer writer. "
                       << "Expected: " << typeid(MetadataType).name()
                       << ", Received: " << (media_unit->metadata ? typeid(*media_unit->metadata).name() : "null")
@@ -64,12 +64,10 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
             return ReturnStatus::failure;
         }
         m_metadata_validated = true;
-    } else {
-        m_metadata_ptr = static_cast<const MetadataType*>(media_unit->metadata.get());
     }
-    reset_in_media_unit_state();
     m_rtp_packet_context->current_media_unit = std::move(media_unit);
     m_rtp_packet_context->data_left_in_media_unit_in_bytes = m_rtp_packet_context->current_media_unit->data->get_size();
+    reset_in_media_unit_state();
     return ReturnStatus::success;
 }
 
