@@ -589,7 +589,6 @@ void MediaSenderIONode::operator()()
     auto get_send_time_ns = [&]() { return (
         start_send_time_ns
         + m_media_settings.media_unit_time_interval_ns
-        * m_media_settings.media_units_in_mem_block
         * sent_field_counter);
     };
     uint64_t commit_timestamp_ns = 0;
