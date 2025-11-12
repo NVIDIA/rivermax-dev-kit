@@ -191,23 +191,10 @@ private:
      */
     ReturnStatus configure_ancillary_types();
     /**
-     * @brief: Distributes streams across threads.
-     *
-     * This method is responsible for distributing streams across threads based on
-     * the number of threads and minimum streams per thread requirements.
-     *
-     * @param [in] num_of_threads: Number of threads to distribute streams across.
-     * @param [in] min_streams_per_thread: Minimum number of streams per thread.
-     * @param [in] media_settings: Media settings configuration.
-     */
-    void distribute_streams_across_threads(size_t num_of_threads, size_t min_streams_per_thread, const MediaSettings& media_settings);
-    /**
      * @brief: Initializes network send flows.
      *
      * This method is responsible to initialize the send flows will be
-     * used in the application. Those flows will be distributed in
-     * @ref MediaSenderApp::distribute_work_for_threads
-     * to the streams will be used in the application.
+     * used in the application.
      * The application supports unicast and multicast UDPv4 send flows.
      */
     void configure_network_flows();
@@ -218,6 +205,15 @@ private:
      * for the sender application.
      */
     ReturnStatus configure_smpte_standards_processing();
+    /**
+     * @brief: Distributes work for threads.
+     *
+     * This method is responsible to distribute work to threads, by
+     * distributing number of streams per sender thread uniformly.
+     * In future development, this can be extended to different
+     * streams per thread distribution policies.
+     */
+    void distribute_work_for_threads();
     /**
      * @brief: Initializes sender threads.
      *

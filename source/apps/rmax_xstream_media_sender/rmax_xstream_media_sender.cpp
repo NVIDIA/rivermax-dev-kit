@@ -222,6 +222,7 @@ ReturnStatus MediaSenderApp::initialize()
     }
 
     try {
+        distribute_work_for_threads();
         rc = configure_smpte_standards_processing();
         if (rc == ReturnStatus::failure) {
             std::cerr << "Failed to configure SMPTE standards" << std::endl;
@@ -470,6 +471,15 @@ ReturnStatus MediaSenderApp::configure_smpte_standards_processing()
         }
     }
     return rc;
+}
+
+void MediaSenderApp::distribute_work_for_threads()
+{
+    m_app_settings->num_of_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
+    m_streams_per_thread.reserve(m_app_settings->num_of_threads);
+    for (int stream = 0; stream < m_app_settings->num_of_total_streams; stream++) {
+        m_streams_per_thread[stream % m_app_settings->num_of_threads]++;
+    }
 }
 
 ReturnStatus MediaSenderApp::initialize_sender_threads()
