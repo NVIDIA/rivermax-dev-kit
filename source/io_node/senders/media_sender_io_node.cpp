@@ -96,7 +96,6 @@ MediaSenderIONode::MediaSenderIONode(
         time_handler_ns_cb_t time_hanlder_cb) :
     m_stream_packs(num_of_streams),
     m_media_settings(media_settings),
-    m_media_file(media_settings.media_file),
     m_index(index),
     m_network_address(network_address),
     m_sleep_between_operations(app_settings.sleep_between_operations),
@@ -106,7 +105,6 @@ MediaSenderIONode::MediaSenderIONode(
     m_cpu_core_affinity(cpu_core_affinity),
     m_hw_queue_full_sleep_us(app_settings.hw_queue_full_sleep_us),
     m_memory_utils(memory_utils),
-    m_num_of_mem_blocks(DEFAULT_NUMBER_OF_MEM_BLOCKS),
     m_block_header_memory_size(0),
     m_block_payload_memory_size(0),
     m_header_total_memory_size(0),
@@ -114,7 +112,6 @@ MediaSenderIONode::MediaSenderIONode(
     m_dscp(0), m_pcp(0), m_ecn(0),
     m_get_time_ns_cb(std::move(time_hanlder_cb)),
     m_gpu_enabled(app_settings.gpu_id != INVALID_GPU_ID),
-    m_dynamic_media_file_load(media_settings.dynamic_media_file_load),
     m_synchronizer(nullptr)
 {
     m_stream_packs.resize(num_of_streams);
@@ -154,53 +151,59 @@ ReturnStatus MediaSenderIONode::initialize_streams()
     std::string destination_ip;
     uint16_t destination_port;
     size_t stream_idx = 0;
+    SMPTEStandard smpte_standard = m_media_settings.get_smpte_standard();
+    ReturnStatus rc;
 
     for (auto& stream_pack : m_stream_packs) {
         auto& destination_flow = stream_pack.flows[flow_index];
         destination_ip = destination_flow.get_ip();
         destination_port = destination_flow.get_port();
 
-        auto network_address = TwoTupleFlow(stream_idx++, m_network_address.get_source_ip(),
+        auto network_address = TwoTupleFlow(stream_idx, m_network_address.get_source_ip(),
                                             m_network_address.get_source_port());
 
         MediaStreamSettings stream_settings(network_address, destination_flow, m_media_settings,
                                             m_dscp, m_pcp, m_ecn);
 
         stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);
+        auto runtime_essence_provider = std::make_shared<NullEssenceProvider>(m_media_settings);
+        auto preload_essence_provider = std::make_shared<NullEssenceProvider>(m_media_settings);
 
-        constexpr bool contains_payload = false;
-        std::unique_ptr<IULPPacketBufferWriter> packet_buffer_writer =
-            create_rtp_media_packet_buffer_writer(
-                m_media_settings.get_smpte_standard(), contains_payload, m_media_settings,
-                m_memory_utils.get_header_memory_utils(),
-                m_memory_utils.get_payload_memory_utils());
-
-        if (packet_buffer_writer) {
-            stream_pack.packet_buffer_writer = std::move(packet_buffer_writer);
-        } else {
-            std::cerr << "Failed to create packet buffer writer for stream " << stream_idx << " of sender "
-                      << m_index << std::endl;
+        rc = set_media_essence_providers(stream_idx, smpte_standard,
+            std::move(preload_essence_provider), std::move(runtime_essence_provider), false);
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to set preload essence provider for stream " << stream_idx << std::endl;
+            return rc;
+        }
+        if (!stream_pack.preload_packet_buffer_writer || !stream_pack.runtime_packet_buffer_writer) {
+            std::cerr << "Failed to create preload or runtime packet buffer writer for stream " << stream_idx << std::endl;
             return ReturnStatus::failure;
         }
+
+        stream_pack.number_of_memory_blocks = DEFAULT_NUMBER_OF_MEM_BLOCKS;
+
+        m_header_total_memory_size += m_block_header_memory_size * stream_pack.number_of_memory_blocks;
+        m_payload_total_memory_size += m_block_payload_memory_size * stream_pack.number_of_memory_blocks;
+        stream_idx++;
     }
     return ReturnStatus::success;
 }
 
 ReturnStatus MediaSenderIONode::initialize_memory_layout()
 {
-    determine_memory_layout_for_single_block(m_block_header_memory_size, m_block_payload_memory_size);
+    size_t num_of_strides_per_mem_block = m_media_settings.packets_in_chunk * m_media_settings.chunks_in_mem_block;
+    size_t payload_memory_size = m_media_settings.data_stride_size * num_of_strides_per_mem_block;
 
-    if (!m_media_file.empty() && !m_dynamic_media_file_load) {
-
-        auto rc = get_number_of_mem_blocks_per_file(m_num_of_mem_blocks);
-        if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to get number of memory blocks per file" << std::endl;
-            return rc;
-        }
+    if (is_hds_on()) {
+        m_block_header_memory_size = m_media_settings.app_header_stride_size * num_of_strides_per_mem_block;
+        m_block_payload_memory_size = payload_memory_size;
+    } else {
+        m_block_header_memory_size = 0;
+        m_block_payload_memory_size = payload_memory_size;
     }
-
-    m_header_total_memory_size = m_block_header_memory_size * m_num_of_mem_blocks * m_stream_packs.size();
-    m_payload_total_memory_size = m_block_payload_memory_size * m_num_of_mem_blocks * m_stream_packs.size();
+    if (m_gpu_enabled) {
+        m_block_payload_memory_size = m_memory_utils.get_aligned_payload_size(m_block_payload_memory_size);
+    }
     return ReturnStatus::success;
 }
 
@@ -225,10 +228,10 @@ ReturnStatus MediaSenderIONode::apply_memory_layout(const HeaderPayloadMemoryLay
         return apply_memory_layout_to_subcomponents();
     }
 
-    ReturnStatus status = validate_memory_layout(memory_layout_response);
-    if (status != ReturnStatus::success) {
+    ReturnStatus rc = validate_memory_layout(memory_layout_response);
+    if (rc != ReturnStatus::success) {
         std::cerr << "Invalid memory layout provided" << std::endl;
-        return status;
+        return rc;
     }
     return apply_memory_layout_to_subcomponents(memory_layout_response.memory_layout);
 }
@@ -259,65 +262,14 @@ ReturnStatus MediaSenderIONode::validate_memory_layout(const HeaderPayloadMemory
 
 ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     MediaStreamMemBlockset& mem_blockset, uint8_t* header_memory_ptr,
-    uint8_t* payload_memory_ptr, const HeaderPayloadMemoryLayout& io_node_memory_layout,
-    const std::string& video_file)
-{
-    std::ifstream input_file;
-    input_file.open(video_file, std::ios::binary);
-    if (!input_file.is_open()) {
-        std::cerr << "Failed to open file: " << m_media_file << std::endl;
-        return ReturnStatus::failure;
-    }
-
-    input_file.clear();
-    input_file.seekg(0, std::ios::beg);
-    size_t header_offset = 0;
-
-    if (!is_hds_on()) {
-        header_offset = m_media_settings.protocol_header_size;
-    }
-
-    // Provide size arrays only if it contains valid information. Otherwise, for dynamic streams, no sizes are provided.
-    // Header sizes will also be nullptr for non-HDS streams.
-    uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
-    uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
-
-    ReturnStatus rc;
-    for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
-        rc = fill_memblock_from_file(payload_memory_ptr, m_block_payload_memory_size,
-            header_offset, input_file);
-        if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to read frames from file" << std::endl;
-            input_file.close();
-            return rc;
-        }
-        if (is_hds_on()) {
-            mem_blockset.set_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
-                io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
-            mem_blockset.set_block_memory(i, 1, payload_memory_ptr, m_block_payload_memory_size,
-                io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-            header_memory_ptr += m_block_header_memory_size;
-        } else {
-            mem_blockset.set_block_memory(i, 0, payload_memory_ptr, m_block_payload_memory_size,
-                io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-        }
-        mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
-        payload_memory_ptr += m_block_payload_memory_size;
-    }
-    input_file.close();
-    return ReturnStatus::success;
-}
-
-ReturnStatus MediaSenderIONode::initialize_mem_blockset(
-    MediaStreamMemBlockset& mem_blockset, uint8_t* header_memory_ptr,
-    uint8_t* payload_memory_ptr, const HeaderPayloadMemoryLayout& io_node_memory_layout)
+    uint8_t* payload_memory_ptr, const HeaderPayloadMemoryLayout& io_node_memory_layout, size_t number_of_memory_blocks)
 {
     // Provide size arrays only if it contains valid information. Otherwise, for dynamic streams, no sizes are provided.
     // Header sizes will also be nullptr for non-HDS streams.
     uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
     uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
 
-    for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
+    for (size_t i = 0; i < number_of_memory_blocks; ++i) {
         if (is_hds_on()) {
             mem_blockset.set_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
                 io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
@@ -334,14 +286,13 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaSenderIONode::initialize_mem_blockset(MediaStreamMemBlockset& mem_blockset)
+ReturnStatus MediaSenderIONode::initialize_mem_blockset(MediaStreamMemBlockset& mem_blockset, size_t number_of_memory_blocks)
 {
     // Provide size arrays only if it contains valid information. Otherwise, for dynamic streams, no sizes are provided.
     // Header sizes will also be nullptr for non-HDS streams.
     uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
     uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
-
-    for (size_t i = 0; i < m_num_of_mem_blocks; ++i) {
+    for (size_t i = 0; i < number_of_memory_blocks; ++i) {
         mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
     }
     return ReturnStatus::success;
@@ -359,11 +310,11 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents()
 
     for (auto& stream_pack : m_stream_packs) {
         stream_pack.mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
-                new MediaStreamMemBlockset(m_num_of_mem_blocks,
+                new MediaStreamMemBlockset(stream_pack.number_of_memory_blocks,
                                            is_hds_on() ? 2 : 1,
                                            m_media_settings.chunks_in_mem_block));
         stream_pack.mem_blockset->set_rivermax_to_allocate_memory();
-        initialize_mem_blockset(*stream_pack.mem_blockset);
+        initialize_mem_blockset(*stream_pack.mem_blockset, stream_pack.number_of_memory_blocks);
         MediaMemoryLayoutResponse memory_layout(*stream_pack.mem_blockset.get());
         ReturnStatus rc = stream_pack.stream->apply_memory_layout(memory_layout);
         if (rc != ReturnStatus::success) {
@@ -388,22 +339,16 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents(
     uint8_t* header_memory_ptr = static_cast<uint8_t*>(memory_layout.header_memory_ptr);
     uint8_t* payload_memory_ptr = static_cast<uint8_t*>(memory_layout.payload_memory_ptr);
 
-    size_t header_memory_for_stream_size = m_num_of_mem_blocks * m_block_header_memory_size;
-    size_t payload_memory_for_stream_size = m_num_of_mem_blocks * m_block_payload_memory_size;
-
     for (auto& stream_pack : m_stream_packs) {
         stream_pack.mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
-                new MediaStreamMemBlockset(m_num_of_mem_blocks,
+                new MediaStreamMemBlockset(stream_pack.number_of_memory_blocks,
                                            is_hds_on() ? 2 : 1,
                                            m_media_settings.chunks_in_mem_block));
         ReturnStatus rc;
-        if (!m_media_file.empty() && !m_dynamic_media_file_load) {
-            rc = initialize_mem_blockset(*stream_pack.mem_blockset, header_memory_ptr,
-                payload_memory_ptr, memory_layout, m_media_file);
-        } else {
-            rc = initialize_mem_blockset(*stream_pack.mem_blockset, header_memory_ptr,
-                payload_memory_ptr, memory_layout);
-        }
+        rc = initialize_mem_blockset(*stream_pack.mem_blockset, header_memory_ptr,
+            payload_memory_ptr, memory_layout, stream_pack.number_of_memory_blocks);
+        stream_pack.header_memory_ptr = header_memory_ptr;
+        stream_pack.payload_memory_ptr = payload_memory_ptr;
         if (rc != ReturnStatus::success) {
             std::cerr << "Failed to initialize memory blockset" << std::endl;
             return rc;
@@ -414,8 +359,8 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents(
             std::cerr << "Failed to apply memory layout to stream (" << stream_pack.stream->get_id() << ")" << std::endl;
             return rc;
         }
-        header_memory_ptr += header_memory_for_stream_size;
-        payload_memory_ptr += payload_memory_for_stream_size;
+        header_memory_ptr += stream_pack.number_of_memory_blocks * m_block_header_memory_size;
+        payload_memory_ptr += stream_pack.number_of_memory_blocks * m_block_payload_memory_size;
     }
     return ReturnStatus::success;
 }
@@ -440,10 +385,10 @@ void MediaSenderIONode::print_parameters()
 ReturnStatus MediaSenderIONode::process_media_unit()
 {
     for (auto& stream_pack : m_stream_packs) {
-        if (!stream_pack.essence_provider) {
+        if (!stream_pack.runtime_essence_provider) {
             continue;
         }
-        std::shared_ptr<MediaUnit> media_unit = stream_pack.essence_provider->get_media_unit_blocking();
+        std::shared_ptr<MediaUnit> media_unit = stream_pack.runtime_essence_provider->get_media_unit_blocking();
 
         if (SignalHandler::get_received_signal() >= 0) {
             return ReturnStatus::success;
@@ -451,7 +396,7 @@ ReturnStatus MediaSenderIONode::process_media_unit()
         if (!media_unit) {
             continue;
         }
-        auto rc = stream_pack.packet_buffer_writer->set_next_media_unit(std::move(media_unit));
+        auto rc = stream_pack.runtime_packet_buffer_writer->set_next_media_unit(std::move(media_unit));
         if (rc != ReturnStatus::success) {
             std::cerr << "Failed to set next media unit" << std::endl;
             return rc;
@@ -560,7 +505,7 @@ void MediaSenderIONode::operator()()
         return;
     }
     print_parameters();
-    prepare_buffers();
+    preload_media_data();
 
     /*
     * Currently the logic in the sender is that all the streams start
@@ -581,7 +526,7 @@ void MediaSenderIONode::operator()()
     start_send_time_ns += transmit_offset_ns;
 
     for (auto& stream_pack : m_stream_packs) {
-        stream_pack.packet_buffer_writer->set_initial_timestamp(start_send_time_ns);
+        stream_pack.runtime_packet_buffer_writer->set_initial_timestamp(start_send_time_ns);
     }
 
     size_t sent_field_counter = 0;
@@ -600,7 +545,7 @@ void MediaSenderIONode::operator()()
     std::function<ReturnStatus(MediaStreamPack&)> write_buffer_callback;
     if (is_hds_on()) {
         write_buffer_callback = [](auto& stream_pack) {
-            return stream_pack.packet_buffer_writer->write_buffer(
+            return stream_pack.runtime_packet_buffer_writer->write_buffer(
                 stream_pack.chunk_handler->get_app_hdr_ptr(),
                 stream_pack.chunk_handler->get_data_ptr(),
                 stream_pack.chunk_handler->get_length(),
@@ -609,7 +554,7 @@ void MediaSenderIONode::operator()()
         };
     } else {
         write_buffer_callback = [](auto& stream_pack) {
-            return stream_pack.packet_buffer_writer->write_buffer(
+            return stream_pack.runtime_packet_buffer_writer->write_buffer(
                 stream_pack.chunk_handler->get_data_ptr(),
                 stream_pack.chunk_handler->get_length(),
                 stream_pack.chunk_handler->get_data_sizes_array());
@@ -628,7 +573,7 @@ void MediaSenderIONode::operator()()
         }
         do {
             for (auto& stream_pack : m_stream_packs) {
-                size_t num_packets_for_chunk = stream_pack.packet_buffer_writer->get_num_packets_for_next_chunk();
+                size_t num_packets_for_chunk = stream_pack.runtime_packet_buffer_writer->get_num_packets_for_next_chunk();
                 stream_pack.chunk_handler->set_length(num_packets_for_chunk);
                 do {
                     rc = stream_pack.stream->blocking_get_next_chunk(*stream_pack.chunk_handler, BLOCKING_CHUNK_RETRIES);
@@ -720,9 +665,58 @@ void MediaSenderIONode::set_cpu_resources()
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }
 
-inline void MediaSenderIONode::prepare_buffers()
+inline void MediaSenderIONode::preload_media_data()
 {
-    // TODO: Add buffer preparation, for now, send random garbage as payload.
+    for (auto& stream_pack : m_stream_packs) {
+        // Skip if no external memory (internal allocation will be filled by Rivermax)
+        if (stream_pack.header_memory_ptr == nullptr && stream_pack.payload_memory_ptr == nullptr) {
+            continue;
+        }
+        // Skip if no preload essence provider
+        if (!stream_pack.preload_essence_provider || !stream_pack.preload_packet_buffer_writer) {
+            continue;
+        }
+
+        for (size_t block_idx = 0; block_idx < stream_pack.number_of_memory_blocks; ++block_idx) {
+            byte_t* block_header_ptr = is_hds_on() ?
+                stream_pack.header_memory_ptr + (block_idx * m_block_header_memory_size) : nullptr;
+            byte_t* block_payload_ptr = stream_pack.payload_memory_ptr + (block_idx * m_block_payload_memory_size);
+
+            // Process all media units for this block
+            for (size_t unit_idx = 0; unit_idx < m_media_settings.media_units_in_mem_block; ++unit_idx) {
+                std::shared_ptr<MediaUnit> media_unit = stream_pack.preload_essence_provider->get_media_unit_blocking();
+                if (!media_unit) {
+                    std::cerr << "Failed to get media unit." << std::endl;
+                    break;
+                }
+
+                auto rc = stream_pack.preload_packet_buffer_writer->set_next_media_unit(std::move(media_unit));
+                if (rc != ReturnStatus::success) {
+                    std::cerr << "Failed to set media unit." << block_idx << std::endl;
+                    break;
+                }
+
+                if (is_hds_on()) {
+                    rc = stream_pack.preload_packet_buffer_writer->write_buffer(
+                        block_header_ptr,
+                        block_payload_ptr,
+                        m_media_settings.packets_in_media_unit);
+                } else {
+                    rc = stream_pack.preload_packet_buffer_writer->write_buffer(
+                        block_payload_ptr,
+                        m_media_settings.packets_in_media_unit);
+                }
+
+                if (rc != ReturnStatus::success) {
+                    std::cerr << "Failed to write to buffer" << std::endl;
+                }
+
+                block_payload_ptr += m_media_settings.packets_in_media_unit * m_media_settings.data_stride_size;
+                block_header_ptr += is_hds_on() ?
+                    m_media_settings.packets_in_media_unit * m_media_settings.app_header_stride_size : 0;
+            }
+        }
+    }
 }
 
 void MediaSenderIONode::wait_for_next_media_unit(uint64_t sleep_till_ns)
@@ -748,29 +742,22 @@ void MediaSenderIONode::wait_for_next_media_unit(uint64_t sleep_till_ns)
 #endif
 }
 
-void MediaSenderIONode::determine_memory_layout_for_single_block(
-    size_t& block_header_memory_size, size_t& block_payload_memory_size)
+size_t MediaSenderIONode::calculate_required_memory_blocks(size_t essence_size) const
 {
-    size_t num_of_strides_per_mem_block = m_media_settings.packets_in_chunk * m_media_settings.chunks_in_mem_block;
-    size_t payload_memory_size = m_media_settings.data_stride_size * num_of_strides_per_mem_block;
-
-    if (is_hds_on()) {
-        block_header_memory_size = m_media_settings.app_header_stride_size * num_of_strides_per_mem_block;
-        block_payload_memory_size = payload_memory_size;
-    } else {
-        block_header_memory_size = 0;
-        block_payload_memory_size = payload_memory_size;
+    if (essence_size == 0) {
+        return DEFAULT_NUMBER_OF_MEM_BLOCKS;
     }
-    if (m_gpu_enabled) {
-        block_payload_memory_size = m_memory_utils.get_aligned_payload_size(block_payload_memory_size);
-    }
+    size_t required_number_of_memory_blocks = essence_size / m_block_payload_memory_size;
+    return required_number_of_memory_blocks;
 }
 
-ReturnStatus MediaSenderIONode::set_media_essence_provider(
-    size_t stream_index, std::shared_ptr<IMediaEssenceProvider> essence_provider,
-    SMPTEStandard smpte_standard, bool contains_payload)
+ReturnStatus MediaSenderIONode::set_media_essence_providers(
+    size_t stream_index, SMPTEStandard smpte_standard,
+    std::shared_ptr<IMediaEssenceProvider> preload_essence_provider,
+    std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider,
+    bool runtime_contains_payload)
 {
-    if (essence_provider == nullptr) {
+    if (runtime_essence_provider == nullptr && preload_essence_provider == nullptr) {
         std::cerr << "Invalid media essence provider" << std::endl;
         return ReturnStatus::failure;
     }
@@ -779,91 +766,43 @@ ReturnStatus MediaSenderIONode::set_media_essence_provider(
         return ReturnStatus::failure;
     }
 
-    m_stream_packs[stream_index].essence_provider = std::move(essence_provider);
-    std::unique_ptr<IULPPacketBufferWriter> packet_buffer_writer = create_rtp_media_packet_buffer_writer(
-        smpte_standard, contains_payload, m_media_settings,
-        m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
-    if (packet_buffer_writer) {
-        m_stream_packs[stream_index].packet_buffer_writer = std::move(packet_buffer_writer);
-    } else {
-        std::cout << "Media essence provider was set for stream " << stream_index <<
-            " but buffer writer was not created" << std::endl;
-    }
-    return ReturnStatus::success;
-}
-
-ReturnStatus MediaSenderIONode::get_number_of_mem_blocks_per_file(size_t& number_of_mem_blocks) const
-{
-    number_of_mem_blocks = 0;
-    std::ifstream input_file;
-    input_file.open(m_media_file, std::ios::binary);
-    if (!input_file.is_open()) {
-        std::cerr << "Failed to open file: " << m_media_file << std::endl;
-        return ReturnStatus::failure;
-    }
-
-    input_file.seekg(0, std::ios::end);
-    size_t file_size = input_file.tellg();
-    input_file.close();
-
-    size_t mem_block_payload_size_in_bytes = 0;
-    if (is_hds_on()) {
-        mem_block_payload_size_in_bytes = m_media_settings.packet_payload_size * m_media_settings.packets_in_media_unit *
-        m_media_settings.media_units_in_mem_block;
-    } else {
-        mem_block_payload_size_in_bytes = (m_media_settings.packet_payload_size - m_media_settings.protocol_header_size) *
-        m_media_settings.packets_in_media_unit * m_media_settings.media_units_in_mem_block;
-    }
-
-    std::cout << "File size: " << file_size << " [bytes]" << std::endl;
-    number_of_mem_blocks = file_size / mem_block_payload_size_in_bytes;
-    std::cout << "Required Number of memory blocks: " << number_of_mem_blocks << std::endl;
-    return ReturnStatus::success;
-}
-
-ReturnStatus MediaSenderIONode::fill_memblock_from_file(byte_t* block_memory_buffer, size_t block_memory_size,
-    size_t header_offset, std::ifstream& input_file) const
-{
-    auto mem_utils = m_memory_utils.get_payload_memory_utils();
-    if (!mem_utils) {
-        std::cerr << "Failed to get memory utils" << std::endl;
-        return ReturnStatus::failure;
-    }
-    if (!input_file.is_open()) {
-        std::cerr << "File is not open."<< std::endl;
-        return ReturnStatus::failure;
-    }
-
-    auto temp_buffer = std::make_unique<byte_t[]>(block_memory_size);
-    size_t packet_size = m_media_settings.packet_payload_size - header_offset;
-    size_t mem_block_payload_size_in_bytes = packet_size * m_media_settings.packets_in_media_unit *
-        m_media_settings.media_units_in_mem_block;
-    size_t total_bytes_read = 0;
-    byte_t* cur_data_ptr = temp_buffer.get() + header_offset;
-
-    while (mem_block_payload_size_in_bytes > total_bytes_read) {
-        input_file.read(reinterpret_cast<char*>(cur_data_ptr), packet_size);
-        std::streamsize bytes_read = input_file.gcount();
-
-        if (bytes_read == 0) {
-            // If we reached EOF, break out normally.
-            if (input_file.eof()) {
-                break;
-            }
-            // If not EOF but still no data read, then an error occurred.
-            if (input_file.fail() && !input_file.eof()) {
-                return ReturnStatus::failure;
-            }
+    // Set runtime essence provider if provided
+    if (runtime_essence_provider) {
+        std::unique_ptr<IULPPacketBufferWriter> runtime_packet_buffer_writer =
+            create_rtp_media_packet_buffer_writer(
+                smpte_standard, runtime_contains_payload, m_media_settings,
+                m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
+        if (!runtime_packet_buffer_writer) {
+            std::cerr << "Failed to create packet buffer writer" << std::endl;
+            return ReturnStatus::failure;
         }
-
-        if (bytes_read < static_cast<std::streamsize>(packet_size)) {
-            break;
-        }
-        total_bytes_read += bytes_read;
-        cur_data_ptr += m_media_settings.data_stride_size;
+        m_stream_packs[stream_index].runtime_essence_provider = std::move(runtime_essence_provider);
+        m_stream_packs[stream_index].runtime_packet_buffer_writer = std::move(runtime_packet_buffer_writer);
     }
-    mem_utils->memory_copy(block_memory_buffer, temp_buffer.get(), block_memory_size);
-
+    if (preload_essence_provider) {
+        std::unique_ptr<IULPPacketBufferWriter> preload_packet_buffer_writer =
+            create_rtp_media_packet_buffer_writer(
+                smpte_standard, true, m_media_settings,
+                m_memory_utils.get_header_memory_utils(), m_memory_utils.get_payload_memory_utils());
+        if (!preload_packet_buffer_writer) {
+            std::cerr << "Failed to create packet buffer writer" << std::endl;
+            return ReturnStatus::failure;
+        }
+        m_stream_packs[stream_index].preload_essence_provider = std::move(preload_essence_provider);
+        m_stream_packs[stream_index].preload_packet_buffer_writer = std::move(preload_packet_buffer_writer);
+        // Update memory requirements based on preload essence size
+        size_t essence_size;
+        ReturnStatus rc = m_stream_packs[stream_index].preload_essence_provider->get_data_size(essence_size);
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to get data size for preload essence provider" << std::endl;
+            return ReturnStatus::failure;
+        }
+        size_t required_number_of_memory_blocks = calculate_required_memory_blocks(essence_size);
+        size_t diff_number_of_memory_blocks = required_number_of_memory_blocks - m_stream_packs[stream_index].number_of_memory_blocks;
+        m_header_total_memory_size += m_block_header_memory_size * diff_number_of_memory_blocks;
+        m_payload_total_memory_size += m_block_payload_memory_size * diff_number_of_memory_blocks;
+        m_stream_packs[stream_index].number_of_memory_blocks = required_number_of_memory_blocks;
+    }
     return ReturnStatus::success;
 }
 

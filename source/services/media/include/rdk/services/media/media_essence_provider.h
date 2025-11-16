@@ -277,7 +277,16 @@ public:
     /**
      * @brief: Stop the provider and release all waiting threads.
      */
-    virtual void stop() {};
+     virtual void stop() {};
+    /**
+     * @brief: Returns the total size of the essence source.
+     *
+     * @return: Total size of the essence source.
+     */
+    virtual ReturnStatus get_data_size(size_t& data_size) const {
+        data_size = 0;
+        return ReturnStatus::success;
+    };
 protected:
     IMediaEssenceProvider() = default;
 };

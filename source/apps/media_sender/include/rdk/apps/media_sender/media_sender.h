@@ -136,18 +136,62 @@ public:
     ReturnStatus initialize_smpte_standards();
     ReturnStatus initialize() override;
     /**
-     * @brief: Sets the media essence provider for the specified stream index.
+     * @brief: Sets media essence providers for a specific stream.
      *
-     * @param [in] stream_index: Stream index.
-     * @param [in] essence_provider: Media essence provider pointer.
-     * @param [in] smpte_standard: SMPTE standard.
-     * @param [in] contains_payload: Flag indicating whether the media essence provider contains payload.
+     * This is the application-level API that forwards to the IO node level.
+     * It forwards the request to the appropriate MediaSenderIONode instance based on the stream index.
+     * This method configures the media essence providers that supply media data to a stream.
+     * Two types of providers can be configured:
+     *
+     * - **Preload Provider**: Pre-fills memory blocks with media data before transmission begins.
+     *   This is a one-time operation that prepares data in advance for optimal performance.
+     *
+     * - **Runtime Provider**: Supplies fresh media data dynamically during active transmission.
+     *   Called continuously as new media units are available.
+     *
+     * @par Usage Patterns:
+     * 1. **Static Content**: Set only a preload provider and disable runtime payload copying
+     *    (`runtime_contains_payload = false`) for maximum efficiency when transmitting
+     *    the same data repeatedly.
+     *
+     * 2. **Dynamic Content**: Set only a runtime provider when media data changes continuously.
+     *
+     * 3. **Hybrid Mode**: Set both providers - preload fills memory blocks once before
+     *    transmission starts, while runtime supplies new media units to send when they
+     *    become available during the transmission loop.
+     *
+     * @par Default Behavior:
+     * Each stream is initialized with @ref NullEssenceProvider for both providers by default.
+     * @ref NullEssenceProvider generates only RTP headers; payload data is not written
+     * during the transmission loop. At least one provider should be set to a real
+     * implementation for meaningful data transmission.
+     *
+     * @param [in] stream_index: The external stream index to configure.
+     * @param [in] smpte_standard: The SMPTE standard for media formatting.
+     * @param [in] preload_essence_provider: Provider for preloading data into memory blocks
+     *                                       before transmission. Pass nullptr to preserve the
+     *                                       existing preload provider (default: nullptr).
+     * @param [in] runtime_essence_provider: Provider for supplying media data during active
+     *                                       transmission. Pass nullptr to preserve the existing
+     *                                       runtime provider (default: nullptr).
+     * @param [in] runtime_contains_payload: If true, copies both headers and payload from the
+     *                                       runtime provider. If false, only constructs RTP
+     *                                       headers from the runtime provider, leaving payload
+     *                                       data untouched (assumes preloaded). Setting to false
+     *                                       improves performance when payload is static
+     *                                       (default: true).
+     *
+     * @note: The @p runtime_contains_payload parameter only affects the runtime provider's behavior.
+     *        The @p preload_essence_provider always writes complete data (headers and payload).
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_media_essence_provider(size_t stream_index,
-                                            std::shared_ptr<IMediaEssenceProvider> essence_provider,
-                                            SMPTEStandard smpte_standard, bool contains_payload = true);
+    ReturnStatus set_media_essence_providers(
+        size_t stream_index,
+        SMPTEStandard smpte_standard,
+        std::shared_ptr<IMediaEssenceProvider> preload_essence_provider = nullptr,
+        std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider = nullptr,
+        bool runtime_contains_payload = true);
 private:
     ReturnStatus initialize_app_settings() final;
     ReturnStatus post_load_settings() final;
@@ -241,7 +285,7 @@ private:
      * This method is responsible to set internal (default) media essence providers for
      * the streams. The internal media essence providers are used to generate media units that
      * will be set by BufferWriters as a payload. User will be able to set an
-     * external media essence provider by @ref MediaSenderApp::set_media_essence_provider.
+     * external media essence provider by @ref MediaSenderApp::set_media_essence_providers.
      *
      * @return: Status of the operation.
      */

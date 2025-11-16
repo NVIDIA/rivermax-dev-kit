@@ -71,13 +71,19 @@ private:
         std::unique_ptr<MediaChunk> chunk_handler;
         std::unique_ptr<MediaStreamMemBlockset> mem_blockset;
         std::vector<TwoTupleFlow> flows;
-        std::unique_ptr<IULPPacketBufferWriter> packet_buffer_writer;
-        std::shared_ptr<IMediaEssenceProvider> essence_provider;
+        std::unique_ptr<IULPPacketBufferWriter> runtime_packet_buffer_writer;
+        std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider;
+
+        // Preload configuration: Used to fill memory blocks before transmission starts.
+        std::shared_ptr<IULPPacketBufferWriter> preload_packet_buffer_writer;
+        std::shared_ptr<IMediaEssenceProvider> preload_essence_provider;
+        size_t number_of_memory_blocks;
+        uint8_t* header_memory_ptr = nullptr;
+        uint8_t* payload_memory_ptr = nullptr;
     };
     static constexpr size_t DEFAULT_PRINT_TIME_INTERVAL_MS = 1000;
     std::vector<MediaStreamPack> m_stream_packs;
     const MediaSettings& m_media_settings;
-    std::string m_media_file;
     size_t m_index;
     FourTupleFlow m_network_address;
     int m_sleep_between_operations;
@@ -87,7 +93,6 @@ private:
     int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
     IONodeMemoryUtils& m_memory_utils;
-    size_t m_num_of_mem_blocks;
     size_t m_block_header_memory_size;
     size_t m_block_payload_memory_size;
     size_t m_header_total_memory_size;
@@ -97,7 +102,6 @@ private:
     uint8_t m_dscp, m_pcp, m_ecn;
     time_handler_ns_cb_t m_get_time_ns_cb;
     bool m_gpu_enabled;
-    bool m_dynamic_media_file_load;
     std::shared_ptr<ISynchronizer> m_synchronizer;
     std::chrono::milliseconds m_print_interval_ms = std::chrono::milliseconds(DEFAULT_PRINT_TIME_INTERVAL_MS);
 public:
@@ -189,18 +193,60 @@ public:
      */
     void operator()();
     /**
-     * @brief: Sets the media essence provider for the specified stream index.
+     * @brief: Sets media essence providers for a specific stream.
      *
-     * @param [in] stream_index: Stream index.
-     * @param [in] essence_provider: Media essence provider to set.
-     * @param [in] smpte_standard: SMPTE standard.
-     * @param [in] contains_payload: Flag indicating whether the media essence provider contains payload.
+     * This method configures the media essence providers that supply media data to a stream.
+     * Two types of providers can be configured:
+     *
+     * - **Preload Provider**: Pre-fills memory blocks with media data before transmission begins.
+     *   This is a one-time operation that prepares data in advance for optimal performance.
+     *
+     * - **Runtime Provider**: Supplies fresh media data dynamically during active transmission.
+     *   Called continuously as new media units are available.
+     *
+     * @par Usage Patterns:
+     * 1. **Static Content**: Set only a preload provider and disable runtime payload copying
+     *    (`runtime_contains_payload = false`) for maximum efficiency when transmitting
+     *    the same data repeatedly.
+     *
+     * 2. **Dynamic Content**: Set only a runtime provider when media data changes continuously.
+     *
+     * 3. **Hybrid Mode**: Set both providers - preload fills memory blocks once before
+     *    transmission starts, while runtime supplies new media units to send when they
+     *    become available during the transmission loop.
+     *
+     * @par Default Behavior:
+     * Each stream is initialized with @ref NullEssenceProvider for both providers by default.
+     * @ref NullEssenceProvider generates only RTP headers; payload data is not written
+     * during the transmission loop. At least one provider should be set to a real
+     * implementation for meaningful data transmission.
+     *
+     * @param [in] stream_index: The index of the stream to configure.
+     * @param [in] smpte_standard: The SMPTE standard for media formatting.
+     * @param [in] preload_essence_provider: Provider for preloading data into memory blocks
+     *                                       before transmission. Pass nullptr to preserve the
+     *                                       existing preload provider (default: nullptr).
+     * @param [in] runtime_essence_provider: Provider for supplying media data during active
+     *                                       transmission. Pass nullptr to preserve the existing
+     *                                       runtime provider (default: nullptr).
+     * @param [in] runtime_contains_payload: If true, copies both headers and payload from the
+     *                                       runtime provider. If false, only constructs RTP
+     *                                       headers from the runtime provider, leaving payload
+     *                                       data untouched (assumes preloaded). Setting to false
+     *                                       improves performance when payload is static
+     *                                       (default: true).
+     *
+     * @note: The @p runtime_contains_payload parameter only affects the runtime provider's behavior.
+     *        The @p preload_essence_provider always writes complete data (headers and payload).
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_media_essence_provider(size_t stream_index,
-                                            std::shared_ptr<IMediaEssenceProvider> essence_provider,
-                                            SMPTEStandard smpte_standard, bool contains_payload = true);
+    ReturnStatus set_media_essence_providers(
+        size_t stream_index,
+        SMPTEStandard smpte_standard,
+        std::shared_ptr<IMediaEssenceProvider> preload_essence_provider = nullptr,
+        std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider = nullptr,
+        bool runtime_contains_payload = true);
     /**
      * @brief: Sets the synchronizer for the sender.
      *
@@ -247,12 +293,14 @@ private:
      */
     void set_cpu_resources();
     /**
-     * @brief: Prepares the buffers to send.
+     * @brief: Preloads media data into memory blocks.
      *
-     * This method is responsible to prepare the data to be sent for it's streams.
-     * It should be called after @ref MediaSenderIONode::initialize_streams.
+     * This method pre-fills memory blocks with media data from preload essence providers
+     * before transmission starts. It processes all media units for each memory block,
+     * writing the data using preload packet buffer writers. This optimization allows
+     * for efficient transmission by having data ready in memory blocks in advance.
      */
-    inline void prepare_buffers();
+    inline void preload_media_data();
     /**
      * @brief: Returns current time in nanoseconds.
      *
@@ -304,7 +352,7 @@ private:
      * @param [in] header_memory_ptr: Pointer to header memory.
      * @param [in] payload_memory_ptr: Pointer to payload memory.
      * @param [in] io_node_memory_layout: IO Node memory layout.
-     * @param [in] video_file: Video file to read frames from.
+     * @param [in] number_of_memory_blocks: Number of memory blocks.
      *
      * @return: Status of the operation.
      */
@@ -312,42 +360,19 @@ private:
         MediaStreamMemBlockset& mem_blockset,
         uint8_t* header_memory_ptr, uint8_t* payload_memory_ptr,
         const HeaderPayloadMemoryLayout& io_node_memory_layout,
-        const std::string& video_file);
-    /**
-     * @brief: Initializes memory blockset with application allocation.
-     *
-     * This method initializes the memory blockset with application allocation.
-     *
-     * @param [in] mem_blockset: Memory blockset to initialize.
-     * @param [in] header_memory_ptr: Pointer to header memory.
-     * @param [in] payload_memory_ptr: Pointer to payload memory.
-     * @param [in] io_node_memory_layout: IO Node memory layout.
-     *
-     * @return: Status of the operation.
-     */
-    ReturnStatus initialize_mem_blockset(
-        MediaStreamMemBlockset& mem_blockset,
-        uint8_t* header_memory_ptr, uint8_t* payload_memory_ptr,
-        const HeaderPayloadMemoryLayout& io_node_memory_layout);
+        size_t number_of_memory_blocks);
     /**
      * @brief: Initializes memory blockset with Rivermax allocation.
      *
      * This method initializes the memory blockset with Rivermax allocation.
      *
      * @param [in] mem_blockset: Memory blockset to initialize.
+     * @param [in] number_of_memory_blocks: Number of memory blocks.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus initialize_mem_blockset(MediaStreamMemBlockset& mem_blockset);
-    /**
-     * @brief: Returns the memory requirements for a single block.
-     *
-     * This method calculates the memory requirements for a single block.
-     *
-     * @param [out] block_header_memory_size: Block header memory size.
-     * @param [out] block_payload_memory_size: Block payload memory size.
-     */
-    void determine_memory_layout_for_single_block(size_t& block_header_memory_size, size_t& block_payload_memory_size);
+    ReturnStatus initialize_mem_blockset(MediaStreamMemBlockset& mem_blockset,
+        size_t number_of_memory_blocks);
     /**
      * @brief: Checks if internal allocation is requested.
      *
@@ -364,30 +389,6 @@ private:
      * @return: Status of the operation.
      */
     ReturnStatus process_media_unit();
-    /**
-     * @brief: Fills a memory block from a file.
-     *
-     * This method reads data from the specified input file and fills the provided memory block buffer.
-     *
-     * @param [out] block_memory_buffer: Pointer to the memory block buffer to fill.
-     * @param [in] block_memory_size: Size of the memory block buffer.
-     * @param [in] header_offset: Offset for the header in each payload stride.
-     * @param [in] input_file: Input file stream to read data from.
-     *
-     * @return: Status of the operation.
-     */
-    ReturnStatus fill_memblock_from_file(byte_t* block_memory_buffer, size_t block_memory_size,
-        size_t header_offset, std::ifstream& input_file) const;
-    /**
-     * @brief: Returns the number of memory blocks required for a file.
-     *
-     * This method calculates the number of memory blocks required to store the data from the specified file.
-     *
-     * @param [out] num_of_memory_blocks: Number of memory blocks required.
-     *
-     * @return: Status of the operation.
-     */
-    ReturnStatus get_number_of_mem_blocks_per_file(size_t& num_of_memory_blocks) const;
     /**
      * @brief: Returns the commit timestamp in nanoseconds.
      *
@@ -411,6 +412,14 @@ private:
      * @return: Status of the operation.
      */
     ReturnStatus coordinate_start_time(uint64_t& send_time_ns);
+    /**
+     * @brief: Calculates the required number of memory blocks based on the essence size.
+     *
+     * @param [in] essence_size: Total size in bytes of the media essence.
+     *
+     * @return: Required number of memory blocks.
+     */
+    size_t calculate_required_memory_blocks(size_t essence_size) const;
 };
 
 inline uint64_t MediaSenderIONode::get_commit_timestamp_ns(

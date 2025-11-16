@@ -233,14 +233,14 @@ ReturnStatus MediaSenderApp::initialize()
             std::cerr << "Failed to initialize sender threads" << std::endl;
             return rc;
         }
-        rc = configure_memory_layout();
-        if (rc == ReturnStatus::failure) {
-            std::cerr << "Failed to configure memory layout" << std::endl;
-            return rc;
-        }
         rc = set_internal_media_essence_providers();
         if (rc == ReturnStatus::failure) {
             std::cerr << "Failed to set internal media essence providers" << std::endl;
+            return rc;
+        }
+        rc = configure_memory_layout();
+        if (rc == ReturnStatus::failure) {
+            std::cerr << "Failed to configure memory layout" << std::endl;
             return rc;
         }
     }
@@ -528,8 +528,12 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaSenderApp::set_media_essence_provider(size_t stream_index,
-    std::shared_ptr<IMediaEssenceProvider> essence_provider, SMPTEStandard smpte_standard, bool contains_payload)
+ReturnStatus MediaSenderApp::set_media_essence_providers(
+        size_t stream_index,
+        SMPTEStandard smpte_standard,
+        std::shared_ptr<IMediaEssenceProvider> preload_essence_provider,
+        std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider,
+        bool runtime_contains_payload)
 {
     size_t sender_thread_index = 0;
     size_t sender_stream_index = 0;
@@ -540,8 +544,10 @@ ReturnStatus MediaSenderApp::set_media_essence_provider(size_t stream_index,
         return rc;
     }
 
-    rc = m_senders[sender_thread_index]->set_media_essence_provider(
-        sender_stream_index, std::move(essence_provider), smpte_standard, contains_payload);
+    rc = m_senders[sender_thread_index]->set_media_essence_providers(
+        sender_stream_index, smpte_standard,
+        std::move(preload_essence_provider), std::move(runtime_essence_provider),
+        runtime_contains_payload);
 
     if (rc != ReturnStatus::success) {
         std::cerr << "Error setting media essence provider for stream "
@@ -561,9 +567,8 @@ ReturnStatus MediaSenderApp::set_internal_media_essence_providers()
         auto& smpte_standard_config = node.first;
         auto num_of_streams = node.second;
         for(size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
-            if (smpte_standard_config.media_file.empty() || !(smpte_standard_config.dynamic_media_file_load)) {
+            if (smpte_standard_config.media_file.empty()) {
                 essence_provider = std::make_shared<NullEssenceProvider>(smpte_standard_config);
-                contains_payload = false;
             } else {
                 auto smpte_standard = smpte_standard_config.get_smpte_standard();
                 if (smpte_standard != SMPTEStandard::ST_2110_20 &&
@@ -581,9 +586,15 @@ ReturnStatus MediaSenderApp::set_internal_media_essence_providers()
                 }
                 essence_provider = std::move(media_file_essence_provider);
             }
-            rc = m_senders[sender_index]->set_media_essence_provider(
-                stream_index, std::move(essence_provider), smpte_standard_config.get_smpte_standard(),
-                contains_payload);
+            if (smpte_standard_config.dynamic_media_file_load) {
+                rc = m_senders[sender_index]->set_media_essence_providers(
+                    stream_index, smpte_standard_config.get_smpte_standard(),
+                    nullptr, std::move(essence_provider));
+            } else {
+                rc = m_senders[sender_index]->set_media_essence_providers(
+                    stream_index, smpte_standard_config.get_smpte_standard(),
+                    std::move(essence_provider));
+            }
             if (rc != ReturnStatus::success) {
                 std::cerr << "Error setting media essence provider for stream " << stream_index
                           << " on sender " << sender_index << std::endl;

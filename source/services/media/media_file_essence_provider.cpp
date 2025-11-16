@@ -48,6 +48,11 @@ MediaFileEssenceProvider::~MediaFileEssenceProvider()
     m_cv.notify_all();
 }
 
+ReturnStatus MediaFileEssenceProvider::get_data_size(size_t& data_size) const
+{
+    return m_file_reader.get_file_size(data_size);
+}
+
 std::shared_ptr<MediaUnit> MediaFileEssenceProvider::get_media_unit_blocking()
 {
     std::unique_lock<std::mutex> lock(m_mutex);

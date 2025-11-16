@@ -108,12 +108,23 @@ ReturnStatus VideoFramesSenderExample::operator()()
     status = app.initialize();
     RETURN_FAILURE_ON_ERROR(status, "Failed to initialize Media Sender application");
 
-    /** 6. Set the custom media essence provider to the Media Sender application */
+    /**
+     * 6. Set the custom media essence provider to the Media Sender application.
+     *
+     * In this example, we use a runtime-only media essence provider configuration:
+     * - @p preload_essence_provider = nullptr: No preloading of data into memory blocks, before transmission starts.
+     * - @p runtime_essence_provider = @p dummy_media_essence_provider: Provides media units dynamically during transmission.
+     * - @p runtime_contains_payload = false: Only RTP headers are generated, no payload data is copied, during transmission.
+     *   This improves performance when payload data is not needed or handled before transmission.
+     */
     constexpr size_t stream_index = 0;
     constexpr SMPTEStandard smpte_standard = SMPTEStandard::ST_2110_20;
-    constexpr bool contains_payload = false;
-    status = app.set_media_essence_provider(
-        stream_index, dummy_media_essence_provider, smpte_standard, contains_payload);
+    std::shared_ptr<IMediaEssenceProvider> preload_essence_provider = nullptr;
+    std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider = dummy_media_essence_provider;
+    constexpr bool runtime_contains_payload = false;
+    status = app.set_media_essence_providers(
+        stream_index, smpte_standard, std::move(preload_essence_provider),
+        std::move(runtime_essence_provider), runtime_contains_payload);
     RETURN_FAILURE_ON_ERROR(status, "Failed to set media essence provider");
 
     /** 7. Start sending media data */

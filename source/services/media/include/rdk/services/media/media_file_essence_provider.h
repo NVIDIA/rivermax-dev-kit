@@ -80,6 +80,7 @@ public:
     std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
     std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     void stop() override;
+    ReturnStatus get_data_size(size_t& data_size) const override;
     /**
      * @brief: Loads media units from the file.
      */
