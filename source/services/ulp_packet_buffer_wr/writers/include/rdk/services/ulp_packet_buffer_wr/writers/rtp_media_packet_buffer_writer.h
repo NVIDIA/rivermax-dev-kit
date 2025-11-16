@@ -46,7 +46,7 @@ typedef std::unordered_map<
 /**
  * @brief: Creates an RTP media packet buffer writer based on the provided parameters.
  *
- * @param [in] smpte_type: SMPTE standard type.
+ * @param [in] smpte_standard: SMPTE standard.
  * @param [in] contains_payload: Flag indicating whether the buffer contains payload.
  * @param [in] media_settings: Media settings.
  * @param [in] header_mem_utils: Shared pointer to header memory utilities.
@@ -55,7 +55,7 @@ typedef std::unordered_map<
  * @return: Unique pointer to @ref IULPPacketBufferWriter instance.
  */
 std::unique_ptr<IULPPacketBufferWriter> create_rtp_media_packet_buffer_writer(
-    SMPTEStandard smpte_type, bool contains_payload, const MediaSettings& media_settings,
+    SMPTEStandard smpte_standard, bool contains_payload, const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils);
 
 /**

@@ -167,10 +167,10 @@ static rtp_media_packet_buffer_writer_factory_map_t s_rtp_media_packet_buffer_wr
 };
 
 std::unique_ptr<IULPPacketBufferWriter> rivermax::dev_kit::services::create_rtp_media_packet_buffer_writer(
-    SMPTEStandard smpte_type, bool contains_payload, const MediaSettings& media_settings,
+    SMPTEStandard smpte_standard, bool contains_payload, const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
 {
-    auto iter = s_rtp_media_packet_buffer_writer_factory.find(smpte_type);
+    auto iter = s_rtp_media_packet_buffer_writer_factory.find(smpte_standard);
     if (iter != s_rtp_media_packet_buffer_writer_factory.end()) {
         return iter->second(media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), !contains_payload);
     }
