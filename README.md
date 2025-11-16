@@ -155,13 +155,10 @@ On Windows, one should take the following steps:
 On Linux, one should take the following steps:
 
 1. Download the latest version of CMake installation bash-script e.g.:
-
     ```sh
     wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh -O cmake.sh
     ```
-
 2. Install CMake by running the script with the following command-line arguments:
-
     ```sh
     sudo sh cmake.sh --prefix=/usr/local/ --exclude-subdir
     ```
@@ -232,7 +229,6 @@ Rivermax Dev Kit leverages CMake for its build system, offering flexibility in c
 #### Building Rivermax Dev Kit
 
 1. Initialize build environment in an output directory `<build-dir>` of your choice:
-
     ```sh
     cmake -B <build-dir> -DCMAKE_BUILD_TYPE=Release
     ```
@@ -240,10 +236,8 @@ Rivermax Dev Kit leverages CMake for its build system, offering flexibility in c
     >To compile with CUDA support, add `-DRMAX_CUDA=ON` to `cmake` command-line. `nvcc`
     >must be in `PATH`; you can add it using `export PATH=$PATH:/usr/local/cuda/bin/` on Linux, or
     >`set PATH=%PATH%;<CUDA_INSTALL_DIR>\bin` on Windows.
-
 2. After the build environment is set in output directory `<build-dir>`,
    build Rivermax Dev Kit with the following command-line:
-
     ```sh
     cmake --build <build-dir> --config Release --parallel
     ```
@@ -292,13 +286,11 @@ To build the documentation, ensure that Doxygen version 1.9.8 or later is instal
 For Linux, you can install Doxygen using the following commands:
 
 - **Debian/Ubuntu-based systems**:
-
     ```sh
     sudo apt install doxygen
     ```
 
 - **RHEL/CentOS/Fedora-based systems**:
-
     ```sh
     sudo dnf install doxygen
     ```
