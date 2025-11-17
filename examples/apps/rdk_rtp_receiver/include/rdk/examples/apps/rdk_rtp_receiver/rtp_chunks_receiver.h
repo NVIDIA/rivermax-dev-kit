@@ -19,11 +19,11 @@
 #ifndef RDK_EXAMPLES_APPS_RDK_RTP_RECEIVER_RTP_CHUNKS_RECEIVER_H_
 #define RDK_EXAMPLES_APPS_RDK_RTP_RECEIVER_RTP_CHUNKS_RECEIVER_H_
 
-#include "rdk/apps/rdk_rtp_receiver/rdk_rtp_receiver.h"
+#include "rdk/apps/rtp_receiver/rtp_receiver.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rivermax::dev_kit::apps::rdk_rtp_receiver;
+using namespace rivermax::dev_kit::apps::rtp_receiver;
 using namespace rivermax::dev_kit::services;
 
 namespace rivermax

@@ -19,11 +19,11 @@
 #ifndef RDK_EXAMPLES_APPS_RDK_MEDIA_SENDER_USER_PROVIDED_SETTINGS_VIDEO_FILE_SENDER_H_
 #define RDK_EXAMPLES_APPS_RDK_MEDIA_SENDER_USER_PROVIDED_SETTINGS_VIDEO_FILE_SENDER_H_
 
-#include "rdk/apps/rdk_media_sender/rdk_media_sender.h"
+#include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rivermax::dev_kit::apps::rdk_media_sender;
+using namespace rivermax::dev_kit::apps::media_sender;
 using namespace rivermax::dev_kit::services;
 
 namespace rivermax

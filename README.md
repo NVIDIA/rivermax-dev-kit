@@ -268,7 +268,7 @@ cmake -B <build-dir> -LH
 
 The Rivermax Dev Kit includes a set of command-line interface (CLI) applications that serve as CLI binaries for the app modules.
 These applications are designed to demonstrate the functionality of the Rivermax Dev Kit and provide a convenient way to interact with its features.
-After building the Rivermax Dev Kit, you can find the CLI applications in the `<build-dir>/source/apps` directory.
+After building the Rivermax Dev Kit, you can find the CLI applications in the `<build-dir>/binaries/apps` directory.
 Each application is organized into its own subdirectory, and the executable files are named according to the corresponding folder names.
 
 Each CLI application is designed to showcase specific features and capabilities of the Rivermax Dev Kit. You can run these applications from the command line to test and explore the functionality of the Rivermax Dev Kit.

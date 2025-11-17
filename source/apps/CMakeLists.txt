@@ -23,15 +23,15 @@ add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE include)
 
 # Create base library to build an RDK application
-add_library(rivermax-dev-kit-app-base STATIC)
-target_sources(rivermax-dev-kit-app-base
+add_library(rivermax-dev-kit-apps-base STATIC)
+target_sources(rivermax-dev-kit-apps-base
     PRIVATE
-        rdk_base_memory_strategy.cpp
-        rdk_receiver_base.cpp
-        rdk_base_app.cpp
+        base_memory_strategy.cpp
+        receiver_base_app.cpp
+        base_app.cpp
 )
-target_include_directories(rivermax-dev-kit-app-base PUBLIC include)
-target_link_libraries(rivermax-dev-kit-app-base
+target_include_directories(rivermax-dev-kit-apps-base PUBLIC include)
+target_link_libraries(rivermax-dev-kit-apps-base
     PUBLIC
         rivermax-dev-kit-build
         rivermax-dev-kit-core
@@ -39,18 +39,18 @@ target_link_libraries(rivermax-dev-kit-app-base
         rivermax-dev-kit-io-node
         rivermax-dev-kit-facade
 )
-target_link_libraries(${PROJECT_NAME} INTERFACE rivermax-dev-kit-app-base)
+target_link_libraries(${PROJECT_NAME} INTERFACE rivermax-dev-kit-apps-base)
 
 # Process all RDK applications
 set(RIVERMAX_DEV_KIT_APP_COMPONENTS
-    rdk_ipmx_receiver
-    rdk_ipmx_sender
-    rdk_latency
-    rdk_ipo_receiver
-    rdk_rtp_receiver
-    rdk_media_probe
-    rdk_media_sender
-    rdk_generic_sender
+    ipmx_receiver
+    ipmx_sender
+    latency
+    ipo_receiver
+    rtp_receiver
+    media_probe
+    media_sender
+    generic_sender
     CACHE INTERNAL "Rivermax Dev Kit application components."
 )
 foreach(app_component ${RIVERMAX_DEV_KIT_APP_COMPONENTS})

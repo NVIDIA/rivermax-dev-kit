@@ -19,13 +19,13 @@
 #include <memory>
 #include <thread>
 
-#include "rdk/apps/rdk_rtp_receiver/rdk_rtp_receiver.h"
-#include "rdk/apps/rdk_media_sender/rdk_media_sender.h"
+#include "rdk/apps/rtp_receiver/rtp_receiver.h"
+#include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/examples/apps/integration/media_receiver_sender.h"
 
 using namespace rivermax::dev_kit::apps;
-using namespace rivermax::dev_kit::apps::rdk_rtp_receiver;
-using namespace rivermax::dev_kit::apps::rdk_media_sender;
+using namespace rivermax::dev_kit::apps::rtp_receiver;
+using namespace rivermax::dev_kit::apps::media_sender;
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::examples::apps::integration;
 

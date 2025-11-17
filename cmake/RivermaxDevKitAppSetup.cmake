@@ -53,7 +53,7 @@ function(create_rdk_app_objects)
     add_library(${ARGS_NAME} OBJECT)
     target_sources(${ARGS_NAME} PRIVATE ${ARGS_SOURCES})
     target_include_directories(${ARGS_NAME} PUBLIC include)
-    target_link_libraries(${ARGS_NAME} PRIVATE rivermax-dev-kit-app-base)
+    target_link_libraries(${ARGS_NAME} PRIVATE rivermax-dev-kit-apps-base)
 
     # Add to the umbrella library of all the applications
     target_link_libraries(rivermax-dev-kit-apps INTERFACE ${ARGS_NAME})
@@ -100,7 +100,7 @@ function(create_rdk_app_executable)
     target_sources(${ARGS_NAME} PRIVATE ${ARGS_SOURCES})
     target_link_libraries(${ARGS_NAME}
         PRIVATE
-            rivermax-dev-kit-app-base
+            rivermax-dev-kit-apps-base
             ${ARGS_LIBRARIES}
     )
 endfunction()
