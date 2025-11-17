@@ -14,4 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_example_executables(TARGETS rdk_rtp_receiver_obj rdk_media_sender_obj)
+add_example_executables(TARGETS rdk_media_sender_obj)

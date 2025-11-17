@@ -14,4 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_example_executables(TARGETS rdk_rtp_receiver_obj rdk_media_sender_obj)
+project(rdk_rtp_receiver)
+
+create_rdk_app_objects(
+    NAME ${PROJECT_NAME}_obj
+    SOURCES ${PROJECT_NAME}.cpp
+)
+create_rdk_app_executable(
+    NAME ${PROJECT_NAME}
+    SOURCES ${PROJECT_NAME}_main.cpp
+    LIBRARIES ${PROJECT_NAME}_obj
+)

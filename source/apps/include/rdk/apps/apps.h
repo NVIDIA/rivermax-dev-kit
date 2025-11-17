@@ -19,9 +19,9 @@
 #ifndef RDK_APPS_APPS_H_
 #define RDK_APPS_APPS_H_
 
-#include "rdk/apps/rmax_base_app.h"
-#include "rdk/apps/rmax_receiver_base.h"
+#include "rdk/apps/rdk_base_app.h"
+#include "rdk/apps/rdk_receiver_base.h"
 #include "rdk/apps/memory_strategy_interface.h"
-#include "rdk/apps/rmax_base_memory_strategy.h"
+#include "rdk/apps/rdk_base_memory_strategy.h"
 
 #endif /* RDK_APPS_APPS_H_ */

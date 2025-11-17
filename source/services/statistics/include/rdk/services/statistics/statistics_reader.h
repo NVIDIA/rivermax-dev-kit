@@ -40,7 +40,7 @@ typedef std::function<void(StatisticsReader *reader)> statistics_handler_cb_t;
 typedef std::unordered_map<rmx_stats_type, statistics_handler_cb_t> statistics_handler_cb_map_t;
 
 /**
- * @brief: Basic class for Rivermax statistics reader.
+ * @brief: Basic class for Rivermax Dev Kit statistics reader.
  *
  * This is a basic class offers common statistics reader implementation.
  * The user of this interface can override it's virtual methods.

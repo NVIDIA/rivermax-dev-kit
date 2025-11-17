@@ -19,13 +19,13 @@
 #ifndef RDK_EXAMPLES_APPS_INTEGRATION_MEDIA_RECEIVER_SENDER_H_
 #define RDK_EXAMPLES_APPS_INTEGRATION_MEDIA_RECEIVER_SENDER_H_
 
-#include "rdk/apps/rmax_rtp_receiver/rmax_rtp_receiver.h"
-#include "rdk/apps/rmax_xstream_media_sender/rmax_xstream_media_sender.h"
+#include "rdk/apps/rdk_rtp_receiver/rdk_rtp_receiver.h"
+#include "rdk/apps/rdk_media_sender/rdk_media_sender.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rivermax::dev_kit::apps::rmax_rtp_receiver;
-using namespace rivermax::dev_kit::apps::rmax_xstream_media_sender;
+using namespace rivermax::dev_kit::apps::rdk_rtp_receiver;
+using namespace rivermax::dev_kit::apps::rdk_media_sender;
 using namespace rivermax::dev_kit::services;
 
 namespace rivermax
