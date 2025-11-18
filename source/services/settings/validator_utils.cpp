@@ -90,3 +90,27 @@ ReturnStatus ValidatorUtils::validate_core(const std::vector<int>& cores)
     }
     return ReturnStatus::success;
 }
+
+ReturnStatus ValidatorUtils::validate_gpu_direct_header_size_compatibility(int gpu_id, uint16_t packet_app_header_size)
+{
+#if defined(CUDA_ENABLED) && !defined(TEGRA_ENABLED)
+    if (gpu_id != INVALID_GPU_ID && packet_app_header_size == 0) {
+        std::cerr << "GPU Direct is supported only in header-data split mode.\n"
+                << "Please specify application header size." << std::endl;
+        return ReturnStatus::failure;
+    }
+#endif
+    return ReturnStatus::success;
+}
+
+ReturnStatus ValidatorUtils::validate_gpu_direct_header_split_compatibility(int gpu_id, bool header_data_split)
+{
+#if defined(CUDA_ENABLED) && !defined(TEGRA_ENABLED)
+    if (gpu_id != INVALID_GPU_ID && !header_data_split) {
+        std::cerr << "GPU Direct is supported only in header-data split mode.\n"
+                << "Please enable header-data split." << std::endl;
+        return ReturnStatus::failure;
+    }
+#endif
+    return ReturnStatus::success;
+}

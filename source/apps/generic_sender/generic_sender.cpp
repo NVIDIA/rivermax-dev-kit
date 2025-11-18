@@ -51,6 +51,10 @@ ReturnStatus GenericSenderSettingsValidator::validate(const GenericSenderSetting
     if (rc != ReturnStatus::success) {
         return rc;
     }
+    rc = ValidatorUtils::validate_gpu_direct_header_size_compatibility(settings.gpu_id, settings.packet_app_header_size);
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
     if (settings.rate.bps > 0 && settings.rate.max_burst_in_packets == 0) {
         std::cerr << "Maximum allowed burst size per flow must be greater than 0 when Rate limit is set" << std::endl;
         return ReturnStatus::failure;

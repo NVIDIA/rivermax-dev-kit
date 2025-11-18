@@ -66,6 +66,10 @@ ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& s
     if (rc != ReturnStatus::success) {
         return rc;
     }
+    rc = ValidatorUtils::validate_gpu_direct_header_split_compatibility(settings.gpu_id, settings.header_data_split);
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
     if (!settings.media.enable_video && !settings.media.enable_audio && !settings.media.enable_ancillary) {
         std::cerr << "At least one media type must be enabled: "
                   << CLIOptStr::ENABLE_VIDEO << ", "

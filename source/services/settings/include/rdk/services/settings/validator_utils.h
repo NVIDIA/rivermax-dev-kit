@@ -90,6 +90,24 @@ public:
      * @return: Returns status of the operation.
      */
     static ReturnStatus validate_core(const std::vector<int>& cores);
+    /**
+     * @brief: Validate that header size and GPUDirect settings are compatible.
+     *
+     * @param [in] gpu_id: GPU ID.
+     * @param [in] packet_app_header_size: Size of header buffer.
+     *
+     * @return: Returns status of the operation.
+     */
+    static ReturnStatus validate_gpu_direct_header_size_compatibility(int gpu_id, uint16_t packet_app_header_size);
+    /**
+     * @brief: Validate that Header-Data Split and GPUDirect settings are compatible.
+     *
+     * @param [in] gpu_id: GPU ID.
+     * @param [in] header_data_split: True if Header-Data Split is enabled.
+     *
+     * @return: Returns status of the operation.
+     */
+    static ReturnStatus validate_gpu_direct_header_split_compatibility(int gpu_id, bool header_data_split);
 };
 
 } // namespace services

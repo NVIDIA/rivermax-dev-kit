@@ -60,14 +60,6 @@ void IPMXReceiverSettings::init_default_values()
 
 ReturnStatus IPMXReceiverSettingsValidator::validate(const IPMXReceiverSettings& settings) const
 {
-#if defined(CUDA_ENABLED) && !defined(TEGRA_ENABLED)
-    if (settings.gpu_id != INVALID_GPU_ID && settings.packet_app_header_size == 0) {
-        std::cerr << "GPU Direct is supported only in header-data split mode\n"
-                << "Please specify application header size." << std::endl;
-        return ReturnStatus::failure;
-    }
-#endif
-
     ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.source_ip);
     if (rc != ReturnStatus::success) {
         return rc;
@@ -93,6 +85,10 @@ ReturnStatus IPMXReceiverSettingsValidator::validate(const IPMXReceiverSettings&
         return rc;
     }
     rc = ValidatorUtils::validate_core(settings.rtcp_thread_core);
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
+    rc = ValidatorUtils::validate_gpu_direct_header_size_compatibility(settings.gpu_id, settings.packet_app_header_size);
     if (rc != ReturnStatus::success) {
         return rc;
     }

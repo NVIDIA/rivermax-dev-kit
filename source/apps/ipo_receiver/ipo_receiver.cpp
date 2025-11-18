@@ -79,6 +79,10 @@ ReturnStatus IPOReceiverSettingsValidator::validate(const IPOReceiverSettings& s
     if (rc != ReturnStatus::success) {
         return rc;
     }
+    rc = ValidatorUtils::validate_gpu_direct_header_size_compatibility(settings.gpu_id, settings.packet_app_header_size);
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
 
     return ReturnStatus::success;
 }
