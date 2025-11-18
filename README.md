@@ -266,14 +266,29 @@ cmake -B <build-dir> -LH
 
 ## CLI Applications
 
-The Rivermax Dev Kit includes a set of command-line interface (CLI) applications that serve as CLI binaries for the app modules.
-These applications are designed to demonstrate the functionality of the Rivermax Dev Kit and provide a convenient way to interact with its features.
-After building the Rivermax Dev Kit, you can find the CLI applications in the `<build-dir>/binaries/apps` directory.
-Each application is organized into its own subdirectory, and the executable files are named according to the corresponding folder names.
+The Rivermax Dev Kit includes command-line interface applications that serve as CLI binaries for the app modules. These applications are designed to demonstrate the functionality and performance of the Rivermax Dev Kit and provide a convenient way to interact with its features.
 
-Each CLI application is designed to showcase specific features and capabilities of the Rivermax Dev Kit. You can run these applications from the command line to test and explore the functionality of the Rivermax Dev Kit.
+After building the Rivermax Dev Kit, you can find the CLI applications in the `<build-dir>/binaries/apps` directory. Each CLI application is organized into its own subdirectory, and the executable files are named according to the corresponding folder names.
 
 In addition to being available as CLI interfaces, these applications are also accessible as software APIs within the `apps` module. This allows developers to integrate the same functionality directly into their own applications, providing flexibility for both standalone usage and embedded development.
+
+### Available Applications
+
+- **`rdk_generic_sender`**: A generic sender application for transmitting custom UDPv4 data streams using Rivermax. Supports configurable rate limiting, packet sizes, and transmission parameters for both unicast and multicast flows.
+
+- **`rdk_media_sender`**: A media sender application for streaming media content over IP networks. Supports industry-standard SMPTE 2110-20 (video), SMPTE 2110-30 (audio), and SMPTE 2110-40 (ancillary data) formats for professional media streaming workflows.
+
+- **`rdk_rtp_receiver`**: A Real-time Transport Protocol (RTP) receiver application for receiving and processing RTP streams. Supports both standard and extended RTP sequence numbers for flexible packet handling.
+
+- **`rdk_ipo_receiver`**: An Inline Packet Ordering (IPO) receiver application for receiving Real-time Transport Protocol (RTP) streams with hardware packet reordering. Provides efficient handling of out-of-order packets and supports SMPTE 2022-7 redundancy workflows.
+
+- **`rdk_ipmx_sender`**: An Internet Protocol Media Experience (IPMX) sender application for transmitting media streams. Supports professional media transport over IP networks with SMPTE 2110 compliance.
+
+- **`rdk_ipmx_receiver`**: An Internet Protocol Media Experience (IPMX) receiver application for receiving media streams. Tracks stream synchronization and timeline information for multi-component video signals.
+
+- **`rdk_media_probe`**: A media receiver application for analyzing and monitoring SMPTE ST 2110-20 video signals. Supports Main Video Essence (color) and Alpha/Key channels, synchronization tracking, latency calculation, and comprehensive statistics reporting for multiple concurrent streams.
+
+- **`rdk_latency`**: A latency measurement application for assessing end-to-end delivery delays in streaming workflows. Supports multiple measurement modes including ping-pong for single-packet transfers, frame latency for arbitrary size video frames, and media mode with packet pacing for SMPTE 2110-21 compliant measurements.
 
 ## Examples
 
