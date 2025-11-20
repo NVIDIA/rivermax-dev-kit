@@ -526,7 +526,10 @@ void MediaSenderIONode::operator()()
     start_send_time_ns += transmit_offset_ns;
 
     for (auto& stream_pack : m_stream_packs) {
-        stream_pack.runtime_packet_buffer_writer->set_initial_timestamp(start_send_time_ns);
+        if (stream_pack.runtime_essence_provider) {
+            stream_pack.runtime_essence_provider->set_start_time(send_time_ns);
+        }
+        stream_pack.runtime_packet_buffer_writer->set_start_time(start_send_time_ns);
     }
 
     size_t sent_field_counter = 0;

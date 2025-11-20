@@ -97,11 +97,11 @@ public:
      */
     virtual ReturnStatus set_next_media_unit(std::shared_ptr<MediaUnit> media_unit) = 0;
     /**
-     * @brief: Sets the timestamp for the first packet.
+     * @brief: Sets the start time for packet timestamp generation.
      *
-     * @param [in] packet_time_ns: The timestamp of the first packet.
+     * @param [in] time_ns: The start time.
      */
-    virtual void set_initial_timestamp(uint64_t timestamp_ns) = 0;
+    virtual void set_start_time(uint64_t time_ns) = 0;
     /**
      * @brief: Returns the number of packets needed for the next chunk.
      *

@@ -117,9 +117,9 @@ public:
     /**
      * @brief: Sets the RTP timestamp for the first packet.
      *
-     * @param [in] packet_time_ns: The timestamp of the first packet.
+     * @param [in] time_ns: The timestamp of the first packet.
      */
-    void set_initial_timestamp(uint64_t packet_time_ns) override;
+    void set_start_time(uint64_t time_ns) override;
     /**
      * @brief: Returns the number of packets needed for the next chunk.
      *

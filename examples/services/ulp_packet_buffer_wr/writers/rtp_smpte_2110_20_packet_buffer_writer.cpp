@@ -92,11 +92,11 @@ ReturnStatus RTP_SMPTE_2110_20_PacketBufferWriterExample::operator()()
         std::move(payload_memory_utils));
     RETURN_STATUS_IF(!packet_buffer_writer, "Failed to create RTP media packet buffer writer", ReturnStatus::failure);
 
-    /** 4. Set the timestamp for the first packet */
+    /** 4. Set the start time for the first packet */
     uint64_t send_time_ns = std::chrono::steady_clock::now().time_since_epoch().count() + NS_IN_SEC;
     uint64_t aligned_time_ns = static_cast<uint64_t>(
         st_2110_20_settings->media_settings_calculator->align_time_to_media_unit_boundary_ns(send_time_ns));
-    packet_buffer_writer->set_initial_timestamp(aligned_time_ns);
+    packet_buffer_writer->set_start_time(aligned_time_ns);
 
     /**
      * 5. Prepare the media unit.

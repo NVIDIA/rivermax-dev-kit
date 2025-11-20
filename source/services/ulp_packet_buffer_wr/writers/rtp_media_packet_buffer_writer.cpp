@@ -142,10 +142,10 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
 }
 
 template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
-void RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::set_initial_timestamp(uint64_t packet_time_ns)
+void RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::set_start_time(uint64_t time_ns)
 {
     m_rtp_packet_context->timestamp = static_cast<uint32_t>(
-        time_to_rtp_timestamp(packet_time_ns, static_cast<int>(m_media_settings.sample_rate)));
+        time_to_rtp_timestamp(time_ns, static_cast<int>(m_media_settings.sample_rate)));
 }
 
 

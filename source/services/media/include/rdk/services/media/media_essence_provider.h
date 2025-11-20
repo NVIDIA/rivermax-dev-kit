@@ -279,6 +279,12 @@ public:
      */
      virtual void stop() {};
     /**
+     * @brief: Sets the start time for the provider.
+     *
+     * @param [in] time_ns: The start time.
+     */
+    virtual void set_start_time(uint64_t time_ns) {};
+    /**
      * @brief: Returns the total size of the essence source.
      *
      * @return: Total size of the essence source.
