@@ -21,6 +21,7 @@
 
 #include <array>
 #include <string>
+#include <type_traits>
 
 namespace rivermax
 {
@@ -107,5 +108,84 @@ std::string enum_to_string(EnumType value)
 } // namespace services
 } // namespace dev_kit
 } // namespace rivermax
+
+/**
+ * @brief: Enable bitwise operators for enum class flags.
+ *
+ * This macro defines bitwise operators (|, &, ^, ~, !, |=, &=, ^=) for an enum class,
+ * allowing it to be used as a type-safe bitmask.
+ *
+ * Usage:
+ * @code
+ * enum class MyFlags : uint8_t
+ * {
+ *     None   = 0,
+ *     Flag1  = 1 << 0,
+ *     Flag2  = 1 << 1,
+ *     Flag3  = 1 << 2
+ * };
+ * RDK_ENUM_FLAGS(MyFlags)
+ *
+ * auto flags = MyFlags::Flag1 | MyFlags::Flag2;
+ * if ((flags & MyFlags::Flag1) != MyFlags::None) { ... }
+ * flags |= MyFlags::Flag3;
+ * @endcode
+ *
+ * @param EnumName: The enum class type to enable operators for.
+ */
+#define RDK_ENUM_FLAGS(EnumName)                                                                \
+    inline constexpr EnumName& operator|=(EnumName& lhs, EnumName rhs)                          \
+    {                                                                                           \
+        return lhs = static_cast<EnumName>(static_cast<std::underlying_type_t<EnumName>>(lhs) | \
+                                           static_cast<std::underlying_type_t<EnumName>>(rhs)); \
+    }                                                                                           \
+    inline constexpr EnumName& operator&=(EnumName& lhs, EnumName rhs)                          \
+    {                                                                                           \
+        return lhs = static_cast<EnumName>(static_cast<std::underlying_type_t<EnumName>>(lhs) & \
+                                           static_cast<std::underlying_type_t<EnumName>>(rhs)); \
+    }                                                                                           \
+    inline constexpr EnumName& operator^=(EnumName& lhs, EnumName rhs)                          \
+    {                                                                                           \
+        return lhs = static_cast<EnumName>(static_cast<std::underlying_type_t<EnumName>>(lhs) ^ \
+                                           static_cast<std::underlying_type_t<EnumName>>(rhs)); \
+    }                                                                                           \
+    inline constexpr EnumName operator|(EnumName lhs, EnumName rhs)                             \
+    {                                                                                           \
+        return static_cast<EnumName>(static_cast<std::underlying_type_t<EnumName>>(lhs) |       \
+                                     static_cast<std::underlying_type_t<EnumName>>(rhs));       \
+    }                                                                                           \
+    inline constexpr EnumName operator&(EnumName lhs, EnumName rhs)                             \
+    {                                                                                           \
+        return static_cast<EnumName>(static_cast<std::underlying_type_t<EnumName>>(lhs) &       \
+                                     static_cast<std::underlying_type_t<EnumName>>(rhs));       \
+    }                                                                                           \
+    inline constexpr EnumName operator^(EnumName lhs, EnumName rhs)                             \
+    {                                                                                           \
+        return static_cast<EnumName>(static_cast<std::underlying_type_t<EnumName>>(lhs) ^       \
+                                     static_cast<std::underlying_type_t<EnumName>>(rhs));       \
+    }                                                                                           \
+    inline constexpr bool operator!(EnumName value)                                             \
+    {                                                                                           \
+        return !static_cast<std::underlying_type_t<EnumName>>(value);                           \
+    }                                                                                           \
+    inline constexpr EnumName operator~(EnumName value)                                         \
+    {                                                                                           \
+        return static_cast<EnumName>(~static_cast<std::underlying_type_t<EnumName>>(value));    \
+    }
+
+/**
+ * @brief: Checks if a specific flag is set in an enum value.
+ *
+ * @tparam EnumType: The Enum class type.
+ * @param [in] value: The Enum value.
+ * @param [in] flag: The flag to check.
+ *
+ * @return: True if the flag is set, false otherwise.
+ */
+template <typename EnumType>
+constexpr bool enum_has_flag(EnumType value, EnumType flag)
+{
+    return (value & flag) != static_cast<EnumType>(0);
+}
 
 #endif /* RDK_SERVICES_UTILS_ENUM_H_ */
