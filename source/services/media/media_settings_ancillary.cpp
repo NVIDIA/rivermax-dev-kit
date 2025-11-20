@@ -31,7 +31,11 @@ SMPTE_2110_40_MediaSettings::SMPTE_2110_40_MediaSettings(const AppSettings& app_
     dynamic_media_file_load = false;
 
     // Initialize SMPTE 2110-40 specific fields
-    data_identifiers.push_back({ app_settings.media.ancillary_did, app_settings.media.ancillary_sdid });
+    data_identifiers = app_settings.media.ancillary_data_identifiers;
+    if (data_identifiers.empty()) {
+        data_identifiers.push_back(ANCILLARY_TIMECODE_IDENTIFIER);
+        data_identifiers.push_back(ANCILLARY_AFD_IDENTIFIER);
+    }
     max_user_data_words_count = app_settings.media.ancillary_data_words_count;
     frame_rate = app_settings.media.frame_rate;
 }

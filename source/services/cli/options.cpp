@@ -83,8 +83,7 @@ const char* CLIOptStr::DYNAMIC_FILE_LOADING = "--dfl,--dynamic-file-loading";
 const char* CLIOptStr::PTIME_US = "--apu,--audio-ptime-us";
 const char* CLIOptStr::AUDIO_SAMPLING_RATE = "--asr,--audio-sampling-rate";
 const char* CLIOptStr::AUDIO_ENCODING = "--ae,--audio-encoding";
-const char* CLIOptStr::ANCILLARY_DID = "--and,--ancillary-did";
-const char* CLIOptStr::ANCILLARY_SDID = "--ans,--ancillary-sdid";
+const char* CLIOptStr::ANCILLARY_TYPES = "--ant,--ancillary-types";
 const char* CLIOptStr::ANCILLARY_DATA_WORDS_COUNT = "--anc,--ancillary-data-words-count";
 
 const char* CLIGroupStr::VIDEO_FORMAT_OPTIONS = "Video format options";
@@ -116,6 +115,17 @@ static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
 static const std::map<std::string, rmx_input_stream_params_type> UI_RX_STREAM_TYPES{
     { "raw",          RMX_INPUT_RAW_PACKET },
     { "app-protocol", RMX_INPUT_APP_PROTOCOL_PACKET }
+};
+
+/**
+ * @brief: Ancillary data types mapping to string.
+ *
+ * Maps string representations to AncillaryDataIdentifier.
+ */
+static const std::map<std::string, AncillaryDataIdentifier> UI_ANCILLARY_TYPES{
+    { "timecode", ANCILLARY_TIMECODE_IDENTIFIER },
+    { "afd",      ANCILLARY_AFD_IDENTIFIER },
+    { "cc",       ANCILLARY_CLOSED_CAPTION_IDENTIFIER }
 };
 
 /**
@@ -620,7 +630,9 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         {
             return parser->add_flag(CLIOptStr::ENABLE_ANCILLARY,
                                     app_settings->media.enable_ancillary,
-                                    "Enable ancillary");
+                                    "Enable ancillary data. Defaults to timecode and AFD. "
+                                    "Use --ancillary-types to specify desired types (afd, timecode, cc).")
+                                    ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
         }
     },
     {
@@ -658,21 +670,17 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         }
     },
     {
-        CLIOptStr::ANCILLARY_DID,
+        CLIOptStr::ANCILLARY_TYPES,
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
-            return parser->add_option(CLIOptStr::ANCILLARY_DID,
-                                    app_settings->media.ancillary_did,
-                                    "Ancillary Data Identification (DID)");
-        }
-    },
-    {
-        CLIOptStr::ANCILLARY_SDID,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
-            return parser->add_option(CLIOptStr::ANCILLARY_SDID,
-                                    app_settings->media.ancillary_sdid,
-                                    "Ancillary Secondary Data Identification (SDID)");
+            auto enable_anc_opt = parser->get_option(CLIOptStr::ENABLE_ANCILLARY);
+            return parser->add_option(CLIOptStr::ANCILLARY_TYPES,
+                                    app_settings->media.ancillary_data_identifiers,
+                                    "Ancillary data types to enable (comma-separated: timecode,afd,cc). "
+                                    "Default: timecode,afd")
+                                    ->delimiter(',')
+                                    ->transform(CLI::CheckedTransformer(UI_ANCILLARY_TYPES, CLI::ignore_case))
+                                    ->needs(enable_anc_opt);
         }
     },
     {

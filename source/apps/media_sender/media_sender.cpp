@@ -144,9 +144,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
         ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ANCILLARY)
         ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_DID)
-        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_SDID)
+    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_TYPES)
         ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT)
         ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);

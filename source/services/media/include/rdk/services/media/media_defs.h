@@ -202,6 +202,59 @@ struct Resolution
      */
     bool operator!=(const Resolution& other) const { return !(*this == other); }
 };
+/**
+ * @brief: Ancillary data identifier (DID/SDID pair).
+ */
+ struct AncillaryDataIdentifier
+ {
+     uint16_t did;
+     uint16_t sdid;
+
+     bool operator==(const AncillaryDataIdentifier& other) const
+     {
+         return did == other.did && sdid == other.sdid;
+     }
+     bool operator!=(const AncillaryDataIdentifier& other) const
+     {
+         return !(*this == other);
+     }
+     /**
+      * @brief: Output stream operator to print identifier.
+      *
+      * Format: "0xDID:0xSDID" (e.g. "0x60:0x60")
+      *
+      * @param [in] os: The output stream.
+      * @param [in] id: The ancillary data identifier.
+      *
+      * @return: The output stream.
+      */
+     friend std::ostream& operator<<(std::ostream& os, const AncillaryDataIdentifier& id)
+     {
+         os << "0x" << std::hex << id.did << ":0x" << id.sdid << std::dec;
+         return os;
+     }
+     /**
+      * @brief: Input stream operator to parse identifier from string.
+      *
+      * Format: "0xDID:0xSDID" (e.g. "0x60:0x60")
+      *
+      * @param [in] is: The input stream.
+      * @param [out] id: The ancillary data identifier.
+      *
+      * @return: The input stream.
+      */
+     friend std::istream& operator>>(std::istream& is, AncillaryDataIdentifier& id)
+     {
+         std::string token;
+         is >> token;
+         size_t colon_pos = token.find(':');
+         if (colon_pos != std::string::npos) {
+             id.did = static_cast<uint16_t>(std::stoul(token.substr(0, colon_pos), nullptr, 0));
+             id.sdid = static_cast<uint16_t>(std::stoul(token.substr(colon_pos + 1), nullptr, 0));
+         }
+         return is;
+     }
+ };
 
 /* Time constants */
 constexpr size_t NS_IN_SEC = std::chrono::nanoseconds{ std::chrono::seconds{ 1 } }.count();
@@ -262,6 +315,9 @@ constexpr size_t VIDEO_TRO_DEFAULT_MODIFICATION = 2;
 /* Ancillary data constants */
 constexpr size_t DEFAULT_ANCILLARY_DATA_PACKETS_PER_PACKET = 10;
 constexpr size_t DEFAULT_ANCILLARY_DATA_WORDS_COUNT = 128;
+constexpr AncillaryDataIdentifier ANCILLARY_TIMECODE_IDENTIFIER = {0x60, 0x60};  
+constexpr AncillaryDataIdentifier ANCILLARY_AFD_IDENTIFIER = {0x41, 0x05};  
+constexpr AncillaryDataIdentifier ANCILLARY_CLOSED_CAPTION_IDENTIFIER = {0x61, 0x01};  
 /* Supported video resolutions */
 const std::vector<Resolution> SUPPORTED_VIDEO_RESOLUTIONS = {
     { FHD_WIDTH, FHD_HEIGHT },

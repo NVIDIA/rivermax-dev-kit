@@ -35,15 +35,6 @@ namespace services
 {
 
 /**
- * @brief: Ancillary data identifier pair (DID and SDID).
- */
-struct AncillaryDataIdentifier
-{
-    uint16_t did;
-    uint16_t sdid;
-};
-
-/**
  * @brief: SMPTE 2110-40 ancillary media settings.
  *
  * The struct will be used to hold media parameters for

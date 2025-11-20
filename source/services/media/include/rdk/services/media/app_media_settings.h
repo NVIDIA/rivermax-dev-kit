@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "rdk/services/media/media_defs.h"
 
@@ -69,8 +70,7 @@ struct AppMediaSettings
     AudioSamplingRate audio_sampling_rate = AudioSamplingRate::_48000;
     AudioEncoding audio_encoding = AudioEncoding::L24;
     uint8_t audio_channels_num = 2;
-    uint16_t ancillary_did = 0;
-    uint16_t ancillary_sdid = 0;
+    std::vector<AncillaryDataIdentifier> ancillary_data_identifiers;
     uint16_t ancillary_data_words_count = DEFAULT_ANCILLARY_DATA_WORDS_COUNT;
 };
 

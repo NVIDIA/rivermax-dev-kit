@@ -117,8 +117,7 @@ public:
     static const char* PTIME_US;
     static const char* AUDIO_SAMPLING_RATE;
     static const char* AUDIO_ENCODING;
-    static const char* ANCILLARY_DID;
-    static const char* ANCILLARY_SDID;
+    static const char* ANCILLARY_TYPES;
     static const char* ANCILLARY_DATA_WORDS_COUNT;
 };
 /**
