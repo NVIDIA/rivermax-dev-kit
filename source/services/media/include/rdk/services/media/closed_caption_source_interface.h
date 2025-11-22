@@ -30,7 +30,7 @@ namespace services
 {
 
 /**
- * @brief Interface for closed caption text sources
+ * @brief: Interface for closed caption text sources.
  *
  * Provides caption text based on timestamp.
  */
@@ -39,11 +39,11 @@ class IClosedCaptionSource
 public:
     virtual ~IClosedCaptionSource() = default;
     /**
-     * @brief Get caption text for the specified timestamp
+     * @brief: Get caption text for the specified timestamp.
      *
-     * @param [in] timestamp_ns: Timestamp in nanoseconds
+     * @param [in] timestamp_ns: Timestamp in nanoseconds.
      *
-     * @return Caption text to display
+     * @return: Caption text to display.
      */
     virtual std::string get_caption_text(uint64_t timestamp_ns) = 0;
 };

@@ -79,12 +79,13 @@ const char* CLIOptStr::ENABLE_AUDIO = "--enable-audio";
 const char* CLIOptStr::ENABLE_ANCILLARY = "--enable-ancillary";
 const char* CLIOptStr::VIDEO_FILE = "--vf,--video-file";
 const char* CLIOptStr::AUDIO_FILE = "--af,--audio-file";
+const char* CLIOptStr::ANCILLARY_FILE = "--anf,--ancillary-file";
 const char* CLIOptStr::DYNAMIC_FILE_LOADING = "--dfl,--dynamic-file-loading";
 const char* CLIOptStr::PTIME_US = "--apu,--audio-ptime-us";
 const char* CLIOptStr::AUDIO_SAMPLING_RATE = "--asr,--audio-sampling-rate";
 const char* CLIOptStr::AUDIO_ENCODING = "--ae,--audio-encoding";
 const char* CLIOptStr::ANCILLARY_TYPES = "--ant,--ancillary-types";
-const char* CLIOptStr::ANCILLARY_DATA_WORDS_COUNT = "--anc,--ancillary-data-words-count";
+const char* CLIOptStr::ANCILLARY_DATA_WORDS_COUNT = "--adwc,--ancillary-data-words-count";
 
 const char* CLIGroupStr::VIDEO_FORMAT_OPTIONS = "Video format options";
 const char* CLIGroupStr::AUDIO_FORMAT_OPTIONS = "Audio format options";
@@ -110,7 +111,7 @@ static const std::map<std::string, AllocatorTypeUI> UI_ALLOCATOR_TYPES{
 /**
  * @brief: RX stream types mapping to string.
  *
- * Maps string representations to rmx_input_stream_params_type enum values.
+ * Maps string representations to @ref rmx_input_stream_params_type enum values.
  */
 static const std::map<std::string, rmx_input_stream_params_type> UI_RX_STREAM_TYPES{
     { "raw",          RMX_INPUT_RAW_PACKET },
@@ -120,7 +121,7 @@ static const std::map<std::string, rmx_input_stream_params_type> UI_RX_STREAM_TY
 /**
  * @brief: Ancillary data types mapping to string.
  *
- * Maps string representations to AncillaryDataIdentifier.
+ * Maps string representations to @ref AncillaryDataIdentifier.
  */
 static const std::map<std::string, AncillaryDataIdentifier> UI_ANCILLARY_TYPES{
     { "timecode", ANCILLARY_TIMECODE_IDENTIFIER },
@@ -574,7 +575,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         {
             return parser->add_flag(CLIOptStr::ENABLE_VIDEO,
                                     app_settings->media.enable_video,
-                                    "Enable Video channel");
+                                    "Enable video essence");
         }
     },
     {
@@ -607,6 +608,16 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         }
     },
     {
+        CLIOptStr::ANCILLARY_FILE,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::ANCILLARY_FILE,
+                                      app_settings->ancillary_file,
+                                      "Ancillary data file (e.g., .srt for closed captions)")
+                                      ->check(CLI::ExistingFile);
+        }
+    },
+    {
         CLIOptStr::DYNAMIC_FILE_LOADING,
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {
@@ -621,7 +632,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         {
             return parser->add_flag(CLIOptStr::ENABLE_AUDIO,
                                     app_settings->media.enable_audio,
-                                    "Enable audio");
+                                    "Enable audio essence");
         }
     },
     {
@@ -630,8 +641,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         {
             return parser->add_flag(CLIOptStr::ENABLE_ANCILLARY,
                                     app_settings->media.enable_ancillary,
-                                    "Enable ancillary data. Defaults to timecode and AFD. "
-                                    "Use --ancillary-types to specify desired types (afd, timecode, cc).")
+                                    "Enable ancillary essence")
                                     ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
         }
     },

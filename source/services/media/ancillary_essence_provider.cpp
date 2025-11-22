@@ -21,8 +21,50 @@
 
 #include "rdk/services/media/ancillary_essence_provider.h"
 #include "rdk/services/media/closed_caption_mock_source.h"
+#include "rdk/services/media/closed_caption_srt_source.h"
 
 using namespace rivermax::dev_kit::services;
+
+namespace {
+
+/**
+ * @brief: Factory function to create closed caption source from file path.
+ *
+ * Only .srt files are supported for now.
+ *
+ * @param [in] file_path: Path to the closed caption file.
+ *
+ * @return: Unique pointer to the appropriate IClosedCaptionSource implementation.
+ */
+std::unique_ptr<IClosedCaptionSource> create_closed_caption_source(const std::string& file_path)
+{
+    std::unique_ptr<IClosedCaptionSource> source;
+
+    size_t last_slash = file_path.find_last_of("/\\");
+    size_t dot_pos = file_path.find_last_of('.');
+    if (dot_pos != std::string::npos && (last_slash == std::string::npos || dot_pos > last_slash)) {
+        std::string extension = file_path.substr(dot_pos + 1);
+        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        if (extension == "srt") {
+            source = std::make_unique<ClosedCaptionSRTSource>(file_path);
+        }
+    }
+
+    if (!source && !file_path.empty()) {
+        std::cerr << "Warning: Unsupported closed caption file '" << file_path
+                  << "'. Only .srt files are supported. Falling back to mock source" << std::endl;
+    }
+
+    if (!source) {
+        source = std::make_unique<ClosedCaptionMockSource>();
+    }
+
+    return source;
+}
+} // anonymous namespace
 
 AncillaryEssenceProvider::AncillaryEssenceProvider(const SMPTE_2110_40_MediaSettings& media_settings) :
     m_media_settings(media_settings)
@@ -80,7 +122,7 @@ void AncillaryEssenceProvider::initialize_encoders(const std::vector<AncillaryDa
             m_afd_encoder = std::make_unique<AFDEncoder>(AFDCode::FullFrame, AFDAspectRatio::Aspect_16x9);
         } else if (identifier == ANCILLARY_CLOSED_CAPTION_IDENTIFIER) {
             m_cc_encoder = std::make_unique<ClosedCaption608Encoder>(fps);
-            m_cc_source = std::make_unique<ClosedCaptionMockSource>();
+            m_cc_source = create_closed_caption_source(m_media_settings.media_file);
         } else {
             std::cout << "Unsupported ancillary data identifier: " << identifier.did << ":" << identifier.sdid
                       << std::endl;

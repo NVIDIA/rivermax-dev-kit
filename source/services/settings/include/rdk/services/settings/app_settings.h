@@ -86,6 +86,7 @@ struct AppSettings
     uint32_t stats_report_interval_ms;
     std::string video_file;
     std::string audio_file;
+    std::string ancillary_file;
     bool dynamic_media_file_load;
     rmx_input_stream_params_type rx_stream_type;
 public:

@@ -20,6 +20,7 @@
 #include <unordered_map>
 
 #include "rt_threads.h"
+
 #include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/apps/base_memory_strategy.h"
 #include "rdk/services/media/ancillary_essence_provider.h"
@@ -143,6 +144,8 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
     m_cli_parser_manager->add_option(CLIOptStr::AUDIO_ENCODING)
         ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ANCILLARY)
+        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_FILE)
         ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_TYPES)
         ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);

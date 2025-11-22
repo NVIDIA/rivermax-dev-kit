@@ -315,9 +315,9 @@ constexpr size_t VIDEO_TRO_DEFAULT_MODIFICATION = 2;
 /* Ancillary data constants */
 constexpr size_t DEFAULT_ANCILLARY_DATA_PACKETS_PER_PACKET = 10;
 constexpr size_t DEFAULT_ANCILLARY_DATA_WORDS_COUNT = 128;
-constexpr AncillaryDataIdentifier ANCILLARY_TIMECODE_IDENTIFIER = {0x60, 0x60};  
-constexpr AncillaryDataIdentifier ANCILLARY_AFD_IDENTIFIER = {0x41, 0x05};  
-constexpr AncillaryDataIdentifier ANCILLARY_CLOSED_CAPTION_IDENTIFIER = {0x61, 0x01};  
+constexpr AncillaryDataIdentifier ANCILLARY_TIMECODE_IDENTIFIER = {0x60, 0x60};
+constexpr AncillaryDataIdentifier ANCILLARY_AFD_IDENTIFIER = {0x41, 0x05};
+constexpr AncillaryDataIdentifier ANCILLARY_CLOSED_CAPTION_IDENTIFIER = {0x61, 0x01};
 /* Supported video resolutions */
 const std::vector<Resolution> SUPPORTED_VIDEO_RESOLUTIONS = {
     { FHD_WIDTH, FHD_HEIGHT },

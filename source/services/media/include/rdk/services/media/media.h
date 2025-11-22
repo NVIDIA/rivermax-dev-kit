@@ -42,5 +42,6 @@
 #include "rdk/services/media/timecode_encoder.h"
 #include "rdk/services/media/closed_caption_source_interface.h"
 #include "rdk/services/media/closed_caption_mock_source.h"
+#include "rdk/services/media/closed_caption_srt_source.h"
 
 #endif /* RDK_SERVICES_MEDIA_MEDIA_H_ */

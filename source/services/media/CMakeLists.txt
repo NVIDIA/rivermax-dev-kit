@@ -30,6 +30,7 @@ target_sources(rivermax-dev-kit-services
         closed_caption_608_encoder.cpp
         ancillary_essence_provider.cpp
         closed_caption_mock_source.cpp
+        closed_caption_srt_source.cpp
         media_essence_provider.cpp
         buffered_essence_provider.cpp
         media_file_essence_provider.cpp

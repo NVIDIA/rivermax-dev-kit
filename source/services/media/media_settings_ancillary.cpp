@@ -27,7 +27,7 @@ SMPTE_2110_40_MediaSettings::SMPTE_2110_40_MediaSettings(const AppSettings& app_
     requested_num_of_mem_blocks = MediaSettings::DEFAULT_NUM_OF_MEM_BLOCKS;
     media_units_in_mem_block = app_settings.media.frames_fields_in_mem_block;
     payload_type = PAYLOAD_TYPE_ST_2110_40;
-    media_file = "";
+    media_file = app_settings.ancillary_file;
     dynamic_media_file_load = false;
 
     // Initialize SMPTE 2110-40 specific fields
