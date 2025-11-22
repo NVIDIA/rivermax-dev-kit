@@ -25,6 +25,11 @@ target_sources(rivermax-dev-kit-services
         media_file_reader.cpp
         media_file_streaming_provider.cpp
         media_unit_pool.cpp
+        afd_encoder.cpp
+        timecode_encoder.cpp
+        closed_caption_608_encoder.cpp
+        ancillary_essence_provider.cpp
+        closed_caption_mock_source.cpp
         media_essence_provider.cpp
         buffered_essence_provider.cpp
         media_file_essence_provider.cpp

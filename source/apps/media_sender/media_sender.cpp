@@ -20,9 +20,9 @@
 #include <unordered_map>
 
 #include "rt_threads.h"
-
 #include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/apps/base_memory_strategy.h"
+#include "rdk/services/media/ancillary_essence_provider.h"
 #include "rdk/services/media/media_settings_ancillary.h"
 #include "rdk/services/media/media_settings_audio.h"
 #include "rdk/services/media/media_settings_video.h"
@@ -569,37 +569,48 @@ ReturnStatus MediaSenderApp::set_internal_media_essence_providers()
         auto& smpte_standard_config = node.first;
         auto num_of_streams = node.second;
         for(size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
-            if (smpte_standard_config.media_file.empty()) {
-                essence_provider = std::make_shared<NullEssenceProvider>(smpte_standard_config);
-            } else {
-                auto smpte_standard = smpte_standard_config.get_smpte_standard();
-                if (smpte_standard != SMPTEStandard::ST_2110_20 &&
-                    smpte_standard != SMPTEStandard::ST_2110_30) {
-                    std::cerr << "Media file is only supported for video (ST 2110-20) and audio (ST 2110-30)" << std::endl;
-                    return ReturnStatus::failure;
-                }
-                auto media_file_essence_provider = std::make_shared<MediaFileEssenceProvider>(
-                    smpte_standard_config.media_file, smpte_standard_config.get_smpte_standard(),
-                    smpte_standard_config.bytes_per_media_unit, *m_header_allocator, true);
-                rc = media_file_essence_provider->load_media_units();
-                if (rc != ReturnStatus::success) {
-                    std::cerr << "Failed to load media units from file: " << smpte_standard_config.media_file << std::endl;
-                    return rc;
-                }
-                essence_provider = std::move(media_file_essence_provider);
-            }
-            if (smpte_standard_config.dynamic_media_file_load) {
+            if (smpte_standard_config.get_smpte_standard() == SMPTEStandard::ST_2110_40) {
+                const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(smpte_standard_config);
+                essence_provider = std::make_shared<AncillaryEssenceProvider>(ancillary_settings);
                 rc = m_senders[sender_index]->set_media_essence_providers(
-                    stream_index, smpte_standard_config.get_smpte_standard(),
-                    nullptr, std::move(essence_provider));
-            } else {
-                rc = m_senders[sender_index]->set_media_essence_providers(
-                    stream_index, smpte_standard_config.get_smpte_standard(),
+                    stream_index,
+                    smpte_standard_config.get_smpte_standard(),
+                    nullptr,
                     std::move(essence_provider));
+            } else {
+                if (smpte_standard_config.media_file.empty()) {
+                    essence_provider = std::make_shared<NullEssenceProvider>(smpte_standard_config);
+                } else {
+                    auto media_file_essence_provider = std::make_shared<MediaFileEssenceProvider>(
+                        smpte_standard_config.media_file,
+                        smpte_standard_config.get_smpte_standard(),
+                        smpte_standard_config.bytes_per_media_unit,
+                        *m_header_allocator,
+                        true);
+                    rc = media_file_essence_provider->load_media_units();
+                    if (rc != ReturnStatus::success) {
+                        std::cerr << "Failed to load media units from file: " << smpte_standard_config.media_file
+                                  << std::endl;
+                        return rc;
+                    }
+                    essence_provider = std::move(media_file_essence_provider);
+                }
+                if (smpte_standard_config.dynamic_media_file_load) {
+                    rc = m_senders[sender_index]->set_media_essence_providers(
+                        stream_index,
+                        smpte_standard_config.get_smpte_standard(),
+                        nullptr,
+                        std::move(essence_provider));
+                } else {
+                    rc = m_senders[sender_index]->set_media_essence_providers(
+                        stream_index,
+                        smpte_standard_config.get_smpte_standard(),
+                        std::move(essence_provider));
+                }
             }
             if (rc != ReturnStatus::success) {
-                std::cerr << "Error setting media essence provider for stream " << stream_index
-                          << " on sender " << sender_index << std::endl;
+                std::cerr << "Error setting media essence provider for stream " << stream_index << " on sender "
+                          << sender_index << std::endl;
                 return rc;
             }
         }

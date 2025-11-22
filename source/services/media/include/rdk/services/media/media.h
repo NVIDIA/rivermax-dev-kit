@@ -23,6 +23,7 @@
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/media_file_reader.h"
 #include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/ancillary_essence_provider.h"
 #include "rdk/services/media/null_essence_provider.h"
 #include "rdk/services/media/media_file_essence_provider.h"
 #include "rdk/services/media/media_file_streaming_provider.h"
@@ -36,5 +37,10 @@
 #include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/media/audio_settings_calculator.h"
 #include "rdk/services/media/ancillary_settings_calculator.h"
+#include "rdk/services/media/afd_encoder.h"
+#include "rdk/services/media/closed_caption_608_encoder.h"
+#include "rdk/services/media/timecode_encoder.h"
+#include "rdk/services/media/closed_caption_source_interface.h"
+#include "rdk/services/media/closed_caption_mock_source.h"
 
 #endif /* RDK_SERVICES_MEDIA_MEDIA_H_ */
