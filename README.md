@@ -1,5 +1,14 @@
 # Rivermax Dev Kit
 
+[![GitHub](https://img.shields.io/badge/github-NVIDIA%2Frivermax--dev--kit-blue "View on GitHub")](https://github.com/NVIDIA/rivermax-dev-kit/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue "Apache 2.0 License")](LICENSE.md)
+
+[![main branch](https://img.shields.io/badge/branch-main%20(GA)-brightgreen "Main branch - General Availability (GA) branch - stable, tested, and verified for production use.")](https://github.com/NVIDIA/rivermax-dev-kit/tree/main)
+[![Last Commit (main)](https://img.shields.io/github/last-commit/NVIDIA/rivermax-dev-kit/main?label=last%20commit&color=brightgreen "Latest Commit on Main Branch")](https://github.com/NVIDIA/rivermax-dev-kit/commits/main)
+
+[![dev branch](https://img.shields.io/badge/branch-dev%20(alpha)-orange "Development branch - alpha-level features and ongoing development. Use for testing and early access to new features.")](https://github.com/NVIDIA/rivermax-dev-kit/tree/dev)
+[![Last Commit (dev)](https://img.shields.io/github/last-commit/NVIDIA/rivermax-dev-kit/dev?label=last%20commit&color=orange "Latest Commit on Development Branch")](https://github.com/NVIDIA/rivermax-dev-kit/commits/dev)
+
 Rivermax Dev Kit is a high-level C++ SW kit designed to accelerate and simplify Rivermax application development.
 
 ## Overview
