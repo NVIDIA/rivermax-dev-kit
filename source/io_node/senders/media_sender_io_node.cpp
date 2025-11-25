@@ -805,6 +805,9 @@ ReturnStatus MediaSenderIONode::set_media_essence_providers(
         m_header_total_memory_size += m_block_header_memory_size * diff_number_of_memory_blocks;
         m_payload_total_memory_size += m_block_payload_memory_size * diff_number_of_memory_blocks;
         m_stream_packs[stream_index].number_of_memory_blocks = required_number_of_memory_blocks;
+    } else {
+        m_stream_packs[stream_index].preload_essence_provider.reset();
+        m_stream_packs[stream_index].preload_packet_buffer_writer.reset();
     }
     return ReturnStatus::success;
 }
