@@ -23,9 +23,10 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #else // __linux__
+#include <windows.h>
 #include <sysinfoapi.h>
 #pragma comment(lib, "mincore")
-#endif // __linux__
+#endif
 
 #include "gpu.h"
 

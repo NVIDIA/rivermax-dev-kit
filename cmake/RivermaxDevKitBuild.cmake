@@ -37,51 +37,48 @@ endif()
 add_library(rivermax-dev-kit-build INTERFACE)
 
 if (MSVC)
-    # Reconsider not to remove the following optimization
-    foreach(lang_name C CXX)
-        string(REPLACE "/Ob2" "" CMAKE_${lang_name}_FLAGS_RELEASE "${CMAKE_${lang_name}_FLAGS_RELEASE}")
-    endforeach()
-    set(RMAX_C_CXX_FLAGS
-        /D_WINSOCK_DEPRECATED_NO_WARNINGS
-        /DNOMINMAX
-        /GS /GL /W4
-        /Zc:wchar_t-
-        /Zi /Gm-
-        /Zc:inline /fp:fast
-        /D_WIN64
-        /D_AMD64_
-        /DAMD64
-        /DWIN32_LEAN_AND_MEAN=1
-        /D_WIN32_WINNT=0x0A00
-        /DWINVER=0x0A00
-        /DWINNT=1
-        /DNTDDI_VERSION=0xA00000A
-        /D_STL100_
-        /DUNICODE /D_UNICODE
-        /D_ALLOW_RUNTIME_LIBRARY_MISMATCH
-        /D_STATIC_CPPLIB
-        /D_DISABLE_DEPRECATE_STATIC_CPPLIB
-        /D_CRT_SECURE_NO_WARNINGS
-        /D_HAS_ITERATOR_DEBUGGING=0
-        /D_SECURE_SCL=0
-        /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS
-        /D_CRTIMP_=
-        /DNDEBUG
-        /errorReport:prompt
+    set(RDK_C_CXX_FLAGS
+        /W4
         /WX
-        /Zc:forScope
-        /GR /Gz /MD /FC
-        /EHsc /nologo
-        /wd4324
-        /wd4702
-        /wd4100
-        /wd4189
-        /wd4459
-        /wd4244
-        /wd4245
-        /wd4706
+        /fp:fast
+        /GL
     )
-    set(RMAX_CXX_FLAGS "")
+    target_compile_options(rivermax-dev-kit-build INTERFACE $<$<COMPILE_LANGUAGE:C,CXX>:${RDK_C_CXX_FLAGS}>)
+    target_link_options(rivermax-dev-kit-build INTERFACE /LTCG)
+
+    set_target_properties(rivermax-dev-kit-build PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+
+    target_compile_definitions(rivermax-dev-kit-build INTERFACE
+        WIN32_LEAN_AND_MEAN=1
+        NOMINMAX
+        _WINSOCK_DEPRECATED_NO_WARNINGS
+        _CRT_SECURE_NO_WARNINGS
+        UNICODE
+        _UNICODE
+    )
+
+    set(RDK_MSVC_DEBUG_MODE_WARNINGS
+        _SCL_SECURE_NO_WARNINGS
+        _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
+        _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS
+    )
+    target_compile_definitions(rivermax-dev-kit-build INTERFACE $<$<CONFIG:Debug>:${RDK_MSVC_DEBUG_MODE_WARNINGS}>)
+
+    # Define the Windows version and the minimum required Windows version as Windows 10 20H2 (Oct 2020),
+    # to allow using features like: High-Performance Networking, NUMA Improvements, Large Pages, Modern Synchronization.
+    target_compile_definitions(rivermax-dev-kit-build INTERFACE
+        WINVER=0x0A00
+        _WIN32_WINNT=0x0A00
+        NTDDI_VERSION=0x0A00000A
+    )
+
+    set(RDK_MSVC_DISABLED_WARNINGS
+        /wd4189 # unused loop iterators
+        /wd4244 # type conversion with possible loss of data
+        /wd4100 # unreferenced formal parameter
+    )
+    target_compile_options(rivermax-dev-kit-build INTERFACE $<$<COMPILE_LANGUAGE:C,CXX>:${RDK_MSVC_DISABLED_WARNINGS}>)
+
 else()
     set(RMAX_C_CXX_FLAGS
         -g
@@ -104,22 +101,22 @@ else()
         -Wno-stringop-truncation
         -Wno-unused-but-set-variable
     )
-    set(RMAX_CXX_FLAGS
+    set(RMAX_CXX_ONLY_FLAGS
         -Wno-overloaded-virtual
         -Woverloaded-virtual
         -Wnon-virtual-dtor
     )
+    target_compile_options(rivermax-dev-kit-build INTERFACE
+        $<$<COMPILE_LANGUAGE:C,CXX>:${RMAX_C_CXX_FLAGS}>
+        $<$<COMPILE_LANGUAGE:CXX>:${RMAX_CXX_ONLY_FLAGS}>
+    )
 endif()
 
 target_compile_options(rivermax-dev-kit-build INTERFACE
-    $<$<COMPILE_LANGUAGE:CXX,C>:${RMAX_C_CXX_FLAGS}>
-    $<$<COMPILE_LANGUAGE:CXX>:${RMAX_CXX_FLAGS}>
     $<$<COMPILE_LANGUAGE:CUDA>:-m64>
 )
 
 target_compile_definitions(rivermax-dev-kit-build INTERFACE
-    ENABLE_DPCP
-    CONFIG_MERSENNE_TWISTER
     $<$<BOOL:${RMAX_CUDA}>:CUDA_ENABLED>
     $<$<BOOL:${RMAX_TEGRA}>:TEGRA_ENABLED>
 )

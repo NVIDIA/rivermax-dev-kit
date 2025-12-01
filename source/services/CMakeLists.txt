@@ -20,6 +20,7 @@ add_library(${PROJECT_NAME} STATIC)
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
+#        Rivermax::Include
         rivermax-dev-kit-build
     PUBLIC
         rivermax-dev-kit-services-cpu

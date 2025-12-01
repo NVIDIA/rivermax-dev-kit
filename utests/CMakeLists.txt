@@ -17,7 +17,6 @@
 project(rivermax-dev-kit-utests)
 
 include(FetchContent)
-include(RivermaxDevKitDebugUtilities)
 
 # GoogleTest requires at least C++14:
 set(CMAKE_CXX_STANDARD 17)

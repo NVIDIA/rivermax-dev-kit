@@ -138,13 +138,11 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         return ReturnStatus::failure;
     }
 
-    uint32_t pixels_in_frame = video_settings.resolution.width * video_settings.resolution.height;
     auto bytes_per_pixel_ratio = VIDEO_DEPTH_TO_PIXEL_RATIO.at(video_settings.sampling_type).at(video_settings.bit_depth);
     uint32_t bytes_in_pgroup = bytes_per_pixel_ratio.first;
     uint32_t pixels_in_pgroup = bytes_per_pixel_ratio.second;
     uint32_t pgroups_in_line = (video_settings.resolution.width + pixels_in_pgroup - 1) / pixels_in_pgroup;
 
-    float bytes_per_pixel = static_cast<float>(bytes_in_pgroup) / static_cast<float>(pixels_in_pgroup);
     video_settings.bytes_per_media_unit = bytes_in_pgroup * pgroups_in_line * video_settings.resolution.height;
 
     uint32_t pgroups_in_packet = 1; /* Non-zero initialization for Coverity to avoid a false "divide by zero" error */
@@ -163,13 +161,13 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     video_settings.packet_payload_size = static_cast<uint16_t>(pgroups_in_packet * bytes_in_pgroup + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
 
     video_settings.protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
-    video_settings.raw_packet_payload_size = pgroups_in_packet * bytes_in_pgroup;
+    video_settings.raw_packet_payload_size = static_cast<uint16_t>(pgroups_in_packet * bytes_in_pgroup);
     if (video_settings.header_data_split) {
         video_settings.packet_app_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
         video_settings.packet_payload_size -= RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
     }
 
-    video_settings.pixels_per_packet = pgroups_in_packet * pixels_in_pgroup;
+    video_settings.pixels_per_packet = static_cast<uint16_t>(pgroups_in_packet * pixels_in_pgroup);
     video_settings.packets_in_media_unit = static_cast<uint32_t>(video_settings.packets_in_line * video_settings.resolution.height);
 
     bool chunk_size_applied = false;

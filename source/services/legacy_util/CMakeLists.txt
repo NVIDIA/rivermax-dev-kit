@@ -15,6 +15,7 @@
 # limitations under the License.
 
 project(rivermax-dev-kit-services-legacy-util)
+
 add_library(${PROJECT_NAME} STATIC)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR})

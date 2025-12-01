@@ -33,3 +33,14 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 target_compile_definitions(${PROJECT_NAME} PUBLIC GL_GLEXT_PROTOTYPES)
 target_link_libraries(${PROJECT_NAME} PRIVATE rivermax-dev-kit-build)
+
+# Ensure CUDA uses dynamic runtime to match the rest of the project
+if(MSVC)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        # Use dynamic CUDA runtime library (cudart.dll) instead of static (cudart_static.lib)
+        CUDA_RUNTIME_LIBRARY Shared
+        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+        # Disable LTO/IPO for CUDA - nvcc doesn't fully support MSVC's /GL and /LTCG flags
+        INTERPROCEDURAL_OPTIMIZATION OFF
+    )
+endif()

@@ -16,11 +16,6 @@
 
 include(FetchContent)
 
-# Ensure MSVC static runtime is used, needed due to compatibility issues:
-if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
 message("-- Fetching sdptransform...")
 
 FetchContent_Declare(

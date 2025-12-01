@@ -234,9 +234,8 @@ void MediaTxIONode::wait_for_next_frame(uint64_t sleep_till_ns)
         return;
     }
 
-    size_t sleep_time_ns = sleep_till_ns - time_now_ns;
-
 #ifdef __linux__
+    size_t sleep_time_ns = sleep_till_ns - time_now_ns;
     if (m_app_settings->sleep_between_operations) {
         std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_time_ns));
     } else {

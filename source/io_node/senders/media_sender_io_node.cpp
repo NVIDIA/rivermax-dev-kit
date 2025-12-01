@@ -533,7 +533,6 @@ void MediaSenderIONode::operator()()
     }
 
     size_t sent_field_counter = 0;
-    size_t sent_field_counter_diff = 0;
     auto get_send_time_ns = [&]() { return (
         start_send_time_ns
         + m_media_settings.media_unit_time_interval_ns

@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 #include "helper_string.h"
 
@@ -1045,6 +1047,16 @@ inline int _ConvertSMVer2Cores(int major, int minor)
 // end of GPU Architecture definitions
 
 #ifdef __CUDA_RUNTIME_H__
+
+inline bool isGpuModeProhibited(const cudaDeviceProp &deviceProp) 
+{
+#if CUDA_VERSION < 12000
+        return (deviceProp.computeMode == cudaComputeModeProhibited);
+#else
+        return false;
+#endif
+}
+
 // General GPU Device CUDA Initialization
 inline int gpuDeviceInit(int devID)
 {
@@ -1074,7 +1086,7 @@ inline int gpuDeviceInit(int devID)
     cudaDeviceProp deviceProp;
     checkCudaErrors(cudaGetDeviceProperties(&deviceProp, devID));
 
-    if (deviceProp.computeMode == cudaComputeModeProhibited)
+    if (isGpuModeProhibited(deviceProp))
     {
         fprintf(stderr, "Error: device is running in <Compute Mode Prohibited>, no threads can use ::cudaSetDevice().\n");
         return -1;
@@ -1118,7 +1130,7 @@ inline int gpuGetMaxGflopsDeviceId()
         cudaGetDeviceProperties(&deviceProp, current_device);
 
         // If this GPU is not running on Compute Mode prohibited, then we can add it to the list
-        if (deviceProp.computeMode != cudaComputeModeProhibited)
+        if (!isGpuModeProhibited(deviceProp))
         {
             if (deviceProp.major > 0 && deviceProp.major < 9999)
             {
@@ -1147,7 +1159,7 @@ inline int gpuGetMaxGflopsDeviceId()
         cudaGetDeviceProperties(&deviceProp, current_device);
 
         // If this GPU is not running on Compute Mode prohibited, then we can add it to the list
-        if (deviceProp.computeMode != cudaComputeModeProhibited)
+        if (!isGpuModeProhibited(deviceProp))
         {
             if (deviceProp.major == 9999 && deviceProp.minor == 9999)
             {
@@ -1158,7 +1170,12 @@ inline int gpuGetMaxGflopsDeviceId()
                 sm_per_multiproc = _ConvertSMVer2Cores(deviceProp.major, deviceProp.minor);
             }
 
+#if CUDA_VERSION < 12000
             unsigned long long compute_perf  = (unsigned long long) deviceProp.multiProcessorCount * sm_per_multiproc * deviceProp.clockRate;
+#else
+            // In CUDA 12+, clockRate is removed. Use a simpler heuristic based on MP count and cores.
+            unsigned long long compute_perf  = (unsigned long long) deviceProp.multiProcessorCount * sm_per_multiproc;
+#endif
 
             if (compute_perf  > max_compute_perf)
             {

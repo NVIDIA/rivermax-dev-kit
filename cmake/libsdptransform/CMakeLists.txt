@@ -21,3 +21,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC include)
 # Add subdirectories for tests and other helper tools:
 add_subdirectory(test)
 add_subdirectory(readme-helper)
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /wd4456) # Hides previous local declaration
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-missing-field-initializers)
+endif()
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        rivermax-dev-kit-build
+)

@@ -16,6 +16,7 @@
 
 project(rivermax-dev-kit-services-cpu)
 
+# Dynamic/configurable version (uses RIVERMAX_DEV_KIT_TARGET)
 add_library(${PROJECT_NAME} OBJECT)
 
 target_sources(${PROJECT_NAME}

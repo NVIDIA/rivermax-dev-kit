@@ -167,7 +167,7 @@ struct IPMXStreamVideoInfo {
     uint16_t width;
     uint16_t height;
     uint32_t rate_num;
-    uint8_t rate_denom;
+    uint16_t rate_denom;
     uint32_t pixel_clock;
     uint16_t h_total;
     uint16_t v_total;
@@ -185,7 +185,7 @@ struct IPMXStreamInfo {
     uint8_t info_block_version;
     char ts_refclk[65];
     char mediaclk[13];
-    uint8_t media_block_type;
+    uint16_t media_block_type;
     union {
         IPMXStreamVideoInfo video;
     } media;
