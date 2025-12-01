@@ -37,8 +37,8 @@ void MediaSenderSettings::init_default_values()
 {
     AppSettings::init_default_values();
     media.frames_fields_in_mem_block = MediaSenderSettings::DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK;
-    media.resolution = { FHD_WIDTH, FHD_HEIGHT };
-    num_of_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
+    media.resolution = { _1080_WIDTH, _1080_HEIGHT };
+    num_of_packets_in_chunk = get_default_packets_in_chunk(media.resolution);
 }
 
 ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& settings) const
@@ -164,8 +164,6 @@ MediaSenderApp::MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSetti
 
 ReturnStatus MediaSenderApp::post_load_settings()
 {
-    uint32_t default_packets_in_chunk;
-
     if(m_app_settings->media.enable_video) {
         m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
     }
@@ -184,13 +182,8 @@ ReturnStatus MediaSenderApp::post_load_settings()
         m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_40);
     }
 
-    if (m_app_settings->media.resolution == Resolution(UHD_WIDTH, UHD_HEIGHT) ||
-        m_app_settings->media.resolution == Resolution(UHD_HEIGHT, UHD_WIDTH)) {
-        default_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_UHD;
-    } else {
-        default_packets_in_chunk = MediaSenderSettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD;
-    }
-
+    uint32_t default_packets_in_chunk = MediaSenderSettings::get_default_packets_in_chunk(
+        m_app_settings->media.resolution);
     m_app_settings->num_of_total_flows = m_app_settings->num_of_total_streams;
 
     if (m_app_settings->num_of_packets_in_chunk != default_packets_in_chunk) {

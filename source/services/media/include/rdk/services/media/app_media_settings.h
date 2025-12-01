@@ -42,7 +42,7 @@ struct AppMediaSettings
     std::string sdp;
     uint32_t media_block_index = 0;
     FrameRate frame_rate;
-    Resolution resolution = { FHD_WIDTH, FHD_HEIGHT };
+    Resolution resolution = { _1080_WIDTH, _1080_HEIGHT };
     VideoSampling sampling_type = VideoSampling::YCbCr_4_2_2;
     VideoBitDepth color_bit_depth = VideoBitDepth::_10;
     VideoBitDepth alpha_bit_depth = VideoBitDepth::Unknown;

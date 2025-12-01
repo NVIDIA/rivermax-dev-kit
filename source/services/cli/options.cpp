@@ -303,7 +303,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         {
             return parser->add_option(CLIOptStr::PACKETS,
                                       app_settings->num_of_packets_in_chunk,
-                                      "Number of packets in chunk",
+                                      "Number of packets in chunk (default depends on resolution)",
                                       true)->check(CLI::PositiveNumber);
         }
     },
@@ -519,7 +519,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                                       "Video resolution in format <width>x<height>")
                                       ->check(VideoResolutionValidator())
                                       ->check(CLI::IsMember(SUPPORTED_VIDEO_RESOLUTIONS))
-                                      ->default_val(Resolution(FHD_WIDTH, FHD_HEIGHT));
+                                      ->default_val(Resolution(_1080_WIDTH, _1080_HEIGHT));
         }
     },
     {

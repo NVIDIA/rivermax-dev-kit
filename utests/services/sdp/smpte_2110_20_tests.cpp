@@ -22,6 +22,7 @@
 
 #include <gtest/gtest.h>
 
+#include "rdk/services/media/media_defs.h"
 #include "rdk/services/sdp/sdp_smpte_2110_20_description.h"
 #include "rdk/services/sdp/sdp_common_descriptions.h"
 #include "rdk/services/sdp/sdp_manager.h"
@@ -148,17 +149,17 @@ TEST_F(SMPTE2110_20_MediaDescriptionTest, MediaClock_Sender) {
         << "Missing media clock sender\nSDP: " << sdp;
 }
 
-/* Test 4K UHD production scenario */
-TEST_F(SMPTE2110_20_MediaDescriptionTest, UHD) {
-    auto uhd_desc = SMPTE2110_20_MediaDescription::Builder(
+/* Test 4K 3840x2160 production scenario */
+TEST_F(SMPTE2110_20_MediaDescriptionTest, _2160) {
+    auto _2160_desc = SMPTE2110_20_MediaDescription::Builder(
         5000, TransportProtocol::RTP_AVP, "96", "239.168.100.10")
         .set_payload_type(static_cast<uint8_t>(96))
         .set_media_format(96)
         .set_source_filter(SourceFilterAttribute::Builder("239.168.100.10", "192.168.100.50").build())
         .set_sampling(VideoSampling::YCbCr_4_2_2)
         .set_depth(VideoBitDepth::_10)
-        .set_width(3840)
-        .set_height(2160)
+        .set_width(_2160_WIDTH)
+        .set_height(_2160_HEIGHT)
         .set_exact_frame_rate("60")
         .set_colorimetry(Colorimetry::BT2020)
         .set_packaging_mode(PackagingMode::_2110GPM)
@@ -170,8 +171,8 @@ TEST_F(SMPTE2110_20_MediaDescriptionTest, UHD) {
         .set_max_udp(8960)
         .build();
 
-    ASSERT_NE(uhd_desc, nullptr);
-    std::string actual_sdp = generate_complete_sdp_20(std::move(uhd_desc));
+    ASSERT_NE(_2160_desc, nullptr);
+    std::string actual_sdp = generate_complete_sdp_20(std::move(_2160_desc));
 
     std::string expected_sdp =
         "v=0\r\n"

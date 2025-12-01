@@ -20,6 +20,7 @@
 #define RDK_APPS_MEDIA_SENDER_MEDIA_SENDER_H_
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <unordered_map>
 
@@ -44,14 +45,38 @@ namespace media_sender
  */
 struct MediaSenderSettings : AppSettings
 {
+private:
+    static inline const std::unordered_map<uint32_t, uint32_t> DEFAULT_PACKETS_IN_CHUNK = {
+        { static_cast<uint32_t>(_1080_WIDTH * _1080_HEIGHT), 16 },
+        { static_cast<uint32_t>(_2160_WIDTH * _2160_HEIGHT), 32 },
+        { static_cast<uint32_t>(_4320_WIDTH * _4320_HEIGHT), 64 },
+    };
 public:
-    static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_FHD = 16;
-    static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK_UHD = 32;
     static constexpr uint32_t DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK = 10;
+
     void init_default_values() override;
     std::unordered_set<SMPTEStandard> enabled_smpte_standards;
     std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
     std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
+
+    /**
+     * @brief: Returns the default number of packets in chunk for a given resolution.
+     *
+     * @param [in] resolution: The resolution to get the default number of packets in chunk for.
+     *
+     * @return: The default number of packets in chunk.
+     */
+    static uint32_t get_default_packets_in_chunk(const Resolution& resolution)
+    {
+        auto it = DEFAULT_PACKETS_IN_CHUNK.find(static_cast<uint32_t>(resolution.width) * resolution.height);
+        if (it == DEFAULT_PACKETS_IN_CHUNK.end()) {
+            std::cerr << "No default packets in chunk found for resolution: " << resolution.width << "x"
+                      << resolution.height << std::endl;
+            std::cerr << "Using default packets in chunk for: " << Resolution(_1080_WIDTH, _1080_HEIGHT) << std::endl;
+            return DEFAULT_PACKETS_IN_CHUNK.at(static_cast<uint32_t>(_1080_WIDTH * _1080_HEIGHT));
+        }
+        return it->second;
+    }
 };
 
 /**

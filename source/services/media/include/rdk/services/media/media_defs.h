@@ -273,10 +273,12 @@ constexpr uint32_t MASK_10BIT = 0x3FF;
 constexpr uint32_t MASK_11BIT = 0x7FF;
 constexpr uint32_t MASK_12BIT = 0xFFF;
 /* Resolution constants */
-constexpr size_t FHD_WIDTH = 1920;
-constexpr size_t FHD_HEIGHT = 1080;
-constexpr size_t UHD_WIDTH = 3840;
-constexpr size_t UHD_HEIGHT = 2160;
+constexpr size_t _1080_WIDTH = 1920;
+constexpr size_t _1080_HEIGHT = 1080;
+constexpr size_t _2160_WIDTH = 3840;
+constexpr size_t _2160_HEIGHT = 2160;
+constexpr size_t _4320_WIDTH = 7680;
+constexpr size_t _4320_HEIGHT = 4320;
 /* RTP header constants */
 constexpr size_t RTP_HEADER_EXT_SEQ_NUM_SIZE = 2;
 constexpr size_t RTP_HEADER_SRD_MIN_SIZE = RTP_HEADER_EXT_SEQ_NUM_SIZE + 2;  // When first SRD length is 0
@@ -320,10 +322,12 @@ constexpr AncillaryDataIdentifier ANCILLARY_AFD_IDENTIFIER = {0x41, 0x05};
 constexpr AncillaryDataIdentifier ANCILLARY_CLOSED_CAPTION_IDENTIFIER = {0x61, 0x01};
 /* Supported video resolutions */
 const std::vector<Resolution> SUPPORTED_VIDEO_RESOLUTIONS = {
-    { FHD_WIDTH, FHD_HEIGHT },
-    { UHD_WIDTH, UHD_HEIGHT },
-    { FHD_HEIGHT, FHD_WIDTH },
-    { UHD_HEIGHT, UHD_WIDTH }
+    { _1080_WIDTH, _1080_HEIGHT },
+    { _2160_WIDTH, _2160_HEIGHT },
+    { _4320_WIDTH, _4320_HEIGHT },
+    { _1080_HEIGHT, _1080_WIDTH },
+    { _2160_HEIGHT, _2160_WIDTH },
+    { _4320_HEIGHT, _4320_WIDTH }
 };
 /* Supported video frame rates */
 const std::vector<FrameRate> SUPPORTED_VIDEO_FRAME_RATES = {

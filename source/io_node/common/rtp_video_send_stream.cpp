@@ -159,7 +159,7 @@ double RtpVideoSendStream::calculate_trs()
         r_active = (1080.0 / 1125.0);
     }
     else {
-        if (m_video_settings.resolution.height >= FHD_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
+        if (m_video_settings.resolution.height >= _1080_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
             r_active = (1080.0 / 1125.0);
         }
         else if (m_video_settings.resolution.height >= 576) {
@@ -200,7 +200,7 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
 
     if (m_video_settings.video_scan_type == VideoScanType::Progressive) {
         r_active = (1080.0 / 1125.0);
-        if (m_video_settings.resolution.height >= FHD_HEIGHT) {  // As defined by SMPTE 2110-21 6.3.2
+        if (m_video_settings.resolution.height >= _1080_HEIGHT) {  // As defined by SMPTE 2110-21 6.3.2
             tro_default_multiplier = (43.0 / 1125.0);
         }
         else {
@@ -208,7 +208,7 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
         }
     }
     else {
-        if (m_video_settings.resolution.height >= FHD_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
+        if (m_video_settings.resolution.height >= _1080_HEIGHT) { // As defined by SMPTE 2110-21 6.3.3
             r_active = (1080.0 / 1125.0);
             tro_default_multiplier = (22.0 / 1125.0);
         }
