@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -312,8 +312,9 @@ ReturnStatus IPMXSenderApp::configure_video_settings()
 
     size_t num_of_video_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
     if (num_of_video_threads < m_app_settings->num_of_threads) {
-        std::cout << "The number of video threads is limited to the number of streams ("
+        std::cout << "The number of media sender threads is limited to the number of streams ("
             << num_of_video_threads << ")" << std::endl;
+        m_app_settings->num_of_threads = num_of_video_threads;
     }
     size_t min_number_streams_per_thread = m_app_settings->num_of_total_streams / num_of_video_threads;
 

@@ -359,18 +359,8 @@ ReturnStatus MediaSenderApp::configure_media_type_helper(
     std::unique_ptr<SettingsType> settings,
     const std::string& smpte_standard_name)
 {
-    size_t num_of_threads = std::min<size_t>(
-        m_app_settings->num_of_threads,
-        m_app_settings->num_of_total_streams);
-
-    if (num_of_threads < m_app_settings->num_of_threads) {
-        std::cout << "The number of " << smpte_standard_name
-                  << " threads is limited to the number of streams ("
-                  << num_of_threads << ")" << std::endl;
-    }
-
     size_t min_number_streams_per_thread =
-        m_app_settings->num_of_total_streams / num_of_threads;
+        m_app_settings->num_of_total_streams / m_app_settings->num_of_threads;
 
     ReturnStatus rc = settings->create_default_calculator();
     if (rc != ReturnStatus::success) {
@@ -379,9 +369,9 @@ ReturnStatus MediaSenderApp::configure_media_type_helper(
         return rc;
     }
 
-    for (size_t idx = 0; idx < num_of_threads; idx++) {
+    for (size_t idx = 0; idx < m_app_settings->num_of_threads; idx++) {
         size_t num_of_streams_in_cur_thread;
-        if (min_number_streams_per_thread * num_of_threads + idx <
+        if (min_number_streams_per_thread * m_app_settings->num_of_threads + idx <
             m_app_settings->num_of_total_streams) {
             num_of_streams_in_cur_thread = min_number_streams_per_thread + 1;
         } else {
@@ -472,7 +462,16 @@ ReturnStatus MediaSenderApp::configure_smpte_standards_processing()
 
 void MediaSenderApp::distribute_work_for_threads()
 {
-    m_app_settings->num_of_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
+    size_t num_of_threads = std::min<size_t>(
+        m_app_settings->num_of_threads,
+        m_app_settings->num_of_total_streams);
+
+    if (num_of_threads < m_app_settings->num_of_threads) {
+        std::cout << "The number of media sender threads is limited to the number of streams ("
+                  << num_of_threads << ")" << std::endl;
+        m_app_settings->num_of_threads = num_of_threads;
+    }
+
     m_streams_per_thread.reserve(m_app_settings->num_of_threads);
     for (int stream = 0; stream < m_app_settings->num_of_total_streams; stream++) {
         m_streams_per_thread[stream % m_app_settings->num_of_threads]++;
