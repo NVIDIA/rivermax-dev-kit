@@ -30,7 +30,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         rivermax-dev-kit-build
-        rivermax-dev-kit-services-legacy-util
     PUBLIC
         rivermax-dev-kit-services-error-handling
 )

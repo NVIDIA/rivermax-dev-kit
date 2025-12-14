@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,8 @@
 
 #include <iostream>
 
-#include "rt_threads.h"
-
 #include "rdk/services/utils/defs.h"
+#include "rdk/services/utils/environment.h"
 #include "rdk/services/utils/gpu_manager.h"
 
 using namespace rivermax::dev_kit::services;
@@ -47,15 +46,11 @@ ReturnStatus GPUManager::initialize(int gpu_id)
      * enumeration policy by setting the CUDA_DEVICE_ORDER environment variable with value
      * PCI_BUS_ID.
      */
-    const int ret = set_enviroment_variable(CUDA_DEVICE_ORDER, CUDA_PCI_BUS_ID_DEVICE_ORDER);
-    if (ret != 0) {
-        std::cerr << "Failed to set env variable " << CUDA_DEVICE_ORDER << "="
-                  << CUDA_PCI_BUS_ID_DEVICE_ORDER << std::endl;
+    ReturnStatus status = EnvironmentUtils::set_variable(CUDA_DEVICE_ORDER, CUDA_PCI_BUS_ID_DEVICE_ORDER);
+    if (status != ReturnStatus::success) {
+        std::cerr << "Failed to set environment variable" << std::endl;
         return ReturnStatus::failure;
     }
-    std::cout << "Set env variable " << CUDA_DEVICE_ORDER << "=" << CUDA_PCI_BUS_ID_DEVICE_ORDER
-              << std::endl;
-
     return initialize_nvml();
 }
 
