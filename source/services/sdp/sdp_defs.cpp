@@ -22,72 +22,72 @@
 using namespace rivermax::dev_kit::services;
 
 template <>
-constexpr EnumNameArray<NetworkType> EnumMapper<NetworkType>::names = {
+const EnumNameArray<NetworkType> EnumMapper<NetworkType>::names = {
     "IN"
 };
 template <>
-constexpr EnumNameArray<AddressType> EnumMapper<AddressType>::names = {
+const EnumNameArray<AddressType> EnumMapper<AddressType>::names = {
     "4", "6"
 };
 template <>
-constexpr EnumNameArray<NetworkFilterMode> EnumMapper<NetworkFilterMode>::names = {
+const EnumNameArray<NetworkFilterMode> EnumMapper<NetworkFilterMode>::names = {
     "incl", "excl"
 };
 template <>
-constexpr EnumNameArray<MediaType> EnumMapper<MediaType>::names = {
+const EnumNameArray<MediaType> EnumMapper<MediaType>::names = {
     "video", "audio"
 };
 template <>
-constexpr EnumNameArray<AudioSamplingRate> EnumMapper<AudioSamplingRate>::names = {
+const EnumNameArray<AudioSamplingRate> EnumMapper<AudioSamplingRate>::names = {
     "44100", "48000", "96000"
 };
 template <>
-constexpr EnumNameArray<AudioEncoding> EnumMapper<AudioEncoding>::names = {
+const EnumNameArray<AudioEncoding> EnumMapper<AudioEncoding>::names = {
     "L16", "L20", "L24"
 };
 template <>
-constexpr EnumNameArray<VideoSampling> EnumMapper<VideoSampling>::names = {
+const EnumNameArray<VideoSampling> EnumMapper<VideoSampling>::names = {
     "YCbCr-4:4:4", "YCbCr-4:2:2", "YCbCr-4:2:0", "CLYCbCr-4:4:4", "CLYCbCr-4:2:2", "CLYCbCr-4:2:0",
     "ICtCp-4:4:4", "ICtCp-4:2:2", "ICtCp-4:2:0", "RGB", "XYZ", "KEY"
 };
 template <>
-constexpr EnumNameArray<VideoBitDepth> EnumMapper<VideoBitDepth>::names = {
+const EnumNameArray<VideoBitDepth> EnumMapper<VideoBitDepth>::names = {
     "8", "10", "12", "16", "16f"
 };
 template <>
-constexpr EnumNameArray<Colorimetry> EnumMapper<Colorimetry>::names = {
+const EnumNameArray<Colorimetry> EnumMapper<Colorimetry>::names = {
     "BT601", "BT709", "BT2020", "BT2100", "ST2065-1", "ST2065-3", "UNSPECIFIED", "XYZ", "ALPHA"
 };
 template <>
-constexpr EnumNameArray<PackagingMode> EnumMapper<PackagingMode>::names = {
+const EnumNameArray<PackagingMode> EnumMapper<PackagingMode>::names = {
     "2110GPM", "2110BPM"
 };
 template <>
-constexpr EnumNameArray<SMPTEStandardNumber> EnumMapper<SMPTEStandardNumber>::names = {
+const EnumNameArray<SMPTEStandardNumber> EnumMapper<SMPTEStandardNumber>::names = {
     "ST2110-20:2017", "ST2110-20:2021"
 };
 template <>
-constexpr EnumNameArray<SenderType> EnumMapper<SenderType>::names = {
+const EnumNameArray<SenderType> EnumMapper<SenderType>::names = {
     "2110TPN", "2110TPNL", "2110TPW"
 };
 template <>
-constexpr EnumNameArray<VideoScanType> EnumMapper<VideoScanType>::names = {
+const EnumNameArray<VideoScanType> EnumMapper<VideoScanType>::names = {
     "Progressive", "Interlaced"
 };
 template <>
-constexpr EnumNameArray<TimestampMode> EnumMapper<TimestampMode>::names = {
+const EnumNameArray<TimestampMode> EnumMapper<TimestampMode>::names = {
     "SAMP", "NEW", "PRES"
 };
 template <>
-constexpr EnumNameArray<TimestampRefClock> EnumMapper<TimestampRefClock>::names = {
+const EnumNameArray<TimestampRefClock> EnumMapper<TimestampRefClock>::names = {
     "ptp", "localmac"
 };
 template <>
-constexpr EnumNameArray<MediaClock> EnumMapper<MediaClock>::names = {
+const EnumNameArray<MediaClock> EnumMapper<MediaClock>::names = {
     "direct", "sender"
 };
 template <>
-constexpr EnumNameArray<TransportProtocol> EnumMapper<TransportProtocol>::names = {
+const EnumNameArray<TransportProtocol> EnumMapper<TransportProtocol>::names = {
     "RTP/AVP"
 };
  
