@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -130,9 +130,7 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     if (++m_send_stats.packet_counter == m_video_settings.packets_in_media_unit) {
         buffer[1] |= 0x80; // Last packet in frame (Marker).
         // ST2210-20: the timestamp SHOULD be the same for each packet of the frame/field.
-        auto fps_num = m_video_settings.frame_rate.num;
-        auto fps_denom = static_cast<double>(m_video_settings.frame_rate.denom);
-        double ticks = (m_video_settings.sample_rate / (fps_num / fps_denom));
+        double ticks = rational_cast<double>(m_video_settings.sample_rate / m_video_settings.frame_rate);
         if (m_video_settings.video_scan_type == VideoScanType::Interlaced) {
             m_send_stats.rtp_interlace_field_indicator = !m_send_stats.rtp_interlace_field_indicator;
             ticks /= 2;

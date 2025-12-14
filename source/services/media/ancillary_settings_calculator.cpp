@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,9 +63,8 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
 void ST_2110_40_MediaSettingsCalculator::calculate_timing_parameters()
 {
     m_media_settings.sample_rate = MediaSettings::RTP_SAMPLE_RATE;
-    double fps_value = static_cast<double>(m_media_settings.frame_rate.num) / m_media_settings.frame_rate.denom;
-    m_media_settings.media_unit_time_interval_ns = NS_IN_SEC / fps_value;
-    m_media_settings.ticks_per_media_unit = static_cast<double>(m_media_settings.sample_rate) / fps_value;
+    m_media_settings.media_unit_time_interval_ns = rational_cast<double>(NS_IN_SEC / m_media_settings.frame_rate);
+    m_media_settings.ticks_per_media_unit = m_media_settings.sample_rate / m_media_settings.frame_rate;
 }
 
 void ST_2110_40_MediaSettingsCalculator::calculate_memory_parameters()

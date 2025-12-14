@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -112,16 +112,14 @@ void AncillaryEssenceProvider::set_caption_source(std::unique_ptr<IClosedCaption
 
 void AncillaryEssenceProvider::initialize_encoders(const std::vector<AncillaryDataIdentifier>& data_identifiers)
 {
-    uint32_t fps = m_media_settings.frame_rate.num / m_media_settings.frame_rate.denom;
-
     for (const auto& identifier : data_identifiers) {
         if (identifier == ANCILLARY_TIMECODE_IDENTIFIER) {
             std::vector<TimecodePayloadType> payload_types = { TimecodePayloadType::LTC, TimecodePayloadType::VITC1 };
-            m_timecode_encoder = std::make_unique<TimecodeEncoder>(fps, m_start_time, payload_types);
+            m_timecode_encoder = std::make_unique<TimecodeEncoder>(m_media_settings.frame_rate, m_start_time, payload_types);
         } else if (identifier == ANCILLARY_AFD_IDENTIFIER) {
             m_afd_encoder = std::make_unique<AFDEncoder>(AFDCode::FullFrame, AFDAspectRatio::Aspect_16x9);
         } else if (identifier == ANCILLARY_CLOSED_CAPTION_IDENTIFIER) {
-            m_cc_encoder = std::make_unique<ClosedCaption608Encoder>(fps);
+            m_cc_encoder = std::make_unique<ClosedCaption608Encoder>(m_media_settings.frame_rate);
             m_cc_source = create_closed_caption_source(m_media_settings.media_file);
         } else {
             std::cout << "Unsupported ancillary data identifier: " << identifier.did << ":" << identifier.sdid

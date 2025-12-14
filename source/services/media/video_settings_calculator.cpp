@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -188,11 +188,9 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     }
 
     video_settings.media_unit_time_interval_ns =
-        NS_IN_SEC / static_cast<double>(video_settings.frame_rate.num) / video_settings.frame_rate.denom;
+        rational_cast<double>(NS_IN_SEC / video_settings.frame_rate);
     video_settings.lines_in_frame_field = video_settings.resolution.height;
-
-    video_settings.ticks_per_media_unit =
-        (video_settings.sample_rate / (video_settings.frame_rate.num / static_cast<double>(video_settings.frame_rate.denom)));
+    video_settings.ticks_per_media_unit = video_settings.sample_rate / video_settings.frame_rate;
 
     if (video_settings.video_scan_type == VideoScanType::Interlaced) {
         video_settings.packets_in_media_unit /= 2;

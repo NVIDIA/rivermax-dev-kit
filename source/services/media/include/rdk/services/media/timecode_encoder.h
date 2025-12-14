@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,7 +65,7 @@ public:
      * @param [in] start_time_ns: Start time in nanoseconds.
      * @param [in] payload_types: Payload types to encode.
      */
-    TimecodeEncoder(uint32_t frame_rate, uint64_t start_time_ns, const std::vector<TimecodePayloadType>& payload_types);
+    TimecodeEncoder(const FrameRate& frame_rate, uint64_t start_time_ns, const std::vector<TimecodePayloadType>& payload_types);
     size_t get_packet_count() const override;
     size_t write_data(size_t packet_index, uint8_t* buffer) override;
     void fill_descriptor_header(size_t packet_index, AncillaryDataHeader& header) const override;
@@ -84,7 +84,11 @@ public:
     void set_start_time(uint64_t time_ns) { m_start_time_ns = time_ns; }
 
 private:
-    uint32_t m_frame_rate;
+    FrameRate m_frame_rate;
+    uint32_t m_frame_rate_int;
+    double m_ns_per_frame;
+    uint32_t m_timecode_divisor;
+    uint32_t m_timecode_fps;
     uint64_t m_start_time_ns;
     uint32_t m_current_frame;
     std::vector<TimecodePayloadType> m_payload_types;

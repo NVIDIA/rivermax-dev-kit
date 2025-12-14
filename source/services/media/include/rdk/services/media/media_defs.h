@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "rdk/services/sdp/sdp_defs.h"
+#include "rdk/services/utils/rational.h"
 
 namespace rivermax
 {
@@ -36,95 +37,12 @@ namespace dev_kit
 namespace services
 {
 /**
- * @brief: Video frame rate.
+ * @brief: Video frame rate type alias.
+ *
+ * FrameRate is a type alias for Rational, representing video frame rates
+ * as rational numbers (e.g., 60000/1001 for 59.94 fps).
  */
-struct FrameRate
-{
-    uint16_t num;
-    uint16_t denom;
-
-    /**
-     * @brief: Video frame rate default constructor.
-     */
-    FrameRate() : num(0), denom(0) {}
-    /**
-    * @brief: Video frame rate constructor.
-    *
-    * @param [in] num: The numerator of the frame rate.
-    * @param [in] denom: The denominator of the frame rate.
-    */
-    FrameRate(uint16_t num, uint16_t denom) : num(num), denom(denom) {}
-    /**
-     * @brief: Video frame rate default constructor.
-     *
-     * @param [in] num: The numerator of the frame rate.
-     */
-    FrameRate(uint16_t num) : num(num), denom(1) {}
-    /**
-     * @brief: Video frame rate constructor.
-     *
-     * @param [in] frame_rate: The frame rate in the format <numerator>/<denominator> or <integer>.
-     */
-    FrameRate(const std::string& frame_rate)
-    {
-        auto is_number = [](const std::string& str) {
-            return str.find_first_not_of("0123456789") == std::string::npos;
-        };
-
-        size_t slash_position = frame_rate.find('/');
-        if (slash_position != std::string::npos) {
-            std::string num_str = frame_rate.substr(0, slash_position);
-            std::string denom_str = frame_rate.substr(slash_position + 1);
-            if (is_number(num_str) && is_number(denom_str)) {
-                num = static_cast<uint16_t>(std::stoi(num_str));
-                denom = static_cast<uint16_t>(std::stoi(denom_str));
-                return;
-            }
-        } else if (is_number(frame_rate)) {
-            num = static_cast<uint16_t>(std::stoi(frame_rate));
-            denom = 1;
-            return;
-        }
-        throw std::invalid_argument("Invalid frame rate format. Expected <numerator>/<denominator> or <integer>");
-    }
-    /**
-     * @brief: Converts the frame rate to a string.
-     *
-     * @return: The string representation of the frame rate.
-     */
-    operator std::string() const
-    {
-        return (denom == 1) ? std::to_string(num) : std::to_string(num) + "/" + std::to_string(denom);
-    }
-    /**
-     * @brief: Output stream operator.
-     *
-     * @param [in] os: The output stream.
-     * @param [in] frame_rate: The frame rate.
-     *
-     * @return: The output stream.
-     */
-    friend std::ostream& operator<<(std::ostream& os, const FrameRate& frame_rate) {
-        os << std::string(frame_rate);
-        return os;
-    }
-    /**
-     * @brief: Equality operator.
-     *
-     * @param [in] other: The other frame rate.
-     *
-     * @return: True if the frame rates are equal, false otherwise.
-     */
-    bool operator==(const FrameRate& other) const { return num == other.num && denom == other.denom; }
-    /**
-     * @brief: Inequality operator.
-     *
-     * @param [in] other: The other frame rate.
-     *
-     * @return: True if the frame rates are not equal, false otherwise.
-     */
-    bool operator!=(const FrameRate& other) const { return !(*this == other); }
-};
+using FrameRate = Rational;
 /**
  * @brief: Video Resolution.
  */

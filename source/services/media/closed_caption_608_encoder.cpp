@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,19 +58,20 @@ constexpr uint8_t ClosedCaption608Encoder::EDM;
 constexpr uint8_t ClosedCaption608Encoder::PAC_ROW15_INDENT0;
 constexpr uint8_t ClosedCaption608Encoder::PADDING;
 
-ClosedCaption608Encoder::ClosedCaption608Encoder(uint32_t frame_rate) :
+ClosedCaption608Encoder::ClosedCaption608Encoder(const FrameRate& frame_rate) :
     m_state(State::Idle),
     m_active_text(),
     m_pending_text(),
     m_sequence_counter(0)
 {
-    auto it = FRAMERATE_CODE_MAP.find(frame_rate);
+    uint32_t frame_rate_int = rational_cast<uint32_t>(frame_rate);
+    auto it = FRAMERATE_CODE_MAP.find(frame_rate_int);
     if (it != FRAMERATE_CODE_MAP.end()) {
         m_framerate_code = it->second;
     } else {
         m_framerate_code = FRAMERATE_CODE_UNKNOWN;
         std::cerr << "Warning: Unsupported frame rate " << frame_rate
-                  << " fps closed caption encoding, using unknown code 0x0F" << std::endl;
+                  << " for closed caption encoding, using unknown code 0x0F" << std::endl;
     }
 }
 

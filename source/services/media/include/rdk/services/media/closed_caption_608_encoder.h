@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,7 +62,7 @@ public:
      *
      * @param [in] frame_rate: Frame rate.
      */
-    explicit ClosedCaption608Encoder(uint32_t frame_rate);
+    explicit ClosedCaption608Encoder(const FrameRate& frame_rate);
     size_t write_data(size_t packet_index, uint8_t* buffer) override;
     void fill_descriptor_header(size_t packet_index, AncillaryDataHeader& header) const override;
     void reset() override;

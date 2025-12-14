@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,14 +29,22 @@ namespace services
 {
 
 TimecodeEncoder::TimecodeEncoder(
-    uint32_t frame_rate,
+    const FrameRate& frame_rate,
     uint64_t start_time_ns,
     const std::vector<TimecodePayloadType>& payload_types) :
     m_frame_rate(frame_rate),
+    m_frame_rate_int(rational_cast<uint32_t>(frame_rate)),
+    m_ns_per_frame(rational_cast<double>(NS_IN_SEC / frame_rate)),
     m_start_time_ns(start_time_ns),
     m_current_frame(0),
     m_payload_types(payload_types)
 {
+    // Pre-calculate timecode fps values (SMPTE max 30 fps, higher fps repeat frames)
+    constexpr uint32_t MAX_TIMECODE_FPS = 30;
+    m_timecode_divisor = (m_frame_rate_int > MAX_TIMECODE_FPS)
+        ? (m_frame_rate_int + MAX_TIMECODE_FPS - 1) / MAX_TIMECODE_FPS
+        : 1;
+    m_timecode_fps = m_frame_rate_int / m_timecode_divisor;
 }
 
 size_t TimecodeEncoder::get_packet_count() const
@@ -47,18 +55,14 @@ size_t TimecodeEncoder::get_packet_count() const
 size_t TimecodeEncoder::write_data(size_t packet_index, uint8_t* buffer)
 {
     // Calculate timecode based on current frame and start time
-    uint64_t total_time_ns = m_start_time_ns + (m_current_frame * (NS_IN_SEC / m_frame_rate));
+    uint64_t total_time_ns = m_start_time_ns + static_cast<uint64_t>(m_current_frame * m_ns_per_frame);
     uint32_t total_seconds = total_time_ns / NS_IN_SEC;
     uint32_t hours = (total_seconds / 3600) % 24;
     uint32_t minutes = (total_seconds % 3600) / 60;
     uint32_t seconds = total_seconds % 60;
 
-    // SMPTE timecode only supports fps up to 30
-    // Frame numbers are repeated for higher fps (00, 00, 01, 01, 02, 02, ...)
-    constexpr uint32_t MAX_TIMECODE_FPS = 30;
-    uint32_t divisor = (m_frame_rate > MAX_TIMECODE_FPS) ? (m_frame_rate + MAX_TIMECODE_FPS - 1) / MAX_TIMECODE_FPS : 1;
-    uint32_t timecode_fps = m_frame_rate / divisor;
-    uint32_t frames = (m_current_frame / divisor) % timecode_fps;
+    // Frame numbers repeated for higher fps
+    uint32_t frames = (m_current_frame / m_timecode_divisor) % m_timecode_fps;
 
     // S12M-2 format is 16 bytes, BCD encoded
     // As defined in SMPTE ST 12, section 9, table 8.

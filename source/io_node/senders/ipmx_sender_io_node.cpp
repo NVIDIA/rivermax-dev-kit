@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -238,15 +238,14 @@ size_t IPMXStreamSender::prepare_sender_report_base(uint32_t ssrc, const TwoTupl
     m_report.sr.media.par_w = 1;
     m_report.sr.media.width = htons(video_settings.resolution.width);
     m_report.sr.media.height = htons(video_settings.resolution.height);
-    uint64_t pixel_clock = ((static_cast<uint64_t>(video_settings.resolution.width *
-        video_settings.resolution.height) *
-        video_settings.frame_rate.num) / video_settings.frame_rate.denom);
+    uint64_t pixel_clock = rational_cast<uint64_t>(
+        static_cast<uint64_t>(video_settings.resolution.width) * video_settings.resolution.height * video_settings.frame_rate);
     m_report.sr.media.pixel_clk_hi = htonl(static_cast<uint32_t>(pixel_clock / NS_IN_SEC));
     m_report.sr.media.pixel_clk_lo = htonl(static_cast<uint32_t>(pixel_clock % NS_IN_SEC));
     m_report.sr.media.htotal = m_report.sr.media.width;
     m_report.sr.media.vtotal = m_report.sr.media.height;
-    m_report.sr.media.rate = htonl((video_settings.frame_rate.num) << 10 |
-                                   (video_settings.frame_rate.denom));
+    m_report.sr.media.rate = htonl((video_settings.frame_rate.total_numerator()) << 10 |
+                                   (video_settings.frame_rate.total_denominator()));
     return sizeof(IPMXSenderReport);
 }
 
