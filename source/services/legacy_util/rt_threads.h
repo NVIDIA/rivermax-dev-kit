@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@
 #include <map>
 #include <utility>
 #include <functional>
-#include "rational.h"
+#include "rdk/services/utils/rational.h"
 #define CPU_NONE (-1)
 #define MAX_CPU_RANGE 1024
 
@@ -58,6 +58,9 @@
                                       RMAX_CPUMASK(_cpu2)); \
         } \
     } while (0)
+
+using rivermax::dev_kit::services::Rational;
+using rivermax::dev_kit::services::rational_cast;
 
 enum FONT_COLOR {
     COLOR_RED,

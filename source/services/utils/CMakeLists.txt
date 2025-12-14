@@ -23,6 +23,7 @@ target_sources(${PROJECT_NAME}
         clock.cpp
         environment.cpp
         gpu_manager.cpp
+        rational.cpp
         synchronizer.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)

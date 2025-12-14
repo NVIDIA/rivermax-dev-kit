@@ -34,6 +34,7 @@ target_include_directories(${PROJECT_NAME}
 target_sources(${PROJECT_NAME}
     PRIVATE
         environment_tests.cpp
+        rational_tests.cpp
 )
 
 gtest_discover_tests(${PROJECT_NAME})

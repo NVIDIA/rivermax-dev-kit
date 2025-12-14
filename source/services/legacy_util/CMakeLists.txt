@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,17 +33,16 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         Rivermax::Include
         CLI::CLI
+        rivermax-dev-kit-services-utils
         $<$<BOOL:${RMAX_CUDA}>:rivermax-dev-kit-services-legacy-util-cuda>
 )
 
 target_sources(${PROJECT_NAME}
     PUBLIC
         defs.h
-        rational.h
         rt_threads.h
         gpu.h
     PRIVATE
-        rational.cpp
         rt_threads.cpp
         gpu.cpp
 )
