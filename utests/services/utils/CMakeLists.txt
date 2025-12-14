@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(cpu)
-add_subdirectory(sdp)
-add_subdirectory(ulp_packet_buffer_wr)
-add_subdirectory(utils)
+project(rivermax-dev-kit-utests-services-utils)
+
+include(GoogleTest)
+
+add_executable(${PROJECT_NAME})
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        rivermax-dev-kit-services
+        GTest::gtest_main
+)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/utils/include
+)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        environment_tests.cpp
+)
+
+gtest_discover_tests(${PROJECT_NAME})

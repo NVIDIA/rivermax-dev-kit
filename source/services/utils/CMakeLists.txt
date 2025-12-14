@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,12 +21,13 @@ add_library(${PROJECT_NAME} OBJECT)
 target_sources(${PROJECT_NAME}
     PRIVATE
         clock.cpp
+        environment.cpp
         gpu_manager.cpp
         synchronizer.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 
-target_link_libraries(${PROJECT_NAME} 
+target_link_libraries(${PROJECT_NAME}
     PRIVATE
         rivermax-dev-kit-build
         rivermax-dev-kit-services-legacy-util
