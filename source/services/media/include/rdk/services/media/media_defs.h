@@ -207,8 +207,8 @@ struct Resolution
  */
  struct AncillaryDataIdentifier
  {
-     uint16_t did;
-     uint16_t sdid;
+     uint8_t did;
+     uint8_t sdid;
 
      bool operator==(const AncillaryDataIdentifier& other) const
      {
@@ -230,7 +230,7 @@ struct Resolution
       */
      friend std::ostream& operator<<(std::ostream& os, const AncillaryDataIdentifier& id)
      {
-         os << "0x" << std::hex << id.did << ":0x" << id.sdid << std::dec;
+         os << "0x" << std::hex << static_cast<int>(id.did) << ":0x" << static_cast<int>(id.sdid) << std::dec;
          return os;
      }
      /**
@@ -249,8 +249,8 @@ struct Resolution
          is >> token;
          size_t colon_pos = token.find(':');
          if (colon_pos != std::string::npos) {
-             id.did = static_cast<uint16_t>(std::stoul(token.substr(0, colon_pos), nullptr, 0));
-             id.sdid = static_cast<uint16_t>(std::stoul(token.substr(colon_pos + 1), nullptr, 0));
+             id.did = static_cast<uint8_t>(std::stoul(token.substr(0, colon_pos), nullptr, 0));
+             id.sdid = static_cast<uint8_t>(std::stoul(token.substr(colon_pos + 1), nullptr, 0));
          }
          return is;
      }
