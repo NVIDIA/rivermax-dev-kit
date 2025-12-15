@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -528,7 +528,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         {
             return parser->add_option(CLIOptStr::VIDEO_FRAME_RATE,
                                       app_settings->media.frame_rate,
-                                      "Video frame rate in format <integer>")
+                                      "Video frame rate in format <integer> or <numerator>/<denominator>")
                                       ->check(VideoFrameRateValidator())
                                       ->check(CLI::IsMember(SUPPORTED_VIDEO_FRAME_RATES))
                                       ->default_val(60);

@@ -17,7 +17,6 @@
  */
 
 #include <cstddef>
-#include <cstring>
 #include <iostream>
 #include <ostream>
 
@@ -29,20 +28,21 @@
 #include "rdk/services/utils/defs.h"
 
 using namespace rivermax::dev_kit::io_node;
+using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
 RtpVideoSendStream::RtpVideoSendStream(const MediaStreamSettings& settings) :
     MediaSendStream(settings),
+    m_send_stats{},
     m_video_settings(dynamic_cast<const SMPTE_2110_20_MediaSettings&>(settings.m_media_settings))
 {
-    memset(&m_send_stats, 0, sizeof(m_send_stats));
 }
 
 RtpVideoSendStream::RtpVideoSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks) :
     MediaSendStream(settings, mem_blocks),
+    m_send_stats{},
     m_video_settings(dynamic_cast<const SMPTE_2110_20_MediaSettings&>(settings.m_media_settings))
 {
-    memset(&m_send_stats, 0, sizeof(m_send_stats));
 }
 
 std::ostream& RtpVideoSendStream::print(std::ostream& out) const
@@ -98,7 +98,7 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     buffer[1] = 96;    // Payload type - Dynamic
     buffer[2] = (m_send_stats.rtp_sequence >> 8) & 0xff;  // Sequence number MSB.
     buffer[3] = (m_send_stats.rtp_sequence) & 0xff;  // Sequence number LSB.
-    *(uint32_t*)&buffer[4] = htonl(m_send_stats.rtp_timestamp);
+    *(uint32_t*)&buffer[4] = htonl(static_cast<uint32_t>(m_send_stats.rtp_timestamp.integer()));
     *(uint32_t*)&buffer[8] = 0x0eb51dbd;  // Simulated SSRC.
 
     // build SRD header - 8-14 bytes:
@@ -129,13 +129,13 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
 
     if (++m_send_stats.packet_counter == m_video_settings.packets_in_media_unit) {
         buffer[1] |= 0x80; // Last packet in frame (Marker).
-        // ST2210-20: the timestamp SHOULD be the same for each packet of the frame/field.
-        double ticks = rational_cast<double>(m_video_settings.sample_rate / m_video_settings.frame_rate);
+        // ST2110-20: the timestamp SHOULD be the same for each packet of the frame/field.
+        Rational ticks = m_video_settings.ticks_per_media_unit;
         if (m_video_settings.video_scan_type == VideoScanType::Interlaced) {
             m_send_stats.rtp_interlace_field_indicator = !m_send_stats.rtp_interlace_field_indicator;
             ticks /= 2;
         }
-        m_send_stats.rtp_timestamp += static_cast<uint32_t>(ticks);
+        m_send_stats.rtp_timestamp += ticks;
     }
     m_send_stats.rtp_sequence++;
 }
@@ -234,9 +234,9 @@ double RtpVideoSendStream::calculate_send_time_ns(uint64_t time_now_ns)
 
     first_packet_start_time_ns += tro;
 
-    m_send_stats.rtp_timestamp = static_cast<uint32_t>(
+    m_send_stats.rtp_timestamp = Rational(static_cast<uint64_t>(
         time_to_rtp_timestamp(first_packet_start_time_ns,
-                static_cast<int>(m_video_settings.sample_rate)));
+                static_cast<int>(m_video_settings.sample_rate))));
     send_time_ns = first_packet_start_time_ns;
 
     return send_time_ns;

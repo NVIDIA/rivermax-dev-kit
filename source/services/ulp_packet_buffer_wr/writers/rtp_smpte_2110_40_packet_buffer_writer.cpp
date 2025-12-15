@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -149,7 +149,7 @@ void RTP_SMPTE_2110_40_PacketBufferWriter::update_in_media_unit_state(size_t hea
     // Only increment after the last packet of the frame
     if (++m_rtp_packet_context->counter >= m_cached_packets_in_media_unit) {
         // Timestamp changes every frame (90kHz clock)
-        m_rtp_packet_context->timestamp += static_cast<uint32_t>(m_media_settings.ticks_per_media_unit);
+        m_rtp_packet_context->timestamp += m_media_settings.ticks_per_media_unit;
         m_rtp_packet_context->counter = 0;
         m_rtp_packet_context->descriptor_start_index = 0;
 

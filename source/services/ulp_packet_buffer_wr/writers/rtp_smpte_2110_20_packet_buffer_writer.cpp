@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,8 +59,8 @@ inline void RTP_SMPTE_2110_20_PacketBufferWriter::update_in_media_unit_state(siz
     }
 
     if (m_rtp_packet_context->counter == video_settings.packets_in_media_unit) {
-        // ST2210-20: the timestamp SHOULD be the same for each packet of the frame/field.
-        m_rtp_packet_context->timestamp += static_cast<uint32_t>(video_settings.ticks_per_media_unit);
+        // ST2110-20: the timestamp SHOULD be the same for each packet of the frame/field.
+        m_rtp_packet_context->timestamp += video_settings.ticks_per_media_unit;
         m_rtp_packet_context->counter = 0;
         if (video_settings.video_scan_type == VideoScanType::Interlaced) {
             m_rtp_packet_context->rtp_interlace_field_indicator = !m_rtp_packet_context->rtp_interlace_field_indicator;

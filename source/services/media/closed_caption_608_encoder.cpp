@@ -37,18 +37,17 @@ namespace services
  *
  * @note: This map is used to convert frame rates to the corresponding CDP frame rate code.
  */
-static const std::unordered_map<uint32_t, uint8_t> FRAMERATE_CODE_MAP =
-{
-    {23, 0x01},
-    {24, 0x02},
-    {25, 0x03},
-    {29, 0x04},
-    {30, 0x05},
-    {50, 0x06},
-    {59, 0x07},
-    {60, 0x08}
+static const std::unordered_map<FrameRate, uint8_t> CDP_FRAME_RATE_CODES = {
+    { { 24000, 1001 }, 0x01 },  /**< 23.976 fps */
+    { { 24 }, 0x02 },           /**< 24 fps */
+    { { 25 }, 0x03 },           /**< 25 fps */
+    { { 30000, 1001 }, 0x04 },  /**< 29.97 fps */
+    { { 30 }, 0x05 },           /**< 30 fps */
+    { { 50 }, 0x06 },           /**< 50 fps */
+    { { 60000, 1001 }, 0x07 },  /**< 59.94 fps */
+    { { 60 }, 0x08 }            /**< 60 fps */
 };
-static constexpr uint8_t FRAMERATE_CODE_UNKNOWN = 0x0F;
+static constexpr uint8_t CDP_FRAME_RATE_CODE_UNKNOWN = 0x0F;
 
 constexpr uint8_t ClosedCaption608Encoder::CMD_CH1;
 constexpr uint8_t ClosedCaption608Encoder::RCL;
@@ -64,12 +63,11 @@ ClosedCaption608Encoder::ClosedCaption608Encoder(const FrameRate& frame_rate) :
     m_pending_text(),
     m_sequence_counter(0)
 {
-    uint32_t frame_rate_int = rational_cast<uint32_t>(frame_rate);
-    auto it = FRAMERATE_CODE_MAP.find(frame_rate_int);
-    if (it != FRAMERATE_CODE_MAP.end()) {
+    auto it = CDP_FRAME_RATE_CODES.find(frame_rate);
+    if (it != CDP_FRAME_RATE_CODES.end()) {
         m_framerate_code = it->second;
     } else {
-        m_framerate_code = FRAMERATE_CODE_UNKNOWN;
+        m_framerate_code = CDP_FRAME_RATE_CODE_UNKNOWN;
         std::cerr << "Warning: Unsupported frame rate " << frame_rate
                   << " for closed caption encoding, using unknown code 0x0F" << std::endl;
     }

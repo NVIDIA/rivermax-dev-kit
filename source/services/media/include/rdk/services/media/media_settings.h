@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/sdp/sdp_common_descriptions.h"
 #include "rdk/services/sdp/sdp_defs.h"
+#include "rdk/services/utils/rational.h"
 
 namespace rivermax
 {
@@ -86,7 +87,7 @@ struct MediaSettings
     std::shared_ptr<IMediaSettingsCalculator> media_settings_calculator;
     size_t sample_rate = RTP_SAMPLE_RATE;
     double media_unit_time_interval_ns = 0;
-    double ticks_per_media_unit = 0;
+    Rational ticks_per_media_unit;
     /**
      * @brief: Reference clock ID.
      *

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,7 +65,7 @@ ReturnStatus RTPPacket::fill_header(const IPacketContext& context, size_t& size,
     p_rtp_header->cc = rtp_packet_context.cc;
     p_rtp_header->payload_type = rtp_packet_context.payload_type;
     p_rtp_header->sequence_number = htons(rtp_packet_context.sequence);
-    p_rtp_header->timestamp = htonl(rtp_packet_context.timestamp);
+    p_rtp_header->timestamp = htonl(static_cast<uint32_t>(rtp_packet_context.timestamp.integer())); // Truncate per ST 2110-10
     p_rtp_header->ssrc = htonl(rtp_packet_context.ssrc);
     p_rtp_header->marker = rtp_packet_context.marker;
 

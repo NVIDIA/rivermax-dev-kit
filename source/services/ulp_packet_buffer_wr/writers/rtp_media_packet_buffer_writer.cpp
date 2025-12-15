@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -144,8 +144,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
 template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
 void RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::set_start_time(uint64_t time_ns)
 {
-    m_rtp_packet_context->timestamp = static_cast<uint32_t>(
-        time_to_rtp_timestamp(time_ns, static_cast<int>(m_media_settings.sample_rate)));
+    m_rtp_packet_context->timestamp = Rational(static_cast<uint64_t>(
+        time_to_rtp_timestamp(time_ns, static_cast<int>(m_media_settings.sample_rate))));
 }
 
 

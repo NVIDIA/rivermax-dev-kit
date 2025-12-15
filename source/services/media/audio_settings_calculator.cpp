@@ -157,7 +157,9 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_timing_parameters()
     }
     m_media_settings.sample_rate = rate_it->second;
     m_media_settings.media_unit_time_interval_ns = static_cast<double>(m_media_settings.packets_in_media_unit * m_media_settings.ptime_usec * NS_IN_USEC);
-    m_media_settings.ticks_per_media_unit = (static_cast<double>(m_media_settings.sample_rate) * m_media_settings.media_unit_time_interval_ns) / static_cast<double>(NS_IN_SEC);
+    m_media_settings.ticks_per_media_unit = Rational(
+        m_media_settings.sample_rate * m_media_settings.packets_in_media_unit * m_media_settings.ptime_usec,
+        USEC_IN_SEC);
 
     return ReturnStatus::success;
 }

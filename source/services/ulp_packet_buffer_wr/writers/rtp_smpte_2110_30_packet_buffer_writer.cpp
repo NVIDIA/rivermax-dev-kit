@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,7 +44,7 @@ void RTP_SMPTE_2110_30_PacketBufferWriter::reset_in_media_unit_state()
 void RTP_SMPTE_2110_30_PacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size)
 {
     const auto& audio_settings = static_cast<const SMPTE_2110_30_MediaSettings&>(m_media_settings);
-    uint32_t ticks_per_packet = static_cast<uint32_t>((m_media_settings.sample_rate * audio_settings.ptime_usec) / USEC_IN_SEC);
+    Rational ticks_per_packet(m_media_settings.sample_rate * audio_settings.ptime_usec, USEC_IN_SEC);
 
     m_rtp_packet_context->timestamp += ticks_per_packet;
 

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,9 +25,11 @@
 #include <chrono>
 
 #include "rdk/services/utils/defs.h"
+#include "rdk/services/utils/rational.h"
 #include "rdk/core/stream/send/media_stream.h"
 #include "rdk/services/media/media_settings_video.h"
 
+using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
 namespace rivermax
@@ -49,12 +51,12 @@ constexpr size_t SLEEP_THRESHOLD_NS = std::chrono::nanoseconds{ std::chrono::mil
  */
 struct SendingStatistics
 {
-    uint32_t packet_counter;
-    uint32_t rtp_sequence;
-    uint32_t rtp_timestamp;
-    uint8_t rtp_interlace_field_indicator;
-    uint16_t line_number;
-    uint16_t srd_offset;
+    uint32_t packet_counter = 0;
+    uint32_t rtp_sequence = 0;
+    Rational rtp_timestamp;
+    uint8_t rtp_interlace_field_indicator = 0;
+    uint16_t line_number = 0;
+    uint16_t srd_offset = 0;
 };
 /**
  * @brief: RTP Video send stream interface.

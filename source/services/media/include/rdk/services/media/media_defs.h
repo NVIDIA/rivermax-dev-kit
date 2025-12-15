@@ -249,11 +249,14 @@ const std::vector<Resolution> SUPPORTED_VIDEO_RESOLUTIONS = {
 };
 /* Supported video frame rates */
 const std::vector<FrameRate> SUPPORTED_VIDEO_FRAME_RATES = {
-    { 24 },
-    { 25 },
-    { 30 },
-    { 50 },
-    { 60 }
+    { 24000, 1001 },  /**< 23.976 fps */
+    { 24 },           /**< 24 fps */
+    { 25 },           /**< 25 fps */
+    { 30000, 1001 },  /**< 29.97 fps */
+    { 30 },           /**< 30 fps */
+    { 50 },           /**< 50 fps */
+    { 60000, 1001 },  /**< 59.94 fps */
+    { 60 }            /**< 60 fps */
 };
 /* Supported video sampling types */
 const std::vector<VideoSampling> SUPPORTED_VIDEO_SAMPLING_TYPES = {

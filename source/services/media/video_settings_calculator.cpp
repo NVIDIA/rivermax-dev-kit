@@ -187,8 +187,7 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         video_settings.packets_in_chunk = lines_in_chunk * video_settings.packets_in_line;
     }
 
-    video_settings.media_unit_time_interval_ns =
-        rational_cast<double>(NS_IN_SEC / video_settings.frame_rate);
+    video_settings.media_unit_time_interval_ns = rational_cast<double>(NS_IN_SEC / video_settings.frame_rate);
     video_settings.lines_in_frame_field = video_settings.resolution.height;
     video_settings.ticks_per_media_unit = video_settings.sample_rate / video_settings.frame_rate;
 

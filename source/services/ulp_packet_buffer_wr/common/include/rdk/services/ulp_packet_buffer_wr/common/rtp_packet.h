@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@
 
 #include "rdk/services/ulp_packet_buffer_wr/common/ulp_packet_interface.h"
 #include "rdk/services/media/media.h"
+#include "rdk/services/utils/rational.h"
 
 namespace rivermax
 {
@@ -44,7 +45,7 @@ struct RTPPacketContext : public IPacketContext
     uint8_t payload_type = 0;            /**< Payload type */
     bool marker = false;                 /**< Marker bit */
     uint16_t sequence = 0;               /**< 16-bit RTP sequence number */
-    uint32_t timestamp = 0;              /**< 32-bit RTP timestamp */
+    Rational timestamp;                  /**< 32-bit RTP timestamp (Rational for arithmetic precision) */
     uint32_t ssrc = 0;                   /**< Synchronization source (SSRC) identifier */
 
     uint32_t counter = 0;                /**< Packet counter */
