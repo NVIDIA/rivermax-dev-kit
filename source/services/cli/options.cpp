@@ -71,6 +71,7 @@ const char* CLIOptStr::RX_STREAM_TYPE = "-R,--rx-stream-type";
 const char* CLIOptStr::VIDEO_RESOLUTION = "--vr,--video-resolution";
 const char* CLIOptStr::VIDEO_FRAME_RATE = "--vfr,--video-frame-rate";
 const char* CLIOptStr::VIDEO_SAMPLING = "--vs,--video-sampling";
+const char* CLIOptStr::VIDEO_SCAN_TYPE = "--vst,--video-scan-type";
 const char* CLIOptStr::VIDEO_BIT_DEPTH = "--vbd,--video-bit-depth";
 const char* CLIOptStr::ALPHA_BIT_DEPTH = "--abd,--alpha-bit-depth";
 const char* CLIOptStr::ENABLE_VIDEO = "--enable-video";
@@ -544,6 +545,18 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                                       ->transform(CLI::CheckedTransformer(create_mapping_vector(
                                                   SUPPORTED_VIDEO_SAMPLING_TYPES), CLI::ignore_case))
                                       ->default_val(enum_to_string(VideoSampling::YCbCr_4_2_2));
+        }
+    },
+    {
+        CLIOptStr::VIDEO_SCAN_TYPE,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_option(CLIOptStr::VIDEO_SCAN_TYPE,
+                                      app_settings->media.video_scan_type,
+                                      "Video scan type")
+                                      ->transform(CLI::CheckedTransformer(create_mapping_vector(
+                                                  SUPPORTED_VIDEO_SCAN_TYPES), CLI::ignore_case))
+                                      ->default_val(enum_to_string(VideoScanType::Progressive));
         }
     },
     {

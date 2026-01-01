@@ -92,6 +92,8 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(IPMXSenderSettings& s
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FRAME_RATE)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_SCAN_TYPE)
+        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     // TODO: move PTP flag to App
     parser->add_flag("--ptp", settings.ref_clk_is_ptp,
                      "Use NIC RTC as a PTP-synchronized Common Reference clock");

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,12 +36,14 @@ constexpr const char* APP_EXAMPLES = \
     " 1920x1080 --video-frame-rate 60 --streams 10\n"
     "  4. rdk_media_sender --local-ip 1.2.3.4 --enable-video --video-resolution"
     " 1920x1080 --video-frame-rate 60 --threads 2 --streams 10 -a 1,2 -c 3\n"
-    "  5. rdk_media_sender -l 1.2.3.4 -d  224.1.1.2 -p 50001 --enable-video --vr"
+    "  5. rdk_media_sender --local-ip 1.2.3.4 --enable-video --video-resolution"
+    " 1920x1080 --video-frame-rate 30 --video-scan-type interlaced -v\n"
+    "  6. rdk_media_sender -l 1.2.3.4 -d  224.1.1.2 -p 50001 --enable-video --vr"
     " 1920x1080 --vfr 60 --vs 1 -m -M -A 2 -r -g 0 -v -i 5 -a 9 --vf input_file.ycbcr --dfl\n"
-    "  6. rdk_media_sender --local-ip 1.2.3.4 -m --enable-audio --audio-file"
+    "  7. rdk_media_sender --local-ip 1.2.3.4 -m --enable-audio --audio-file"
     " input_file.wav --audio-sampling-rate 48000 --audio-encoding L24 --audio-ptime-us 1000\n"
-    "  7. rdk_media_sender --local-ip 1.2.3.4 --enable-ancillary\n"
-    "  8. rdk_media_sender --local-ip 1.2.3.4 -m --enable-video --vf video_file.ycbcr"
+    "  8. rdk_media_sender --local-ip 1.2.3.4 --enable-ancillary\n"
+    "  9. rdk_media_sender --local-ip 1.2.3.4 -m --enable-video --vf video_file.ycbcr"
     " --enable-audio --af audio_file.wav --asr 48000 --enable-ancillary\n";
 
 int main(int argc, const char* argv[])

@@ -265,6 +265,11 @@ const std::vector<VideoSampling> SUPPORTED_VIDEO_SAMPLING_TYPES = {
     VideoSampling::YCbCr_4_2_0,
     VideoSampling::RGB
 };
+/* Supported video scan types */
+const std::vector<VideoScanType> SUPPORTED_VIDEO_SCAN_TYPES = {
+    VideoScanType::Progressive,
+    VideoScanType::Interlaced
+};
 /**
  * @brief: Enum class for SMPTE Media content types.
  */

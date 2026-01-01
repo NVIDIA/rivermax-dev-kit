@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,9 @@ constexpr const char* APP_EXAMPLES = \
     "  3. rdk_ipmx_sender --local-ip 1.2.3.4 --video-resolution 1920x1080 "
     "--video-frame-rate 60 --streams 10\n"
     "  4. rdk_ipmx_sender --local-ip 1.2.3.4 --video-resolution 1920x1080 "
-    "--video-frame-rate 60 --threads 2 --streams 10 -a 1,2 -c 3\n";
+    "--video-frame-rate 60 --threads 2 --streams 10 -a 1,2 -c 3\n"
+    "  5. rdk_ipmx_sender --local-ip 1.2.3.4 --video-resolution 1920x1080 "
+    "--video-frame-rate 30 --video-scan-type interlaced -v\n";
 
 int main(int argc, const char* argv[])
 {

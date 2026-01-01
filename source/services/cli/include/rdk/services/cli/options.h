@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,6 +105,7 @@ public:
     static const char* VIDEO_RESOLUTION;
     static const char* VIDEO_FRAME_RATE;
     static const char* VIDEO_SAMPLING;
+    static const char* VIDEO_SCAN_TYPE;
     static const char* VIDEO_BIT_DEPTH;
     static const char* ALPHA_BIT_DEPTH;
     static const char* ENABLE_VIDEO;

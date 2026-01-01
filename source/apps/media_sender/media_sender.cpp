@@ -128,6 +128,8 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_SAMPLING)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_SCAN_TYPE)
+        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::VIDEO_BIT_DEPTH)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ALPHA_BIT_DEPTH)
