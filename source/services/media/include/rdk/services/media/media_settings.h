@@ -58,6 +58,12 @@ struct MediaSettings
      */
      virtual bool needs_dynamic_packet_sizes() const { return false; }
     /**
+     * @brief: Returns packets per frame as expected by Rivermax API.
+     *
+     * @return: Number of packets per frame.
+     */
+    virtual size_t get_packets_per_frame() const { return packets_in_media_unit; }
+    /**
      * @brief: Set the media settings calculator.
      *
      * @param [in] calculator: Shared pointer to the calculator.

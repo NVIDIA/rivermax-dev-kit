@@ -74,7 +74,7 @@ void RtpVideoSendStream::prepare_chunk_to_send(MediaChunk& chunk)
         build_2110_20_rtp_header(current_packet_pointer);
         if (!((stride + 1) % m_video_settings.packets_in_line)) {
             // Prepare line number for next iteration:
-            m_send_stats.line_number = (m_send_stats.line_number + 1) % m_video_settings.resolution.height;
+            m_send_stats.line_number = (m_send_stats.line_number + 1) % m_video_settings.lines_in_frame_field;
         }
         stride++;
     }
@@ -113,12 +113,7 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     buffer[13] = (m_send_stats.rtp_sequence >> 16) & 0xff;  // Low 16 bits of Extended Sequence Number.
     *(uint16_t*)&buffer[14] = htons(m_stream_settings.m_media_settings.packet_payload_size - 20);  // SRD Length.
 
-    uint16_t number_of_rows = m_video_settings.resolution.height;
-    if (m_video_settings.video_scan_type == VideoScanType::Interlaced) {
-        number_of_rows /= 2;
-    }
-
-    uint16_t srd_row_number = m_send_stats.line_number % number_of_rows;
+    uint16_t srd_row_number = m_send_stats.line_number % m_video_settings.lines_in_frame_field;
     *(uint16_t*)&buffer[16] = htons(srd_row_number);
     buffer[16] |= (m_send_stats.rtp_interlace_field_indicator << 7);
 
@@ -130,12 +125,10 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     if (++m_send_stats.packet_counter == m_video_settings.packets_in_media_unit) {
         buffer[1] |= 0x80; // Last packet in frame (Marker).
         // ST2110-20: the timestamp SHOULD be the same for each packet of the frame/field.
-        Rational ticks = m_video_settings.ticks_per_media_unit;
+        m_send_stats.rtp_timestamp += m_video_settings.ticks_per_media_unit;
         if (m_video_settings.video_scan_type == VideoScanType::Interlaced) {
             m_send_stats.rtp_interlace_field_indicator = !m_send_stats.rtp_interlace_field_indicator;
-            ticks /= 2;
         }
-        m_send_stats.rtp_timestamp += ticks;
     }
     m_send_stats.rtp_sequence++;
 }

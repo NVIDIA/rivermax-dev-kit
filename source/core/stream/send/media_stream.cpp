@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,7 +84,7 @@ void MediaStreamSettings::stream_param_set_stride_sizes(rmx_output_media_stream_
 
 void MediaStreamSettings::stream_param_set_packets_per_frame(rmx_output_media_stream_params& descr)
 {
-    rmx_output_media_set_packets_per_frame(&descr, m_media_settings.packets_in_media_unit);
+    rmx_output_media_set_packets_per_frame(&descr, m_media_settings.get_packets_per_frame());
 }
 
 void MediaStreamSettings::stream_param_set_pcp(rmx_output_media_stream_params& descr)

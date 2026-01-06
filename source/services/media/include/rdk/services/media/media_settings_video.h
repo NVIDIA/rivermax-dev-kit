@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,6 +55,18 @@ struct SMPTE_2110_20_MediaSettings : public MediaSettings
     explicit SMPTE_2110_20_MediaSettings(const AppSettings& app_settings, bool is_alpha_stream = false);
     virtual ~SMPTE_2110_20_MediaSettings() = default;
     virtual SMPTEStandard get_smpte_standard() const override { return SMPTEStandard::ST_2110_20; };
+    /**
+     * @brief: Returns packets per frame for Rivermax API.
+     *
+     * Multiplies by 2 for interlaced since Rivermax expects full frame packets.
+     *
+     * @return: Packets per full frame.
+     */
+    virtual size_t get_packets_per_frame() const override {
+        return video_scan_type == VideoScanType::Interlaced
+            ? packets_in_media_unit * 2
+            : packets_in_media_unit;
+    }
 
     Resolution resolution = { _1080_WIDTH, _1080_HEIGHT };
     FrameRate frame_rate = { 60 };

@@ -27,6 +27,7 @@
 #include "rdk/services/media/media_settings_video.h"
 #include "rdk/services/sdp/sdp_defs.h"
 #include "rdk/services/utils/defs.h"
+#include "rdk/services/utils/enum_utils.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -138,6 +139,13 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         return ReturnStatus::failure;
     }
 
+    if (video_settings.sampling_type == VideoSampling::YCbCr_4_2_0 &&
+        video_settings.video_scan_type == VideoScanType::Interlaced) {
+        std::cerr << "Error: " << enum_to_string(VideoSampling::YCbCr_4_2_0)
+                  << " sampling is not permitted with interlaced video per SMPTE ST 2110-20\n";
+        return ReturnStatus::failure;
+    }
+
     auto bytes_per_pixel_ratio = VIDEO_DEPTH_TO_PIXEL_RATIO.at(video_settings.sampling_type).at(video_settings.bit_depth);
     uint32_t bytes_in_pgroup = bytes_per_pixel_ratio.first;
     uint32_t pixels_in_pgroup = bytes_per_pixel_ratio.second;
@@ -169,6 +177,17 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
 
     video_settings.pixels_per_packet = static_cast<uint16_t>(pgroups_in_packet * pixels_in_pgroup);
     video_settings.packets_in_media_unit = static_cast<uint32_t>(video_settings.packets_in_line * video_settings.resolution.height);
+    video_settings.media_unit_time_interval_ns = rational_cast<double>(NS_IN_SEC / video_settings.frame_rate);
+    video_settings.lines_in_frame_field = video_settings.resolution.height;
+    video_settings.ticks_per_media_unit = video_settings.sample_rate / video_settings.frame_rate;
+
+    if (video_settings.video_scan_type == VideoScanType::Interlaced) {
+        video_settings.packets_in_media_unit /= 2;
+        video_settings.lines_in_frame_field /= 2;
+        video_settings.media_unit_time_interval_ns /= 2;
+        video_settings.ticks_per_media_unit /= 2;
+        video_settings.bytes_per_media_unit /= 2;
+    }
 
     bool chunk_size_applied = false;
     if (video_settings.packets_in_chunk) {
@@ -177,7 +196,7 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
             std::cout << "Using custom chunk size: " << video_settings.packets_in_chunk << std::endl;
         } else {
             std::cout << "Custom chunk size (" << video_settings.packets_in_chunk
-                << ") is ignored: must be divisor of packets in field ("
+                << ") is ignored: must be divisor of packets in media unit ("
                 << video_settings.packets_in_media_unit << ")" << std::endl;
         }
     }
@@ -185,15 +204,6 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     if (!chunk_size_applied) {
         constexpr size_t lines_in_chunk = 4;
         video_settings.packets_in_chunk = lines_in_chunk * video_settings.packets_in_line;
-    }
-
-    video_settings.media_unit_time_interval_ns = rational_cast<double>(NS_IN_SEC / video_settings.frame_rate);
-    video_settings.lines_in_frame_field = video_settings.resolution.height;
-    video_settings.ticks_per_media_unit = video_settings.sample_rate / video_settings.frame_rate;
-
-    if (video_settings.video_scan_type == VideoScanType::Interlaced) {
-        video_settings.packets_in_media_unit /= 2;
-        video_settings.lines_in_frame_field /= 2;
     }
 
     video_settings.chunks_in_media_unit =

@@ -43,7 +43,6 @@ void RTP_SMPTE_2110_20_PacketBufferWriter::reset_in_media_unit_state()
     m_rtp_packet_context->counter = 0;
     m_rtp_packet_context->line_number = 0;
     m_rtp_packet_context->srd_offset = 0;
-    m_rtp_packet_context->rtp_interlace_field_indicator = 0;
 }
 
 inline void RTP_SMPTE_2110_20_PacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size)
