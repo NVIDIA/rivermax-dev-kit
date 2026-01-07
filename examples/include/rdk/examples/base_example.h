@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,8 +19,11 @@
 #ifndef RDK_EXAMPLES_BASE_EXAMPLE_H_
 #define RDK_EXAMPLES_BASE_EXAMPLE_H_
 
+#include <cstdlib>
+#include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 
 #include "rdk/facade.h"
 
@@ -130,6 +133,35 @@ private:
      */
     ReturnStatus initialize(int argc, const char* argv[]);
 };
+
+/**
+ * @brief: Common templated main function for examples.
+ *
+ * This function wraps the example execution with proper exception handling,
+ * ensuring that exceptions thrown during example construction are caught.
+ *
+ * @tparam ExampleType: The type of the example class, must inherit from BaseExample.
+ * @param [in] argc: Number of command line arguments.
+ * @param [in] argv: Array of command line arguments.
+ *
+ * @return: Exit status of the example.
+ */
+template <typename ExampleType>
+int common_example_main(int argc, const char* argv[])
+{
+    static_assert(std::is_base_of<BaseExample, ExampleType>::value,
+        "ExampleType must inherit from BaseExample");
+
+    try {
+        return ExampleType().run(argc, argv);
+    } catch (const std::exception& e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    } catch (...) {
+        std::cerr << "Unknown exception occurred" << std::endl;
+        return EXIT_FAILURE;
+    }
+}
 
 } // namespace examples
 } // namespace dev_kit
