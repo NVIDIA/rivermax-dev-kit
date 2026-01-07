@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 project(rivermax-dev-kit-utests-services-ulp-packet-buffer)
@@ -27,6 +27,7 @@ if (NOT WIN32)
 
     target_sources(${PROJECT_NAME}
         PRIVATE
+        rtp_smpte_2110_20_packet_buffer_writer_tests.cpp
         rtp_smpte_2110_40_packet_buffer_writer_tests.cpp
     )
 
