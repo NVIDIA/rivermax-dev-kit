@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -143,7 +143,27 @@ protected:
      * @return: True if reply is valid.
      */
     bool parse_receive_timing(ReceiveChunk& chunk, MediaRxLatencyReply& timing);
+    /**
+     * @brief: Processes a single Tx completion.
+     *
+     * Polls for a completion event and updates the latency statistics with the
+     * measured delay between scheduled send time and actual Tx hardware timestamp.
+     *
+     * @param [out] tx_delay: Latency statistics to update with the completion data.
+     *
+     * @return: Status of the operation.
+     */
     ReturnStatus try_process_one_completion(LatencyStats& tx_delay);
+    /**
+     * @brief: Waits for a reply from the server.
+     *
+     * Polls the receive stream for incoming data with timeout handling.
+     *
+     * @param [out] receive_chunk: Chunk to receive the server reply data.
+     *
+     * @return: Status of the operation.
+     */
+    ReturnStatus wait_for_server_reply(ReceiveChunk& receive_chunk);
 private:
     std::vector<uint64_t> m_commit_ts;
     double m_start_send_time_ns;

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,9 +39,12 @@ using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
 static constexpr size_t MEDIA_TX_REPLY_SIZE = 1200;
+static constexpr size_t NUM_OF_PACKETS_IN_MEDIA_RECEIVE_BUFFER = 16384;
+static constexpr size_t MAX_MEDIA_RX_PACKET_SIZE = 2048;
+
 static constexpr uint64_t WAIT_SERVER_RECEIVE_NSEC = std::chrono::nanoseconds{ std::chrono::milliseconds{ 10 } }.count();
 static constexpr uint64_t WAIT_SERVER_INACT_NSEC = std::chrono::nanoseconds{ std::chrono::milliseconds{ 20 } }.count();
-static constexpr int WAIT_SERVER_REPLY_USEC = std::chrono::microseconds{ std::chrono::milliseconds{ 100 } }.count();
+static constexpr uint64_t WAIT_SERVER_REPLY_NSEC = std::chrono::nanoseconds{ std::chrono::seconds{ 10 } }.count();
 static constexpr size_t LAST_CHUNKS_SKIP_NUM = 1;
 
 MediaTxIONode::MediaTxIONode(
@@ -260,7 +263,7 @@ void MediaTxIONode::send_receive()
                            m_media_settings.packets_in_chunk,
                            m_send_stream->is_hds_on()));
     ReceiveChunk receive_chunk(m_receive_stream->get_id(), false);
-    m_receive_stream->set_completion_moderation(1, 1, WAIT_SERVER_REPLY_USEC);
+    m_receive_stream->set_completion_moderation(0, 1, 0);
     uint64_t start_time_ns = get_time_now_ns();
     m_trs = m_send_stream->calculate_trs();
     m_start_send_time_ns = m_send_stream->calculate_send_time_ns(start_time_ns);
@@ -433,11 +436,8 @@ void MediaTxIONode::send_receive()
     std::cout << "\nAll values are in nanoseconds.\n\n";
     std::cout << tx_delay << std::endl;
 
-    std::this_thread::sleep_for(std::chrono::microseconds(WAIT_SERVER_REPLY_USEC));
-
-    rc = m_receive_stream->get_next_chunk(receive_chunk);
-    if (rc != ReturnStatus::success || receive_chunk.get_length() == 0) {
-        std::cerr << "No reply from server"<< std::endl;
+    rc = wait_for_server_reply(receive_chunk);
+    if (rc != ReturnStatus::success) {
         return;
     }
 
@@ -446,9 +446,10 @@ void MediaTxIONode::send_receive()
         std::cerr << "Invalid server reply" << std::endl;
     } else {
         std::cout <<  "Rx HW timestamp delay relative to scheduled packet send time.\n";
-        std::cout << "Avg: " << reply.rx_delay_avg << std::endl;
-        std::cout << "Min: " << reply.rx_delay_min << std::endl;
-        std::cout << "Max: " << reply.rx_delay_max << std::endl;
+        std::cout << "Avg: " << reply.rx_delay_avg << "\n";
+        std::cout << "Min: " << reply.rx_delay_min << "\n";
+        std::cout << "Max: " << reply.rx_delay_max << "\n";
+        std::cout << std::endl;
     }
 }
 
@@ -483,6 +484,33 @@ ReturnStatus MediaTxIONode::try_process_one_completion(LatencyStats &tx_delay)
     return ReturnStatus::success;
 }
 
+ReturnStatus MediaTxIONode::wait_for_server_reply(ReceiveChunk& receive_chunk)
+{
+    const uint64_t timeout_start_ns = get_time_now_ns();
+
+    while (SignalHandler::get_received_signal() < 0) {
+        ReturnStatus rc = m_receive_stream->get_next_chunk(receive_chunk);
+
+        if (rc != ReturnStatus::success) {
+            if (rc != ReturnStatus::signal_received) {
+                std::cerr << "Failed to get a next chunk from receive stream" << std::endl;
+            }
+            return rc;
+        }
+
+        if (receive_chunk.get_length() != 0) {
+            return ReturnStatus::success;
+        }
+
+        if (get_time_now_ns() > timeout_start_ns + WAIT_SERVER_REPLY_NSEC) {
+            std::cerr << "No reply from server" << std::endl;
+            return ReturnStatus::failure;
+        }
+    }
+
+    return ReturnStatus::signal_received;
+}
+
 bool MediaTxIONode::parse_receive_timing(ReceiveChunk& chunk, MediaRxLatencyReply& timing)
 {
     ReceivePacketInfo packet_info = chunk.get_packet_info(0);
@@ -507,7 +535,7 @@ MediaRxIONode::MediaRxIONode(
     ) : GenericLatencyIONode(
                 settings,
                 StreamDimensions(DEFAULT_NUM_OF_SEND_CHUNKS, 1, 0, MEDIA_TX_REPLY_SIZE),
-                StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1, 0, DEFAULT_RESPONSE_SIZE),
+                StreamDimensions(NUM_OF_PACKETS_IN_MEDIA_RECEIVE_BUFFER, 1, 0, MAX_MEDIA_RX_PACKET_SIZE),
                 std::move(header_mem_utils), std::move(payload_mem_utils), std::move(get_time_ns_cb)),
     m_app_settings(settings.app),
     m_media_settings(media_settings)
