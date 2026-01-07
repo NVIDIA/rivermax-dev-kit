@@ -168,6 +168,12 @@ ReturnStatus MediaTxIONode::destroy_send_stream()
 {
     ReturnStatus rc;
 
+    rc = m_chunk_handler->cancel_unsent();
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to cancel media streams" << std::endl;
+        return rc;
+    }
+
     rc = m_send_stream->destroy_stream();
     if (rc == ReturnStatus::failure) {
         std::cerr << "Failed to destroy send stream" << std::endl;
