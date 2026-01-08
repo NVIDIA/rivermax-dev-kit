@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,7 +45,6 @@ const std::unordered_map<AudioSamplingRate, uint32_t> AUDIO_SAMPLING_RATE_MAP = 
 // Audio encoding to bit depth mapping
 const std::unordered_map<AudioEncoding, uint32_t> AUDIO_ENCODING_BIT_DEPTH_MAP = {
     {AudioEncoding::L16, 16},
-    {AudioEncoding::L20, 20},
     {AudioEncoding::L24, 24}
 };
 

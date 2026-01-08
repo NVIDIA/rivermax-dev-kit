@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,7 +45,6 @@ const std::vector<AudioSamplingRate> SUPPORTED_AUDIO_SAMPLING_RATES = {
 /* Supported audio bit depths */
 const std::vector<AudioEncoding> SUPPORTED_AUDIO_ENCODINGS = {
     AudioEncoding::L16,
-    AudioEncoding::L20,
     AudioEncoding::L24
 };
 
