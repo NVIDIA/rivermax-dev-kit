@@ -221,8 +221,8 @@ size_t ClosedCaption608Encoder::encode_cea608_in_cdp(uint8_t* buffer, uint8_t by
 
     // CDP Footer
     buffer[offset++] = CDP_FOOTER_ID;
-    buffer[offset++] = ((m_sequence_counter - 1) >> 8) & 0xFF;
-    buffer[offset++] = (m_sequence_counter - 1) & 0xFF;
+    buffer[offset++] = (m_sequence_counter >> 8) & 0xFF;
+    buffer[offset++] = m_sequence_counter & 0xFF;
 
     // Keep checksum offset
     size_t checksum_offset = offset;
