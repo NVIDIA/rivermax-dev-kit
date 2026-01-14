@@ -19,6 +19,8 @@
 #ifndef RDK_APPS_IPMX_SENDER_IPMX_SENDER_H_
 #define RDK_APPS_IPMX_SENDER_IPMX_SENDER_H_
 
+#include <set>
+
 #include "rdk/apps/base_app.h"
 
 using namespace rivermax::dev_kit::apps;
@@ -41,7 +43,7 @@ constexpr size_t DEFAULT_MEMORY_BUFFER_SIZE_IN_FRAMES = 10;
 struct IPMXSenderSettings : AppSettings
 {
 public:
-    std::unordered_set<SMPTEStandard> enabled_smpte_standards;
+    std::set<SMPTEStandard> enabled_smpte_standards;
     std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
     std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
     void init_default_values() override;
