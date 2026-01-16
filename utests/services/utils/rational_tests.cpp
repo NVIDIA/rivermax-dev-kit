@@ -21,6 +21,7 @@
 #include "rdk/services/utils/rational.h"
 
 using rivermax::dev_kit::services::Rational;
+using rivermax::dev_kit::services::RationalException;
 using rivermax::dev_kit::services::rational_cast;
 
 /* Tests default and parameterized constructors for the Rational class. */
@@ -47,6 +48,70 @@ TEST(RationalTests, Init)
     ASSERT_EQ(d.integer(), 0);
     ASSERT_EQ(d.numerator(), 6);
     ASSERT_EQ(d.denominator(), 17);
+}
+
+/* Test constructors from different integral types */
+TEST(RationalTests, CreateFromIntegral)
+{
+    Rational u8(uint8_t(1));
+    ASSERT_EQ(u8.integer(), 1);
+    ASSERT_EQ(u8.numerator(), 0);
+    ASSERT_EQ(u8.denominator(), 1);
+
+    Rational u16(uint16_t(1));
+    ASSERT_EQ(u16.integer(), 1);
+    ASSERT_EQ(u16.numerator(), 0);
+    ASSERT_EQ(u16.denominator(), 1);
+
+    Rational u32(uint32_t(1));
+    ASSERT_EQ(u32.integer(), 1);
+    ASSERT_EQ(u32.numerator(), 0);
+    ASSERT_EQ(u32.denominator(), 1);
+
+    Rational u64(uint64_t(1));
+    ASSERT_EQ(u64.integer(), 1);
+    ASSERT_EQ(u64.numerator(), 0);
+    ASSERT_EQ(u64.denominator(), 1);
+
+    Rational i8(int8_t(1));
+    ASSERT_EQ(i8.integer(), 1);
+    ASSERT_EQ(i8.numerator(), 0);
+    ASSERT_EQ(i8.denominator(), 1);
+
+    Rational i16(int16_t(1));
+    ASSERT_EQ(i16.integer(), 1);
+    ASSERT_EQ(i16.numerator(), 0);
+    ASSERT_EQ(i16.denominator(), 1);
+
+    Rational i32(int32_t(1));
+    ASSERT_EQ(i32.integer(), 1);
+    ASSERT_EQ(i32.numerator(), 0);
+    ASSERT_EQ(i32.denominator(), 1);
+
+    Rational i64(int64_t(1));
+    ASSERT_EQ(i64.integer(), 1);
+    ASSERT_EQ(i64.numerator(), 0);
+    ASSERT_EQ(i64.denominator(), 1);
+
+    EXPECT_THROW(Rational(int8_t(-1)), RationalException);
+    EXPECT_THROW(Rational(int16_t(-1)), RationalException);
+    EXPECT_THROW(Rational(int32_t(-1)), RationalException);
+    EXPECT_THROW(Rational(int64_t(-1)), RationalException);
+}
+
+/* Test casts to different integral types */
+TEST(RationalTests, CastToIntegral)
+{
+    Rational a(1, 2, 3);
+
+    EXPECT_EQ(static_cast<uint8_t>(a), uint8_t(1));
+    EXPECT_EQ(static_cast<uint16_t>(a), uint16_t(1));
+    EXPECT_EQ(static_cast<uint32_t>(a), uint32_t(1));
+    EXPECT_EQ(static_cast<uint64_t>(a), uint64_t(1));
+    EXPECT_EQ(static_cast<int8_t>(a), int8_t(1));
+    EXPECT_EQ(static_cast<int16_t>(a), int16_t(1));
+    EXPECT_EQ(static_cast<int32_t>(a), int32_t(1));
+    EXPECT_EQ(static_cast<int64_t>(a), int64_t(1));
 }
 
 /* Tests addition operations between Rational numbers and integers. */
@@ -211,13 +276,21 @@ TEST(RationalTests, Cast)
     EXPECT_NEAR(d, 0.33, 0.01);
 
     // Cast to bool (non-zero fraction is true)
-    ASSERT_TRUE((bool)Rational(0, 1, 2));
+    ASSERT_TRUE(static_cast<bool>(Rational(0, 1, 2)));
 
     // Cast to bool (non-zero integer is true)
-    ASSERT_TRUE((bool)Rational(3));
+    ASSERT_TRUE(static_cast<bool>(Rational(3)));
 
     // Cast to bool (zero is false)
-    ASSERT_FALSE((bool)Rational(0));
+    ASSERT_FALSE(static_cast<bool>(Rational(0)));
+    ASSERT_TRUE(static_cast<bool>(Rational(0, 1, 2)));
+    ASSERT_TRUE(static_cast<bool>(Rational(1)));
+    ASSERT_TRUE(Rational(1U));
+    ASSERT_TRUE(Rational(0, 1, 2));
+    ASSERT_TRUE(Rational(1, 1, 2));
+    ASSERT_FALSE(Rational(0U));
+    ASSERT_FALSE(Rational(0, 0, 1));
+    ASSERT_FALSE(Rational(0, 0, 100));
 }
 
 /* Tests the less-than comparison operator for Rational numbers. */
@@ -342,9 +415,14 @@ TEST(RationalTests, CompareEqual)
     ASSERT_FALSE(Rational(1) == Rational(1, 2, 3));
     ASSERT_FALSE(Rational(0, 1, 2) == Rational(1, 1, 2));
     ASSERT_FALSE(Rational(1, 1, 2) == Rational(0, 1, 2));
+    // Rational == Rational (zero numerator, different denominator)
+    ASSERT_TRUE(Rational(0, 0, 1) == Rational(0, 0, 100));
+    ASSERT_TRUE(Rational(0, 0, 1) == Rational(0, 0, 100));
+    ASSERT_TRUE(Rational(0, 1, 10) - Rational(0, 1, 10) == Rational(0, 0, 100));
 
     // integer == Rational
     ASSERT_TRUE(1 == Rational(1));
+    ASSERT_TRUE(0 == Rational(0, 0, 100));
     ASSERT_FALSE(1 == Rational(1, 2, 3));
     ASSERT_FALSE(1 == Rational(2));
     ASSERT_FALSE(3 == Rational(2));
@@ -382,6 +460,32 @@ TEST(RationalTests, CompareNotEqual)
     ASSERT_TRUE(Rational(1, 2, 3) != 1);
     ASSERT_TRUE(Rational(1) != 2);
     ASSERT_TRUE(Rational(2) != 1);
+}
+
+/* Tests for prefix and suffix increment/decrement operators */
+TEST(RationalTests, IncrementDecrement)
+{
+    Rational a(5U);
+    ASSERT_EQ(a++, 5U);
+    ASSERT_EQ(a, 6U);
+    ASSERT_EQ(++a, 7U);
+    ASSERT_EQ(a, 7U);
+
+    ASSERT_EQ(a--, 7U);
+    ASSERT_EQ(a, 6U);
+    ASSERT_EQ(--a, 5U);
+    ASSERT_EQ(a, 5U);
+
+    Rational b(5, 1, 2);
+    ASSERT_EQ(b++, Rational(5, 1, 2));
+    ASSERT_EQ(b, Rational(6, 1, 2));
+    ASSERT_EQ(++b, Rational(7, 1, 2));
+    ASSERT_EQ(b, Rational(7, 1, 2));
+
+    ASSERT_EQ(b--, Rational(7, 1, 2));
+    ASSERT_EQ(b, Rational(6, 1, 2));
+    ASSERT_EQ(--b, Rational(5, 1, 2));
+    ASSERT_EQ(b, Rational(5, 1, 2));
 }
 
 /* Tests construction of Rational from string representation. */
@@ -473,20 +577,26 @@ TEST(RationalTests, ToString)
     // Integer (denominator = 1)
     Rational a(60);
     ASSERT_EQ(a.to_string(), "60");
+    ASSERT_EQ(a.to_total_string(), "60");
     ASSERT_EQ(std::string(a), "60");
 
     // Fraction
     Rational b(60000, 1001);
-    ASSERT_EQ(b.to_string(), "60000/1001");
-    ASSERT_EQ(std::string(b), "60000/1001");
+    ASSERT_EQ(b.to_string(), "{59 941/1001}");
+    ASSERT_EQ(b.to_total_string(), "60000/1001");
+    ASSERT_EQ(std::string(b), "{59 941/1001}");
 
     // Simple fraction
     Rational c(1, 2);
     ASSERT_EQ(c.to_string(), "1/2");
+    ASSERT_EQ(c.to_total_string(), "1/2");
+    ASSERT_EQ(std::string(c), "1/2");
 
-    // Mixed number outputs as improper fraction
+    // Mixed number outputs
     Rational d(1, 1, 2);  // 1 + 1/2 = 3/2
-    ASSERT_EQ(d.to_string(), "3/2");
+    ASSERT_EQ(d.to_string(), "{1 1/2}");
+    ASSERT_EQ(d.to_total_string(), "3/2");
+    ASSERT_EQ(std::string(d), "{1 1/2}");
 }
 
 /* Tests that string parsing and conversion are consistent (round-trip). */
@@ -495,16 +605,16 @@ TEST(RationalTests, StringRoundTrip)
     // Test that parsing a string and converting back produces the same string
     std::string original1 = "60000/1001";
     Rational r1(original1);
-    ASSERT_EQ(r1.to_string(), original1);
+    ASSERT_EQ(r1.to_total_string(), original1);
 
     std::string original2 = "60";
     Rational r2(original2);
-    ASSERT_EQ(r2.to_string(), original2);
+    ASSERT_EQ(r2.to_total_string(), original2);
 
     // Edge case: large values
     std::string original3 = "1000000/999999";
     Rational r3(original3);
-    ASSERT_EQ(r3.to_string(), original3);
+    ASSERT_EQ(r3.to_total_string(), original3);
 }
 
 /* Tests input stream operator for parsing Rational from streams. */

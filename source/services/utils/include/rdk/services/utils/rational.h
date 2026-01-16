@@ -109,10 +109,48 @@ public:
      * @throws: RationalException if denominator is zero.
      */
     explicit Rational(const std::string& str);
+    Rational(float) = delete;
+    Rational(double) = delete;
+    /**
+     * @brief: Constructs a Rational from any unsigned integral type.
+     *
+     * The fraction part is set to zero.
+     *
+     * @tparam T: An unsigned integral type, not uint64_t.
+     * @param [in] integer: The integer value.
+     */
+    template <typename T, typename = typename std::enable_if<std::is_integral<T>::value && std::is_unsigned<T>::value && !std::is_same<T, uint64_t>::value>::type>
+    Rational(T integer) :
+        m_integer(static_cast<uint64_t>(integer)),
+        m_numerator(0),
+        m_denominator(1)
+    {
+    }
+    /**
+     * @brief: Constructs a Rational from any signed integral type.
+     *
+     * The value must be non-negative. If a negative value is provided, throws RationalException.
+     *
+     * @tparam T: A signed integral type.
+     * @param [in] integer: The integer value.
+     *
+     * @throws: RationalException if integer is negative.
+     */
+    template <typename T, typename = typename std::enable_if<std::is_integral<T>::value && std::is_signed<T>::value>::type, typename = void>
+    Rational(T integer) :
+        m_integer(static_cast<uint64_t>(integer)),
+        m_numerator(0),
+        m_denominator(1)
+    {
+        if (integer < 0) {
+            throw RationalException("Rational: negative rationals are not supported");
+        }
+    }
     /**
      * @brief: Output stream operator.
      *
-     * Outputs in "numerator/denominator" format or "integer" if no fractional part.
+     * Outputs in "{integer numerator/denominator}" format if there are both integer and fractional part,
+     * otherwise returns "integer" or "numerator/denominator" format.
      *
      * @param [in] os: The output stream.
      * @param [in] other: The Rational to output.
@@ -142,6 +180,7 @@ public:
     /**
      * @brief: Assignment operator from integral type.
      *
+     * @tparam T: An integral type.
      * @param [in] n: The integer value to assign.
      *
      * @return: Reference to this.
@@ -167,6 +206,32 @@ public:
     Rational& operator-=(const Rational& other);
     Rational& operator*=(const Rational& other);
     Rational& operator/=(const Rational& other);
+
+    Rational& operator++()
+    {
+        ++m_integer;
+        return *this;
+    }
+
+    Rational operator++(int)
+    {
+        Rational tmp(*this);
+        ++m_integer;
+        return tmp;
+    }
+
+    Rational& operator--()
+    {
+        --m_integer;
+        return *this;
+    }
+
+    Rational operator--(int)
+    {
+        Rational tmp(*this);
+        --m_integer;
+        return tmp;
+    }
 
     template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
     Rational operator+(T n) const { return *this + Rational(n); }
@@ -277,10 +342,21 @@ public:
      */
     explicit operator bool() const { return m_integer || m_numerator; }
     /**
+     * @brief: Integral conversion operator.
+     *
+     * @tparam T: An integral type.
+     * @return: Integer part converted to the output type.
+     */
+    template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+    explicit operator T() const
+    {
+        return static_cast<T>(integer());
+    }
+    /**
      * @brief: String conversion operator.
      *
-     * Returns "numerator/denominator" format if there's a fractional part,
-     * otherwise returns "integer" format.
+     * Returns "{integer numerator/denominator}" format if there are both integer and fractional part,
+     * otherwise returns "integer" or "numerator/denominator" format.
      *
      * @return: The string representation.
      */
@@ -288,12 +364,22 @@ public:
     /**
      * @brief: Converts the Rational to a string.
      *
+     * Returns "{integer numerator/denominator}" format if there are both integer and fractional part,
+     * otherwise returns "integer" or "numerator/denominator" format.
+     *
+     * @return: The string representation.
+     */
+     std::string to_string() const;
+    /**
+     * @brief: Converts the Rational to a string with total numerator and denominator (improper fraction form).
+     *
      * Returns "numerator/denominator" format if there's a fractional part,
      * otherwise returns "integer" format.
      *
      * @return: The string representation.
+     * @note: Calculating the total numerator may overflow for large values.
      */
-    std::string to_string() const;
+    std::string to_total_string() const;
     /** @} */
 
 private:
@@ -463,5 +549,20 @@ struct hash<rivermax::dev_kit::services::Rational>
     }
 };
 }
+
+template<>
+struct std::common_type<rivermax::dev_kit::services::Rational, rivermax::dev_kit::services::Rational> {
+    using type = rivermax::dev_kit::services::Rational;
+};
+
+template<typename T>
+struct std::common_type<T, rivermax::dev_kit::services::Rational> {
+    using type = rivermax::dev_kit::services::Rational;
+};
+
+template<typename T>
+struct std::common_type<rivermax::dev_kit::services::Rational, T> {
+    using type = rivermax::dev_kit::services::Rational;
+};
 
 #endif // RDK_SERVICES_UTILS_RATIONAL_H_

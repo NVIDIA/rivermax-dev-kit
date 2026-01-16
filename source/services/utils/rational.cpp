@@ -32,18 +32,45 @@ namespace dev_kit
 namespace services
 {
 
+static_assert(!std::is_convertible<Rational, bool>::value,
+    "Rational should not be implicitly convertible to bool");
+static_assert(!std::is_convertible<Rational, float>::value,
+    "Rational should not be implicitly convertible to float");
+static_assert(!std::is_convertible<Rational, double>::value,
+    "Rational should not be implicitly convertible to double");
+static_assert(!std::is_convertible<Rational, uint8_t>::value,
+    "Rational should not be implicitly convertible to uint8_t");
+static_assert(!std::is_convertible<Rational, int8_t>::value,
+    "Rational should not be implicitly convertible to int8_t");
+static_assert(!std::is_convertible<Rational, uint16_t>::value,
+    "Rational should not be implicitly convertible to uint16_t");
+static_assert(!std::is_convertible<Rational, int16_t>::value,
+    "Rational should not be implicitly convertible to int16_t");
+static_assert(!std::is_convertible<Rational, uint32_t>::value,
+    "Rational should not be implicitly convertible to uint32_t");
+static_assert(!std::is_convertible<Rational, int32_t>::value,
+    "Rational should not be implicitly convertible to int32_t");
+static_assert(!std::is_convertible<Rational, uint64_t>::value,
+    "Rational should not be implicitly convertible to uint64_t");
+static_assert(!std::is_convertible<Rational, int64_t>::value,
+    "Rational should not be implicitly convertible to int64_t");
+
 Rational::Rational(uint64_t integer, uint64_t numerator, uint64_t denominator)
 {
     init(integer, numerator, denominator);
 }
 
-Rational::Rational()
-    : Rational(0, 0, 1)
+Rational::Rational() :
+    m_integer(0),
+    m_numerator(0),
+    m_denominator(1)
 {
 }
 
-Rational::Rational(uint64_t integer)
-    : Rational(integer, 0, 1)
+Rational::Rational(uint64_t integer) :
+    m_integer(integer),
+    m_numerator(0),
+    m_denominator(1)
 {
 }
 
@@ -80,6 +107,29 @@ Rational::operator std::string() const
 
 std::string Rational::to_string() const
 {
+    std::string str;
+
+    if (m_integer && m_numerator) {
+        str += "{";
+    }
+    if (m_integer || !m_numerator) {
+        str += std::to_string(m_integer);
+    }
+    if (m_integer && m_numerator) {
+        str += " ";
+    }
+    if (m_numerator) {
+        str += std::to_string(m_numerator) + "/" + std::to_string(m_denominator);
+    }
+    if (m_integer && m_numerator) {
+        str += "}";
+    }
+
+    return str;
+}
+
+std::string Rational::to_total_string() const
+{
     uint64_t total_numerator = m_integer * m_denominator + m_numerator;
     if (m_denominator == 1) {
         return std::to_string(total_numerator);
@@ -112,6 +162,9 @@ void Rational::init(uint64_t integer, uint64_t numerator, uint64_t denominator)
     m_integer = integer;
     m_numerator = numerator;
     m_denominator = denominator;
+    if (m_numerator == 0U) {
+        m_denominator = 1U;
+    }
 
     reduce(m_numerator, m_denominator);
 
