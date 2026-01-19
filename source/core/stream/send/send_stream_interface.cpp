@@ -23,14 +23,28 @@
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
-ISendStream::ISendStream(const TwoTupleFlow& local_address) :
-    ISingleStream(local_address),
-    m_num_of_chunks(0)
+ISendStream::ISendStream(const std::vector<TwoTupleFlow>& local_addresses) :
+    IStream(),
+    m_local_addresses(local_addresses)
 {
 }
 
 std::ostream& ISendStream::print(std::ostream& out) const
 {
-    return ISingleStream::print(out)
-        << "| Number of chunks: " << m_num_of_chunks << "\n";
+    out << "| Stream ID: ";
+    if (m_stream_created) {
+        out << m_stream_id << "\n";
+    } else {
+        out << "not set\n";
+    }
+    if (m_local_addresses.size() == 1) {
+        out << "| NIC IP: " << m_local_addresses[0].get_ip() << "\n";
+    } else {
+        out << "| NIC IP(s):\n";
+        for (size_t i = 0; i < m_local_addresses.size(); ++i) {
+            out << "|   [" << i << "] " << m_local_addresses[i].get_ip() << "\n";
+        }
+    }
+
+    return out;
 }

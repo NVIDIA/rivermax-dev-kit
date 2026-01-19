@@ -124,6 +124,7 @@ protected:
     rmx_output_gen_stream_params m_stream_params;
     size_t m_header_buffer_size = 0;
     size_t m_payload_buffer_size = 0;
+    size_t m_num_of_chunks = 0;
 public:
     /**
      * @brief: GenericSendStream constructor.
@@ -132,6 +133,12 @@ public:
      */
     GenericSendStream(const GenericStreamSettings& settings);
     std::ostream& print(std::ostream& out) const override;
+    /**
+     * @brief: Returns number of chunks used in the stream.
+     *
+     * @return: Number of chunks.
+     */
+    size_t get_num_of_chunks() const { return m_num_of_chunks; }
     ReturnStatus create_stream() override;
     ReturnStatus destroy_stream() override;
     ReturnStatus initialize_memory_layout() override;

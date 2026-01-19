@@ -20,8 +20,10 @@
 #define RDK_CORE_STREAM_SEND_SEND_STREAM_INTERFACE_H_
 
 #include <ostream>
+#include <vector>
 
-#include "rdk/core/stream/single_stream_interface.h"
+#include "rdk/core/stream/stream_interface.h"
+#include "rdk/core/flow/flow.h"
 
 namespace rivermax
 {
@@ -32,26 +34,20 @@ namespace core
 /**
  * @brief: Send stream interface.
  */
-class ISendStream : public ISingleStream
+class ISendStream : public IStream
 {
 protected:
-    size_t m_num_of_chunks;
+    std::vector<TwoTupleFlow> m_local_addresses;
 public:
     virtual ~ISendStream() = default;
     std::ostream& print(std::ostream& out) const override;
-    /**
-     * @brief: Returns number of chunks used in the stream.
-     *
-     * @return: Number of chunks.
-     */
-    size_t get_num_of_chunks() { return m_num_of_chunks; }
 protected:
     /**
      * @brief: ISendStream class constructor.
      *
-     * @param [in] local_address: Network address of the NIC.
+     * @param [in] local_addresses: Network addresses of the NICs.
      */
-    ISendStream(const TwoTupleFlow& local_address);
+    ISendStream(const std::vector<TwoTupleFlow>& local_addresses);
 };
 
 } // namespace core

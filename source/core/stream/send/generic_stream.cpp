@@ -88,7 +88,7 @@ void GenericStreamSettings::stream_param_set_chunk_size(rmx_output_gen_stream_pa
 }
 
 GenericSendStream::GenericSendStream(const GenericStreamSettings& settings) :
-    ISendStream(settings.m_network_address.get_source_flow()),
+    ISendStream({settings.m_network_address.get_source_flow()}),
     m_stream_settings(settings),
     m_next_chunk_to_send_index(0)
 {

@@ -71,10 +71,10 @@ ReturnStatus MediaTxIONode::initialize_send_stream()
 {
     m_send_data_stride_size = m_media_settings.data_stride_size;
     m_send_header_stride_size = m_media_settings.app_header_stride_size;
-    auto network_address = TwoTupleFlow(0, m_network_address.get_source_ip(),
-                                        m_network_address.get_source_port());
+    FourTupleFlow flow(0, m_network_address.get_source_ip(), m_network_address.get_source_port(),
+                       m_send_flow.get_ip(), m_send_flow.get_port());
 
-    MediaStreamSettings stream_settings(network_address, {m_send_flow}, m_media_settings);
+    MediaStreamSettings stream_settings({flow}, m_media_settings);
     m_send_stream = std::shared_ptr<RtpVideoSendStream>(new RtpVideoSendStream(stream_settings));
     return ReturnStatus::success;
 }

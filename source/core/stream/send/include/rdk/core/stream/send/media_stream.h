@@ -52,14 +52,13 @@ public:
     /**
      * @brief: MediaSendStream constructor.
      *
-     * @param [in] source_address: Network address of the source.
-     * @param [in] destination_address: Network address of the destination.
+     * @param [in] flows: Network flows (source and destination addresses).
      * @param [in] media_settings: Parameters of SMPTE-2110 media.
      * @param [in] dscp: DSCP value.
      * @param [in] pcp: PCP value.
      * @param [in] ecn: ECN value.
      */
-    MediaStreamSettings(const TwoTupleFlow& source_address, const std::vector<TwoTupleFlow>& destination_addresses, const MediaSettings& media_settings,
+    MediaStreamSettings(const std::vector<FourTupleFlow>& flows, const MediaSettings& media_settings,
             uint8_t dscp = 0, uint8_t pcp = 0, uint8_t ecn = 0);
     virtual ~MediaStreamSettings() = default;
     /**
@@ -68,8 +67,8 @@ public:
      * @return: SDP of the stream.
      */
     std::string get_sdp() const { return m_sdp; }
-    TwoTupleFlow m_source_address;
-    std::vector<TwoTupleFlow> m_destination_addresses;
+    std::vector<TwoTupleFlow> m_src_addresses;
+    std::vector<TwoTupleFlow> m_dst_addresses;
     const MediaSettings& m_media_settings;
     std::string m_sdp;
     uint8_t m_dscp;

@@ -149,7 +149,8 @@ IPMXStreamSender::IPMXStreamSender(size_t sender_id, const TwoTupleFlow& src_add
 
     m_report_dst_flow = std::make_unique<TwoTupleFlow>(m_stream_number, dst_ip, dst_port + 1);
 
-    MediaStreamSettings stream_settings(src_address, {dst_address}, m_media_settings);
+    FourTupleFlow flow(m_stream_number, src_address, dst_address);
+    MediaStreamSettings stream_settings({flow}, m_media_settings);
 
     configure_memory_layout();
     m_stream = std::make_unique<RtpVideoSendStream>(stream_settings, *m_mem_blockset.get());

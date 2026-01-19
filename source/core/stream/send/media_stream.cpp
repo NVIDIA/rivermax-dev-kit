@@ -31,26 +31,32 @@
 using namespace rivermax::dev_kit::services;
 using namespace rivermax::dev_kit::core;
 
-MediaStreamSettings::MediaStreamSettings(const TwoTupleFlow& source_address,
-            const std::vector<TwoTupleFlow>& destination_addresses,
+MediaStreamSettings::MediaStreamSettings(const std::vector<FourTupleFlow>& flows,
             const MediaSettings& media_settings,
             uint8_t dscp, uint8_t pcp, uint8_t ecn) :
         IStreamSettings(s_build_steps),
-        m_source_address(source_address),
-        m_destination_addresses(destination_addresses),
         m_media_settings(media_settings),
         m_dscp(dscp),
         m_pcp(pcp),
         m_ecn(ecn)
 {
-    if (destination_addresses.size() == 1) {
-        m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(source_address.get_ip(), source_address.get_port(),
-            destination_addresses[0].get_ip(), destination_addresses[0].get_port());
+    for (const auto& flow : flows) {
+        m_src_addresses.push_back(flow.get_source_flow());
+        m_dst_addresses.push_back(flow.get_destination_flow());
+    }
+
+    const auto& src = m_src_addresses[0];
+    const auto& dst = m_dst_addresses[0];
+
+    if (flows.size() == 1) {
+        m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(
+            src.get_ip(), src.get_port(), dst.get_ip(), dst.get_port());
     } else {
-        m_sdp = m_media_settings.media_settings_calculator->generate_media_dup_sdp(source_address.get_ip(), source_address.get_port(),
-            destination_addresses[0].get_ip(), destination_addresses[0].get_port(),
-            source_address.get_ip(), source_address.get_port(),
-            destination_addresses[1].get_ip(), destination_addresses[1].get_port());
+        const auto& src2 = m_src_addresses[1];
+        const auto& dst2 = m_dst_addresses[1];
+        m_sdp = m_media_settings.media_settings_calculator->generate_media_dup_sdp(
+            src.get_ip(), src.get_port(), dst.get_ip(), dst.get_port(),
+            src2.get_ip(), src2.get_port(), dst2.get_ip(), dst2.get_port());
     }
 }
 
@@ -177,15 +183,14 @@ ReturnStatus MediaStreamMemBlockset::set_block_layout(size_t idx, uint16_t data_
 }
 
 MediaSendStream::MediaSendStream(const MediaStreamSettings& settings) :
-    ISendStream(settings.m_source_address),
+    ISendStream(settings.m_src_addresses),
     m_stream_settings(settings)
 {
     m_stream_settings.build(m_stream_settings, m_stream_params);
-    m_num_of_chunks = 0;
 }
 
 MediaSendStream::MediaSendStream(const MediaStreamSettings& settings, MediaStreamMemBlockset& mem_blocks) :
-    ISendStream(settings.m_source_address),
+    ISendStream(settings.m_src_addresses),
     m_stream_settings(settings)
 {
     m_stream_settings.build(m_stream_settings, m_stream_params);
@@ -222,7 +227,6 @@ ReturnStatus MediaSendStream::apply_memory_layout(const MediaMemoryLayoutRespons
 
 void MediaSendStream::assign_memory_blocks(MediaStreamMemBlockset& mem_blocks)
 {
-    m_num_of_chunks = mem_blocks.get_memory_block_count() * mem_blocks.get_chunks_per_block();
     rmx_output_media_assign_mem_blocks(&m_stream_params, mem_blocks.get_memory_blocks(),
             mem_blocks.get_memory_block_count());
 }
