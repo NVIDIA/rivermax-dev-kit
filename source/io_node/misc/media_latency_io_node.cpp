@@ -173,7 +173,7 @@ ReturnStatus MediaTxIONode::destroy_send_stream()
 
     rc = m_chunk_handler->cancel_unsent();
     if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to cancel media streams" << std::endl;
+        std::cerr << "Failed to cancel unsent chunks" << std::endl;
         return rc;
     }
 
@@ -503,7 +503,8 @@ ReturnStatus MediaTxIONode::wait_for_server_reply(ReceiveChunk& receive_chunk)
         }
 
         if (get_time_now_ns() > timeout_start_ns + WAIT_SERVER_REPLY_NSEC) {
-            std::cerr << "No reply from server" << std::endl;
+            std::cerr << "No reply has been received from server in "
+                      << WAIT_SERVER_REPLY_NSEC / NS_IN_SEC << " seconds" << std::endl;
             return ReturnStatus::failure;
         }
     }
