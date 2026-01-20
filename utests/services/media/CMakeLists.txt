@@ -31,6 +31,7 @@ if (NOT WIN32)
     target_sources(${PROJECT_NAME}
         PRIVATE
         smpte_2110_20_calculator_tests.cpp
+        smpte_2110_40_calculator_tests.cpp
     )
 
     gtest_discover_tests(${PROJECT_NAME})
