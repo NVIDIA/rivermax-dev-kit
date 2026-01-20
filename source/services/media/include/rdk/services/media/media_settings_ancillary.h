@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,6 +60,7 @@ struct SMPTE_2110_40_MediaSettings : public MediaSettings
     uint16_t max_user_data_words_count = DEFAULT_ANCILLARY_DATA_WORDS_COUNT;
     uint16_t max_ancillary_data_packets_per_packet = DEFAULT_ANCILLARY_DATA_PACKETS_PER_PACKET;
     FrameRate frame_rate = {60};
+    VideoScanType video_scan_type = VideoScanType::Progressive;
 };
 
 }  // namespace services

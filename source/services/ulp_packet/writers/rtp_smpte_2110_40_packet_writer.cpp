@@ -35,7 +35,7 @@ struct AncillaryRTPExtension
     /**
      * @brief: Sets the field indicator value.
      *
-     * @param [in] f: Field indicator (0=progressive, 1=field1, 2=field2).
+     * @param [in] f: Field indicator (0=progressive, 2=field1, 3=field2).
      */
     void set_field_indicator(uint8_t f)
     {

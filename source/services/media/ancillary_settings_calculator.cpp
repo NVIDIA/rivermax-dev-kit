@@ -65,6 +65,10 @@ void ST_2110_40_MediaSettingsCalculator::calculate_timing_parameters()
     m_media_settings.sample_rate = MediaSettings::RTP_SAMPLE_RATE;
     m_media_settings.media_unit_time_interval_ns = rational_cast<double>(NS_IN_SEC / m_media_settings.frame_rate);
     m_media_settings.ticks_per_media_unit = m_media_settings.sample_rate / m_media_settings.frame_rate;
+    if (m_media_settings.video_scan_type == VideoScanType::Interlaced) {
+        m_media_settings.media_unit_time_interval_ns /= 2;
+        m_media_settings.ticks_per_media_unit /= 2;
+    }
 }
 
 void ST_2110_40_MediaSettingsCalculator::calculate_memory_parameters()
@@ -124,9 +128,9 @@ std::string ST_2110_40_MediaSettingsCalculator::generate_media_sdp(
     auto time_description = TimeDescription::Builder().build();
 
     auto media_description_builder = SMPTE2110_40_MediaDescription::Builder(
-        destination_port, 
-        TransportProtocol::RTP_AVP, 
-        std::to_string(m_media_settings.payload_type), 
+        destination_port,
+        TransportProtocol::RTP_AVP,
+        std::to_string(m_media_settings.payload_type),
         destination_ip
     );
 

@@ -33,6 +33,10 @@ RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const
         m_rtp_packet_writer = std::make_unique<RTP_SMPTE_2110_40_MockPacketWriter>(nullptr, nullptr);
         m_cached_packets_in_media_unit = calculate_packets_for_media_unit();
     }
+    const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(media_settings);
+    m_rtp_packet_context->field_indicator =
+        (ancillary_settings.video_scan_type == VideoScanType::Interlaced) ? RTP_2110_40_FIELD_INDICATOR_FIELD1
+                                                                         : RTP_2110_40_FIELD_INDICATOR_PROGRESSIVE;
 }
 
 ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
@@ -52,7 +56,6 @@ ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::set_next_media_unit(std::shar
 void RTP_SMPTE_2110_40_PacketBufferWriter::reset_in_media_unit_state()
 {
     m_rtp_packet_context->counter = 0;
-    m_rtp_packet_context->field_indicator = 0;
     m_rtp_packet_context->descriptor_start_index = 0;
     m_rtp_packet_context->descriptor_count_in_packet = 0;
 }
@@ -145,19 +148,24 @@ void RTP_SMPTE_2110_40_PacketBufferWriter::update_in_media_unit_state(size_t hea
         m_rtp_packet_context->descriptor_start_index += m_rtp_packet_context->descriptor_count_in_packet;
     }
 
-    // ST 2110-40: timestamp is the same for all packets in a frame (like video)
-    // Only increment after the last packet of the frame
+    // ST 2110-40: timestamp is the same for all packets in a frame/field (like video)
+    // Only increment after the last packet of the frame/field
     if (++m_rtp_packet_context->counter >= m_cached_packets_in_media_unit) {
-        // Timestamp changes every frame (90kHz clock)
+        // Timestamp changes every frame/field (90kHz clock)
         m_rtp_packet_context->timestamp += m_media_settings.ticks_per_media_unit;
         m_rtp_packet_context->counter = 0;
         m_rtp_packet_context->descriptor_start_index = 0;
 
         // Toggle field indicator for interlaced content
-        // Note: This is simplified; real implementation should check video_scan_type
-        m_rtp_packet_context->field_indicator = (m_rtp_packet_context->field_indicator == 0) ? 1 : 0;
+        const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
+        if (ancillary_settings.video_scan_type == VideoScanType::Interlaced) {
+            m_rtp_packet_context->field_indicator =
+                (m_rtp_packet_context->field_indicator == RTP_2110_40_FIELD_INDICATOR_FIELD1)
+                    ? RTP_2110_40_FIELD_INDICATOR_FIELD2
+                    : RTP_2110_40_FIELD_INDICATOR_FIELD1;
+        }
     }
-    // Set Marker bit on last ANC data RTP packet for a field (for interlaced video).
+    // Set Marker bit on last ANC data RTP packet of the media unit
     m_rtp_packet_context->marker = (m_rtp_packet_context->counter == m_cached_packets_in_media_unit - 1) ? 1 : 0;
     m_rtp_packet_context->sequence++;
     m_rtp_packet_context->extended_sequence_number++;
@@ -265,7 +273,7 @@ size_t RTP_SMPTE_2110_40_PacketBufferWriter::get_num_packets_for_next_chunk() co
 
     // Also check how many packets remain in the media unit (accounts for empty marker packets)
     size_t packets_already_written = m_rtp_packet_context->counter;
-    size_t packets_remaining_in_media_unit = (packets_already_written < m_cached_packets_in_media_unit) 
+    size_t packets_remaining_in_media_unit = (packets_already_written < m_cached_packets_in_media_unit)
         ? (m_cached_packets_in_media_unit - packets_already_written) : 0;
 
     size_t packets_available = std::min(packets_for_remaining_descriptors, packets_remaining_in_media_unit);
