@@ -151,7 +151,7 @@ void MediaStreamMemBlockset::set_rivermax_to_allocate_memory()
 }
 
 void MediaStreamMemBlockset::set_dup_block_memory(size_t idx, size_t sub_block_idx, void* block_memory_start,
-            size_t block_memory_size, rmx_mkey_id memory_keys[])
+            size_t block_memory_size, const std::vector<rmx_mkey_id>& memory_keys)
 {
     auto& block = m_blocks[idx];
     rmx_mem_multi_key_region* multiregion = rmx_output_media_get_dup_sub_block(&block, sub_block_idx);
@@ -161,7 +161,7 @@ void MediaStreamMemBlockset::set_dup_block_memory(size_t idx, size_t sub_block_i
     }
     multiregion->addr = block_memory_start;
     multiregion->length = block_memory_size;
-    for (size_t i = 0; i < RMX_MAX_DUP_STREAMS; i++) {
+    for (size_t i = 0; i < memory_keys.size(); i++) {
         multiregion->mkey[i] = memory_keys[i];
     }
 }

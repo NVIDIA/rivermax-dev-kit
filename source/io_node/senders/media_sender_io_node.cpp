@@ -107,17 +107,14 @@ ReturnStatus MediaSenderIONode::initialize_streams()
     ReturnStatus rc;
 
     for (auto& stream_pack : m_stream_packs) {
-        // TODO: here implement a loop over flows per stream to support 22-7 redundancy
-        auto& destination_flow = stream_pack.flows[flow_index];
-        destination_ip = destination_flow.get_ip();
-        destination_port = destination_flow.get_port();
-
-        FourTupleFlow flow(stream_idx, m_local_addresses[0].get_ip(),
-                           m_local_addresses[0].get_port(),
-                           destination_flow.get_ip(), destination_flow.get_port());
-
-        MediaStreamSettings stream_settings({flow}, m_media_settings, m_dscp, m_pcp, m_ecn);
-
+        std::vector<FourTupleFlow> flows_for_stream;
+        for (size_t i = 0; i < stream_pack.flows.size(); i++) {
+            flows_for_stream.push_back(FourTupleFlow(stream_idx, m_local_addresses[i].get_ip(),
+                                                     m_local_addresses[i].get_port(),
+                                                     stream_pack.flows[i].get_ip(),
+                                                     stream_pack.flows[i].get_port()));
+        }
+        MediaStreamSettings stream_settings(flows_for_stream, m_media_settings, m_dscp, m_pcp, m_ecn);
         stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);
         auto runtime_essence_source = std::make_shared<NullEssenceSource>(m_media_settings);
         auto preload_essence_source = std::make_shared<NullEssenceSource>(m_media_settings);
@@ -223,15 +220,29 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
 
     for (size_t i = 0; i < number_of_memory_blocks; ++i) {
-        if (is_hds_on()) {
-            mem_blockset.set_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
-                io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
-            mem_blockset.set_block_memory(i, 1, payload_memory_ptr, m_block_payload_memory_size,
-                io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-            header_memory_ptr += m_block_header_memory_size;
+        if (m_local_addresses.size() == 1) {
+            if (is_hds_on()) {
+                mem_blockset.set_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
+                    io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
+                mem_blockset.set_block_memory(i, 1, payload_memory_ptr, m_block_payload_memory_size,
+                    io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
+                header_memory_ptr += m_block_header_memory_size;
+            } else {
+                mem_blockset.set_block_memory(i, 0, payload_memory_ptr, m_block_payload_memory_size,
+                    io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
+            }
         } else {
-            mem_blockset.set_block_memory(i, 0, payload_memory_ptr, m_block_payload_memory_size,
-                io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
+            const std::vector<rmx_mkey_id> invalid_mkey_ids(m_local_addresses.size(), RMX_MKEY_INVALID);
+            if (is_hds_on()) {
+                mem_blockset.set_dup_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
+                    io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys : invalid_mkey_ids);
+                mem_blockset.set_dup_block_memory(i, 1, payload_memory_ptr, m_block_payload_memory_size,
+                    io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys : invalid_mkey_ids);
+                header_memory_ptr += m_block_header_memory_size;
+            } else {
+                mem_blockset.set_dup_block_memory(i, 0, payload_memory_ptr, m_block_payload_memory_size,
+                    io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys : invalid_mkey_ids);
+            }
         }
         mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
         payload_memory_ptr += m_block_payload_memory_size;

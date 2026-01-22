@@ -202,10 +202,10 @@ public:
     * @param [in] sub_block_idx: Sub-block number, see @ref MediaStreamMemBlockset constructor.
     * @param [in] block_memory_start: Start address of the block memory.
     * @param [in] block_memory_size: Size of the block memory.
-    * @param [in] memory_keys: Memory keys array (@ref RMX_MAX_SUB_BLOCKS_PER_MEM_BLOCK elements).
+    * @param [in] memory_keys: Memory keys vector (@ref RMX_MAX_SUB_BLOCKS_PER_MEM_BLOCK elements).
     */
     void set_dup_block_memory(size_t idx, size_t sub_block_idx, void* block_memory_start,
-            size_t block_memory_size, rmx_mkey_id memory_keys[]);
+            size_t block_memory_size, const std::vector<rmx_mkey_id>& memory_keys);
     /**
     * @brief: Configures all memory blocks to be allocated by Rivermax.
     */
