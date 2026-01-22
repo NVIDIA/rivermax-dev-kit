@@ -85,7 +85,7 @@ private:
     std::vector<MediaStreamPack> m_stream_packs;
     const MediaSettings& m_media_settings;
     size_t m_index;
-    FourTupleFlow m_network_address;
+    std::vector<TwoTupleFlow> m_local_addresses;
     int m_sleep_between_operations;
     bool m_print_parameters;
     uint32_t m_stats_report_interval_ms;
@@ -108,7 +108,7 @@ public:
     /**
      * @brief: MediaSenderIONode constructor.
      *
-     * @param [in] network_address: Network address of the IO node.
+     * @param [in] local_addresses: Local addresses of the IO node.
      * @param [in] app_settings: Application settings.
      * @param [in] index: Index of the sender.
      * @param [in] num_of_streams: Number of streams in the sender.
@@ -117,7 +117,7 @@ public:
      * @param [in] time_hanlder_cb: Time handle callback the IO node will use to get current time.
      */
     MediaSenderIONode(
-        const FourTupleFlow& network_address,
+        const std::vector<TwoTupleFlow>& local_addresses,
         const AppSettings& app_settings,
         const MediaSettings& media_settings,
         size_t index, size_t num_of_streams, int cpu_core_affinity,

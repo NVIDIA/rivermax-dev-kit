@@ -141,6 +141,8 @@ ReturnStatus BaseMemoryStrategy::register_memory()
                     std::cerr << "Failed to register memory " << " with status: " << status << std::endl;
                     return ReturnStatus::failure;
                 }
+                std::cout << "Registered memory " << " with status: " << status << std::endl;
+                std::cout << "Address: " << mem_region[i].addr << " Length: " << mem_region[i].length << " MKey: " << mem_region[i].mkey << std::endl;
             }
         }
         return ReturnStatus::success;

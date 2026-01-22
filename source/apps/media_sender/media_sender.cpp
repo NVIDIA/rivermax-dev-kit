@@ -17,6 +17,7 @@
  */
 
 #include <functional>
+#include <string>
 #include <unordered_map>
 
 #include "rt_threads.h"
@@ -305,7 +306,6 @@ ReturnStatus MediaSenderApp::initialize()
 
 ReturnStatus MediaSenderApp::initialize_memory_strategy()
 {
-//////    std::vector<rmx_device_iface> device_interfaces = {};
     auto base_memory_strategy = std::make_unique<BaseMemoryStrategy>(
         *m_header_allocator, *m_payload_allocator,
         *m_memory_utils,
@@ -357,11 +357,17 @@ ReturnStatus MediaSenderApp::set_rivermax_clock()
 
 void MediaSenderApp::configure_network_flows()
 {
-    // TODO: Make this controllable from application level.
-    constexpr bool dest_port_iteration = false;
-    auto ip_vec = CLI::detail::split(m_app_settings->destination_ips[0], '.');
-    auto ip_prefix_str = std::string(ip_vec[0] + "." + ip_vec[1] + "." + ip_vec[2] + ".");
-    auto ip_last_octet = std::stoi(ip_vec[3]);
+    m_num_paths_per_stream = m_app_settings->local_ips.size();
+    m_flows.reserve(m_app_settings->num_of_total_flows * m_num_paths_per_stream);
+
+    std::vector<std::string> ip_prefix_str;
+    std::vector<uint8_t> ip_last_octet;
+    for (const auto& dst_ip : m_app_settings->destination_ips) {
+        auto ip_vec = CLI::detail::split(dst_ip, '.');
+        ip_prefix_str.push_back(std::string(ip_vec[0] + "." + ip_vec[1] + "." + ip_vec[2] + "."));
+        ip_last_octet.push_back(static_cast<uint8_t>(std::stoi(ip_vec[3])));
+    }
+
     size_t flow_index = 0;
     std::ostringstream ip;
     uint16_t port;
@@ -375,16 +381,14 @@ void MediaSenderApp::configure_network_flows()
     for (const auto& node : m_media_sender_settings->smpte_standard_to_nodes) {
         auto& smpte_standard_config = node.first;
         auto& num_of_streams = node.second;
-        for (size_t i = 0; i < num_of_streams; i++) {
-            if (dest_port_iteration) {
-                ip << m_app_settings->destination_ips[0];
-                port = m_app_settings->destination_ports[0] + static_cast<uint16_t>(flow_index);
-            } else {
-                ip << ip_prefix_str << (ip_last_octet + flow_index) % IP_OCTET_LEN;
-                port = m_app_settings->destination_ports[0];
+        for (size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
+            for (size_t path_index = 0; path_index < m_num_paths_per_stream; path_index++) {
+                ip << ip_prefix_str[path_index] << (ip_last_octet[path_index] + flow_index) % IP_OCTET_LEN;
+                port = m_app_settings->destination_ports[path_index];
+                std::cout << "Add a flow with Flow index: " << flow_index << " IP: " << ip.str() << " Port: " << port << std::endl;
+                m_flows.push_back(TwoTupleFlow(flow_index, ip.str(), port));
+                ip.str("");
             }
-            m_flows.push_back(TwoTupleFlow(flow_index, ip.str(), port));
-            ip.str("");
             flow_index++;
         }
     }
@@ -530,17 +534,15 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
                          " is not set!!!" << std::endl;
             sender_cpu_core = CPU_NONE;
         }
-        auto network_address = FourTupleFlow(
-            sender_idx,
-            m_app_settings->local_ips[0],
-            m_app_settings->source_port,
-            m_app_settings->destination_ips[0],
-            m_app_settings->destination_ports[0]);
+        std::vector<TwoTupleFlow> local_addresses;
+        for (const auto& local_ip : m_app_settings->local_ips) {
+            local_addresses.push_back(TwoTupleFlow(sender_idx, local_ip, m_app_settings->source_port));
+        }
         auto flows = std::vector<TwoTupleFlow>(
             m_flows.begin() + streams_offset,
-            m_flows.begin() + streams_offset + num_of_streams);
+            m_flows.begin() + streams_offset + num_of_streams * m_num_paths_per_stream);
         m_senders.push_back(std::make_unique<MediaSenderIONode>(
-            network_address,
+            local_addresses,
             *m_app_settings,
             smpte_standard_config,
             sender_idx,
@@ -555,7 +557,7 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
             return rc;
         }
         m_senders[sender_idx]->set_synchronizer(synchronizer);
-        streams_offset += num_of_streams;
+        streams_offset += num_of_streams * m_num_paths_per_stream;
         sender_idx++;
     }
     return ReturnStatus::success;

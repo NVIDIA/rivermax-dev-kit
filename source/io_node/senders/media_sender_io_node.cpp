@@ -44,51 +44,8 @@ using namespace rivermax::dev_kit::core;
 
 constexpr size_t MediaSenderIONode::DEFAULT_PRINT_TIME_INTERVAL_MS;
 
-static void replace_all(
-    std::string& source_str, const std::string& outer_prefix_str, const std::string& inner_prefix_str,
-    const std::string& new_str, const char* suffix_str, std::string::size_type start_replacement_location = 0)
-{
-    /*
-    * Starting at start_replacement_location, repeatedly search for outer_prefix_str then inner_prefix_str,
-    * then substitute up to suffix_str with new_str.
-    * so e.g., a pattern like <prefix><something-to-keep><infix><anything><suffix>
-    * can be transformed into <prefix><something-to-keep><infix><replaced><suffix>
-    */
-    std::string::size_type n = start_replacement_location;
-    std::string::size_type n2 = 0;
-    while ((n = source_str.find(outer_prefix_str, n)) != std::string::npos) {
-        n = source_str.find(inner_prefix_str, n + outer_prefix_str.length());
-        if (n == std::string::npos) {
-            break;
-        }
-        n2 = source_str.find(suffix_str, n + inner_prefix_str.length());
-        if (n2 == std::string::npos) {
-            break;
-        }
-        source_str.replace(n + inner_prefix_str.length(), n2 - (n + inner_prefix_str.length()), new_str);
-        n += inner_prefix_str.length();
-    }
-}
-
-/**
-* @breif: Replace all occurrences of sub string in the input string.
-*
-* @pram [in] source_str: Source string.
-* @pram [in] prefix_str: Prefix string before source_str.
-* @pram [in] new_str: The new string to replace.
-* @pram [in] suffix_str: Suffix string after source_str.
-* @pram [in] start_replacement_location: The location in the string to start the replacement from, defaults to 0.
-*/
-static inline void replace_all(
-    std::string& source_str, const std::string& prefix_str,
-    const std::string& new_str, const char* suffix_str,
-    std::string::size_type start_replacement_location = 0)
-{
-    return replace_all(source_str, prefix_str, "", new_str, suffix_str, start_replacement_location);
-}
-
 MediaSenderIONode::MediaSenderIONode(
-        const FourTupleFlow& network_address,
+        const std::vector<TwoTupleFlow>& local_addresses,
         const AppSettings& app_settings,
         const MediaSettings& media_settings,
         size_t index, size_t num_of_streams, int cpu_core_affinity,
@@ -97,7 +54,7 @@ MediaSenderIONode::MediaSenderIONode(
     m_stream_packs(num_of_streams),
     m_media_settings(media_settings),
     m_index(index),
-    m_network_address(network_address),
+    m_local_addresses(local_addresses),
     m_sleep_between_operations(app_settings.sleep_between_operations),
     m_print_parameters(app_settings.print_parameters),
     m_stats_report_interval_ms(app_settings.stats_report_interval_ms),
@@ -129,19 +86,14 @@ std::ostream& MediaSenderIONode::print(std::ostream& out) const
 
 void MediaSenderIONode::initialize_send_flows(const std::vector<TwoTupleFlow>& flows)
 {
-    std::vector<size_t> flows_per_stream(m_stream_packs.size(), 0);
-
-    for (size_t flow = 0; flow < flows.size(); flow++) {
-        flows_per_stream[flow % m_stream_packs.size()]++;
-    }
-
     size_t flows_offset = 0;
 
     for (size_t strm_indx = 0; strm_indx < m_stream_packs.size(); strm_indx++) {
         m_stream_packs[strm_indx].flows = std::vector<TwoTupleFlow>(
             flows.begin() + flows_offset,
-            flows.begin() + flows_offset + flows_per_stream[strm_indx]);
-        flows_offset += flows_per_stream[strm_indx];
+            flows.begin() + flows_offset + m_local_addresses.size());
+        flows_offset += m_local_addresses.size();
+        std::cout << "Stream " << strm_indx << " has " << m_stream_packs[strm_indx].flows.size() << " flows" << std::endl;
     }
 }
 
@@ -155,12 +107,13 @@ ReturnStatus MediaSenderIONode::initialize_streams()
     ReturnStatus rc;
 
     for (auto& stream_pack : m_stream_packs) {
+        // TODO: here implement a loop over flows per stream to support 22-7 redundancy
         auto& destination_flow = stream_pack.flows[flow_index];
         destination_ip = destination_flow.get_ip();
         destination_port = destination_flow.get_port();
 
-        FourTupleFlow flow(stream_idx, m_network_address.get_source_ip(),
-                           m_network_address.get_source_port(),
+        FourTupleFlow flow(stream_idx, m_local_addresses[0].get_ip(),
+                           m_local_addresses[0].get_port(),
                            destination_flow.get_ip(), destination_flow.get_port());
 
         MediaStreamSettings stream_settings({flow}, m_media_settings, m_dscp, m_pcp, m_ecn);
