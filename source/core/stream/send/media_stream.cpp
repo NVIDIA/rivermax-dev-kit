@@ -45,19 +45,7 @@ MediaStreamSettings::MediaStreamSettings(const std::vector<FourTupleFlow>& flows
         m_dst_addresses.push_back(flow.get_destination_flow());
     }
 
-    const auto& src = m_src_addresses[0];
-    const auto& dst = m_dst_addresses[0];
-
-    if (flows.size() == 1) {
-        m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(
-            src.get_ip(), src.get_port(), dst.get_ip(), dst.get_port());
-    } else {
-        const auto& src2 = m_src_addresses[1];
-        const auto& dst2 = m_dst_addresses[1];
-        m_sdp = m_media_settings.media_settings_calculator->generate_media_dup_sdp(
-            src.get_ip(), src.get_port(), dst.get_ip(), dst.get_port(),
-            src2.get_ip(), src2.get_port(), dst2.get_ip(), dst2.get_port());
-    }
+    m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(flows);
 }
 
 IStreamSettings<MediaStreamSettings, rmx_output_media_stream_params>::SetterSequence MediaStreamSettings::s_build_steps{

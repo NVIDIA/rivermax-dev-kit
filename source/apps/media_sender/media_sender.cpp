@@ -52,9 +52,18 @@ ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& s
         std::cerr << "Cannot set both a single local IP and a local IP list" << std::endl;
         return ReturnStatus::failure;
     }
+    if (settings.enable_redundancy && settings.local_ips.size() < 2 ) {
+        std::cerr << "SMPTE 2022-7 redundancy requires at least two local IP addresses" << std::endl;
+        return ReturnStatus::failure;
+    }
+
     if (!settings.local_ips.empty()) {
-        if (settings.local_ips.size() > 2) {
-            std::cerr << "Up to two local IP addresses is supported (1 for a single stream, 2 for 2022-7 duplication)" << std::endl;
+        if (settings.local_ips.size() > 1 && !settings.enable_redundancy) {
+            std::cerr << "Only one local IP address is supported when SMPTE 2022-7 redundancy is disabled" << std::endl;
+            return ReturnStatus::failure;
+        }
+        if (settings.local_ips.size() > MediaSenderApp::get_max_dup_streams()) {
+            std::cerr << "Up to " << MediaSenderApp::get_max_dup_streams() << " local IP addresses are supported with SMPTE 2022-7 redundancy" << std::endl;
             return ReturnStatus::failure;
         }
         if (settings.destination_ips.size() != settings.local_ips.size()) {
@@ -146,6 +155,10 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::SLEEP);
     auto hds = m_cli_parser_manager->add_option(CLIOptStr::HEADER_DATA_SPLIT);
+    m_cli_parser_manager->get_parser()->add_flag(
+        CLIOptStr::ENABLE_REDUNDANCY,
+        settings.enable_redundancy,
+        "Enable SMPTE 2022-7 redundancy (allows plural IPs/ports options)");
 #ifdef CUDA_ENABLED
     m_cli_parser_manager->add_option(CLIOptStr::GPU_ID)->needs(hds);
     m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
@@ -206,7 +219,6 @@ MediaSenderApp::MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSetti
 
 ReturnStatus MediaSenderApp::post_load_settings()
 {
-    // Convert single IP/port to vector format if vectors are empty
     if (m_app_settings->local_ips.empty() && !m_app_settings->local_ip.empty()) {
         m_app_settings->local_ips.push_back(m_app_settings->local_ip);
     }
@@ -216,29 +228,23 @@ ReturnStatus MediaSenderApp::post_load_settings()
     if (m_app_settings->destination_ports.empty()) {
         m_app_settings->destination_ports.push_back(m_app_settings->destination_port);
     }
-
     if(m_app_settings->media.enable_video) {
         m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
     }
-
     if (m_app_settings->media.enable_alpha) {
         if (m_app_settings->media.alpha_bit_depth == VideoBitDepth::Unknown) {
             m_app_settings->media.alpha_bit_depth = m_app_settings->media.color_bit_depth;
         }
     }
-
     if(m_app_settings->media.enable_audio) {
         m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_30);
     }
-
     if(m_app_settings->media.enable_ancillary) {
         m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_40);
     }
-
     uint32_t default_packets_in_chunk = MediaSenderSettings::get_default_packets_in_chunk(
         m_app_settings->media.resolution);
     m_app_settings->num_of_total_flows = m_app_settings->num_of_total_streams;
-
     if (m_app_settings->num_of_packets_in_chunk != default_packets_in_chunk) {
         m_app_settings->num_of_packets_in_chunk_specified = true;
     }
@@ -379,14 +385,12 @@ void MediaSenderApp::configure_network_flows()
     m_flows.reserve(total_num_of_flows);
 
     for (const auto& node : m_media_sender_settings->smpte_standard_to_nodes) {
-        auto& smpte_standard_config = node.first;
         auto& num_of_streams = node.second;
         for (size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
             for (size_t path_index = 0; path_index < m_num_paths_per_stream; path_index++) {
                 ip << ip_prefix_str[path_index] << (ip_last_octet[path_index] + flow_index) % IP_OCTET_LEN;
                 port = m_app_settings->destination_ports[path_index];
-                std::cout << "Add a flow with Flow index: " << flow_index << " IP: " << ip.str() << " Port: " << port << std::endl;
-                m_flows.push_back(TwoTupleFlow(flow_index, ip.str(), port));
+                m_flows.push_back(FourTupleFlow(flow_index, m_app_settings->local_ips[path_index], m_app_settings->source_port, ip.str(), port));
                 ip.str("");
             }
             flow_index++;
@@ -534,15 +538,11 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
                          " is not set!!!" << std::endl;
             sender_cpu_core = CPU_NONE;
         }
-        std::vector<TwoTupleFlow> local_addresses;
-        for (const auto& local_ip : m_app_settings->local_ips) {
-            local_addresses.push_back(TwoTupleFlow(sender_idx, local_ip, m_app_settings->source_port));
-        }
-        auto flows = std::vector<TwoTupleFlow>(
+        auto flows = std::vector<FourTupleFlow>(
             m_flows.begin() + streams_offset,
             m_flows.begin() + streams_offset + num_of_streams * m_num_paths_per_stream);
         m_senders.push_back(std::make_unique<MediaSenderIONode>(
-            local_addresses,
+            m_num_paths_per_stream,
             *m_app_settings,
             smpte_standard_config,
             sender_idx,
@@ -662,4 +662,9 @@ uint64_t MediaSenderApp::get_time_ns(void* context)
         return 0;
     }
     return ptp_time;
+}
+
+size_t MediaSenderApp::get_max_dup_streams()
+{
+    return RMX_MAX_DUP_STREAMS;
 }

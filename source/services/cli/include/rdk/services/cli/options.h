@@ -121,6 +121,7 @@ public:
     static const char* AUDIO_ENCODING;
     static const char* ANCILLARY_TYPES;
     static const char* ANCILLARY_DATA_WORDS_COUNT;
+    static const char* ENABLE_REDUNDANCY;
 };
 /**
  * @brief: CLI groups string key.

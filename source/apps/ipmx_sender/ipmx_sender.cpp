@@ -53,7 +53,7 @@ ReturnStatus IPMXSenderSettingsValidator::validate(const IPMXSenderSettings& set
     }
     if (settings.destination_ips.size() != settings.local_ips.size()) {
         std::cerr << "Must be the same number of destination multicast IPs as number of local IPs" << std::endl;
-         return ReturnStatus::failure;
+        return ReturnStatus::failure;
     }
     if (settings.destination_ports.size() != settings.local_ips.size()) {
         std::cerr << "Must be the same number of destination ports as number of local IPs" << std::endl;
@@ -368,7 +368,7 @@ ReturnStatus IPMXSenderApp::configure_video_settings()
     if (m_app_settings->ref_clk_is_ptp) {
         video_settings->refclk_id = "";
     } else {
-        video_settings->refclk_id = m_ipmx_sender_settings->local_macs[0]; // TODO: use the real index of 22-7 dup 
+        video_settings->refclk_id = m_ipmx_sender_settings->local_macs[0]; 
     }
 
     for (size_t idx = 0; idx < num_of_video_threads; idx++) {
@@ -415,7 +415,7 @@ void IPMXSenderApp::initialize_sender_threads()
         }
         auto src_address = TwoTupleFlow(
             sender_index,
-            m_app_settings->local_ips[0], // TODO: check 2022-7
+            m_app_settings->local_ips[0],
             m_app_settings->source_port);
         auto flows = std::vector<TwoTupleFlow>(
             m_stream_dst_addresses.begin() + streams_offset,
@@ -466,7 +466,7 @@ ReturnStatus IPMXSenderApp::allocate_app_memory()
     }
 
     rmx_mem_reg_params mem_registry;
-    rmx_init_mem_registry(&mem_registry, &m_device_interfaces[0]); // TODO: support 22-7 duplication
+    rmx_init_mem_registry(&mem_registry, &m_device_interfaces[0]);
     rmx_status status = rmx_register_memory(&mreg, &mem_registry);
     if (status != RMX_OK) {
         std::cerr << "Failed to register payload memory with status: " << status << std::endl;

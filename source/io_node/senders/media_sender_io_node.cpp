@@ -45,7 +45,7 @@ using namespace rivermax::dev_kit::core;
 constexpr size_t MediaSenderIONode::DEFAULT_PRINT_TIME_INTERVAL_MS;
 
 MediaSenderIONode::MediaSenderIONode(
-        const std::vector<TwoTupleFlow>& local_addresses,
+        size_t num_paths_per_stream,
         const AppSettings& app_settings,
         const MediaSettings& media_settings,
         size_t index, size_t num_of_streams, int cpu_core_affinity,
@@ -54,7 +54,7 @@ MediaSenderIONode::MediaSenderIONode(
     m_stream_packs(num_of_streams),
     m_media_settings(media_settings),
     m_index(index),
-    m_local_addresses(local_addresses),
+    m_num_paths_per_stream(num_paths_per_stream),
     m_sleep_between_operations(app_settings.sleep_between_operations),
     m_print_parameters(app_settings.print_parameters),
     m_stats_report_interval_ms(app_settings.stats_report_interval_ms),
@@ -84,37 +84,27 @@ std::ostream& MediaSenderIONode::print(std::ostream& out) const
     return out;
 }
 
-void MediaSenderIONode::initialize_send_flows(const std::vector<TwoTupleFlow>& flows)
+void MediaSenderIONode::initialize_send_flows(const std::vector<FourTupleFlow>& flows)
 {
     size_t flows_offset = 0;
 
     for (size_t strm_indx = 0; strm_indx < m_stream_packs.size(); strm_indx++) {
-        m_stream_packs[strm_indx].flows = std::vector<TwoTupleFlow>(
+        m_stream_packs[strm_indx].flows = std::vector<FourTupleFlow>(
             flows.begin() + flows_offset,
-            flows.begin() + flows_offset + m_local_addresses.size());
-        flows_offset += m_local_addresses.size();
-        std::cout << "Stream " << strm_indx << " has " << m_stream_packs[strm_indx].flows.size() << " flows" << std::endl;
+            flows.begin() + flows_offset + m_num_paths_per_stream);
+        flows_offset += m_num_paths_per_stream;
     }
 }
 
 ReturnStatus MediaSenderIONode::initialize_streams()
 {
     constexpr size_t flow_index = 0;  // For now, there is one flow per Tx stream.
-    std::string destination_ip;
-    uint16_t destination_port;
     size_t stream_idx = 0;
     SMPTEStandard smpte_standard = m_media_settings.get_smpte_standard();
     ReturnStatus rc;
 
     for (auto& stream_pack : m_stream_packs) {
-        std::vector<FourTupleFlow> flows_for_stream;
-        for (size_t i = 0; i < stream_pack.flows.size(); i++) {
-            flows_for_stream.push_back(FourTupleFlow(stream_idx, m_local_addresses[i].get_ip(),
-                                                     m_local_addresses[i].get_port(),
-                                                     stream_pack.flows[i].get_ip(),
-                                                     stream_pack.flows[i].get_port()));
-        }
-        MediaStreamSettings stream_settings(flows_for_stream, m_media_settings, m_dscp, m_pcp, m_ecn);
+        MediaStreamSettings stream_settings(stream_pack.flows, m_media_settings, m_dscp, m_pcp, m_ecn);
         stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);
         auto runtime_essence_source = std::make_shared<NullEssenceSource>(m_media_settings);
         auto preload_essence_source = std::make_shared<NullEssenceSource>(m_media_settings);
@@ -220,7 +210,7 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
 
     for (size_t i = 0; i < number_of_memory_blocks; ++i) {
-        if (m_local_addresses.size() == 1) {
+        if (m_num_paths_per_stream == 1) {
             if (is_hds_on()) {
                 mem_blockset.set_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
                     io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
@@ -232,7 +222,7 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
                     io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
             }
         } else {
-            const std::vector<rmx_mkey_id> invalid_mkey_ids(m_local_addresses.size(), RMX_MKEY_INVALID);
+            const std::vector<rmx_mkey_id> invalid_mkey_ids(m_num_paths_per_stream, RMX_MKEY_INVALID);
             if (is_hds_on()) {
                 mem_blockset.set_dup_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
                     io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys : invalid_mkey_ids);

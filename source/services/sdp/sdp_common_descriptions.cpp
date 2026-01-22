@@ -62,11 +62,18 @@ TimeDescription::operator json() const
 
 GroupDescription::operator json() const
 {
+    std::string mids_str;
+    for (size_t i = 0; i < m_ids.size(); ++i) {
+        if (i > 0) {
+            mids_str += " ";
+        }
+        mids_str += m_ids[i];
+    }
     return {
         {
             "groups",
             {
-                {{"type", m_semantics}, {"mids", m_id_a + " " + m_id_b}}
+                {{"type", m_semantics}, {"mids", mids_str}}
             }
         }
     };

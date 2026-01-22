@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-//// #include <netinet/in.h>
 #include <string>
 #include <cstring>
 

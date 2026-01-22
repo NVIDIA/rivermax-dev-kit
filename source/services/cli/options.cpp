@@ -87,6 +87,7 @@ const char* CLIOptStr::AUDIO_SAMPLING_RATE = "--asr,--audio-sampling-rate";
 const char* CLIOptStr::AUDIO_ENCODING = "--ae,--audio-encoding";
 const char* CLIOptStr::ANCILLARY_TYPES = "--ant,--ancillary-types";
 const char* CLIOptStr::ANCILLARY_DATA_WORDS_COUNT = "--adwc,--ancillary-data-words-count";
+const char* CLIOptStr::ENABLE_REDUNDANCY = "--er,--enable-redundancy";
 
 const char* CLIGroupStr::VIDEO_FORMAT_OPTIONS = "Video format options";
 const char* CLIGroupStr::AUDIO_FORMAT_OPTIONS = "Audio format options";
@@ -240,7 +241,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                                       app_settings->destination_ports,
                                       "Destination ports of the connection (comma-separated)",
                                       true)->delimiter(',')
-                                          ->check(CLI::Range(MIN_PORT, MAX_PORT));
+                                      ->check(CLI::Range(MIN_PORT, MAX_PORT));
         }
     },
     {

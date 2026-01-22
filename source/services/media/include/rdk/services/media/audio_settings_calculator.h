@@ -70,20 +70,13 @@ public:
      *
      * This method generates a Session Description Protocol (SDP) description string
      * for the SMPTE 2110-30 audio stream with the specified network parameters.
+     * For multiple flows, includes group description and media IDs for SMPTE 2022-7 duplication.
      *
-     * @param [in] source_ip: Source IP address for the stream.
-     * @param [in] source_port: Source port number for the stream.
-     * @param [in] destination_ip: Destination IP address for the stream.
-     * @param [in] destination_port: Destination port number for the stream.
+     * @param [in] flows: Vector of four tuple flows containing source and destination IP/port.
      *
      * @return: SDP description string for the audio stream.
      */
-    virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
-        const std::string& destination_ip, const uint16_t destination_port) override;
-    virtual std::string generate_media_dup_sdp(const std::string& source_ip_a, const uint16_t source_port_a,
-        const std::string& destination_ip_a, const uint16_t destination_port_a,
-        const std::string& source_ip_b, const uint16_t source_port_b,
-        const std::string& destination_ip_b, const uint16_t destination_port_b) override { return ""; }
+    virtual std::string generate_media_sdp(const std::vector<FourTupleFlow>& flows) override;
     /**
      * @brief: Returns the SMPTE standard name.
      *

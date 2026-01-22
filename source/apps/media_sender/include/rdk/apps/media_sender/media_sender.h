@@ -56,6 +56,7 @@ public:
     static constexpr uint32_t DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK = 10;
 
     void init_default_values() override;
+    bool enable_redundancy = false;
     std::set<SMPTEStandard> enabled_smpte_standards;
     std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
     std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
@@ -132,7 +133,7 @@ private:
     /* Number of paths per stream */
     size_t m_num_paths_per_stream = 1;
     /* Network send flows */
-    std::vector<TwoTupleFlow> m_flows;
+    std::vector<FourTupleFlow> m_flows;
     /**
      * @brief: Media type configuration function map.
      *
@@ -149,6 +150,12 @@ public:
     MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder);
     virtual ~MediaSenderApp() = default;
     ReturnStatus run() override;
+    /**
+     * @brief: Returns the maximum number of duplicate streams (SMPTE 2022-7 redundancy).
+     *
+     * @return: Maximum number of duplicate streams supported.
+     */
+    static size_t get_max_dup_streams();
     /**
      * @brief: Initializes SMPTE standards configuration.
      *

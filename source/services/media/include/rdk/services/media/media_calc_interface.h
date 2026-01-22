@@ -22,9 +22,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
+#include "rdk/core/flow/flow.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/media/media_defs.h"
+
+using namespace rivermax::dev_kit::core;
 
 namespace rivermax
 {
@@ -64,39 +68,15 @@ public:
      *
      * This pure virtual method must be implemented by derived classes to generate
      * a Session Description Protocol (SDP) description string for their specific
-     * media type with the specified network parameters.
+     * media type with the specified network parameters. For a single flow, generates
+     * a standard SDP. For multiple flows, generates an SDP with SMPTE 2022-7 duplication
+     * including group description and media IDs (a, b, c, etc.).
      *
-     * @param [in] source_ip: Source IP address for the stream.
-     * @param [in] source_port: Source port number for the stream.
-     * @param [in] destination_ip: Destination IP address for the stream.
-     * @param [in] destination_port: Destination port number for the stream.
-     *
-     * @return: SDP description string for the media stream.
-     */
-    virtual std::string generate_media_sdp(const std::string& source_ip, const uint16_t source_port,
-        const std::string& destination_ip, const uint16_t destination_port) = 0;
-    /**
-     * @brief: Generates SDP description for the media type with SMPTE 2022-7 duplication.
-     *
-     * This pure virtual method must be implemented by derived classes to generate
-     * a Session Description Protocol (SDP) description string for their specific
-     * media type with the specified network parameters.
-     *
-     * @param [in] source_ip_a: Source IP address for the first stream.
-     * @param [in] source_port_a: Source port number for the first stream.
-     * @param [in] destination_ip_a: Destination IP address for the first stream.
-     * @param [in] destination_port_a: Destination port number for the first stream.
-     * @param [in] source_ip_b: Source IP address for the second stream.
-     * @param [in] source_port_b: Source port number for the second stream.
-     * @param [in] destination_ip_b: Destination IP address for the second stream.
-     * @param [in] destination_port_b: Destination port number for the second stream.
+     * @param [in] flows: Vector of four tuple flows containing source and destination IP/port.
      *
      * @return: SDP description string for the media stream.
      */
-    virtual std::string generate_media_dup_sdp(const std::string& source_ip_a, const uint16_t source_port_a,
-        const std::string& destination_ip_a, const uint16_t destination_port_a,
-        const std::string& source_ip_b, const uint16_t source_port_b,
-        const std::string& destination_ip_b, const uint16_t destination_port_b) = 0;
+    virtual std::string generate_media_sdp(const std::vector<FourTupleFlow>& flows) = 0;
     /**
      * @brief: Returns the SMPTE standard name.
      *

@@ -250,7 +250,7 @@ private:
  * The following group description specifications are supported:
  * --------------------------------------------------------------------------------------------------------
  *     - Grouping:
- *           a=group:<semantics> <identification-tag> <identification-tag>
+ *           a=group:<semantics> <identification-tag> [<identification-tag>...]
  * --------------------------------------------------------------------------------------------------------
  */
 class GroupDescription : public ISDP
@@ -282,25 +282,39 @@ public:
          */
         Builder& set_semantics(const std::string& semantics) { return set(m_instance->m_semantics, semantics); }
         /**
-         * @brief: Sets the first identification tag.
+         * @brief: Adds an identification tag to the group.
          *
-         * This corresponds to the first <identification-tag> field in "a=group" line in SDP as per RFC5888.
+         * This corresponds to an <identification-tag> field in "a=group" line in SDP as per RFC5888.
+         * Multiple IDs can be added by calling this method multiple times.
          *
-         * @param [in] id_a: The first identification tag.
+         * @param [in] id: The identification tag to add.
          *
          * @return: Reference to the builder object.
          */
-        Builder& set_id_a(const std::string& id_a) { return set(m_instance->m_id_a, id_a); }
+        Builder& add_id(const std::string& id)
+        {
+            m_instance->m_ids.push_back(id);
+            return *this;
+        }
         /**
-         * @brief: Sets the second identification tag.
+         * @brief: Sets the identification tag at the specified index.
          *
-         * This corresponds to the second <identification-tag> field in "a=group" line in SDP as per RFC5888.
+         * This corresponds to an <identification-tag> field in "a=group" line in SDP as per RFC5888.
+         * The vector is resized if necessary to accommodate the index.
          *
-         * @param [in] id_b: The second identification tag.
+         * @param [in] index: The index at which to set the identification tag.
+         * @param [in] id: The identification tag.
          *
          * @return: Reference to the builder object.
          */
-        Builder& set_id_b(const std::string& id_b) { return set(m_instance->m_id_b, id_b); }
+        Builder& set_id(size_t index, const std::string& id)
+        {
+            if (index >= m_instance->m_ids.size()) {
+                m_instance->m_ids.resize(index + 1);
+            }
+            m_instance->m_ids[index] = id;
+            return *this;
+        }
     };
 
 private:
@@ -312,8 +326,7 @@ private:
     GroupDescription() = default;
 
     std::string m_semantics = "DUP";
-    std::string m_id_a;
-    std::string m_id_b;
+    std::vector<std::string> m_ids;
 
     friend class ISDP::IBuilder<GroupDescription, Builder>;
 };
