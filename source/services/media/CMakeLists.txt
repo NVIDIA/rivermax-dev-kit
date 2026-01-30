@@ -18,8 +18,6 @@ project(rivermax-dev-kit-services-media)
 
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE include)
-# Link to core-flow interface library for FourTupleFlow used in media_calc_interface.h
-target_link_libraries(${PROJECT_NAME} INTERFACE rivermax-dev-kit-core-flow)
 
 target_sources(rivermax-dev-kit-services
     PRIVATE

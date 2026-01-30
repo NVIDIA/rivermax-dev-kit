@@ -14,10 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Interface library for flow headers (can be used by other modules without full core dependency)
-add_library(rivermax-dev-kit-core-flow INTERFACE)
-target_include_directories(rivermax-dev-kit-core-flow INTERFACE include)
-
 target_sources(${PROJECT_NAME}
     PRIVATE
         receive_flow.cpp
@@ -25,4 +21,4 @@ target_sources(${PROJECT_NAME}
         four_tuple_flow.cpp
         flow_interface.cpp
 )
-target_link_libraries(${PROJECT_NAME} PUBLIC rivermax-dev-kit-core-flow)
+target_include_directories(${PROJECT_NAME} PUBLIC include)

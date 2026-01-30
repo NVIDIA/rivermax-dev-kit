@@ -115,12 +115,12 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_media_settings()
     return ReturnStatus::success;
 }
 
-std::string ST_2110_40_MediaSettingsCalculator::generate_media_sdp(const std::vector<FourTupleFlow>& flows)
+std::string ST_2110_40_MediaSettingsCalculator::generate_media_sdp(const std::vector<NetworkFlow>& flows)
 {
     const auto& first_flow = flows[0];
     const bool is_multi_flow = flows.size() > 1;
 
-    auto session_description = SessionDescription::Builder(first_flow.get_source_ip())
+    auto session_description = SessionDescription::Builder(first_flow.source_ip)
                                    .set_session_id(SDPManager::generate_ntp_id())
                                    .set_session_version(SDPManager::generate_ntp_id() + 1)
                                    .set_session_name("SMPTE ST2110-40")
@@ -140,18 +140,15 @@ std::string ST_2110_40_MediaSettingsCalculator::generate_media_sdp(const std::ve
 
     for (size_t i = 0; i < flows.size(); ++i) {
         const auto& flow = flows[i];
-        const auto& source_ip = flow.get_source_ip();
-        const auto& destination_ip = flow.get_destination_ip();
-        const auto destination_port = flow.get_destination_port();
 
         SMPTE2110_40_MediaDescription::Builder media_builder {
-            destination_port,
+            flow.destination_port,
             TransportProtocol::RTP_AVP,
             std::to_string(m_media_settings.payload_type),
-            destination_ip
+            flow.destination_ip
         };
         media_builder.set_source_filter(
-            SourceFilterAttribute::Builder(destination_ip, source_ip).build()
+            SourceFilterAttribute::Builder(flow.destination_ip, flow.source_ip).build()
         );
         for (const auto& identifier : m_media_settings.data_identifiers) {
             media_builder.add_did_sdid(identifier.did, identifier.sdid);

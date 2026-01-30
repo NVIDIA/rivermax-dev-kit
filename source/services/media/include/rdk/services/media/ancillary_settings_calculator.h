@@ -73,11 +73,11 @@ public:
      * for the SMPTE 2110-40 ancillary data stream with the specified network parameters.
      * For multiple flows, includes group description and media IDs for SMPTE 2022-7 duplication.
      *
-     * @param [in] flows: Vector of four tuple flows containing source and destination IP/port.
+     * @param [in] flows: Vector of flow info containing source IP, destination IP and port.
      *
      * @return: SDP description string for the ancillary data stream.
      */
-    virtual std::string generate_media_sdp(const std::vector<FourTupleFlow>& flows) override;
+    virtual std::string generate_media_sdp(const std::vector<NetworkFlow>& flows) override;
     /**
      * @brief: Returns the SMPTE standard name.
      *

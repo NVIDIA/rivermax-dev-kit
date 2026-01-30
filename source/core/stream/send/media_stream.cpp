@@ -40,12 +40,14 @@ MediaStreamSettings::MediaStreamSettings(const std::vector<FourTupleFlow>& flows
         m_pcp(pcp),
         m_ecn(ecn)
 {
+    std::vector<NetworkFlow> network_flows;
     for (const auto& flow : flows) {
         m_src_addresses.push_back(flow.get_source_flow());
         m_dst_addresses.push_back(flow.get_destination_flow());
+        network_flows.emplace_back(flow.get_source_ip(), flow.get_destination_ip(), flow.get_destination_port());
     }
 
-    m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(flows);
+    m_sdp = m_media_settings.media_settings_calculator->generate_media_sdp(network_flows);
 }
 
 IStreamSettings<MediaStreamSettings, rmx_output_media_stream_params>::SetterSequence MediaStreamSettings::s_build_steps{

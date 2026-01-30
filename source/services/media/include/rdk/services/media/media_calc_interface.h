@@ -24,11 +24,8 @@
 #include <string>
 #include <vector>
 
-#include "rdk/core/flow/flow.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/media/media_defs.h"
-
-using namespace rivermax::dev_kit::core;
 
 namespace rivermax
 {
@@ -38,6 +35,22 @@ namespace services
 {
 
 struct MediaSettings;
+
+/**
+ * @brief: Simple network flow information for SDP generation.
+ *
+ * This struct contains the network flow information needed for generating
+ * SDP descriptions without depending on core flow types.
+ */
+struct NetworkFlow
+{
+    std::string source_ip;
+    std::string destination_ip;
+    uint16_t destination_port;
+
+    NetworkFlow(const std::string& src_ip, const std::string& dst_ip, uint16_t dst_port)
+        : source_ip(src_ip), destination_ip(dst_ip), destination_port(dst_port) {}
+};
 
 /**
  * @brief: Interface for media settings calculators.
@@ -72,11 +85,11 @@ public:
      * a standard SDP. For multiple flows, generates an SDP with SMPTE 2022-7 duplication
      * including group description and media IDs (a, b, c, etc.).
      *
-     * @param [in] flows: Vector of four tuple flows containing source and destination IP/port.
+     * @param [in] flows: Vector of flow info containing source IP, destination IP and port.
      *
      * @return: SDP description string for the media stream.
      */
-    virtual std::string generate_media_sdp(const std::vector<FourTupleFlow>& flows) = 0;
+    virtual std::string generate_media_sdp(const std::vector<NetworkFlow>& flows) = 0;
     /**
      * @brief: Returns the SMPTE standard name.
      *
