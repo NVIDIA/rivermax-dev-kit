@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,7 +45,7 @@ set(RIVERMAX_DEV_KIT_SERVICE_COMPONENTS
     media
     protocol
     sdp
-    ulp_packet_buffer_wr
+    ulp_packet_buffer
     memory_allocation
 )
 foreach(service_component ${RIVERMAX_DEV_KIT_SERVICE_COMPONENTS})

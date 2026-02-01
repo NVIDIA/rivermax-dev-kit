@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,7 @@
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/media/media_settings.h"
-#include "rdk/services/ulp_packet_buffer_wr/ulp_packet_buffer_wr.h"
+#include "rdk/services/ulp_packet_buffer/ulp_packet_buffer.h"
 #include "rdk/services/utils/synchronizer.h"
 
 using namespace rivermax::dev_kit::services;

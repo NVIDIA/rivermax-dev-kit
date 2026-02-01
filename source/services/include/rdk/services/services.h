@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@
 #define RDK_SERVICES_SERVICES_H_
 
 #include "rdk/services/memory_allocation/memory_allocation.h"
-#include "rdk/services/ulp_packet_buffer_wr/ulp_packet_buffer_wr.h"
+#include "rdk/services/ulp_packet_buffer/ulp_packet_buffer.h"
 #include "rdk/services/media/media.h"
 #include "rdk/services/protocol/protocol.h"
 #include "rdk/services/utils/utils.h"

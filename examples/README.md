@@ -66,7 +66,7 @@ This submodule contains examples for SDP generation:
 
 - **sdp_smpte_2110_20_description**: This example demonstrates how to generate Session Description Protocol (SDP) strings for SMPTE 2110-20 streams using the SDP service.
 
-#### ulp_packet_buffer_wr
+#### ulp_packet_buffer
 
 This submodule contains examples for ULP packet buffer writing functionality:
 

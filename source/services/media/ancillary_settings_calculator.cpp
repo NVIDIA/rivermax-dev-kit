@@ -25,7 +25,7 @@
 
 #include "rdk/services/media/ancillary_settings_calculator.h"
 #include "rdk/services/error_handling/return_status.h"
-#include "rdk/services/ulp_packet_buffer_wr/common/rtp_smpte_2110_40_packet.h"
+#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_40_packet.h"
 #include "rdk/services/utils/defs.h"
 
 using namespace rivermax::dev_kit::services;
