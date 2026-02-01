@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_INTERFACE_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_INTERFACE_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_WRITER_INTERFACE_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_WRITER_INTERFACE_H_
 
 #include <memory>
 
@@ -41,13 +41,13 @@ struct IPacketContext {
 };
 
 /**
- * @brief: Interface for Upper Layer Protocol (ULP) packets.
+ * @brief: Interface for Upper Layer Protocol (ULP) packet writers.
  *
  * This class provides an interface for building packet headers and payloads.
  * Derived classes must implement the @ref fill_header and @ref fill_payload
  * methods to handle the actual packet construction process.
  */
-class IULPPacket
+class IULPPacketWriter
 {
 protected:
     byte_t* m_header_ptr  = nullptr;
@@ -55,7 +55,7 @@ protected:
 
 public:
     /**
-     * @brief: Constructor for IULPPacket.
+     * @brief: Constructor for IULPPacketWriter.
      *
      * Initializes the packet with header and optional payload memory pointers.
      * The payload pointer is optional and used when Header Data Split mode is enabled.
@@ -63,12 +63,12 @@ public:
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
-    IULPPacket(byte_t* header_ptr, byte_t* payload_ptr = nullptr) :
+    IULPPacketWriter(byte_t* header_ptr, byte_t* payload_ptr = nullptr) :
         m_header_ptr (header_ptr), m_payload_ptr (payload_ptr) {}
     /**
-     * @brief: Destructor for IULPPacket.
+     * @brief: Destructor for IULPPacketWriter.
      */
-    virtual ~IULPPacket() = default;
+    virtual ~IULPPacketWriter() = default;
     /**
      * @brief: Sets the packet pointers for header and payload.
      *
@@ -112,4 +112,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_INTERFACE_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_WRITER_INTERFACE_H_ */

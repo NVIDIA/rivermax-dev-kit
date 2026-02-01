@@ -26,11 +26,11 @@ using namespace rivermax::dev_kit::services;
 
 RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)
-    : RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>(
+    : RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_PacketWriter, AncillaryMediaUnitMetadata>(
         media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
     if (enable_mock_mode) {
-        m_rtp_packet = std::make_unique<RTP_SMPTE_2110_40_MockPacket>(nullptr, nullptr);
+        m_rtp_packet_writer = std::make_unique<RTP_SMPTE_2110_40_MockPacketWriter>(nullptr, nullptr);
         m_cached_packets_in_media_unit = calculate_packets_for_media_unit();
     }
 }
@@ -185,10 +185,10 @@ ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::write_buffer(void* payload_pt
             m_rtp_packet_context->descriptor_count_in_packet = 0;
         }
 
-        m_rtp_packet->set_packet(current_packet_pointer);
+        m_rtp_packet_writer->set_packet(current_packet_pointer);
         // Skip ReturnStatus testing for performance reasons
-        (void)m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
-        (void)m_rtp_packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
+        (void)m_rtp_packet_writer->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        (void)m_rtp_packet_writer->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
         payload_sizes[stride] = static_cast<uint16_t>(header_size + payload_size);
         update_in_media_unit_state(header_size, payload_size);
         current_packet_pointer += m_media_settings.data_stride_size;
@@ -222,9 +222,9 @@ ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::write_buffer(void* header_ptr
             m_rtp_packet_context->descriptor_count_in_packet = 0;
         }
 
-        m_rtp_packet->set_packet(current_header_pointer, current_payload_pointer);
-        (void)m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
-        (void)m_rtp_packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
+        m_rtp_packet_writer->set_packet(current_header_pointer, current_payload_pointer);
+        (void)m_rtp_packet_writer->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        (void)m_rtp_packet_writer->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
         header_sizes[stride] = static_cast<uint16_t>(header_size);
         payload_sizes[stride] = static_cast<uint16_t>(payload_size);
         update_in_media_unit_state(header_size, payload_size);

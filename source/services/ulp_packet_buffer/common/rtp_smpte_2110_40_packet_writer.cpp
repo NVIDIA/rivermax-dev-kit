@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <cstring>
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_40_packet.h"
+#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_40_packet_writer.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -49,17 +49,17 @@ struct AncillaryRTPExtension
     uint16_t reserved_bytes2_3;
 };
 
-RTP_SMPTE_2110_40_Packet::RTP_SMPTE_2110_40_Packet(byte_t* header_ptr, byte_t* payload_ptr)
-    : RTPPacket(header_ptr, payload_ptr),
+RTP_SMPTE_2110_40_PacketWriter::RTP_SMPTE_2110_40_PacketWriter(byte_t* header_ptr, byte_t* payload_ptr)
+    : RTPPacketWriter(header_ptr, payload_ptr),
       m_ancillary_data_packet_writer()
 {
 }
 
-ReturnStatus RTP_SMPTE_2110_40_Packet::fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTP_SMPTE_2110_40_PacketWriter::fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTP_SMPTE_2110_40_PacketContext&>(context);
 
-    ReturnStatus status = RTPPacket::fill_header(context, size, mem_utils);
+    ReturnStatus status = RTPPacketWriter::fill_header(context, size, mem_utils);
 
     /**
      * @brief: ST 2110-40 Ancillary RTP Header Extension Format.
@@ -106,7 +106,7 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_header(const IPacketContext& context
     return status;
 }
 
-ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTP_SMPTE_2110_40_PacketWriter::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTP_SMPTE_2110_40_PacketContext&>(context);
 
@@ -160,12 +160,12 @@ ReturnStatus RTP_SMPTE_2110_40_Packet::fill_payload(const IPacketContext& contex
     return ReturnStatus::success;
 }
 
-size_t RTP_SMPTE_2110_40_Packet::get_header_size() const
+size_t RTP_SMPTE_2110_40_PacketWriter::get_header_size() const
 {
-    return RTPPacket::get_header_size() + sizeof(AncillaryRTPExtension);
+    return RTPPacketWriter::get_header_size() + sizeof(AncillaryRTPExtension);
 }
 
-ReturnStatus RTP_SMPTE_2110_40_MockPacket::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTP_SMPTE_2110_40_MockPacketWriter::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTP_SMPTE_2110_40_PacketContext&>(context);
 

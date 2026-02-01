@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_WRITER_H_
 
-#include "rdk/services/ulp_packet_buffer/common/ulp_packet_interface.h"
+#include "rdk/services/ulp_packet_buffer/common/ulp_packet_writer_interface.h"
 #include "rdk/services/media/media.h"
 #include "rdk/services/utils/rational.h"
 
@@ -55,14 +55,14 @@ struct RTPPacketContext : public IPacketContext
 };
 
 /**
- * @brief: Base class for RTP media packets.
+ * @brief: Base class for RTP media packet writers.
  *
  * This class provides methods to build RTP headers and fill payloads.
  */
-class RTPPacket : public IULPPacket {
+class RTPPacketWriter : public IULPPacketWriter {
 public:
     /**
-     * @brief: Constructor for RTPPacket.
+     * @brief: Constructor for RTPPacketWriter.
      *
      * Initializes the packet with header and optional payload memory pointers.
      * The payload pointer is optional and used when Header Data Split mode is enabled.
@@ -70,9 +70,9 @@ public:
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
-    RTPPacket(byte_t* header_ptr, byte_t* payload_ptr):
-        IULPPacket(header_ptr, payload_ptr) {}
-    virtual ~RTPPacket() = default;
+    RTPPacketWriter(byte_t* header_ptr, byte_t* payload_ptr):
+        IULPPacketWriter(header_ptr, payload_ptr) {}
+    virtual ~RTPPacketWriter() = default;
     /**
      * @brief: Fills the RTP packet header.
      *
@@ -105,4 +105,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_WRITER_H_ */

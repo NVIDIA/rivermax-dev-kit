@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet.h"
+#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -37,7 +37,7 @@ struct RTPHeader {
     uint32_t ssrc;             /**< Synchronization source (SSRC) identifier */
 };
 
-ReturnStatus RTPPacket::fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTPPacketWriter::fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTPPacketContext&>(context);
 
@@ -73,7 +73,7 @@ ReturnStatus RTPPacket::fill_header(const IPacketContext& context, size_t& size,
     return ReturnStatus::success;
 }
 
-ReturnStatus RTPPacket::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTPPacketWriter::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTPPacketContext&>(context);
 
@@ -93,7 +93,7 @@ ReturnStatus RTPPacket::fill_payload(const IPacketContext& context, size_t& size
     return ReturnStatus::success;
 }
 
-size_t RTPPacket::get_header_size() const
+size_t RTPPacketWriter::get_header_size() const
 {
     return sizeof(RTPHeader);
 }

@@ -18,11 +18,11 @@
 
 #include <cstring>
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_30_packet.h"
+#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_30_packet_writer.h"
 
 using namespace rivermax::dev_kit::services;
 
-ReturnStatus RTP_SMPTE_2110_30_MockPacket::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
+ReturnStatus RTP_SMPTE_2110_30_MockPacketWriter::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {
     const auto& rtp_packet_context = static_cast<const RTPPacketContext&>(context);
 

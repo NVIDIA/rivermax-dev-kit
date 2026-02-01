@@ -28,11 +28,11 @@ using namespace rivermax::dev_kit::services;
 
 RTP_SMPTE_2110_30_PacketBufferWriter::RTP_SMPTE_2110_30_PacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)
-    : RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_Packet>(
+    : RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_PacketWriter>(
         media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
     if (enable_mock_mode) {
-        m_rtp_packet = std::make_unique<RTP_SMPTE_2110_30_MockPacket>(nullptr, nullptr);
+        m_rtp_packet_writer = std::make_unique<RTP_SMPTE_2110_30_MockPacketWriter>(nullptr, nullptr);
     }
 }
 

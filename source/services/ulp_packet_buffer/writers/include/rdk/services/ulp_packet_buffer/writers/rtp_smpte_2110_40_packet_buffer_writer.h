@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
 
 #include "rdk/services/media/ancillary_metadata.h"
 #include "rdk/services/ulp_packet_buffer/writers/rtp_media_packet_buffer_writer.h"
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_40_packet.h"
+#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_40_packet_writer.h"
 
 namespace rivermax
 {
@@ -36,7 +36,7 @@ namespace services
  * This class handles writing RTP packets with ancillary data.
  * Ancillary data header will be taken from specialized metadata.
  */
-class RTP_SMPTE_2110_40_PacketBufferWriter : public RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>
+class RTP_SMPTE_2110_40_PacketBufferWriter : public RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_PacketWriter, AncillaryMediaUnitMetadata>
 {
 protected:
     size_t m_cached_packets_in_media_unit = 0;

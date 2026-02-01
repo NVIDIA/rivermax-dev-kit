@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,9 @@
 
 target_sources(${PROJECT_NAME}
     PRIVATE
-        rtp_packet.cpp
-        rtp_smpte_2110_20_packet.cpp
-        rtp_smpte_2110_30_packet.cpp
-        rtp_smpte_2110_40_packet.cpp
+        rtp_packet_writer.cpp
+        rtp_smpte_2110_20_packet_writer.cpp
+        rtp_smpte_2110_30_packet_writer.cpp
+        rtp_smpte_2110_40_packet_writer.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)

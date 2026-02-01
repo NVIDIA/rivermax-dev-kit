@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_WRITER_H_
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet.h"
+#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
 #include "rdk/services/media/media.h"
 #include "rdk/services/media/ancillary_metadata.h"
 
@@ -131,18 +131,18 @@ public:
 };
 
 /**
- * @brief: RTP packet structure for SMPTE 2110-40 ancillary data.
+ * @brief: RTP packet writer for SMPTE 2110-40 ancillary data.
  *
  * This class provides methods to build RTP headers and fill payloads specific to
  * SMPTE 2110-40 ancillary data packets.
  */
-class RTP_SMPTE_2110_40_Packet : public RTPPacket
+class RTP_SMPTE_2110_40_PacketWriter : public RTPPacketWriter
 {
 protected:
     AncillaryDataPacketWriter m_ancillary_data_packet_writer;
 public:
     /**
-     * @brief: Constructor for RTP_SMPTE_2110_40_Packet.
+     * @brief: Constructor for RTP_SMPTE_2110_40_PacketWriter.
      *
      * Initializes the packet with header and optional payload memory pointers.
      * The payload pointer is optional and used when Header Data Split mode is enabled.
@@ -150,8 +150,8 @@ public:
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
-    RTP_SMPTE_2110_40_Packet(byte_t* header_ptr, byte_t* payload_ptr);
-    virtual ~RTP_SMPTE_2110_40_Packet() = default;
+    RTP_SMPTE_2110_40_PacketWriter(byte_t* header_ptr, byte_t* payload_ptr);
+    virtual ~RTP_SMPTE_2110_40_PacketWriter() = default;
     /**
      * @brief: Fills the RTP SMPTE 2110-40 packet header.
      *
@@ -181,9 +181,9 @@ public:
 };
 
 /**
- * @brief: Mock RTP packet structure for SMPTE 2110-40 ancillary data.
+ * @brief: Mock RTP packet writer for SMPTE 2110-40 ancillary data.
  */
-class RTP_SMPTE_2110_40_MockPacket : public RTP_SMPTE_2110_40_Packet
+class RTP_SMPTE_2110_40_MockPacketWriter : public RTP_SMPTE_2110_40_PacketWriter
 {
 private:
     // Temporary variables to track data initialization and avoid redundant fills
@@ -192,7 +192,7 @@ private:
     bool initialized = false;
 public:
     /**
-     * @brief: Constructor for RTP_SMPTE_2110_40_MockPacket.
+     * @brief: Constructor for RTP_SMPTE_2110_40_MockPacketWriter.
      *
      * Initializes the packet with header and optional payload memory pointers.
      * The payload pointer is optional and used when Header Data Split mode is enabled.
@@ -200,8 +200,8 @@ public:
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
-    RTP_SMPTE_2110_40_MockPacket(byte_t* header_ptr, byte_t* payload_ptr) :
-        RTP_SMPTE_2110_40_Packet(header_ptr, payload_ptr) {
+    RTP_SMPTE_2110_40_MockPacketWriter(byte_t* header_ptr, byte_t* payload_ptr) :
+        RTP_SMPTE_2110_40_PacketWriter(header_ptr, payload_ptr) {
             // Temporary initialization and will be removed in future refactor
             m_data_ptr = payload_ptr;
             initialized = false;
@@ -222,4 +222,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_WRITER_H_ */

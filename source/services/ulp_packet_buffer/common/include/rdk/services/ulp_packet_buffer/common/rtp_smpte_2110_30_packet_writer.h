@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_H_
+#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_WRITER_H_
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet.h"
+#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
 
 namespace rivermax
 {
@@ -29,32 +29,32 @@ namespace services
 {
 
 /**
- * @brief: Stub RTP packet structure for SMPTE 2110-30 audio samples.
+ * @brief: Stub RTP packet writer for SMPTE 2110-30 audio samples.
  *
  * This class provides methods to build RTP headers and fill payloads specific to
  * SMPTE 2110-30 audio samples packets.
  */
-class RTP_SMPTE_2110_30_Packet : public RTPPacket
+class RTP_SMPTE_2110_30_PacketWriter : public RTPPacketWriter
 {
 public:
     /**
-     * @brief: Constructor for RTP_SMPTE_2110_30_Packet.
+     * @brief: Constructor for RTP_SMPTE_2110_30_PacketWriter.
      *
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
-    RTP_SMPTE_2110_30_Packet(byte_t* header_ptr, byte_t* payload_ptr)
-        : RTPPacket(header_ptr, payload_ptr) {}
+    RTP_SMPTE_2110_30_PacketWriter(byte_t* header_ptr, byte_t* payload_ptr)
+        : RTPPacketWriter(header_ptr, payload_ptr) {}
 };
 
 /**
- * @brief: Mock RTP packet structure for SMPTE 2110-30 audio samples.
+ * @brief: Mock RTP packet writer for SMPTE 2110-30 audio samples.
  */
-class RTP_SMPTE_2110_30_MockPacket : public RTP_SMPTE_2110_30_Packet
+class RTP_SMPTE_2110_30_MockPacketWriter : public RTP_SMPTE_2110_30_PacketWriter
 {
 public:
     /**
-     * @brief: Constructor for RTP_SMPTE_2110_30_MockPacket.
+     * @brief: Constructor for RTP_SMPTE_2110_30_MockPacketWriter.
      *
      * Initializes the packet with header and optional payload memory pointers.
      * The payload pointer is optional and used when Header Data Split mode is enabled.
@@ -62,8 +62,8 @@ public:
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory (optional).
      */
-    RTP_SMPTE_2110_30_MockPacket(byte_t* header_ptr, byte_t* payload_ptr) :
-        RTP_SMPTE_2110_30_Packet(header_ptr, payload_ptr) {}
+    RTP_SMPTE_2110_30_MockPacketWriter(byte_t* header_ptr, byte_t* payload_ptr) :
+        RTP_SMPTE_2110_30_PacketWriter(header_ptr, payload_ptr) {}
     /**
      * @brief: Fills the RTP SMPTE 2110-30 packet payload.
      *
@@ -80,4 +80,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_WRITER_H_ */

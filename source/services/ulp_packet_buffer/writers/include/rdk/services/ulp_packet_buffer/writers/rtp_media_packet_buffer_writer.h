@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
 
 #include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/ulp_packet_buffer/writers/ulp_packet_buffer_writer_interface.h"
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet.h"
+#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
 
 namespace rivermax
 {
@@ -68,13 +68,13 @@ std::unique_ptr<IULPPacketBufferWriter> create_rtp_media_packet_buffer_writer(
  * the pure virtual methods to build the RTP header, write payload,
  * update the in-media-unit state, and set the concrete stream properties.
  */
-template<typename PacketContextType, typename RTPPacketType, typename MetadataType = MediaUnitMetadata>
+template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType = MediaUnitMetadata>
 class RTPMediaPacketBufferWriter : public IULPPacketBufferWriter
 {
 protected:
     const MediaSettings& m_media_settings;
     std::unique_ptr<PacketContextType> m_rtp_packet_context;
-    std::unique_ptr<RTPPacketType> m_rtp_packet;
+    std::unique_ptr<RTPPacketWriterType> m_rtp_packet_writer;
     bool m_metadata_validated = false;
     bool m_mock_mode_enabled = false;
 

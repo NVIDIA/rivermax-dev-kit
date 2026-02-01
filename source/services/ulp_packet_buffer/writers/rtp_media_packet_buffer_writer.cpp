@@ -31,8 +31,8 @@
 
 using namespace rivermax::dev_kit::services;
 
-template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
-RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
+template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType>
+RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, MetadataType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode) :
     IULPPacketBufferWriter(std::move(header_mem_utils), std::move(payload_mem_utils)),
     m_media_settings(media_settings)
@@ -41,12 +41,12 @@ RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::RTPM
     m_rtp_packet_context->ssrc = DEFAULT_SSRC; // Simulated SSRC.
     m_rtp_packet_context->payload_type = media_settings.payload_type;
     m_rtp_packet_context->payload_size = media_settings.raw_packet_payload_size;
-    m_rtp_packet = std::make_unique<RTPPacketType>(nullptr, nullptr);
+    m_rtp_packet_writer = std::make_unique<RTPPacketWriterType>(nullptr, nullptr);
     m_mock_mode_enabled = enable_mock_mode;
 }
 
-template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
+template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, MetadataType>::set_next_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
     if (media_unit == nullptr || media_unit->data == nullptr) {
         std::cerr << "Error: Media unit is null or media unit data is null" << std::endl;
@@ -71,8 +71,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
     return ReturnStatus::success;
 }
 
-template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::write_buffer(void* payload_ptr, size_t buffer_length, uint16_t* payload_sizes)
+template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, MetadataType>::write_buffer(void* payload_ptr, size_t buffer_length, uint16_t* payload_sizes)
 {
     byte_t* current_packet_pointer = reinterpret_cast<byte_t*>(payload_ptr);
     assert(current_packet_pointer);
@@ -81,10 +81,10 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
     size_t payload_size = 0;
 
     while (stride < buffer_length && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
-        m_rtp_packet->set_packet(current_packet_pointer);
+        m_rtp_packet_writer->set_packet(current_packet_pointer);
         // Skip ReturnStatus testing for performance reasons
-        (void)m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
-        (void)m_rtp_packet->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
+        (void)m_rtp_packet_writer->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        (void)m_rtp_packet_writer->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
         update_in_media_unit_state(header_size, payload_size);
         current_packet_pointer += m_media_settings.data_stride_size;
         stride++;
@@ -92,8 +92,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
     return ReturnStatus::success;
 }
 
-template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
-ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length,
+template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType>
+ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, MetadataType>::write_buffer(void* header_ptr, void* payload_ptr, size_t buffer_length,
                                                                           uint16_t* header_sizes, uint16_t* payload_sizes)
 {
     byte_t* current_header_pointer = reinterpret_cast<byte_t*>(header_ptr);
@@ -105,8 +105,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
     ReturnStatus status = ReturnStatus::success;
 
     while (stride < buffer_length && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
-        m_rtp_packet->set_packet(current_header_pointer, current_payload_pointer); // Header Data Split mode
-        status = m_rtp_packet->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
+        m_rtp_packet_writer->set_packet(current_header_pointer, current_payload_pointer); // Header Data Split mode
+        status = m_rtp_packet_writer->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
         update_in_media_unit_state(header_size, 0);
         current_header_pointer += m_media_settings.app_header_stride_size;
         stride++;
@@ -141,8 +141,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, Metada
     return ReturnStatus::success;
 }
 
-template<typename PacketContextType, typename RTPPacketType, typename MetadataType>
-void RTPMediaPacketBufferWriter<PacketContextType, RTPPacketType, MetadataType>::set_start_time(uint64_t time_ns)
+template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType>
+void RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, MetadataType>::set_start_time(uint64_t time_ns)
 {
     m_rtp_packet_context->timestamp = Rational(static_cast<uint64_t>(
         time_to_rtp_timestamp(time_ns, static_cast<int>(m_media_settings.sample_rate))));
@@ -178,7 +178,7 @@ std::unique_ptr<IULPPacketBufferWriter> rivermax::dev_kit::services::create_rtp_
 }
 
 // Explicit template instantiation
-template class RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacket, MediaUnitMetadata>;
-template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext, RTP_SMPTE_2110_20_Packet, MediaUnitMetadata>;
-template class RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_Packet, MediaUnitMetadata>;
-template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_Packet, AncillaryMediaUnitMetadata>;
+template class RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacketWriter, MediaUnitMetadata>;
+template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext, RTP_SMPTE_2110_20_PacketWriter, MediaUnitMetadata>;
+template class RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_PacketWriter, MediaUnitMetadata>;
+template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_PacketWriter, AncillaryMediaUnitMetadata>;
