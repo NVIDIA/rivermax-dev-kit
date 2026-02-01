@@ -18,7 +18,7 @@
 
 #include <cstring>
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_20_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_smpte_2110_20_packet_writer.h"
 
 using namespace rivermax::dev_kit::services;
 

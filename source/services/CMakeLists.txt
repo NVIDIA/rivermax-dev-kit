@@ -45,6 +45,7 @@ set(RIVERMAX_DEV_KIT_SERVICE_COMPONENTS
     media
     protocol
     sdp
+    ulp_packet
     ulp_packet_buffer
     memory_allocation
 )

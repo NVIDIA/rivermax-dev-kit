@@ -21,7 +21,7 @@
 
 #include "rdk/services/media/media_essence_provider.h"
 #include "rdk/services/ulp_packet_buffer/writers/ulp_packet_buffer_writer_interface.h"
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
 
 namespace rivermax
 {

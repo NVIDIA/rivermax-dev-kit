@@ -16,17 +16,13 @@
  * limitations under the License.
  */
 
-#include <cstring>
+#ifndef RDK_SERVICES_ULP_PACKET_WRITERS_WRITERS_H_
+#define RDK_SERVICES_ULP_PACKET_WRITERS_WRITERS_H_
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_30_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/ulp_packet_writer_interface.h"
+#include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_smpte_2110_20_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_smpte_2110_30_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_smpte_2110_40_packet_writer.h"
 
-using namespace rivermax::dev_kit::services;
-
-ReturnStatus RTP_SMPTE_2110_30_MockPacketWriter::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
-{
-    const auto& rtp_packet_context = static_cast<const RTPPacketContext&>(context);
-
-    // Mock implementation: no actual payload filling
-    size = rtp_packet_context.payload_size;
-    return ReturnStatus::success;
-}
+#endif /* RDK_SERVICES_ULP_PACKET_WRITERS_WRITERS_H_ */

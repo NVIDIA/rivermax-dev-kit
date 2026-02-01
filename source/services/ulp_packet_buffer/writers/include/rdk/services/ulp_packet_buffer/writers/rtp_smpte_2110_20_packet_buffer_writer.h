@@ -20,7 +20,7 @@
 #define RDK_SERVICES_ULP_PACKET_BUFFER_WRITERS_RTP_SMPTE_2110_20_PACKET_BUFFER_WRITER_H_
 
 #include "rdk/services/ulp_packet_buffer/writers/rtp_media_packet_buffer_writer.h"
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_20_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_smpte_2110_20_packet_writer.h"
 
 namespace rivermax
 {

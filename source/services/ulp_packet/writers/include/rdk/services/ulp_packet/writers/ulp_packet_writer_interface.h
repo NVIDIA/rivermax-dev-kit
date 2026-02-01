@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_WRITER_INTERFACE_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_WRITER_INTERFACE_H_
+#ifndef RDK_SERVICES_ULP_PACKET_WRITERS_ULP_PACKET_WRITER_INTERFACE_H_
+#define RDK_SERVICES_ULP_PACKET_WRITERS_ULP_PACKET_WRITER_INTERFACE_H_
 
 #include <memory>
 
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
+#include "rdk/services/ulp_packet/ulp_packet_context.h"
 
 namespace rivermax
 {
@@ -30,15 +31,6 @@ namespace dev_kit
 {
 namespace services
 {
-
-/**
- * @brief: Interface for packet context.
- *
- * This struct serves as a base for specific packet context structures.
- */
-struct IPacketContext {
-    virtual ~IPacketContext() = default;
-};
 
 /**
  * @brief: Interface for Upper Layer Protocol (ULP) packet writers.
@@ -112,4 +104,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_ULP_PACKET_WRITER_INTERFACE_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_WRITERS_ULP_PACKET_WRITER_INTERFACE_H_ */

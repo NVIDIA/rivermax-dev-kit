@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,27 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_ULP_PACKET_BUFFER_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_ULP_PACKET_BUFFER_H_
+#ifndef RDK_SERVICES_ULP_PACKET_ULP_PACKET_CONTEXT_H_
+#define RDK_SERVICES_ULP_PACKET_ULP_PACKET_CONTEXT_H_
 
-#include "rdk/services/ulp_packet_buffer/writers/writers.h"
+namespace rivermax
+{
+namespace dev_kit
+{
+namespace services
+{
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_ULP_PACKET_BUFFER_H_ */
+/**
+ * @brief: Interface for packet context.
+ *
+ * This struct serves as a base for specific packet context structures.
+ */
+struct IPacketContext {
+    virtual ~IPacketContext() = default;
+};
+
+} // namespace services
+} // namespace dev_kit
+} // namespace rivermax
+
+#endif /* RDK_SERVICES_ULP_PACKET_ULP_PACKET_CONTEXT_H_ */

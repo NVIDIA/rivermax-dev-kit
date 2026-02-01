@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
 
 using namespace rivermax::dev_kit::services;
 

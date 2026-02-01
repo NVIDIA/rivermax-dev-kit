@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_WRITER_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_WRITER_H_
+#ifndef RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_30_PACKET_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_30_PACKET_WRITER_H_
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
 
 namespace rivermax
 {
@@ -80,4 +80,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_30_PACKET_WRITER_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_30_PACKET_WRITER_H_ */

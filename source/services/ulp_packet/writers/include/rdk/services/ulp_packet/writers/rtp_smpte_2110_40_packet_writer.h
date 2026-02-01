@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_WRITER_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_WRITER_H_
+#ifndef RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_40_PACKET_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_40_PACKET_WRITER_H_
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
-#include "rdk/services/media/media.h"
+#include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/rtp_smpte_2110_40_packet_context.h"
 #include "rdk/services/media/ancillary_metadata.h"
 
 namespace rivermax
@@ -29,39 +29,6 @@ namespace dev_kit
 {
 namespace services
 {
-
-/**
- * @brief: Context for RTP SMPTE 2110-40 packets.
- *
- * This struct extends the @ref RTPPacketContext to include fields
- * specific to SMPTE 2110-40 ancillary data packets based on section 2.1 of
- * RFC 8331 - RTP Payload for SMPTE ST 291-1 Ancillary Data.
- */
-struct RTP_SMPTE_2110_40_PacketContext : public RTPPacketContext
-{
-    uint32_t extended_sequence_number = 0;             /**< 32-bit extended sequence number */
-    uint16_t length;                                   /**< Number of octets of the ANC data RTP payload */
-    uint32_t ancillary_count = 0;                      /**< Number of ancillary data packets */
-    uint8_t field_indicator = 0;                       /**< Field indicator specifying RTP timestamp
-                                                            relation to video fields */
-    size_t descriptor_start_index = 0;                 /**< Index of first descriptor to pack in this RTP packet */
-    size_t descriptor_count_in_packet = 0;             /**< Number of descriptors to pack in this RTP packet */
-
-    /**
-     * @brief: Returns the ancillary descriptors from the current media unit metadata.
-     *
-     * @return: Pointer to ancillary descriptors vector.
-     */
-    const std::vector<AncillaryDataDescriptor>* get_ancillary_descriptors() const
-    {
-        if (!current_media_unit || !current_media_unit->metadata) {
-            return nullptr;
-        }
-        auto* ancillary_metadata = static_cast<AncillaryMediaUnitMetadata*>(
-            current_media_unit->metadata.get());
-        return &ancillary_metadata->ancillary_data;
-    }
-};
 
 /**
  * @brief: Helper class to write ancillary data payloads into a buffer.
@@ -222,4 +189,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_40_PACKET_WRITER_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_40_PACKET_WRITER_H_ */

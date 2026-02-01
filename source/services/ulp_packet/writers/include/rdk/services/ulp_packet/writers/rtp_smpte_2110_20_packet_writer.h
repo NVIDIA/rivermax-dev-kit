@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_20_PACKET_WRITER_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_20_PACKET_WRITER_H_
+#ifndef RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_20_PACKET_WRITER_H_
+#define RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_20_PACKET_WRITER_H_
 
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/rtp_smpte_2110_20_packet_context.h"
 
 namespace rivermax
 {
@@ -27,23 +28,6 @@ namespace dev_kit
 {
 namespace services
 {
-
-/**
- * @brief: Context for RTP SMPTE 2110-20 packets.
- *
- * This struct extends the @ref RTPPacketContext to include fields
- * specific to SMPTE 2110-20 video frames packets based on section 4.2 of
- * RFC 4175 - RTP Payload Format for Uncompressed Video.
- */
-struct RTP_SMPTE_2110_20_PacketContext : public RTPPacketContext
-{
-    uint32_t extended_sequence_number = 0;          /**< 32-bit extended sequence number */
-    uint16_t srd_length = 0;                        /**< Number of octets of data included from this scan line */
-    uint16_t line_number = 0;                       /**< Scan line number of encapsulated data */
-    uint16_t srd_offset = 0;                        /**< Offset of the first pixel of the payload data within the scan line */
-    uint8_t rtp_interlace_field_indicator = 0;      /**< Identifies which field the scan line belongs to,
-                                                         for interlaced data */
-};
 
 /**
  * @brief: RTP packet writer for SMPTE 2110-20 video data.
@@ -118,4 +102,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_SMPTE_2110_20_PACKET_WRITER_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_20_PACKET_WRITER_H_ */

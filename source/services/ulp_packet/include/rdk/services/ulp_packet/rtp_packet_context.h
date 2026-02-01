@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_WRITER_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_WRITER_H_
+#ifndef RDK_SERVICES_ULP_PACKET_RTP_PACKET_CONTEXT_H_
+#define RDK_SERVICES_ULP_PACKET_RTP_PACKET_CONTEXT_H_
 
-#include "rdk/services/ulp_packet_buffer/common/ulp_packet_writer_interface.h"
+#include "rdk/services/ulp_packet/ulp_packet_context.h"
 #include "rdk/services/media/media.h"
 #include "rdk/services/utils/rational.h"
 
@@ -54,55 +54,8 @@ struct RTPPacketContext : public IPacketContext
     size_t data_left_in_media_unit_in_bytes = 0;
 };
 
-/**
- * @brief: Base class for RTP media packet writers.
- *
- * This class provides methods to build RTP headers and fill payloads.
- */
-class RTPPacketWriter : public IULPPacketWriter {
-public:
-    /**
-     * @brief: Constructor for RTPPacketWriter.
-     *
-     * Initializes the packet with header and optional payload memory pointers.
-     * The payload pointer is optional and used when Header Data Split mode is enabled.
-     *
-     * @param [in] header_ptr: Pointer to the header memory.
-     * @param [in] payload_ptr: Pointer to the payload memory (optional).
-     */
-    RTPPacketWriter(byte_t* header_ptr, byte_t* payload_ptr):
-        IULPPacketWriter(header_ptr, payload_ptr) {}
-    virtual ~RTPPacketWriter() = default;
-    /**
-     * @brief: Fills the RTP packet header.
-     *
-     * @param [in] context: The packet context containing relevant information.
-     * @param [out] size: Reference to store the size of the filled header.
-     * @param [in] mem_utils: Memory utilities for header manipulation.
-     *
-     * @return: The status of the operation.
-     */
-    ReturnStatus fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
-    /**
-     * @brief: Fills the RTP packet payload.
-     *
-     * @param [in] context: The packet context containing relevant information.
-     * @param [out] size: Reference to store the size of the filled payload.
-     * @param [in] mem_utils: Memory utilities for payload manipulation.
-     *
-     * @return: The status of the operation.
-     */
-    ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
-    /**
-     * @brief: Returns the size of the RTP header.
-     *
-     * @return: The size of the RTP header in bytes.
-     */
-    size_t get_header_size() const override;
-};
-
 } // namespace services
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_RTP_PACKET_WRITER_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_RTP_PACKET_CONTEXT_H_ */

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,17 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_ULP_PACKET_BUFFER_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_ULP_PACKET_BUFFER_H_
+#include <cstring>
 
-#include "rdk/services/ulp_packet_buffer/writers/writers.h"
+#include "rdk/services/ulp_packet/writers/rtp_smpte_2110_30_packet_writer.h"
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_ULP_PACKET_BUFFER_H_ */
+using namespace rivermax::dev_kit::services;
+
+ReturnStatus RTP_SMPTE_2110_30_MockPacketWriter::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
+{
+    const auto& rtp_packet_context = static_cast<const RTPPacketContext&>(context);
+
+    // Mock implementation: no actual payload filling
+    size = rtp_packet_context.payload_size;
+    return ReturnStatus::success;
+}

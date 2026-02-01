@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_COMMON_H_
-#define RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_COMMON_H_
+#ifndef RDK_SERVICES_ULP_PACKET_ULP_PACKET_H_
+#define RDK_SERVICES_ULP_PACKET_ULP_PACKET_H_
 
-#include "rdk/services/ulp_packet_buffer/common/ulp_packet_writer_interface.h"
-#include "rdk/services/ulp_packet_buffer/common/rtp_packet_writer.h"
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_20_packet_writer.h"
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_30_packet_writer.h"
-#include "rdk/services/ulp_packet_buffer/common/rtp_smpte_2110_40_packet_writer.h"
+#include "rdk/services/ulp_packet/ulp_packet_context.h"
+#include "rdk/services/ulp_packet/rtp_packet_context.h"
+#include "rdk/services/ulp_packet/rtp_smpte_2110_20_packet_context.h"
+#include "rdk/services/ulp_packet/rtp_smpte_2110_40_packet_context.h"
 
-#endif /* RDK_SERVICES_ULP_PACKET_BUFFER_COMMON_COMMON_H_ */
+#endif /* RDK_SERVICES_ULP_PACKET_ULP_PACKET_H_ */
