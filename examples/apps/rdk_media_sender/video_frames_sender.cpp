@@ -19,7 +19,7 @@
 #include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/media_settings_video.h"
-#include "rdk/services/media/null_essence_provider.h"
+#include "rdk/services/media/null_essence_source.h"
 #include "rdk/examples/apps/rdk_media_sender/video_frames_sender.h"
 
 using namespace rivermax::dev_kit::apps::media_sender;
@@ -83,17 +83,17 @@ ReturnStatus VideoFramesSenderExample::operator()()
     configure_media_sender_settings(media_sender_settings);
 
     /**
-     * 2. Initialize a custom media essence provider.
+     * 2. Initialize a custom media essence source.
      *
-     * Create a dummy media essence provider using @ref NullEssenceProvider with 0.2f probability of simulating
+     * Create a dummy media essence source using @ref NullEssenceSource with 0.2f probability of simulating
      * media unit (i.e., video frame) unavailability.
-     * This provider implements the @ref IMediaEssenceProvider interface, which client
+     * This source implements the @ref IMediaEssenceSource interface, which client
      * application should implement to supply media units (i.e., video frames) to the Media Sender application.
      */
     SMPTE_2110_20_MediaSettings st_2110_20_settings(media_sender_settings);
-    auto dummy_media_essence_provider = std::make_shared<NullEssenceProvider>(st_2110_20_settings);
+    auto dummy_media_essence_source = std::make_shared<NullEssenceSource>(st_2110_20_settings);
     constexpr float probability = 0.2f;
-    auto status = dummy_media_essence_provider->set_media_unit_not_available_probability(probability);
+    auto status = dummy_media_essence_source->set_media_unit_not_available_probability(probability);
     RETURN_FAILURE_ON_ERROR(status, "Failed to set media unit unavailability probability");
 
     /** 3. Set up media sender settings validation */
@@ -109,23 +109,23 @@ ReturnStatus VideoFramesSenderExample::operator()()
     RETURN_FAILURE_ON_ERROR(status, "Failed to initialize Media Sender application");
 
     /**
-     * 6. Set the custom media essence provider to the Media Sender application.
+     * 6. Set the custom media essence source to the Media Sender application.
      *
-     * In this example, we use a runtime-only media essence provider configuration:
-     * - @p preload_essence_provider = nullptr: No preloading of data into memory blocks, before transmission starts.
-     * - @p runtime_essence_provider = @p dummy_media_essence_provider: Provides media units dynamically during transmission.
+     * In this example, we use a runtime-only media essence source configuration:
+     * - @p preload_essence_source = nullptr: No preloading of data into memory blocks, before transmission starts.
+     * - @p runtime_essence_source = @p dummy_media_essence_source: Provides media units dynamically during transmission.
      * - @p runtime_contains_payload = false: Only RTP headers are generated, no payload data is copied, during transmission.
      *   This improves performance when payload data is not needed or handled before transmission.
      */
     constexpr size_t stream_index = 0;
     constexpr SMPTEStandard smpte_standard = SMPTEStandard::ST_2110_20;
-    std::shared_ptr<IMediaEssenceProvider> preload_essence_provider = nullptr;
-    std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider = dummy_media_essence_provider;
+    std::shared_ptr<IMediaEssenceSource> preload_essence_source = nullptr;
+    std::shared_ptr<IMediaEssenceSource> runtime_essence_source = dummy_media_essence_source;
     constexpr bool runtime_contains_payload = false;
-    status = app.set_media_essence_providers(
-        stream_index, smpte_standard, std::move(preload_essence_provider),
-        std::move(runtime_essence_provider), runtime_contains_payload);
-    RETURN_FAILURE_ON_ERROR(status, "Failed to set media essence provider");
+    status = app.set_media_essence_sources(
+        stream_index, smpte_standard, std::move(preload_essence_source),
+        std::move(runtime_essence_source), runtime_contains_payload);
+    RETURN_FAILURE_ON_ERROR(status, "Failed to set media essence source");
 
     /** 7. Start sending media data */
     status = app.run();

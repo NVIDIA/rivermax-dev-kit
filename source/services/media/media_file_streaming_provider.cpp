@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,20 +22,20 @@
 
 #include "rdk/services/media/media_file_streaming_provider.h"
 #include "rdk/services/error_handling/error_handling.h"
-#include "rdk/services/media/buffered_essence_provider.h"
+#include "rdk/services/media/buffered_essence_source.h"
 #include "rdk/services/media/media_unit_pool.h"
 
 using namespace rivermax::dev_kit::services;
 
 MediaFileStreamingProvider::MediaFileStreamingProvider(
     const std::string& file_path, SMPTEStandard smpte_standard, size_t media_unit_size,
-    std::shared_ptr<BufferedEssenceProvider> essence_provider,
+    std::shared_ptr<BufferedEssenceSource> essence_source,
     std::shared_ptr<MemoryAllocator> memory_allocator, bool loop,
     size_t sleep_duration_microseconds) :
     m_file_path(file_path),
     m_smpte_standard(smpte_standard),
     m_media_unit_size(media_unit_size),
-    m_essence_provider(std::move(essence_provider)),
+    m_essence_source(std::move(essence_source)),
     m_memory_utils(memory_allocator->get_memory_utils()),
     m_memory_allocator(std::move(memory_allocator)),
     m_loop_media_units(loop),
@@ -118,7 +118,7 @@ void MediaFileStreamingProvider::operator()()
         }
 
         while (!m_stop && SignalHandler::get_received_signal() < 0) {
-            if (m_essence_provider->add_media_unit(media_unit) == ReturnStatus::success) {
+            if (m_essence_source->add_media_unit(media_unit) == ReturnStatus::success) {
                 break;
             }
             std::this_thread::sleep_for(std::chrono::microseconds(m_sleep_duration_microseconds));
@@ -129,7 +129,7 @@ void MediaFileStreamingProvider::operator()()
         }
     }
 
-    m_essence_provider->stop();
+    m_essence_source->stop();
     m_media_unit_pool->stop();
     m_initialized = false;
 }

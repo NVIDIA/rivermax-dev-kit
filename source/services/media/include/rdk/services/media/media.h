@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,12 +22,12 @@
 #include "rdk/services/media/app_media_settings.h"
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/media_file_reader.h"
-#include "rdk/services/media/media_essence_provider.h"
-#include "rdk/services/media/ancillary_essence_provider.h"
-#include "rdk/services/media/null_essence_provider.h"
-#include "rdk/services/media/media_file_essence_provider.h"
+#include "rdk/services/media/media_essence_source.h"
+#include "rdk/services/media/ancillary_essence_source.h"
+#include "rdk/services/media/null_essence_source.h"
+#include "rdk/services/media/media_file_essence_source.h"
 #include "rdk/services/media/media_file_streaming_provider.h"
-#include "rdk/services/media/buffered_essence_provider.h"
+#include "rdk/services/media/buffered_essence_source.h"
 #include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_video.h"

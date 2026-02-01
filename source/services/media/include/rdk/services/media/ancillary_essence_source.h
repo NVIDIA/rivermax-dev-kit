@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_ANCILLARY_ESSENCE_PROVIDER_H_
-#define RDK_SERVICES_MEDIA_ANCILLARY_ESSENCE_PROVIDER_H_
+#ifndef RDK_SERVICES_MEDIA_ANCILLARY_ESSENCE_SOURCE_H_
+#define RDK_SERVICES_MEDIA_ANCILLARY_ESSENCE_SOURCE_H_
 
 #include <chrono>
 #include <memory>
@@ -28,7 +28,7 @@
 #include "rdk/services/media/ancillary_metadata.h"
 #include "rdk/services/media/closed_caption_608_encoder.h"
 #include "rdk/services/media/closed_caption_source_interface.h"
-#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_essence_source.h"
 #include "rdk/services/media/media_settings_ancillary.h"
 #include "rdk/services/media/timecode_encoder.h"
 #include "rdk/services/utils/enum_utils.h"
@@ -53,14 +53,14 @@ enum class AncillaryDataType : uint8_t
 RDK_ENUM_FLAGS(AncillaryDataType);
 
 /**
- * @brief: Ancillary essence provider to generate ancillary media units.
+ * @brief: Ancillary essence source to generate ancillary media units.
  *
  * Can generate ancillary data for the following types:
  * - AFD: Active Format Description (AFD) code and aspect ratio.
  * - Timecode: Transmission time in S12M-2 format (LTC, VITC1 and VITC2).
  * - Simple Closed Caption: CEA-608 captions encoded in CDP.
  */
-class AncillaryEssenceProvider : public IMediaEssenceProvider
+class AncillaryEssenceSource : public IMediaEssenceSource
 {
 protected:
     const SMPTE_2110_40_MediaSettings& m_media_settings;
@@ -76,11 +76,11 @@ protected:
 
 public:
     /**
-     * @brief: Constructor for AncillaryEssenceProvider.
+     * @brief: Constructor for AncillaryEssenceSource.
      *
      * @param [in] media_settings: Ancillary media settings for the stream.
      */
-    AncillaryEssenceProvider(const SMPTE_2110_40_MediaSettings& media_settings);
+    AncillaryEssenceSource(const SMPTE_2110_40_MediaSettings& media_settings);
     std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
     std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     void set_start_time(uint64_t time_ns) override;
@@ -137,4 +137,4 @@ private:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_ANCILLARY_ESSENCE_PROVIDER_H_ */
+#endif /* RDK_SERVICES_MEDIA_ANCILLARY_ESSENCE_SOURCE_H_ */

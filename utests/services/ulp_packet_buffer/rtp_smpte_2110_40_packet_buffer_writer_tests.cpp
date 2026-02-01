@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "rdk/services/ulp_packet_buffer/writers/rtp_smpte_2110_40_packet_buffer_writer.h"
-#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_essence_source.h"
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/ancillary_metadata.h"
 #include "rdk/services/media/ancillary_settings_calculator.h"

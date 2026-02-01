@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -166,13 +166,13 @@ ReturnStatus MediaSenderIONode::initialize_streams()
                                             m_dscp, m_pcp, m_ecn);
 
         stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);
-        auto runtime_essence_provider = std::make_shared<NullEssenceProvider>(m_media_settings);
-        auto preload_essence_provider = std::make_shared<NullEssenceProvider>(m_media_settings);
+        auto runtime_essence_source = std::make_shared<NullEssenceSource>(m_media_settings);
+        auto preload_essence_source = std::make_shared<NullEssenceSource>(m_media_settings);
 
-        rc = set_media_essence_providers(stream_idx, smpte_standard,
-            std::move(preload_essence_provider), std::move(runtime_essence_provider), false);
+        rc = set_media_essence_sources(stream_idx, smpte_standard,
+            std::move(preload_essence_source), std::move(runtime_essence_source), false);
         if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to set preload essence provider for stream " << stream_idx << std::endl;
+            std::cerr << "Failed to set preload essence source for stream " << stream_idx << std::endl;
             return rc;
         }
         if (!stream_pack.preload_packet_buffer_writer || !stream_pack.runtime_packet_buffer_writer) {
@@ -385,10 +385,10 @@ void MediaSenderIONode::print_parameters()
 ReturnStatus MediaSenderIONode::process_media_unit()
 {
     for (auto& stream_pack : m_stream_packs) {
-        if (!stream_pack.runtime_essence_provider) {
+        if (!stream_pack.runtime_essence_source) {
             continue;
         }
-        std::shared_ptr<MediaUnit> media_unit = stream_pack.runtime_essence_provider->get_media_unit_blocking();
+        std::shared_ptr<MediaUnit> media_unit = stream_pack.runtime_essence_source->get_media_unit_blocking();
 
         if (SignalHandler::get_received_signal() >= 0) {
             return ReturnStatus::success;
@@ -526,8 +526,8 @@ void MediaSenderIONode::operator()()
     start_send_time_ns += transmit_offset_ns;
 
     for (auto& stream_pack : m_stream_packs) {
-        if (stream_pack.runtime_essence_provider) {
-            stream_pack.runtime_essence_provider->set_start_time(send_time_ns);
+        if (stream_pack.runtime_essence_source) {
+            stream_pack.runtime_essence_source->set_start_time(send_time_ns);
         }
         stream_pack.runtime_packet_buffer_writer->set_start_time(start_send_time_ns);
     }
@@ -674,8 +674,8 @@ inline void MediaSenderIONode::preload_media_data()
         if (stream_pack.header_memory_ptr == nullptr && stream_pack.payload_memory_ptr == nullptr) {
             continue;
         }
-        // Skip if no preload essence provider
-        if (!stream_pack.preload_essence_provider || !stream_pack.preload_packet_buffer_writer) {
+        // Skip if no preload essence source
+        if (!stream_pack.preload_essence_source || !stream_pack.preload_packet_buffer_writer) {
             continue;
         }
 
@@ -686,7 +686,7 @@ inline void MediaSenderIONode::preload_media_data()
 
             // Process all media units for this block
             for (size_t unit_idx = 0; unit_idx < m_media_settings.media_units_in_mem_block; ++unit_idx) {
-                std::shared_ptr<MediaUnit> media_unit = stream_pack.preload_essence_provider->get_media_unit_blocking();
+                std::shared_ptr<MediaUnit> media_unit = stream_pack.preload_essence_source->get_media_unit_blocking();
                 if (!media_unit) {
                     std::cerr << "Failed to get media unit." << std::endl;
                     break;
@@ -753,14 +753,14 @@ size_t MediaSenderIONode::calculate_required_memory_blocks(size_t essence_size) 
     return required_number_of_memory_blocks;
 }
 
-ReturnStatus MediaSenderIONode::set_media_essence_providers(
+ReturnStatus MediaSenderIONode::set_media_essence_sources(
     size_t stream_index, SMPTEStandard smpte_standard,
-    std::shared_ptr<IMediaEssenceProvider> preload_essence_provider,
-    std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider,
+    std::shared_ptr<IMediaEssenceSource> preload_essence_source,
+    std::shared_ptr<IMediaEssenceSource> runtime_essence_source,
     bool runtime_contains_payload)
 {
-    if (runtime_essence_provider == nullptr && preload_essence_provider == nullptr) {
-        std::cerr << "Invalid media essence provider" << std::endl;
+    if (runtime_essence_source == nullptr && preload_essence_source == nullptr) {
+        std::cerr << "Invalid media essence source" << std::endl;
         return ReturnStatus::failure;
     }
     if (stream_index >= m_stream_packs.size()) {
@@ -768,8 +768,8 @@ ReturnStatus MediaSenderIONode::set_media_essence_providers(
         return ReturnStatus::failure;
     }
 
-    // Set runtime essence provider if provided
-    if (runtime_essence_provider) {
+    // Set runtime essence source if provided
+    if (runtime_essence_source) {
         std::unique_ptr<IULPPacketBufferWriter> runtime_packet_buffer_writer =
             create_rtp_media_packet_buffer_writer(
                 smpte_standard, runtime_contains_payload, m_media_settings,
@@ -778,10 +778,10 @@ ReturnStatus MediaSenderIONode::set_media_essence_providers(
             std::cerr << "Failed to create packet buffer writer" << std::endl;
             return ReturnStatus::failure;
         }
-        m_stream_packs[stream_index].runtime_essence_provider = std::move(runtime_essence_provider);
+        m_stream_packs[stream_index].runtime_essence_source = std::move(runtime_essence_source);
         m_stream_packs[stream_index].runtime_packet_buffer_writer = std::move(runtime_packet_buffer_writer);
     }
-    if (preload_essence_provider) {
+    if (preload_essence_source) {
         std::unique_ptr<IULPPacketBufferWriter> preload_packet_buffer_writer =
             create_rtp_media_packet_buffer_writer(
                 smpte_standard, true, m_media_settings,
@@ -790,13 +790,13 @@ ReturnStatus MediaSenderIONode::set_media_essence_providers(
             std::cerr << "Failed to create packet buffer writer" << std::endl;
             return ReturnStatus::failure;
         }
-        m_stream_packs[stream_index].preload_essence_provider = std::move(preload_essence_provider);
+        m_stream_packs[stream_index].preload_essence_source = std::move(preload_essence_source);
         m_stream_packs[stream_index].preload_packet_buffer_writer = std::move(preload_packet_buffer_writer);
         // Update memory requirements based on preload essence size
         size_t essence_size;
-        ReturnStatus rc = m_stream_packs[stream_index].preload_essence_provider->get_data_size(essence_size);
+        ReturnStatus rc = m_stream_packs[stream_index].preload_essence_source->get_data_size(essence_size);
         if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to get data size for preload essence provider" << std::endl;
+            std::cerr << "Failed to get data size for preload essence source" << std::endl;
             return ReturnStatus::failure;
         }
         size_t required_number_of_memory_blocks = calculate_required_memory_blocks(essence_size);
@@ -805,7 +805,7 @@ ReturnStatus MediaSenderIONode::set_media_essence_providers(
         m_payload_total_memory_size += m_block_payload_memory_size * diff_number_of_memory_blocks;
         m_stream_packs[stream_index].number_of_memory_blocks = required_number_of_memory_blocks;
     } else {
-        m_stream_packs[stream_index].preload_essence_provider.reset();
+        m_stream_packs[stream_index].preload_essence_source.reset();
         m_stream_packs[stream_index].preload_packet_buffer_writer.reset();
     }
     return ReturnStatus::success;

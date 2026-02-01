@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -162,61 +162,61 @@ public:
     ReturnStatus initialize_smpte_standards();
     ReturnStatus initialize() override;
     /**
-     * @brief: Sets media essence providers for a specific stream.
+     * @brief: Sets media essence sources for a specific stream.
      *
      * This is the application-level API that forwards to the IO node level.
      * It forwards the request to the appropriate MediaSenderIONode instance based on the stream index.
-     * This method configures the media essence providers that supply media data to a stream.
-     * Two types of providers can be configured:
+     * This method configures the media essence sources that supply media data to a stream.
+     * Two types of sources can be configured:
      *
-     * - **Preload Provider**: Pre-fills memory blocks with media data before transmission begins.
+     * - **Preload Source**: Pre-fills memory blocks with media data before transmission begins.
      *   This is a one-time operation that prepares data in advance for optimal performance.
      *
-     * - **Runtime Provider**: Supplies fresh media data dynamically during active transmission.
+     * - **Runtime Source**: Supplies fresh media data dynamically during active transmission.
      *   Called continuously as new media units are available.
      *
      * @par Usage Patterns:
-     * 1. **Static Content**: Set only a preload provider and disable runtime payload copying
+     * 1. **Static Content**: Set only a preload source and disable runtime payload copying
      *    (`runtime_contains_payload = false`) for maximum efficiency when transmitting
      *    the same data repeatedly.
      *
-     * 2. **Dynamic Content**: Set only a runtime provider when media data changes continuously.
+     * 2. **Dynamic Content**: Set only a runtime source when media data changes continuously.
      *
-     * 3. **Hybrid Mode**: Set both providers - preload fills memory blocks once before
+     * 3. **Hybrid Mode**: Set both sources - preload fills memory blocks once before
      *    transmission starts, while runtime supplies new media units to send when they
      *    become available during the transmission loop.
      *
      * @par Default Behavior:
-     * Each stream is initialized with @ref NullEssenceProvider for both providers by default.
-     * @ref NullEssenceProvider generates only RTP headers; payload data is not written
-     * during the transmission loop. At least one provider should be set to a real
+     * Each stream is initialized with @ref NullEssenceSource for both sources by default.
+     * @ref NullEssenceSource generates only RTP headers; payload data is not written
+     * during the transmission loop. At least one source should be set to a real
      * implementation for meaningful data transmission.
      *
      * @param [in] stream_index: The external stream index to configure.
      * @param [in] smpte_standard: The SMPTE standard for media formatting.
-     * @param [in] preload_essence_provider: Provider for preloading data into memory blocks
-     *                                       before transmission. Pass nullptr to preserve the
-     *                                       existing preload provider (default: nullptr).
-     * @param [in] runtime_essence_provider: Provider for supplying media data during active
-     *                                       transmission. Pass nullptr to preserve the existing
-     *                                       runtime provider (default: nullptr).
+     * @param [in] preload_essence_source: Source for preloading data into memory blocks
+     *                                     before transmission. Pass nullptr to preserve the
+     *                                     existing preload source (default: nullptr).
+     * @param [in] runtime_essence_source: Source for supplying media data during active
+     *                                     transmission. Pass nullptr to preserve the existing
+     *                                     runtime source (default: nullptr).
      * @param [in] runtime_contains_payload: If true, copies both headers and payload from the
-     *                                       runtime provider. If false, only constructs RTP
-     *                                       headers from the runtime provider, leaving payload
+     *                                       runtime source. If false, only constructs RTP
+     *                                       headers from the runtime source, leaving payload
      *                                       data untouched (assumes preloaded). Setting to false
      *                                       improves performance when payload is static
      *                                       (default: true).
      *
-     * @note: The @p runtime_contains_payload parameter only affects the runtime provider's behavior.
-     *        The @p preload_essence_provider always writes complete data (headers and payload).
+     * @note: The @p runtime_contains_payload parameter only affects the runtime source's behavior.
+     *        The @p preload_essence_source always writes complete data (headers and payload).
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_media_essence_providers(
+    ReturnStatus set_media_essence_sources(
         size_t stream_index,
         SMPTEStandard smpte_standard,
-        std::shared_ptr<IMediaEssenceProvider> preload_essence_provider = nullptr,
-        std::shared_ptr<IMediaEssenceProvider> runtime_essence_provider = nullptr,
+        std::shared_ptr<IMediaEssenceSource> preload_essence_source = nullptr,
+        std::shared_ptr<IMediaEssenceSource> runtime_essence_source = nullptr,
         bool runtime_contains_payload = true);
 private:
     ReturnStatus initialize_app_settings() final;
@@ -306,16 +306,16 @@ private:
      */
     static uint64_t get_time_ns(void* context = nullptr);
     /**
-     * @brief: Sets internal media essence providers.
+     * @brief: Sets internal media essence sources.
      *
-     * This method is responsible to set internal (default) media essence providers for
-     * the streams. The internal media essence providers are used to generate media units that
+     * This method is responsible to set internal (default) media essence sources for
+     * the streams. The internal media essence sources are used to generate media units that
      * will be set by BufferWriters as a payload. User will be able to set an
-     * external media essence provider by @ref MediaSenderApp::set_media_essence_providers.
+     * external media essence source by @ref MediaSenderApp::set_media_essence_sources.
      *
      * @return: Status of the operation.
      */
-    ReturnStatus set_internal_media_essence_providers();
+    ReturnStatus set_internal_media_essence_sources();
 };
 
 } // namespace media_sender

@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_NULL_ESSENCE_PROVIDER_H_
-#define RDK_SERVICES_MEDIA_NULL_ESSENCE_PROVIDER_H_
+#ifndef RDK_SERVICES_MEDIA_NULL_ESSENCE_SOURCE_H_
+#define RDK_SERVICES_MEDIA_NULL_ESSENCE_SOURCE_H_
 
 #include <condition_variable>
 #include <cstdint>
@@ -28,7 +28,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_essence_source.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/services/utils/defs.h"
@@ -40,19 +40,19 @@ namespace dev_kit
 namespace services
 {
 /**
- * @brief: Mock implementation of IMediaEssenceProvider for testing.
+ * @brief: Mock implementation of IMediaEssenceSource for testing.
  */
-class NullEssenceProvider : public IMediaEssenceProvider {
+class NullEssenceSource : public IMediaEssenceSource {
 protected:
     const MediaSettings& m_media_settings;
     float m_media_unit_not_available_probability;
 public:
     /**
-     * @brief: Constructor of NullEssenceProvider.
+     * @brief: Constructor of NullEssenceSource.
      *
      * @param [in] media_settings: Media settings for the generated stream.
      */
-    NullEssenceProvider(const MediaSettings& media_settings);
+    NullEssenceSource(const MediaSettings& media_settings);
     std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
     std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     /**
@@ -82,4 +82,4 @@ private:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_NULL_ESSENCE_PROVIDER_H_ */
+#endif /* RDK_SERVICES_MEDIA_NULL_ESSENCE_SOURCE_H_ */

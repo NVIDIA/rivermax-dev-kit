@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_MEDIA_FILE_ESSENCE_PROVIDER_H_
-#define RDK_SERVICES_MEDIA_MEDIA_FILE_ESSENCE_PROVIDER_H_
+#ifndef RDK_SERVICES_MEDIA_MEDIA_FILE_ESSENCE_SOURCE_H_
+#define RDK_SERVICES_MEDIA_MEDIA_FILE_ESSENCE_SOURCE_H_
 
 #include <condition_variable>
 #include <cstdint>
@@ -28,7 +28,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_essence_source.h"
 #include "rdk/services/media/media_file_reader.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
@@ -46,7 +46,7 @@ namespace services
  * It loads media units into a queue and, if the loop option is enabled,
  * re-inserts media units after serving them.
  */
-class MediaFileEssenceProvider : public IMediaEssenceProvider
+class MediaFileEssenceSource : public IMediaEssenceSource
 {
 protected:
     std::string m_file_path;
@@ -71,12 +71,12 @@ public:
      * @param [in] mem_allocator: Memory allocator to use.
      * @param [in] loop: Whether to loop media units.
      */
-    MediaFileEssenceProvider(const std::string& file_path, SMPTEStandard smpte_standard, size_t media_unit_size,
-                             MemoryAllocator& mem_allocator, bool loop = false);
+    MediaFileEssenceSource(const std::string& file_path, SMPTEStandard smpte_standard, size_t media_unit_size,
+                           MemoryAllocator& mem_allocator, bool loop = false);
     /**
      * @brief: Destructor.
      */
-    ~MediaFileEssenceProvider();
+    ~MediaFileEssenceSource();
     std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
     std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     void stop() override;
@@ -117,4 +117,4 @@ private:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_MEDIA_FILE_ESSENCE_PROVIDER_H_ */
+#endif /* RDK_SERVICES_MEDIA_MEDIA_FILE_ESSENCE_SOURCE_H_ */

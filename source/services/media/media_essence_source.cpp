@@ -20,7 +20,7 @@
 #include <cstring>
 #include <random>
 
-#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_essence_source.h"
 #include "rdk/services/media/ancillary_metadata.h"
 #include "rdk/services/media/media_settings_video.h"
 

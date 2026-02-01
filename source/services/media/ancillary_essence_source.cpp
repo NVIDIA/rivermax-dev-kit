@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "rdk/services/media/ancillary_essence_provider.h"
+#include "rdk/services/media/ancillary_essence_source.h"
 #include "rdk/services/media/closed_caption_mock_source.h"
 #include "rdk/services/media/closed_caption_srt_source.h"
 
@@ -66,20 +66,20 @@ std::unique_ptr<IClosedCaptionSource> create_closed_caption_source(const std::st
 }
 } // anonymous namespace
 
-AncillaryEssenceProvider::AncillaryEssenceProvider(const SMPTE_2110_40_MediaSettings& media_settings) :
+AncillaryEssenceSource::AncillaryEssenceSource(const SMPTE_2110_40_MediaSettings& media_settings) :
     m_media_settings(media_settings)
 {
     initialize_encoders(media_settings.data_identifiers);
 }
 
-std::shared_ptr<MediaUnit> AncillaryEssenceProvider::get_media_unit_blocking()
+std::shared_ptr<MediaUnit> AncillaryEssenceSource::get_media_unit_blocking()
 {
     // Ancillary data, AFD, timecode, and closed captions are generated on-the-fly
     // and never block. Valid data is always available.
     return get_media_unit_non_blocking();
 }
 
-std::shared_ptr<MediaUnit> AncillaryEssenceProvider::get_media_unit_non_blocking()
+std::shared_ptr<MediaUnit> AncillaryEssenceSource::get_media_unit_non_blocking()
 {
     auto media_unit = std::make_shared<MediaUnit>(m_media_settings.bytes_per_media_unit, SMPTEStandard::ST_2110_40);
     uint8_t* buffer = reinterpret_cast<uint8_t*>(media_unit->data->get());
@@ -95,7 +95,7 @@ std::shared_ptr<MediaUnit> AncillaryEssenceProvider::get_media_unit_non_blocking
     return media_unit;
 }
 
-void AncillaryEssenceProvider::set_start_time(uint64_t time_ns)
+void AncillaryEssenceSource::set_start_time(uint64_t time_ns)
 {
     m_start_time = time_ns;
     m_unit_counter = 0;
@@ -105,12 +105,12 @@ void AncillaryEssenceProvider::set_start_time(uint64_t time_ns)
     }
 }
 
-void AncillaryEssenceProvider::set_caption_source(std::unique_ptr<IClosedCaptionSource> source)
+void AncillaryEssenceSource::set_caption_source(std::unique_ptr<IClosedCaptionSource> source)
 {
     m_cc_source = std::move(source);
 }
 
-void AncillaryEssenceProvider::initialize_encoders(const std::vector<AncillaryDataIdentifier>& data_identifiers)
+void AncillaryEssenceSource::initialize_encoders(const std::vector<AncillaryDataIdentifier>& data_identifiers)
 {
     for (const auto& identifier : data_identifiers) {
         if (identifier == ANCILLARY_TIMECODE_IDENTIFIER) {
@@ -128,14 +128,14 @@ void AncillaryEssenceProvider::initialize_encoders(const std::vector<AncillaryDa
     }
 }
 
-void AncillaryEssenceProvider::process_afd_encoder(uint8_t* buffer, size_t& cumulative_offset, AncillaryMediaUnitMetadata& anc_metadata)
+void AncillaryEssenceSource::process_afd_encoder(uint8_t* buffer, size_t& cumulative_offset, AncillaryMediaUnitMetadata& anc_metadata)
 {
     if (m_afd_encoder) {
         write_encoder_data(*m_afd_encoder, buffer, cumulative_offset, anc_metadata);
     }
 }
 
-void AncillaryEssenceProvider::process_timecode_encoder(uint8_t* buffer, size_t& cumulative_offset, AncillaryMediaUnitMetadata& anc_metadata)
+void AncillaryEssenceSource::process_timecode_encoder(uint8_t* buffer, size_t& cumulative_offset, AncillaryMediaUnitMetadata& anc_metadata)
 {
     if (m_timecode_encoder) {
         m_timecode_encoder->set_current_frame(m_unit_counter);
@@ -143,7 +143,7 @@ void AncillaryEssenceProvider::process_timecode_encoder(uint8_t* buffer, size_t&
     }
 }
 
-void AncillaryEssenceProvider::process_closed_caption_encoder(uint8_t* buffer, size_t& cumulative_offset, AncillaryMediaUnitMetadata& anc_metadata)
+void AncillaryEssenceSource::process_closed_caption_encoder(uint8_t* buffer, size_t& cumulative_offset, AncillaryMediaUnitMetadata& anc_metadata)
 {
     if (m_cc_encoder && m_cc_source) {
         uint64_t relative_timestamp_ns = m_unit_counter * m_media_settings.media_unit_time_interval_ns;
@@ -154,7 +154,7 @@ void AncillaryEssenceProvider::process_closed_caption_encoder(uint8_t* buffer, s
     }
 }
 
-void AncillaryEssenceProvider::write_encoder_data(IAncillaryDataEncoder& encoder, uint8_t* buffer, size_t& cumulative_offset, AncillaryMediaUnitMetadata& anc_metadata)
+void AncillaryEssenceSource::write_encoder_data(IAncillaryDataEncoder& encoder, uint8_t* buffer, size_t& cumulative_offset, AncillaryMediaUnitMetadata& anc_metadata)
 {
     size_t packet_count = encoder.get_packet_count();
     for (size_t i = 0; i < packet_count; ++i) {

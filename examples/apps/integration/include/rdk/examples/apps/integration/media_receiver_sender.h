@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,9 +44,9 @@ namespace integration
  *
  * This example demonstrates both receiving and sending data in a single application.
  * It uses the default dummy data consumer to simulate processing of chunks received over the network
- * by the RTP receiver. Additionally, it uses the default dummy frame provider to simulate frames transmission
+ * by the RTP receiver. Additionally, it uses the default dummy frame source to simulate frames transmission
  * from the sender. See @ref RTPChunksReceiverExample and @ref VideoFramesSenderExample for details about
- * overriding the default dummy data consumer and frame provider.
+ * overriding the default dummy data consumer and frame source.
  * The example is designed to showcase the integration of both receiver and sender functionalities.
  */
 class ReceiverSenderExample : public BaseExample

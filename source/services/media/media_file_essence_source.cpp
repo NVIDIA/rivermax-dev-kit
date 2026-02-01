@@ -20,12 +20,12 @@
 #include <cstring>
 #include <random>
 
-#include "rdk/services/media/media_file_essence_provider.h"
+#include "rdk/services/media/media_file_essence_source.h"
 #include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
 
-MediaFileEssenceProvider::MediaFileEssenceProvider(const std::string &file_path, SMPTEStandard smpte_standard,
+MediaFileEssenceSource::MediaFileEssenceSource(const std::string &file_path, SMPTEStandard smpte_standard,
     size_t media_unit_size, MemoryAllocator& mem_allocator, bool loop) :
     m_file_path(file_path),
     m_mem_allocator(mem_allocator),
@@ -39,7 +39,7 @@ MediaFileEssenceProvider::MediaFileEssenceProvider(const std::string &file_path,
 {
 }
 
-MediaFileEssenceProvider::~MediaFileEssenceProvider()
+MediaFileEssenceSource::~MediaFileEssenceSource()
 {
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -48,12 +48,12 @@ MediaFileEssenceProvider::~MediaFileEssenceProvider()
     m_cv.notify_all();
 }
 
-ReturnStatus MediaFileEssenceProvider::get_data_size(size_t& data_size) const
+ReturnStatus MediaFileEssenceSource::get_data_size(size_t& data_size) const
 {
     return m_file_reader.get_file_size(data_size);
 }
 
-std::shared_ptr<MediaUnit> MediaFileEssenceProvider::get_media_unit_blocking()
+std::shared_ptr<MediaUnit> MediaFileEssenceSource::get_media_unit_blocking()
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_cv.wait(lock, [this] { return !m_media_unit_queue.empty() || m_media_units_loaded || m_stop; });
@@ -66,7 +66,7 @@ std::shared_ptr<MediaUnit> MediaFileEssenceProvider::get_media_unit_blocking()
     return media_unit;
 }
 
-std::shared_ptr<MediaUnit> MediaFileEssenceProvider::get_media_unit_non_blocking()
+std::shared_ptr<MediaUnit> MediaFileEssenceSource::get_media_unit_non_blocking()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_media_unit_queue.empty()) {
@@ -78,7 +78,7 @@ std::shared_ptr<MediaUnit> MediaFileEssenceProvider::get_media_unit_non_blocking
     return media_unit;
 }
 
-ReturnStatus MediaFileEssenceProvider::allocate_media_units_memory(size_t file_size,
+ReturnStatus MediaFileEssenceSource::allocate_media_units_memory(size_t file_size,
     byte_t*& file_memory_buffer, size_t& required_memory_size)
 {
     size_t num_units = file_size / m_media_unit_size;
@@ -97,7 +97,7 @@ ReturnStatus MediaFileEssenceProvider::allocate_media_units_memory(size_t file_s
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaFileEssenceProvider::read_media_units(byte_t* file_memory_buffer)
+ReturnStatus MediaFileEssenceSource::read_media_units(byte_t* file_memory_buffer)
 {
     size_t unit_index = 0;
     byte_t* cur_unit_ptr = file_memory_buffer;
@@ -129,7 +129,7 @@ ReturnStatus MediaFileEssenceProvider::read_media_units(byte_t* file_memory_buff
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaFileEssenceProvider::load_media_units()
+ReturnStatus MediaFileEssenceSource::load_media_units()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_media_units_loaded) {
@@ -168,7 +168,7 @@ ReturnStatus MediaFileEssenceProvider::load_media_units()
     return ReturnStatus::success;
 }
 
-void MediaFileEssenceProvider::handle_looping_media_unit(std::shared_ptr<MediaUnit>& media_unit)
+void MediaFileEssenceSource::handle_looping_media_unit(std::shared_ptr<MediaUnit>& media_unit)
 {
     if (m_loop_media_units && media_unit) {
         m_media_unit_queue.push(media_unit);
@@ -176,7 +176,7 @@ void MediaFileEssenceProvider::handle_looping_media_unit(std::shared_ptr<MediaUn
     m_cv.notify_one();
 }
 
-void MediaFileEssenceProvider::stop()
+void MediaFileEssenceSource::stop()
 {
     m_stop = true;
     m_cv.notify_all();

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,12 +37,12 @@ namespace dev_kit
 namespace services
 {
 class MediaUnitPool;
-class BufferedEssenceProvider;
+class BufferedEssenceSource;
 /**
- * @brief: Reads media units from a file and streams them to a @ref BufferedEssenceProvider.
+ * @brief: Reads media units from a file and streams them to a @ref BufferedEssenceSource.
  *
  * This class reads media units from a file, uses a @ref MediaUnitPool for memory management,
- * and pushes the media units to a @ref BufferedEssenceProvider for consumption by other components.
+ * and pushes the media units to a @ref BufferedEssenceSource for consumption by other components.
  * It supports looping through the file when reaching the end and provides thread-safe
  * operations for starting and stopping the streaming process.
  */
@@ -52,7 +52,7 @@ private:
     SMPTEStandard m_smpte_standard;
     size_t m_media_unit_size;
     std::unique_ptr<MediaUnitPool> m_media_unit_pool;
-    std::shared_ptr<BufferedEssenceProvider> m_essence_provider;
+    std::shared_ptr<BufferedEssenceSource> m_essence_source;
     std::shared_ptr<MemoryUtils> m_memory_utils;
     std::shared_ptr<MemoryAllocator> m_memory_allocator;
     bool m_loop_media_units;
@@ -71,14 +71,14 @@ public:
      * @param [in] file_path: Path to the media file.
      * @param [in] smpte_standard: SMPTE standard.
      * @param [in] media_unit_size: Size of each media unit in bytes.
-     * @param [in] essence_provider: Shared pointer to a @ref BufferedEssenceProvider.
+     * @param [in] essence_source: Shared pointer to a @ref BufferedEssenceSource.
      * @param [in] memory_allocator: Shared pointer to a @ref MemoryAllocator.
      * @param [in] loop: Whether to loop through the file when reaching the end.
      * @param [in] sleep_duration_microseconds: Sleep duration in microseconds between reading media units.
      */
     MediaFileStreamingProvider(const std::string& file_path, SMPTEStandard smpte_standard,
                                size_t media_unit_size,
-                               std::shared_ptr<BufferedEssenceProvider> essence_provider,
+                               std::shared_ptr<BufferedEssenceSource> essence_source,
                                std::shared_ptr<MemoryAllocator> memory_allocator, bool loop = false,
                                size_t sleep_duration_microseconds = SLEEP_DURATION_MICROSECONDS);
     /**
@@ -99,7 +99,7 @@ public:
      * @brief: Call operator for running in a separate thread.
      *
      * This function runs in a separate thread, reads media units from the file,
-     * and pushes them to the @ref BufferedEssenceProvider. It handles looping
+     * and pushes them to the @ref BufferedEssenceSource. It handles looping
      * through the file if specified and ensures thread-safe operations.
      */
     void operator()();

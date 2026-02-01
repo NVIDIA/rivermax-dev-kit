@@ -36,7 +36,7 @@ This submodule contains examples for media streaming:
 
 - **user_provided_settings_video_file_sender**: This example demonstrates software-based video file transmission using app-level settings structures for configuration. It shows how to manage configuration through dedicated settings objects and implement programmatic configuration for file-based video streaming.
 
-- **video_frames_sender**: This example demonstrates video frame transmission using the media unit abstract API for efficient media streaming. It shows how to use the media essence provider API where media units represent video frames, providing direct control over individual frame processing and delivery.
+- **video_frames_sender**: This example demonstrates video frame transmission using the media unit abstract API for efficient media streaming. It shows how to use the media essence source API where media units represent video frames, providing direct control over individual frame processing and delivery.
 
 #### rdk_rtp_receiver
 

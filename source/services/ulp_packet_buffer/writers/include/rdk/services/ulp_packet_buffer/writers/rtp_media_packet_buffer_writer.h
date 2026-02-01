@@ -19,7 +19,7 @@
 #ifndef RDK_SERVICES_ULP_PACKET_BUFFER_WRITERS_RTP_MEDIA_PACKET_BUFFER_WRITER_H_
 #define RDK_SERVICES_ULP_PACKET_BUFFER_WRITERS_RTP_MEDIA_PACKET_BUFFER_WRITER_H_
 
-#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_essence_source.h"
 #include "rdk/services/ulp_packet_buffer/writers/ulp_packet_buffer_writer_interface.h"
 #include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
 

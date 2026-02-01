@@ -20,23 +20,23 @@
 #include <cstring>
 #include <random>
 
-#include "rdk/services/media/buffered_essence_provider.h"
+#include "rdk/services/media/buffered_essence_source.h"
 #include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
 
-BufferedEssenceProvider::BufferedEssenceProvider(size_t max_queue_size) :
+BufferedEssenceSource::BufferedEssenceSource(size_t max_queue_size) :
     m_max_queue_size(max_queue_size),
     m_stop(false)
 {
 }
 
-BufferedEssenceProvider::~BufferedEssenceProvider()
+BufferedEssenceSource::~BufferedEssenceSource()
 {
     stop();
 }
 
-std::shared_ptr<MediaUnit> BufferedEssenceProvider::get_media_unit_blocking()
+std::shared_ptr<MediaUnit> BufferedEssenceSource::get_media_unit_blocking()
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     // Wait until a media unit is available or stop is requested
@@ -49,7 +49,7 @@ std::shared_ptr<MediaUnit> BufferedEssenceProvider::get_media_unit_blocking()
     return media_unit;
 }
 
-std::shared_ptr<MediaUnit> BufferedEssenceProvider::get_media_unit_non_blocking()
+std::shared_ptr<MediaUnit> BufferedEssenceSource::get_media_unit_non_blocking()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_media_unit_queue.empty()) {
@@ -60,7 +60,7 @@ std::shared_ptr<MediaUnit> BufferedEssenceProvider::get_media_unit_non_blocking(
     return media_unit;
 }
 
-ReturnStatus BufferedEssenceProvider::add_media_unit(std::shared_ptr<MediaUnit> media_unit)
+ReturnStatus BufferedEssenceSource::add_media_unit(std::shared_ptr<MediaUnit> media_unit)
 {
     if (!media_unit) {
         std::cerr << "Received null media unit" << std::endl;
@@ -75,13 +75,13 @@ ReturnStatus BufferedEssenceProvider::add_media_unit(std::shared_ptr<MediaUnit> 
     return ReturnStatus::success;
 }
 
-size_t BufferedEssenceProvider::get_queue_size() const
+size_t BufferedEssenceSource::get_queue_size() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_media_unit_queue.size();
 }
 
-void BufferedEssenceProvider::stop()
+void BufferedEssenceSource::stop()
 {
     m_stop = true;
     m_cv.notify_all();

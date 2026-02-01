@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_BUFFERED_ESSENCE_PROVIDER_H_
-#define RDK_SERVICES_MEDIA_BUFFERED_ESSENCE_PROVIDER_H_
+#ifndef RDK_SERVICES_MEDIA_BUFFERED_ESSENCE_SOURCE_H_
+#define RDK_SERVICES_MEDIA_BUFFERED_ESSENCE_SOURCE_H_
 
 #include <condition_variable>
 #include <cstdint>
@@ -28,7 +28,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "rdk/services/media/media_essence_provider.h"
+#include "rdk/services/media/media_essence_source.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/services/utils/defs.h"
@@ -40,13 +40,13 @@ namespace dev_kit
 namespace services
 {
 /**
- * @brief: Provide media units from a buffer queue, implementing @ref IMediaEssenceProvider.
+ * @brief: Provide media units from a buffer queue, implementing @ref IMediaEssenceSource.
  *
  * This class maintains a queue of media units and provides them to consumers.
  * Units can be added to the queue by producers and will be automatically
  * returned to their source when no longer needed.
  */
-class BufferedEssenceProvider : public IMediaEssenceProvider
+class BufferedEssenceSource : public IMediaEssenceSource
 {
 private:
     /* Queue of media units */
@@ -57,7 +57,7 @@ private:
     std::condition_variable m_cv;
     /* Maximum size of the queue (0 for unlimited) */
     size_t m_max_queue_size;
-    /* Flag to indicate if the provider is stopping */
+    /* Flag to indicate if the source is stopping */
     bool m_stop;
 public:
     /**
@@ -65,11 +65,11 @@ public:
      *
      * @param [in] max_queue_size: Maximum size of the internal media unit queue (0 for unlimited).
      */
-    BufferedEssenceProvider(size_t max_queue_size = 0);
+    BufferedEssenceSource(size_t max_queue_size = 0);
     /**
      * @brief: Destructor.
      */
-    virtual ~BufferedEssenceProvider();
+    virtual ~BufferedEssenceSource();
     std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
     std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
     void stop() override;
@@ -93,4 +93,4 @@ public:
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_BUFFERED_ESSENCE_PROVIDER_H_ */
+#endif /* RDK_SERVICES_MEDIA_BUFFERED_ESSENCE_SOURCE_H_ */

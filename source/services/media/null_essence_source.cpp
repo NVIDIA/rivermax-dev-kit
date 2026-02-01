@@ -20,29 +20,29 @@
 #include <cstring>
 #include <random>
 
-#include "rdk/services/media/null_essence_provider.h"
+#include "rdk/services/media/null_essence_source.h"
 #include "rdk/services/media/media_settings_video.h"
 
 using namespace rivermax::dev_kit::services;
 
-NullEssenceProvider::NullEssenceProvider(const MediaSettings& media_settings) :
+NullEssenceSource::NullEssenceSource(const MediaSettings& media_settings) :
     m_media_settings(media_settings),
     m_media_unit_not_available_probability(0.0f)
 {
 }
 
-std::shared_ptr<MediaUnit> NullEssenceProvider::get_media_unit_blocking()
+std::shared_ptr<MediaUnit> NullEssenceSource::get_media_unit_blocking()
 {
     auto media_unit = std::make_shared<MediaUnit>(m_media_settings.bytes_per_media_unit, m_media_settings.get_smpte_standard());
     return media_unit;
 }
 
-std::shared_ptr<MediaUnit> NullEssenceProvider::get_media_unit_non_blocking()
+std::shared_ptr<MediaUnit> NullEssenceSource::get_media_unit_non_blocking()
 {
     return is_media_unit_available() ? get_media_unit_blocking() : nullptr;
 }
 
-ReturnStatus NullEssenceProvider::set_media_unit_not_available_probability(float probability)
+ReturnStatus NullEssenceSource::set_media_unit_not_available_probability(float probability)
 {
     if (probability < 0.0f || probability > 1.0f) {
         std::cerr << "Invalid probability value [0..1.0]: " << probability << std::endl;
@@ -52,7 +52,7 @@ ReturnStatus NullEssenceProvider::set_media_unit_not_available_probability(float
     return ReturnStatus::success;
 }
 
-bool NullEssenceProvider::is_media_unit_available() const
+bool NullEssenceSource::is_media_unit_available() const
 {
     static thread_local std::mt19937 generator(std::random_device{}());
     std::uniform_real_distribution<float> distribution(0.0f, 1.0f);

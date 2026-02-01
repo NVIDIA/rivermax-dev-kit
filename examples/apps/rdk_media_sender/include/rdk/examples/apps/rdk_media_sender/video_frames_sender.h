@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,7 +41,7 @@ namespace rdk_media_sender
  * @brief: Video frames sender example.
  *
  * This example demonstrates sending video frames provided by a client application from the app level module.
- * It uses a dummy frame provider that simulates frames from external application.
+ * It uses a dummy frame source that simulates frames from external application.
  */
 class VideoFramesSenderExample : public BaseExample
 {

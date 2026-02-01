@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_MEDIA_MEDIA_ESSENCE_PROVIDER_H_
-#define RDK_SERVICES_MEDIA_MEDIA_ESSENCE_PROVIDER_H_
+#ifndef RDK_SERVICES_MEDIA_MEDIA_ESSENCE_SOURCE_H_
+#define RDK_SERVICES_MEDIA_MEDIA_ESSENCE_SOURCE_H_
 
 #include <condition_variable>
 #include <cstdint>
@@ -257,11 +257,11 @@ private:
 };
 
 /**
- * @brief: Interface for media essence providers.
+ * @brief: Interface for media essence sources.
  */
-class IMediaEssenceProvider {
+class IMediaEssenceSource {
 public:
-    virtual ~IMediaEssenceProvider() = default;
+    virtual ~IMediaEssenceSource() = default;
     /**
      * @brief: Returns a media unit in a blocking manner.
      *
@@ -275,11 +275,11 @@ public:
      */
     virtual std::shared_ptr<MediaUnit> get_media_unit_non_blocking() = 0;
     /**
-     * @brief: Stop the provider and release all waiting threads.
+     * @brief: Stop the source and release all waiting threads.
      */
      virtual void stop() {};
     /**
-     * @brief: Sets the start time for the provider.
+     * @brief: Sets the start time for the source.
      *
      * @param [in] time_ns: The start time.
      */
@@ -294,11 +294,11 @@ public:
         return ReturnStatus::success;
     };
 protected:
-    IMediaEssenceProvider() = default;
+    IMediaEssenceSource() = default;
 };
 
 } // namespace services
 } // namespace dev_kit
 } // namespace rivermax
 
-#endif /* RDK_SERVICES_MEDIA_MEDIA_ESSENCE_PROVIDER_H_ */
+#endif /* RDK_SERVICES_MEDIA_MEDIA_ESSENCE_SOURCE_H_ */
