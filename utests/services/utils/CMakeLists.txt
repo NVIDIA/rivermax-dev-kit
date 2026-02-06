@@ -28,6 +28,7 @@ target_link_libraries(${PROJECT_NAME}
 
 target_sources(${PROJECT_NAME}
     PRIVATE
+        chrono_format_tests.cpp
         environment_tests.cpp
         rational_tests.cpp
 )
