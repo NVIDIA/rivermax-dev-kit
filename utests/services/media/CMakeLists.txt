@@ -32,6 +32,7 @@ if (NOT WIN32)
         PRIVATE
         smpte_2110_20_calculator_tests.cpp
         smpte_2110_40_calculator_tests.cpp
+        null_essence_sink_tests.cpp
     )
 
     gtest_discover_tests(${PROJECT_NAME})
