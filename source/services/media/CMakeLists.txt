@@ -35,6 +35,7 @@ target_sources(rivermax-dev-kit-services
         buffered_essence_source.cpp
         media_file_essence_source.cpp
         null_essence_source.cpp
+        null_essence_sink.cpp
         media_settings.cpp
         media_settings_calculator.cpp
         video_settings_calculator.cpp

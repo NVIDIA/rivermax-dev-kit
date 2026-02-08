@@ -47,6 +47,7 @@ enum class ReturnStatus
     no_free_chunks,
     no_completion,
     media_unit_send_queue_full,
+    sink_not_ready,
 };
 
 } // namespace services

@@ -28,6 +28,8 @@
 #include "rdk/services/media/media_file_essence_source.h"
 #include "rdk/services/media/media_file_streaming_provider.h"
 #include "rdk/services/media/buffered_essence_source.h"
+#include "rdk/services/media/media_essence_sink.h"
+#include "rdk/services/media/null_essence_sink.h"
 #include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_video.h"
