@@ -237,6 +237,35 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
         mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
         payload_memory_ptr += m_block_payload_memory_size;
     }
+    uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
+    uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
+
+    const auto header_keys = io_node_memory_layout.register_memory
+        ? io_node_memory_layout.header_memory_keys : std::vector<rmx_mkey_id>(m_num_paths_per_stream, RMX_MKEY_INVALID);
+    const auto payload_keys = io_node_memory_layout.register_memory
+        ? io_node_memory_layout.payload_memory_keys : std::vector<rmx_mkey_id>(m_num_paths_per_stream, RMX_MKEY_INVALID);
+    const bool enable_redundancy = m_num_paths_per_stream > 1;
+
+    auto set_memory_block = [&](size_t block_idx, size_t sub_block_idx, void* memory_ptr,
+                          size_t memory_size, const std::vector<rmx_mkey_id>& memory_keys) {
+        if (enable_redundancy) {
+            mem_blockset.set_dup_block_memory(block_idx, sub_block_idx, memory_ptr, memory_size, memory_keys);
+        } else {
+            mem_blockset.set_block_memory(block_idx, sub_block_idx, memory_ptr, memory_size, memory_keys[0]);
+        }
+    };
+
+    for (size_t i = 0; i < number_of_memory_blocks; ++i) {
+        if (is_hds_on()) {
+            set_memory_block(i, 0, header_memory_ptr, m_block_header_memory_size, header_keys);
+            set_memory_block(i, 1, payload_memory_ptr, m_block_payload_memory_size, payload_keys);
+            header_memory_ptr += m_block_header_memory_size;
+        } else {
+            set_memory_block(i, 0, payload_memory_ptr, m_block_payload_memory_size, payload_keys);
+        }
+        mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
+        payload_memory_ptr += m_block_payload_memory_size;
+    }
     return ReturnStatus::success;
 }
 
