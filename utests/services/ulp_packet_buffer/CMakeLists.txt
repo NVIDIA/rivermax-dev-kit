@@ -17,14 +17,6 @@ if (NOT WIN32)
         GTest::gmock_main
     )
 
-    target_include_directories(${PROJECT_NAME}
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/ulp_packet_buffer/writers/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/media/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/memory_allocation/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/utils/include
-    )
-
     target_sources(${PROJECT_NAME}
         PRIVATE
         rtp_smpte_2110_20_packet_buffer_writer_tests.cpp

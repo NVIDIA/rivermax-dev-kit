@@ -17,12 +17,6 @@ if (NOT WIN32)
         GTest::gmock_main
     )
 
-    target_include_directories(${PROJECT_NAME}
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/sdp/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../source/services/utils/include
-    )
-
     target_sources(${PROJECT_NAME}
         PRIVATE
         smpte_2110_20_tests.cpp
