@@ -155,6 +155,23 @@ public:
         {
             return set(m_instance->m_session_name, session_name);
         }
+        /**
+         * @brief: Adds a group attribute to the session.
+         *
+         * This corresponds to the "a=group" line in SDP as per RFC5888.
+         * The group attribute is a session-level attribute used for grouping
+         * media streams (e.g., for SMPTE 2022-7 duplication with "DUP" semantics).
+         *
+         * @param [in] semantics: The grouping semantics (e.g., "DUP", "FID", "LS").
+         * @param [in] mids: The media identification tags for streams in the group.
+         *
+         * @return: Reference to the builder object.
+         */
+        Builder& add_group(const std::string& semantics, const std::vector<std::string>& mids)
+        {
+            m_instance->m_groups.push_back({semantics, mids});
+            return *this;
+        }
     };
 
 private:
@@ -165,6 +182,15 @@ private:
      */
     SessionDescription() = default;
 
+    /**
+     * @brief: Group attribute structure for RFC5888 grouping.
+     */
+    struct GroupAttribute
+    {
+        std::string semantics;
+        std::vector<std::string> mids;
+    };
+
     size_t m_protocol_version = 0;
     std::string m_username = "-";
     size_t m_session_id = 0;
@@ -173,6 +199,7 @@ private:
     AddressType m_address_type = AddressType::IP4;
     std::string m_unicast_address;
     std::string m_session_name;
+    std::vector<GroupAttribute> m_groups;
 
     friend class ISDP::IBuilder<SessionDescription, Builder>;
 };
@@ -240,95 +267,6 @@ private:
     size_t m_stop_time = 0;
 
     friend class ISDP::IBuilder<TimeDescription, Builder>;
-};
-/**
- * @brief: SDP Group description builder.
- *
- * This class is responsible for constructing the group description part of the SDP string.
- * It is based on the RFC5888 specification.
- *
- * The following group description specifications are supported:
- * --------------------------------------------------------------------------------------------------------
- *     - Grouping:
- *           a=group:<semantics> <identification-tag> [<identification-tag>...]
- * --------------------------------------------------------------------------------------------------------
- */
-class GroupDescription : public ISDP
-{
-public:
-    ~GroupDescription() = default;
-    operator json() const override;
-    /**
-     * @brief: Builder class for constructing GroupDescription objects.
-     */
-    class Builder : public ISDP::IBuilder<GroupDescription, Builder>
-    {
-    public:
-        /**
-         * @brief: Constructor for mandatory parameters.
-         */
-        explicit Builder() : ISDP::IBuilder<GroupDescription, Builder>() {}
-
-        // Setters for optional parameters:
-
-        /**
-         * @brief: Sets the grouping semantics.
-         *
-         * This corresponds to the <semantics> field in "a=group" line in SDP as per RFC5888.
-         *
-         * @param [in] semantics: The grouping semantics.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_semantics(const std::string& semantics) { return set(m_instance->m_semantics, semantics); }
-        /**
-         * @brief: Adds an identification tag to the group.
-         *
-         * This corresponds to an <identification-tag> field in "a=group" line in SDP as per RFC5888.
-         * Multiple IDs can be added by calling this method multiple times.
-         *
-         * @param [in] id: The identification tag to add.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& add_id(const std::string& id)
-        {
-            m_instance->m_ids.push_back(id);
-            return *this;
-        }
-        /**
-         * @brief: Sets the identification tag at the specified index.
-         *
-         * This corresponds to an <identification-tag> field in "a=group" line in SDP as per RFC5888.
-         * The vector is resized if necessary to accommodate the index.
-         *
-         * @param [in] index: The index at which to set the identification tag.
-         * @param [in] id: The identification tag.
-         *
-         * @return: Reference to the builder object.
-         */
-        Builder& set_id(size_t index, const std::string& id)
-        {
-            if (index >= m_instance->m_ids.size()) {
-                m_instance->m_ids.resize(index + 1);
-            }
-            m_instance->m_ids[index] = id;
-            return *this;
-        }
-    };
-
-private:
-    /**
-     * @brief: Default constructor for GroupDescription.
-     *
-     * This constructor is private and only accessible by the Builder class.
-     */
-    GroupDescription() = default;
-
-    std::string m_semantics = "DUP";
-    std::vector<std::string> m_ids;
-
-    friend class ISDP::IBuilder<GroupDescription, Builder>;
 };
 /**
  * @brief: Media format specific parameter.
@@ -783,7 +721,6 @@ protected:
      * @return: The constructed maxptime JSON attribute.
      */
     json get_maxptime_attribute(double maxptime_ms) const;
-
     /**
      * @brief: Returns the media ID attribute.
      *

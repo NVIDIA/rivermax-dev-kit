@@ -38,9 +38,6 @@ struct MediaSettings;
 
 /**
  * @brief: Simple network flow information for SDP generation.
- *
- * This struct contains the network flow information needed for generating
- * SDP descriptions without depending on core flow types.
  */
 struct NetworkFlow
 {

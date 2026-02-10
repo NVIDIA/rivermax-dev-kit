@@ -209,37 +209,6 @@ ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
     uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
 
-    for (size_t i = 0; i < number_of_memory_blocks; ++i) {
-        if (m_num_paths_per_stream == 1) {
-            if (is_hds_on()) {
-                mem_blockset.set_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
-                    io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys[0] : RMX_MKEY_INVALID);
-                mem_blockset.set_block_memory(i, 1, payload_memory_ptr, m_block_payload_memory_size,
-                    io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-                header_memory_ptr += m_block_header_memory_size;
-            } else {
-                mem_blockset.set_block_memory(i, 0, payload_memory_ptr, m_block_payload_memory_size,
-                    io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys[0] : RMX_MKEY_INVALID);
-            }
-        } else {
-            const std::vector<rmx_mkey_id> invalid_mkey_ids(m_num_paths_per_stream, RMX_MKEY_INVALID);
-            if (is_hds_on()) {
-                mem_blockset.set_dup_block_memory(i, 0, header_memory_ptr, m_block_header_memory_size,
-                    io_node_memory_layout.register_memory ? io_node_memory_layout.header_memory_keys : invalid_mkey_ids);
-                mem_blockset.set_dup_block_memory(i, 1, payload_memory_ptr, m_block_payload_memory_size,
-                    io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys : invalid_mkey_ids);
-                header_memory_ptr += m_block_header_memory_size;
-            } else {
-                mem_blockset.set_dup_block_memory(i, 0, payload_memory_ptr, m_block_payload_memory_size,
-                    io_node_memory_layout.register_memory ? io_node_memory_layout.payload_memory_keys : invalid_mkey_ids);
-            }
-        }
-        mem_blockset.set_block_layout(i, payload_sizes, header_sizes);
-        payload_memory_ptr += m_block_payload_memory_size;
-    }
-    uint16_t* payload_sizes = m_mem_block_payload_sizes.empty() ? nullptr : m_mem_block_payload_sizes.data();
-    uint16_t* header_sizes = m_mem_block_header_sizes.empty() ? nullptr : m_mem_block_header_sizes.data();
-
     const auto header_keys = io_node_memory_layout.register_memory
         ? io_node_memory_layout.header_memory_keys : std::vector<rmx_mkey_id>(m_num_paths_per_stream, RMX_MKEY_INVALID);
     const auto payload_keys = io_node_memory_layout.register_memory

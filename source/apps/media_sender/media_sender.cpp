@@ -44,12 +44,8 @@ void MediaSenderSettings::init_default_values()
 
 ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& settings) const
 {
-    if (settings.local_ips.empty() && settings.local_ip.empty()) {
+    if (settings.local_ips.empty()) {
         std::cerr << "At least one local IP must be specified" << std::endl;
-        return ReturnStatus::failure;
-    }
-    if (!settings.local_ips.empty() && !settings.local_ip.empty()) {
-        std::cerr << "Cannot set both a single local IP and a local IP list" << std::endl;
         return ReturnStatus::failure;
     }
     if (settings.enable_redundancy && settings.local_ips.size() < 2 ) {

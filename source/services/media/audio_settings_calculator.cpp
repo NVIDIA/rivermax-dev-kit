@@ -210,23 +210,23 @@ std::string ST_2110_30_MediaSettingsCalculator::generate_media_sdp(const std::ve
     const auto& first_flow = flows[0];
     const bool is_multi_flow = flows.size() > 1;
 
-    auto session_description = SessionDescription::Builder(first_flow.source_ip)
-                                   .set_session_id(SDPManager::generate_ntp_id())
-                                   .set_session_version(SDPManager::generate_ntp_id() + 1)
-                                   .set_session_name("SMPTE ST2110-30")
-                                   .build();
+    std::vector<std::string> group_mids;
+    if (is_multi_flow) {
+        for (size_t i = 0; i < flows.size(); ++i) {
+            group_mids.push_back(std::string(1, 'a' + static_cast<char>(i)));
+        }
+    }
+
+    SessionDescription::Builder session_builder(first_flow.source_ip);
+    session_builder.set_session_id(SDPManager::generate_ntp_id())
+        .set_session_version(SDPManager::generate_ntp_id() + 1)
+        .set_session_name("SMPTE ST2110-30");
+    if (is_multi_flow) {
+        session_builder.add_group("DUP", group_mids);
+    }
 
     auto time_description = TimeDescription::Builder().build();
-
-    auto sdp_builder = SDPManager::Builder(std::move(session_description), std::move(time_description));
-
-    if (is_multi_flow) {
-        auto group_builder = GroupDescription::Builder();
-        for (size_t i = 0; i < flows.size(); ++i) {
-            group_builder.add_id(std::string(1, 'a' + static_cast<char>(i)));
-        }
-        sdp_builder.add_group_description(group_builder.build());
-    }
+    auto sdp_builder = SDPManager::Builder(session_builder.build(), std::move(time_description));
 
     for (size_t i = 0; i < flows.size(); ++i) {
         const auto& flow = flows[i];

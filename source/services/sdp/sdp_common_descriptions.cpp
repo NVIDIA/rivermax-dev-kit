@@ -42,7 +42,7 @@ static inline std::string ip_version_to_string(AddressType address_type)
 
 SessionDescription::operator json() const
 {
-    return {
+    json result = {
         {"version", m_protocol_version},
         {"origin",
          {{"username", m_username},
@@ -53,30 +53,28 @@ SessionDescription::operator json() const
           {"address", m_unicast_address}}},
         {"name", m_session_name}
     };
+
+    if (!m_groups.empty()) {
+        json groups_array = json::array();
+        for (const auto& group : m_groups) {
+            std::string mids_str;
+            for (size_t i = 0; i < group.mids.size(); ++i) {
+                if (i > 0) {
+                    mids_str += " ";
+                }
+                mids_str += group.mids[i];
+            }
+            groups_array.push_back({{"type", group.semantics}, {"mids", mids_str}});
+        }
+        result["groups"] = std::move(groups_array);
+    }
+
+    return result;
 }
 
 TimeDescription::operator json() const
 {
     return {{"timing", {{"start", m_start_time}, {"stop", m_stop_time}}}};
-}
-
-GroupDescription::operator json() const
-{
-    std::string mids_str;
-    for (size_t i = 0; i < m_ids.size(); ++i) {
-        if (i > 0) {
-            mids_str += " ";
-        }
-        mids_str += m_ids[i];
-    }
-    return {
-        {
-            "groups",
-            {
-                {{"type", m_semantics}, {"mids", mids_str}}
-            }
-        }
-    };
 }
 
 SourceFilterAttribute::operator json() const
