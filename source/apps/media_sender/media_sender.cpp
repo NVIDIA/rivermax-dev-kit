@@ -156,7 +156,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
     m_cli_parser_manager->get_parser()->add_flag(
         CLIOptStr::ENABLE_REDUNDANCY,
         settings.enable_redundancy,
-        "Enable SMPTE 2022-7 redundancy (allows plural IPs/ports options)");
+        "Enable SMPTE 2022-7 redundancy");
 #ifdef CUDA_ENABLED
     m_cli_parser_manager->add_option(CLIOptStr::GPU_ID)->needs(hds);
     m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);

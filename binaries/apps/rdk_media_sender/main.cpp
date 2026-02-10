@@ -42,9 +42,11 @@ constexpr const char* APP_EXAMPLES = \
     " 1920x1080 --vfr 60 --vs 1 -m -M -A 2 -r -g 0 -v -i 5 -a 9 --vf input_file.ycbcr --dfl\n"
     "  7. rdk_media_sender --local-ip 1.2.3.4 -m --enable-audio --audio-file"
     " input_file.wav --audio-sampling-rate 48000 --audio-encoding L24 --audio-ptime-us 1000\n"
-    "  8. rdk_media_sender --local-ip 1.2.3.4 --enable-ancillary\n"
-    "  9. rdk_media_sender --local-ip 1.2.3.4 -m --enable-video --vf video_file.ycbcr"
-    " --enable-audio --af audio_file.wav --asr 48000 --enable-ancillary\n";
+    "  7. rdk_media_sender --local-ip 1.2.3.4 --enable-ancillary\n"
+    "  8. rdk_media_sender --local-ip 1.2.3.4 -m --enable-video --vf video_file.ycbcr"
+    " --enable-audio --af audio_file.wav --asr 48000 --enable-ancillary\n"
+    "  9. rdk_media_sender --local-ips 1.2.3.4,1.2.3.5 --dst-ips 224.1.1.2,224.1.1.3"
+    " --dst-ports 5000,5000 --enable-video --enable-redundancy -v\n";
 
 int main(int argc, const char* argv[])
 {

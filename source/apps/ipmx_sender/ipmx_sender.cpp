@@ -61,7 +61,6 @@ ReturnStatus IPMXSenderSettingsValidator::validate(const IPMXSenderSettings& set
         std::cerr << "Must be the same number of destination ports as number of local IPs" << std::endl;
         return ReturnStatus::failure;
     }
-
     ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ips);
     if (rc != ReturnStatus::success) {
         return rc;
