@@ -228,7 +228,7 @@ std::string ST_2110_20_MediaSettingsCalculator::generate_media_sdp(
         .set_sampling(video_settings.sampling_type)
         .set_width(video_settings.resolution.width)
         .set_height(video_settings.resolution.height)
-        .set_exact_frame_rate(video_settings.frame_rate)
+        .set_exact_frame_rate(video_settings.frame_rate.to_total_string())
         .set_depth(video_settings.bit_depth)
         .set_video_scan_type(video_settings.video_scan_type)
         .set_colorimetry(video_settings.colorimetry)
