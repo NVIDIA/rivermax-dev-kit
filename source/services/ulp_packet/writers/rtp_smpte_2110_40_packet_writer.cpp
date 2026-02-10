@@ -83,9 +83,8 @@ ReturnStatus RTP_SMPTE_2110_40_PacketWriter::fill_header(const IPacketContext& c
     // Calculate total length and count for all packed descriptors
     uint16_t total_length = 0;
     uint8_t ancillary_packet_count = 0;
-    const auto* _descriptors = rtp_packet_context.get_ancillary_descriptors();
-    if (_descriptors && rtp_packet_context.descriptor_count_in_packet > 0) {
-        const std::vector<AncillaryDataDescriptor>& descriptors = *_descriptors;
+    if (rtp_packet_context.descriptors && rtp_packet_context.descriptor_count_in_packet > 0) {
+        const std::vector<AncillaryDataDescriptor>& descriptors = *rtp_packet_context.descriptors;
         size_t end_index = std::min(
             rtp_packet_context.descriptor_start_index + rtp_packet_context.descriptor_count_in_packet,
             descriptors.size());
@@ -132,12 +131,18 @@ ReturnStatus RTP_SMPTE_2110_40_PacketWriter::fill_payload(const IPacketContext& 
     }
 
     size = 0;
-    byte_t* current_payload_ptr = m_payload_ptr;
-    byte_t* user_data_bytes = rtp_packet_context.current_media_unit->data->get();
 
-    const auto* _descriptors = rtp_packet_context.get_ancillary_descriptors();
-    if (_descriptors && rtp_packet_context.descriptor_count_in_packet > 0) {
-        const std::vector<AncillaryDataDescriptor>& descriptors = *_descriptors;
+    // Mock mode - no data, just return
+    if (rtp_packet_context.payload_ptr == nullptr) {
+        size = rtp_packet_context.payload_size;
+        return ReturnStatus::success;
+    }
+
+    byte_t* current_payload_ptr = m_payload_ptr;
+    byte_t* user_data_bytes = rtp_packet_context.payload_ptr;
+
+    if (rtp_packet_context.descriptors && rtp_packet_context.descriptor_count_in_packet > 0) {
+        const std::vector<AncillaryDataDescriptor>& descriptors = *rtp_packet_context.descriptors;
         size_t end_index = std::min(
             rtp_packet_context.descriptor_start_index + rtp_packet_context.descriptor_count_in_packet,
             descriptors.size());
@@ -163,66 +168,6 @@ ReturnStatus RTP_SMPTE_2110_40_PacketWriter::fill_payload(const IPacketContext& 
 size_t RTP_SMPTE_2110_40_PacketWriter::get_header_size() const
 {
     return RTPPacketWriter::get_header_size() + sizeof(AncillaryRTPExtension);
-}
-
-ReturnStatus RTP_SMPTE_2110_40_MockPacketWriter::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
-{
-    const auto& rtp_packet_context = static_cast<const RTP_SMPTE_2110_40_PacketContext&>(context);
-
-    /**
-     * @brief: ST 2110-40 Ancillary RTP Payload Format.
-     *
-     * Each Ancillary payload is filled with a single ANC packet structure based
-     * on RFC 8331 - RTP Payload for SMPTE ST 291-1 Ancillary Data.
-     *
-     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     *  |C|   Line_Number=9     |   Horizontal_Offset   |S| StreamNum=0 |
-     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     *  |         DID       |        SDID       |  Data_Count=0x84  |
-     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     *                           User_Data_Words...
-     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     *              |   Checksum_Word   |         word_align            |
-     *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     */
-
-    if (!m_payload_ptr) {
-        m_payload_ptr = m_header_ptr + get_header_size();
-    }
-
-    // Note: This is a temporary logic to avoid redundant payload fills in mock mode.
-    // TODO: Refactor this logic and provide a payload that already contains the ancillary data.
-    // Mock implementation should not modify the content of m_payload_ptr.
-    if (likely(initialized)) {
-        // Already initialized with the same pointer, no need to re-fill
-        size = rtp_packet_context.payload_size;
-        return ReturnStatus::success;
-    } else if (m_data_ptr == nullptr) {
-        m_data_ptr = m_payload_ptr;
-    } else if (m_data_ptr == m_payload_ptr) {
-        initialized = true; // Done cyclic initialization. No need to re-fill Anc data.
-        size = rtp_packet_context.payload_size;
-        return ReturnStatus::success;
-    }
-
-    const auto* _descriptors = rtp_packet_context.get_ancillary_descriptors();
-    if (_descriptors && rtp_packet_context.descriptor_start_index < _descriptors->size()) {
-        const std::vector<AncillaryDataDescriptor>& descriptors = *_descriptors;
-        const auto& descriptor = descriptors[rtp_packet_context.descriptor_start_index];
-        uint16_t ancillary_data_packet_size = m_ancillary_data_packet_writer.calculate_packet_size(
-            descriptor.ancillary_data_header.user_data_words_count);
-        if (ancillary_data_packet_size > rtp_packet_context.payload_size) {
-            size = 0;
-            return ReturnStatus::failure;
-        }
-        // Note: In mock mode, we fill the ancillary data with zeroed user data.
-        // write_ancillary_data first construct the ancillary packet and then overwrite the pointer data.
-        size = m_ancillary_data_packet_writer.write_ancillary_data(m_payload_ptr, m_payload_ptr, descriptor);
-    } else {
-        size = rtp_packet_context.payload_size;
-    }
-
-    return ReturnStatus::success;
 }
 
 inline uint8_t AncillaryDataPacketWriter::calculate_even_parity(uint8_t value)

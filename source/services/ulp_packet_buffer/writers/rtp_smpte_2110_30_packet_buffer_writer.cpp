@@ -28,17 +28,27 @@ using namespace rivermax::dev_kit::services;
 
 RTP_SMPTE_2110_30_PacketBufferWriter::RTP_SMPTE_2110_30_PacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)
-    : RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_PacketWriter>(
+    : RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacketWriter>(
         media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
-    if (enable_mock_mode) {
-        m_rtp_packet_writer = std::make_unique<RTP_SMPTE_2110_30_MockPacketWriter>(nullptr, nullptr);
-    }
 }
 
 void RTP_SMPTE_2110_30_PacketBufferWriter::reset_in_media_unit_state()
 {
-    m_rtp_packet_context->counter = 0;
+    // No essence-specific state to reset for audio
+}
+
+void RTP_SMPTE_2110_30_PacketBufferWriter::prepare_context_for_packet()
+{
+    // Set source data pointer for payload (nullptr in mock mode)
+    if (!m_mock_mode_enabled && m_current_media_unit) {
+        m_rtp_packet_context->payload_ptr = m_current_media_unit->data->get() + m_bytes_consumed;
+    } else {
+        m_rtp_packet_context->payload_ptr = nullptr;
+    }
+
+    // Audio uses marker bit for every packet (always 1 for AES67/ST 2110-30)
+    m_rtp_packet_context->marker = 1;
 }
 
 void RTP_SMPTE_2110_30_PacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size)
@@ -49,13 +59,14 @@ void RTP_SMPTE_2110_30_PacketBufferWriter::update_in_media_unit_state(size_t hea
     m_rtp_packet_context->timestamp += ticks_per_packet;
 
     // Track packet counter for media unit boundaries (but doesn't affect timestamp)
-    if (++m_rtp_packet_context->counter >= m_media_settings.packets_in_media_unit) {
-        m_rtp_packet_context->counter = 0;
+    m_packet_counter++;
+    if (m_packet_counter >= m_media_settings.packets_in_media_unit) {
+        m_packet_counter = 0;
     }
     m_rtp_packet_context->sequence++;
 
-    m_rtp_packet_context->data_left_in_media_unit_in_bytes -= payload_size;
-    if (m_rtp_packet_context->data_left_in_media_unit_in_bytes == 0) {
-        m_rtp_packet_context->current_media_unit = nullptr;
+    m_bytes_consumed += payload_size;
+    if (m_current_media_unit && m_bytes_consumed >= m_current_media_unit->data->get_size()) {
+        m_current_media_unit = nullptr;
     }
 }

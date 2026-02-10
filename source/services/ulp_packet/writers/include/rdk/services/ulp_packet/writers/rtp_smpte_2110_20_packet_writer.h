@@ -69,35 +69,6 @@ public:
     size_t get_header_size() const override;
 };
 
-/**
- * @brief: Mock RTP packet writer for SMPTE 2110-20 video data.
- */
-class RTP_SMPTE_2110_20_MockPacketWriter : public RTP_SMPTE_2110_20_PacketWriter
-{
-public:
-    /**
-     * @brief: Constructor for RTP_SMPTE_2110_20_MockPacketWriter.
-     *
-     * Initializes the packet with header and optional payload memory pointers.
-     * The payload pointer is optional and used when Header Data Split mode is enabled.
-     *
-     * @param [in] header_ptr: Pointer to the header memory.
-     * @param [in] payload_ptr: Pointer to the payload memory (optional).
-     */
-    RTP_SMPTE_2110_20_MockPacketWriter(byte_t* header_ptr, byte_t* payload_ptr) :
-        RTP_SMPTE_2110_20_PacketWriter(header_ptr, payload_ptr) {}
-    /**
-     * @brief: Fills the RTP SMPTE 2110-20 packet payload.
-     *
-     * @param [in] context: The packet context containing relevant information.
-     * @param [out] size: Reference to store the size of the filled payload.
-     * @param [in] mem_utils: Memory utilities for payload manipulation.
-     *
-     * @return: The status of the operation.
-     */
-    ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
-};
-
 } // namespace services
 } // namespace dev_kit
 } // namespace rivermax

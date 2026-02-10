@@ -65,8 +65,9 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, 
         }
         m_metadata_validated = true;
     }
-    m_rtp_packet_context->current_media_unit = std::move(media_unit);
-    m_rtp_packet_context->data_left_in_media_unit_in_bytes = m_rtp_packet_context->current_media_unit->data->get_size();
+    m_current_media_unit = std::move(media_unit);
+    m_bytes_consumed = 0;
+    m_packet_counter = 0;
     reset_in_media_unit_state();
     return ReturnStatus::success;
 }
@@ -80,8 +81,9 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, 
     size_t header_size = 0;
     size_t payload_size = 0;
 
-    while (stride < buffer_length && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
+    while (stride < buffer_length && m_packet_counter < m_media_settings.packets_in_media_unit) {
         m_rtp_packet_writer->set_packet(current_packet_pointer);
+        prepare_context_for_packet();
         // Skip ReturnStatus testing for performance reasons
         (void)m_rtp_packet_writer->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
         (void)m_rtp_packet_writer->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
@@ -104,8 +106,9 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, 
     size_t header_size = 0;
     ReturnStatus status = ReturnStatus::success;
 
-    while (stride < buffer_length && m_rtp_packet_context->counter < m_media_settings.packets_in_media_unit) {
+    while (stride < buffer_length && m_packet_counter < m_media_settings.packets_in_media_unit) {
         m_rtp_packet_writer->set_packet(current_header_pointer, current_payload_pointer); // Header Data Split mode
+        prepare_context_for_packet();
         status = m_rtp_packet_writer->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
         update_in_media_unit_state(header_size, 0);
         current_header_pointer += m_media_settings.app_header_stride_size;
@@ -122,17 +125,15 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, 
         return ReturnStatus::success;
     }
 
-    byte_t* media_unit_ptr =
-        m_rtp_packet_context->current_media_unit->data->get() + (m_rtp_packet_context->current_media_unit->data->get_size() - \
-        m_rtp_packet_context->data_left_in_media_unit_in_bytes);
+    byte_t* media_unit_ptr = m_current_media_unit->data->get() + m_bytes_consumed;
     status = m_payload_mem_utils->memory_copy_2D(current_payload_pointer, m_media_settings.data_stride_size,
         media_unit_ptr, m_media_settings.raw_packet_payload_size, m_media_settings.raw_packet_payload_size,
-        stride, m_rtp_packet_context->current_media_unit->data->get_memory_location());
+        stride, m_current_media_unit->data->get_memory_location());
 
     size_t data_copied = std::min(
         stride * m_media_settings.raw_packet_payload_size,
-        m_rtp_packet_context->data_left_in_media_unit_in_bytes);
-    m_rtp_packet_context->data_left_in_media_unit_in_bytes -= data_copied;
+        m_current_media_unit->data->get_size() - m_bytes_consumed);
+    m_bytes_consumed += data_copied;
 
     if (status != ReturnStatus::success) {
         std::cerr << "Failed to 2D copy" << std::endl;
@@ -180,5 +181,4 @@ std::unique_ptr<IULPPacketBufferWriter> rivermax::dev_kit::services::create_rtp_
 // Explicit template instantiation
 template class RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacketWriter, MediaUnitMetadata>;
 template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext, RTP_SMPTE_2110_20_PacketWriter, MediaUnitMetadata>;
-template class RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_PacketWriter, MediaUnitMetadata>;
 template class RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_PacketWriter, AncillaryMediaUnitMetadata>;

@@ -77,19 +77,15 @@ ReturnStatus RTPPacketWriter::fill_payload(const IPacketContext& context, size_t
 {
     const auto& rtp_packet_context = static_cast<const RTPPacketContext&>(context);
 
-    if (!rtp_packet_context.current_media_unit) {
-        // Mock writer case where no media unit is set
-        size = 0;
+    size = rtp_packet_context.payload_size;
+    if (!rtp_packet_context.payload_ptr) {
         return ReturnStatus::success;
     }
 
-    size = std::min(rtp_packet_context.payload_size, rtp_packet_context.data_left_in_media_unit_in_bytes);
-    byte_t* payload_in_frame_ptr = rtp_packet_context.current_media_unit->data->get() +
-        (rtp_packet_context.current_media_unit->data->get_size() - rtp_packet_context.data_left_in_media_unit_in_bytes);
-    if (m_payload_ptr  == nullptr) {
-        m_payload_ptr  = m_header_ptr  + get_header_size();
+    if (m_payload_ptr == nullptr) {
+        m_payload_ptr = m_header_ptr + get_header_size();
     }
-    mem_utils->memory_copy(m_payload_ptr , payload_in_frame_ptr, size);
+    mem_utils->memory_copy(m_payload_ptr, rtp_packet_context.payload_ptr, size);
     return ReturnStatus::success;
 }
 

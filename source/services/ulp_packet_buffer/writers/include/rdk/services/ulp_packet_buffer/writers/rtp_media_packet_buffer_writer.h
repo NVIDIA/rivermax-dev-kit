@@ -78,6 +78,11 @@ protected:
     bool m_metadata_validated = false;
     bool m_mock_mode_enabled = false;
 
+    /** Media unit tracking state */
+    std::shared_ptr<MediaUnit> m_current_media_unit;
+    size_t m_bytes_consumed = 0;
+    uint32_t m_packet_counter = 0;
+
 public:
     /**
      * @brief: Destructor for @ref RTPMediaPacketBufferWriter.
@@ -143,6 +148,14 @@ protected:
      */
     RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode = false);
+    /**
+     * @brief: Prepares the packet context for the next packet.
+     *
+     * Called before each @ref fill_header() / @ref fill_payload() to populate context
+     * fields from the buffer writer's tracking state.
+     * Also sets payload_ptr for payload access.
+     */
+    virtual void prepare_context_for_packet() = 0;
     /**
      * @brief: Updates the in-media-unit state.
      *

@@ -30,11 +30,10 @@ RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const
         media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
     if (enable_mock_mode) {
-        m_rtp_packet_writer = std::make_unique<RTP_SMPTE_2110_40_MockPacketWriter>(nullptr, nullptr);
         m_cached_packets_in_media_unit = calculate_packets_for_media_unit();
     }
     const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(media_settings);
-    m_rtp_packet_context->field_indicator =
+    m_current_field_indicator =
         (ancillary_settings.video_scan_type == VideoScanType::Interlaced) ? RTP_2110_40_FIELD_INDICATOR_FIELD1
                                                                          : RTP_2110_40_FIELD_INDICATOR_PROGRESSIVE;
 }
@@ -46,18 +45,52 @@ ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::set_next_media_unit(std::shar
         return status;
     }
 
+    // Extract descriptors pointer from metadata
+    if (m_current_media_unit && m_current_media_unit->metadata) {
+        auto* ancillary_metadata = static_cast<AncillaryMediaUnitMetadata*>(m_current_media_unit->metadata.get());
+        m_descriptors = &ancillary_metadata->ancillary_data;
+    } else {
+        m_descriptors = nullptr;
+    }
+
     m_cached_packets_in_media_unit = calculate_packets_for_media_unit();
 
-    // Start with valid marker state if media unit has only 1 packet
-    m_rtp_packet_context->marker = (m_cached_packets_in_media_unit <= 1) ? 1 : 0;
     return ReturnStatus::success;
 }
 
 void RTP_SMPTE_2110_40_PacketBufferWriter::reset_in_media_unit_state()
 {
-    m_rtp_packet_context->counter = 0;
-    m_rtp_packet_context->descriptor_start_index = 0;
-    m_rtp_packet_context->descriptor_count_in_packet = 0;
+    m_current_descriptor_index = 0;
+}
+
+void RTP_SMPTE_2110_40_PacketBufferWriter::prepare_context_for_packet()
+{
+    const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
+
+    // Set source data pointer for payload (nullptr in mock mode)
+    if (!m_mock_mode_enabled && m_current_media_unit) {
+        m_rtp_packet_context->payload_ptr = m_current_media_unit->data->get();
+    } else {
+        m_rtp_packet_context->payload_ptr = nullptr;
+    }
+
+    m_rtp_packet_context->descriptors = m_descriptors;
+    m_rtp_packet_context->descriptor_start_index = m_current_descriptor_index;
+    m_rtp_packet_context->field_indicator = m_current_field_indicator;
+
+    // Calculate how many descriptors fit in this packet
+    if (m_descriptors) {
+        m_rtp_packet_context->descriptor_count_in_packet = calculate_descriptors_in_packet(
+            *m_descriptors,
+            m_current_descriptor_index,
+            m_media_settings.packet_payload_size,
+            ancillary_settings.max_ancillary_data_packets_per_packet);
+    } else {
+        m_rtp_packet_context->descriptor_count_in_packet = 0;
+    }
+
+    // Set marker bit based on whether this is the last packet
+    m_rtp_packet_context->marker = (m_packet_counter == m_cached_packets_in_media_unit - 1) ? 1 : 0;
 }
 
 size_t RTP_SMPTE_2110_40_PacketBufferWriter::calculate_descriptors_in_packet(
@@ -98,7 +131,7 @@ size_t RTP_SMPTE_2110_40_PacketBufferWriter::calculate_rtp_packets_for_descripto
     size_t max_payload_size,
     size_t max_ancillary_data_packets_per_packet)
 {
-     // At least one packet is needed for marker bit
+    // At least one packet is needed for marker bit
     if (descriptors.empty()) {
         return 1;
     }
@@ -119,14 +152,13 @@ size_t RTP_SMPTE_2110_40_PacketBufferWriter::calculate_rtp_packets_for_descripto
 
 size_t RTP_SMPTE_2110_40_PacketBufferWriter::calculate_packets_for_media_unit() const
 {
-    const auto* descriptors = m_rtp_packet_context->get_ancillary_descriptors();
     size_t data_packets_needed;
-    if (!descriptors) {
+    if (!m_descriptors) {
         data_packets_needed = m_media_settings.packets_in_media_unit;
     } else {
         const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
         data_packets_needed = calculate_rtp_packets_for_descriptors(
-            *descriptors,
+            *m_descriptors,
             m_media_settings.packet_payload_size,
             ancillary_settings.max_ancillary_data_packets_per_packet);
     }
@@ -142,31 +174,30 @@ size_t RTP_SMPTE_2110_40_PacketBufferWriter::calculate_packets_for_media_unit() 
 
 void RTP_SMPTE_2110_40_PacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size)
 {
-    // Advance descriptor start index for next packet
-    const auto* descriptors = m_rtp_packet_context->get_ancillary_descriptors();
-    if (descriptors) {
-        m_rtp_packet_context->descriptor_start_index += m_rtp_packet_context->descriptor_count_in_packet;
+    // Advance descriptor index by number of descriptors written in this packet
+    if (m_descriptors) {
+        m_current_descriptor_index += m_rtp_packet_context->descriptor_count_in_packet;
     }
 
-    // ST 2110-40: timestamp is the same for all packets in a frame/field (like video)
-    // Only increment after the last packet of the frame/field
-    if (++m_rtp_packet_context->counter >= m_cached_packets_in_media_unit) {
-        // Timestamp changes every frame/field (90kHz clock)
+    m_packet_counter++;
+
+    // ST 2110-40: timestamp is the same for all packets in a frame (like video)
+    // Only increment after the last packet of the frame
+    if (m_packet_counter >= m_cached_packets_in_media_unit) {
+        // Timestamp changes every frame (90kHz clock)
         m_rtp_packet_context->timestamp += m_media_settings.ticks_per_media_unit;
-        m_rtp_packet_context->counter = 0;
-        m_rtp_packet_context->descriptor_start_index = 0;
+        m_packet_counter = 0;
+        m_current_descriptor_index = 0;
 
         // Toggle field indicator for interlaced content
         const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
         if (ancillary_settings.video_scan_type == VideoScanType::Interlaced) {
-            m_rtp_packet_context->field_indicator =
-                (m_rtp_packet_context->field_indicator == RTP_2110_40_FIELD_INDICATOR_FIELD1)
+            m_current_field_indicator =
+                (m_current_field_indicator == RTP_2110_40_FIELD_INDICATOR_FIELD1)
                     ? RTP_2110_40_FIELD_INDICATOR_FIELD2
                     : RTP_2110_40_FIELD_INDICATOR_FIELD1;
         }
     }
-    // Set Marker bit on last ANC data RTP packet of the media unit
-    m_rtp_packet_context->marker = (m_rtp_packet_context->counter == m_cached_packets_in_media_unit - 1) ? 1 : 0;
     m_rtp_packet_context->sequence++;
     m_rtp_packet_context->extended_sequence_number++;
 }
@@ -179,21 +210,10 @@ ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::write_buffer(void* payload_pt
     uint64_t stride = 0;
     size_t header_size = 0;
     size_t payload_size = 0;
-    const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
 
-    while (stride < buffer_length && m_rtp_packet_context->counter < m_cached_packets_in_media_unit) {
-        const auto* descriptors = m_rtp_packet_context->get_ancillary_descriptors();
-        if (descriptors) {
-            m_rtp_packet_context->descriptor_count_in_packet = calculate_descriptors_in_packet(
-                *descriptors,
-                m_rtp_packet_context->descriptor_start_index,
-                m_media_settings.packet_payload_size,
-                ancillary_settings.max_ancillary_data_packets_per_packet);
-        } else {
-            m_rtp_packet_context->descriptor_count_in_packet = 0;
-        }
-
+    while (stride < buffer_length && m_packet_counter < m_cached_packets_in_media_unit) {
         m_rtp_packet_writer->set_packet(current_packet_pointer);
+        prepare_context_for_packet();
         // Skip ReturnStatus testing for performance reasons
         (void)m_rtp_packet_writer->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
         (void)m_rtp_packet_writer->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
@@ -216,21 +236,10 @@ ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::write_buffer(void* header_ptr
     uint64_t stride = 0;
     size_t header_size = 0;
     size_t payload_size = 0;
-    const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
 
-    while (stride < buffer_length && m_rtp_packet_context->counter < m_cached_packets_in_media_unit) {
-        const auto* descriptors = m_rtp_packet_context->get_ancillary_descriptors();
-        if (descriptors) {
-            m_rtp_packet_context->descriptor_count_in_packet = calculate_descriptors_in_packet(
-                *descriptors,
-                m_rtp_packet_context->descriptor_start_index,
-                m_media_settings.packet_payload_size,
-                ancillary_settings.max_ancillary_data_packets_per_packet);
-        } else {
-            m_rtp_packet_context->descriptor_count_in_packet = 0;
-        }
-
+    while (stride < buffer_length && m_packet_counter < m_cached_packets_in_media_unit) {
         m_rtp_packet_writer->set_packet(current_header_pointer, current_payload_pointer);
+        prepare_context_for_packet();
         (void)m_rtp_packet_writer->fill_header(*m_rtp_packet_context, header_size, m_header_mem_utils.get());
         (void)m_rtp_packet_writer->fill_payload(*m_rtp_packet_context, payload_size, m_payload_mem_utils.get());
         header_sizes[stride] = static_cast<uint16_t>(header_size);
@@ -245,24 +254,21 @@ ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::write_buffer(void* header_ptr
 
 size_t RTP_SMPTE_2110_40_PacketBufferWriter::get_num_packets_for_next_chunk() const
 {
-    // In mock mode, use default packets per chunk
-    const auto* descriptors = m_rtp_packet_context->get_ancillary_descriptors();
-    if (!descriptors) {
+    // When no descriptors (e.g. mock mode or no metadata), use default packets per chunk
+    if (!m_descriptors) {
         return RTPMediaPacketBufferWriter::get_num_packets_for_next_chunk();
     }
 
-    // Calculate how many descriptors remain to be processed
-    size_t total_descriptors = descriptors->size();
-    size_t descriptors_processed = m_rtp_packet_context->descriptor_start_index;
+    size_t total_descriptors = m_descriptors->size();
 
-    if (descriptors_processed >= total_descriptors) {
+    if (m_current_descriptor_index >= total_descriptors) {
         return 1;
     }
 
     // Create a view of remaining descriptors
     std::vector<AncillaryDataDescriptor> remaining_descriptors(
-        descriptors->begin() + descriptors_processed,
-        descriptors->end());
+        m_descriptors->begin() + m_current_descriptor_index,
+        m_descriptors->end());
 
     // Calculate RTP packets needed for remaining descriptors
     const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
@@ -272,9 +278,8 @@ size_t RTP_SMPTE_2110_40_PacketBufferWriter::get_num_packets_for_next_chunk() co
         ancillary_settings.max_ancillary_data_packets_per_packet);
 
     // Also check how many packets remain in the media unit (accounts for empty marker packets)
-    size_t packets_already_written = m_rtp_packet_context->counter;
-    size_t packets_remaining_in_media_unit = (packets_already_written < m_cached_packets_in_media_unit)
-        ? (m_cached_packets_in_media_unit - packets_already_written) : 0;
+    size_t packets_remaining_in_media_unit = (m_packet_counter < m_cached_packets_in_media_unit)
+        ? (m_cached_packets_in_media_unit - m_packet_counter) : 0;
 
     size_t packets_available = std::min(packets_for_remaining_descriptors, packets_remaining_in_media_unit);
     size_t packets_for_this_chunk = std::min(packets_available, m_media_settings.packets_in_chunk);

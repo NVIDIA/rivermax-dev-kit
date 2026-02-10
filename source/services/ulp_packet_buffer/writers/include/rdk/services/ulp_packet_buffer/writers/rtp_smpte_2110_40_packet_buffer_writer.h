@@ -41,6 +41,11 @@ class RTP_SMPTE_2110_40_PacketBufferWriter : public RTPMediaPacketBufferWriter<R
 protected:
     size_t m_cached_packets_in_media_unit = 0;
 
+    /** Media unit tracking state */
+    const std::vector<AncillaryDataDescriptor>* m_descriptors = nullptr;
+    size_t m_current_descriptor_index = 0;
+    uint8_t m_current_field_indicator = RTP_2110_40_FIELD_INDICATOR_PROGRESSIVE;
+
 public:
     /**
      * @brief: Constructor for RTP_SMPTE_2110_40_PacketBufferWriter.
@@ -92,7 +97,10 @@ public:
      size_t get_num_packets_for_next_chunk() const override;
 
 protected:
-
+    /**
+     * @brief: Prepares the packet context for the next packet.
+     */
+    void prepare_context_for_packet() override;
     /**
      * @brief: Updates the packet counter and RTP state for ancillary.
      *

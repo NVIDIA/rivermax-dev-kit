@@ -20,7 +20,7 @@
 #define RDK_SERVICES_ULP_PACKET_BUFFER_WRITERS_RTP_SMPTE_2110_30_PACKET_BUFFER_WRITER_H_
 
 #include "rdk/services/ulp_packet_buffer/writers/rtp_media_packet_buffer_writer.h"
-#include "rdk/services/ulp_packet/writers/rtp_smpte_2110_30_packet_writer.h"
+#include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
 
 namespace rivermax
 {
@@ -34,7 +34,7 @@ namespace services
  *
  * This class handles writing RTP packets with audio samples.
  */
-class RTP_SMPTE_2110_30_PacketBufferWriter : public RTPMediaPacketBufferWriter<RTPPacketContext, RTP_SMPTE_2110_30_PacketWriter>
+class RTP_SMPTE_2110_30_PacketBufferWriter : public RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacketWriter>
 {
 public:
     /**
@@ -49,6 +49,10 @@ public:
         std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode);
 
 protected:
+    /**
+     * @brief: Prepares the packet context for the next packet.
+     */
+    void prepare_context_for_packet() override;
     /**
      * @brief: Updates the in-media-unit state.
      *

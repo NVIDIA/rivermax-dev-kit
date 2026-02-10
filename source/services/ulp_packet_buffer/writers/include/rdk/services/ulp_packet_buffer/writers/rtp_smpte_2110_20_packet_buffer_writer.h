@@ -53,6 +53,15 @@ public:
     virtual ~RTP_SMPTE_2110_20_PacketBufferWriter() = default;
 
 protected:
+    /** Media unit tracking state */
+    uint16_t m_current_line_number = 0;
+    uint16_t m_current_srd_offset = 0;
+    uint8_t m_current_field_indicator = 0;
+
+    /**
+     * @brief: Prepares the packet context for the next packet.
+     */
+    void prepare_context_for_packet() override;
     /**
      * @brief: Updates the in-media-unit state.
      *

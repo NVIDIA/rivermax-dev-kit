@@ -147,44 +147,6 @@ public:
     size_t get_header_size() const override;
 };
 
-/**
- * @brief: Mock RTP packet writer for SMPTE 2110-40 ancillary data.
- */
-class RTP_SMPTE_2110_40_MockPacketWriter : public RTP_SMPTE_2110_40_PacketWriter
-{
-private:
-    // Temporary variables to track data initialization and avoid redundant fills
-    // TODO: Refactor this logic and provide a payload that already contains the ancillary data
-    void* m_data_ptr;
-    bool initialized = false;
-public:
-    /**
-     * @brief: Constructor for RTP_SMPTE_2110_40_MockPacketWriter.
-     *
-     * Initializes the packet with header and optional payload memory pointers.
-     * The payload pointer is optional and used when Header Data Split mode is enabled.
-     *
-     * @param [in] header_ptr: Pointer to the header memory.
-     * @param [in] payload_ptr: Pointer to the payload memory (optional).
-     */
-    RTP_SMPTE_2110_40_MockPacketWriter(byte_t* header_ptr, byte_t* payload_ptr) :
-        RTP_SMPTE_2110_40_PacketWriter(header_ptr, payload_ptr) {
-            // Temporary initialization and will be removed in future refactor
-            m_data_ptr = payload_ptr;
-            initialized = false;
-        }
-    /**
-     * @brief: Fills the RTP SMPTE 2110-40 packet payload.
-     *
-     * @param [in] context: The packet context containing relevant information.
-     * @param [out] size: Reference to store the size of the filled payload.
-     * @param [in] mem_utils: Memory utilities for payload manipulation.
-     *
-     * @return: The status of the operation.
-     */
-    ReturnStatus fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils) override;
-};
-
 } // namespace services
 } // namespace dev_kit
 } // namespace rivermax

@@ -97,12 +97,3 @@ size_t RTP_SMPTE_2110_20_PacketWriter::get_header_size() const
 {
     return RTPPacketWriter::get_header_size() + sizeof(SRDHeader);
 }
-
-ReturnStatus RTP_SMPTE_2110_20_MockPacketWriter::fill_payload(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
-{
-    const auto& rtp_packet_context = static_cast<const RTP_SMPTE_2110_20_PacketContext&>(context);
-
-    // Mock implementation: no actual payload filling
-    size = rtp_packet_context.payload_size;
-    return ReturnStatus::success;
-}

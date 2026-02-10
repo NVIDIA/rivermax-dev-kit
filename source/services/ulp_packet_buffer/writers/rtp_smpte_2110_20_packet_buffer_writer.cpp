@@ -32,45 +32,65 @@ RTP_SMPTE_2110_20_PacketBufferWriter::RTP_SMPTE_2110_20_PacketBufferWriter(const
     : RTPMediaPacketBufferWriter<RTP_SMPTE_2110_20_PacketContext, RTP_SMPTE_2110_20_PacketWriter>(
         media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
 {
-    if (enable_mock_mode) {
-        m_rtp_packet_writer = std::make_unique<RTP_SMPTE_2110_20_MockPacketWriter>(nullptr, nullptr);
-    }
     m_rtp_packet_context->srd_length = media_settings.raw_packet_payload_size;
 }
 
 void RTP_SMPTE_2110_20_PacketBufferWriter::reset_in_media_unit_state()
 {
-    m_rtp_packet_context->counter = 0;
-    m_rtp_packet_context->line_number = 0;
-    m_rtp_packet_context->srd_offset = 0;
+    m_current_line_number = 0;
+    m_current_srd_offset = 0;
+}
+
+void RTP_SMPTE_2110_20_PacketBufferWriter::prepare_context_for_packet()
+{
+    auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
+
+    // Set source data pointer for payload (nullptr in mock mode)
+    if (!m_mock_mode_enabled && m_current_media_unit) {
+        m_rtp_packet_context->payload_ptr = m_current_media_unit->data->get() + m_bytes_consumed;
+    } else {
+        m_rtp_packet_context->payload_ptr = nullptr;
+    }
+
+    // Copy tracking state to context for packet writer
+    m_rtp_packet_context->line_number = m_current_line_number;
+    m_rtp_packet_context->srd_offset = m_current_srd_offset;
+    m_rtp_packet_context->rtp_interlace_field_indicator = m_current_field_indicator;
+    m_rtp_packet_context->srd_length = video_settings.raw_packet_payload_size;
+
+    // Set marker bit based on whether this is the last packet
+    m_rtp_packet_context->marker = (m_packet_counter == video_settings.packets_in_media_unit - 1) ? 1 : 0;
 }
 
 inline void RTP_SMPTE_2110_20_PacketBufferWriter::update_in_media_unit_state(size_t header_size, size_t payload_size)
 {
     auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
-    m_rtp_packet_context->srd_length = video_settings.raw_packet_payload_size;
-    m_rtp_packet_context->srd_offset = (m_rtp_packet_context->srd_offset + video_settings.pixels_per_packet) %
+
+    // Update tracking state for next packet
+    m_current_srd_offset = (m_current_srd_offset + video_settings.pixels_per_packet) %
         (video_settings.resolution.width);
 
-    if (!(++m_rtp_packet_context->counter % video_settings.packets_in_line)) {
+    m_packet_counter++;
+
+    if (!(m_packet_counter % video_settings.packets_in_line)) {
         // Prepare line number for next iteration:
-        m_rtp_packet_context->line_number = (m_rtp_packet_context->line_number + 1) % video_settings.lines_in_frame_field;
+        m_current_line_number = (m_current_line_number + 1) % video_settings.lines_in_frame_field;
     }
 
-    if (m_rtp_packet_context->counter == video_settings.packets_in_media_unit) {
+    if (m_packet_counter == video_settings.packets_in_media_unit) {
         // ST2110-20: the timestamp SHOULD be the same for each packet of the frame/field.
         m_rtp_packet_context->timestamp += video_settings.ticks_per_media_unit;
-        m_rtp_packet_context->counter = 0;
+        m_packet_counter = 0;
         if (video_settings.video_scan_type == VideoScanType::Interlaced) {
-            m_rtp_packet_context->rtp_interlace_field_indicator = !m_rtp_packet_context->rtp_interlace_field_indicator;
+            m_current_field_indicator = !m_current_field_indicator;
         }
     }
-    m_rtp_packet_context->marker = (m_rtp_packet_context->counter == video_settings.packets_in_media_unit - 1) ? 1 : 0;
+
     m_rtp_packet_context->sequence++;
     m_rtp_packet_context->extended_sequence_number++;
 
-    m_rtp_packet_context->data_left_in_media_unit_in_bytes -= payload_size;
-    if (m_rtp_packet_context->data_left_in_media_unit_in_bytes == 0) {
-        m_rtp_packet_context->current_media_unit = nullptr;
+    m_bytes_consumed += payload_size;
+    if (m_current_media_unit && m_bytes_consumed >= m_current_media_unit->data->get_size()) {
+        m_current_media_unit = nullptr;
     }
 }

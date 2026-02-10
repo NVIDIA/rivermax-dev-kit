@@ -22,7 +22,6 @@
 #include "rdk/services/ulp_packet/writers/ulp_packet_writer_interface.h"
 #include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
 #include "rdk/services/ulp_packet/writers/rtp_smpte_2110_20_packet_writer.h"
-#include "rdk/services/ulp_packet/writers/rtp_smpte_2110_30_packet_writer.h"
 #include "rdk/services/ulp_packet/writers/rtp_smpte_2110_40_packet_writer.h"
 
 #endif /* RDK_SERVICES_ULP_PACKET_WRITERS_WRITERS_H_ */

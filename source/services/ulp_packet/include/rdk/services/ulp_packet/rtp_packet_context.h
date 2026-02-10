@@ -20,7 +20,7 @@
 #define RDK_SERVICES_ULP_PACKET_RTP_PACKET_CONTEXT_H_
 
 #include "rdk/services/ulp_packet/ulp_packet_context.h"
-#include "rdk/services/media/media.h"
+#include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/rational.h"
 
 namespace rivermax
@@ -48,10 +48,8 @@ struct RTPPacketContext : public IPacketContext
     Rational timestamp;                  /**< 32-bit RTP timestamp (Rational for arithmetic precision) */
     uint32_t ssrc = 0;                   /**< Synchronization source (SSRC) identifier */
 
-    uint32_t counter = 0;                /**< Packet counter */
-    size_t payload_size = 0;             /**< Size of the RTP payload */
-    std::shared_ptr<MediaUnit> current_media_unit = nullptr;
-    size_t data_left_in_media_unit_in_bytes = 0;
+    byte_t* payload_ptr = nullptr;       /**< Pointer to payload for this packet */
+    size_t payload_size = 0;             /**< Size of the payload for this packet */
 };
 
 } // namespace services
