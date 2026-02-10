@@ -34,13 +34,13 @@
 using namespace rivermax::dev_kit::services;
 
 const char* CLIOptStr::LOCAL_IP = "-l,--local-ip";
-const char* CLIOptStr::LOCAL_IPS = "--local-ips";
+const char* CLIOptStr::LOCAL_IPS = "--li,--local-ips";
 const char* CLIOptStr::SRC_IP = "-s,--src-ip";
-const char* CLIOptStr::SRC_IPS = "--src-ips";
+const char* CLIOptStr::SRC_IPS = "--si,--src-ips";
 const char* CLIOptStr::DST_IP = "-d,--dst-ip";
-const char* CLIOptStr::DST_IPS = "--dst-ips";
+const char* CLIOptStr::DST_IPS = "--di,--dst-ips";
 const char* CLIOptStr::DST_PORT = "-p,--dst-port";
-const char* CLIOptStr::DST_PORTS = "--dst-ports";
+const char* CLIOptStr::DST_PORTS = "--dp,--dst-ports";
 const char* CLIOptStr::THREADS = "-T,--threads";
 const char* CLIOptStr::FLOWS = "-F,--flows";
 const char* CLIOptStr::STREAMS = "-S,--streams";
