@@ -19,6 +19,7 @@
 #ifndef RDK_FACADE_H_
 #define RDK_FACADE_H_
 
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -112,6 +113,12 @@ public:
      * @return: Shared pointer to the GPU manager object.
      */
     std::shared_ptr<GPUManager> get_gpu_manager();
+    /**
+     * @brief: Returns the maximum number of redundant streams (SMPTE 2022-7 redundancy).
+     *
+     * @return: Maximum number of redundant streams supported.
+     */
+    static size_t get_max_redundant_streams();
     /**
      * @brief: Initializes Rivermax library.
      *

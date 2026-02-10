@@ -18,6 +18,7 @@
 
 #include "rt_threads.h"
 
+#include "rdk/facade.h"
 #include "rdk/apps/ipmx_sender/ipmx_sender.h"
 #include "rdk/services/sdp/sdp_common_descriptions.h"
 #include "rdk/services/utils/clock.h"
@@ -47,8 +48,9 @@ ReturnStatus IPMXSenderSettingsValidator::validate(const IPMXSenderSettings& set
         std::cerr << "Cannot set both a single local IP and a local IP list" << std::endl;
         return ReturnStatus::failure;
     }
-    if (settings.local_ips.size() > 2) {
-        std::cerr << "Up to two local IP addresses is supported (1 for a single stream , 2 - for 2022-7 duplication)" << std::endl;
+    if (settings.local_ips.size() > rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()) {
+        std::cerr << "Up to " << rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()
+                  << " local IP addresses are supported" << std::endl;
         return ReturnStatus::failure;
     }
     if (settings.destination_ips.size() != settings.local_ips.size()) {

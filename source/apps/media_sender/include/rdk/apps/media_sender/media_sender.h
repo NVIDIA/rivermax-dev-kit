@@ -151,12 +151,6 @@ public:
     virtual ~MediaSenderApp() = default;
     ReturnStatus run() override;
     /**
-     * @brief: Returns the maximum number of duplicate streams (SMPTE 2022-7 redundancy).
-     *
-     * @return: Maximum number of duplicate streams supported.
-     */
-    static size_t get_max_dup_streams();
-    /**
      * @brief: Initializes SMPTE standards configuration.
      *
      * This method is responsible for initializing the configuration of different SMPTE standards

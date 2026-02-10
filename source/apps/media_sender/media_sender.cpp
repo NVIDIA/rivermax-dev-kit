@@ -22,6 +22,7 @@
 
 #include "rt_threads.h"
 
+#include "rdk/facade.h"
 #include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/apps/base_memory_strategy.h"
 #include "rdk/services/media/ancillary_essence_source.h"
@@ -58,8 +59,9 @@ ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& s
             std::cerr << "Only one local IP address is supported when SMPTE 2022-7 redundancy is disabled" << std::endl;
             return ReturnStatus::failure;
         }
-        if (settings.local_ips.size() > MediaSenderApp::get_max_dup_streams()) {
-            std::cerr << "Up to " << MediaSenderApp::get_max_dup_streams() << " local IP addresses are supported with SMPTE 2022-7 redundancy" << std::endl;
+        if (settings.local_ips.size() > rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()) {
+            std::cerr << "Up to " << rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()
+                      << " local IP addresses are supported" << std::endl;
             return ReturnStatus::failure;
         }
         if (settings.destination_ips.size() != settings.local_ips.size()) {
@@ -658,9 +660,4 @@ uint64_t MediaSenderApp::get_time_ns(void* context)
         return 0;
     }
     return ptp_time;
-}
-
-size_t MediaSenderApp::get_max_dup_streams()
-{
-    return RMX_MAX_DUP_STREAMS;
 }

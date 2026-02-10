@@ -21,6 +21,7 @@
 #include <iostream>
 
 #include <rivermax_api.h>
+#include <rivermax_defs.h>
 
 #include "rdk/facade.h"
 #include "rdk/services/error_handling/error_handling.h"
@@ -82,6 +83,11 @@ std::shared_ptr<GPUManager> RivermaxDevKitFacade::get_gpu_manager()
     }
 
     return m_gpu_manager;
+}
+
+size_t RivermaxDevKitFacade::get_max_redundant_streams()
+{
+    return RMX_MAX_DUP_STREAMS;
 }
 
 ReturnStatus RivermaxDevKitFacade::validate_rivermax_version() const
