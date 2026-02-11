@@ -222,7 +222,7 @@ std::string ST_2110_30_MediaSettingsCalculator::generate_media_sdp(const std::ve
         .set_session_version(SDPManager::generate_ntp_id() + 1)
         .set_session_name("SMPTE ST2110-30");
     if (is_multi_flow) {
-        session_builder.add_group("DUP", group_mids);
+        session_builder.add_group(GroupAttribute::Builder("DUP", group_mids).build());
     }
 
     auto time_description = TimeDescription::Builder().build();

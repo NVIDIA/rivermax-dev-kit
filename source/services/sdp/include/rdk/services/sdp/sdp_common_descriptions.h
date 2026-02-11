@@ -35,6 +35,56 @@ namespace services
 {
 
 /**
+ * @brief: Group attribute (session-level).
+ *
+ * This class is responsible for constructing one "a=group" attribute part of the SDP string.
+ * It is based on the RFC5888 specification.
+ *
+ * Defines the group attribute:
+ *     a=group:<semantics> <mid> ...
+ *
+ * The group attribute is used for grouping media streams (e.g., for SMPTE 2022-7 duplication
+ * with "DUP" semantics).
+ */
+class GroupAttribute : public ISDP
+{
+public:
+    ~GroupAttribute() = default;
+    operator json() const override;
+    /**
+     * @brief: Builder class for constructing GroupAttribute objects.
+     */
+    class Builder : public ISDP::IBuilder<GroupAttribute, Builder>
+    {
+    public:
+        /**
+         * @brief: Constructor for mandatory parameters.
+         *
+         * @param [in] semantics: The grouping semantics (e.g., "DUP", "FID", "LS").
+         * @param [in] mids: The media identification tags for streams in the group.
+         */
+        explicit Builder(const std::string& semantics, const std::vector<std::string>& mids)
+            : ISDP::IBuilder<GroupAttribute, Builder>()
+        {
+            throw_if(semantics.empty() || mids.empty());
+            m_instance->m_semantics = semantics;
+            m_instance->m_mids = mids;
+        }
+    };
+protected:
+    /**
+     * @brief: Default constructor for GroupAttribute.
+     *
+     * This constructor is protected and only accessible by the Builder class and its subclasses.
+     */
+    GroupAttribute() = default;
+private:
+    std::string m_semantics;
+    std::vector<std::string> m_mids;
+
+    friend class ISDP::IBuilder<GroupAttribute, Builder>;
+};
+/**
  * @brief: SDP Session description builder.
  *
  * This class is responsible for constructing the session description part of the SDP string.
@@ -159,17 +209,14 @@ public:
          * @brief: Adds a group attribute to the session.
          *
          * This corresponds to the "a=group" line in SDP as per RFC5888.
-         * The group attribute is a session-level attribute used for grouping
-         * media streams (e.g., for SMPTE 2022-7 duplication with "DUP" semantics).
          *
-         * @param [in] semantics: The grouping semantics (e.g., "DUP", "FID", "LS").
-         * @param [in] mids: The media identification tags for streams in the group.
+         * @param [in] group: The group attribute to add.
          *
          * @return: Reference to the builder object.
          */
-        Builder& add_group(const std::string& semantics, const std::vector<std::string>& mids)
+        Builder& add_group(std::unique_ptr<GroupAttribute> group)
         {
-            m_instance->m_groups.push_back({semantics, mids});
+            m_instance->m_groups.push_back(std::move(group));
             return *this;
         }
     };
@@ -182,15 +229,6 @@ private:
      */
     SessionDescription() = default;
 
-    /**
-     * @brief: Group attribute structure for RFC5888 grouping.
-     */
-    struct GroupAttribute
-    {
-        std::string semantics;
-        std::vector<std::string> mids;
-    };
-
     size_t m_protocol_version = 0;
     std::string m_username = "-";
     size_t m_session_id = 0;
@@ -199,7 +237,7 @@ private:
     AddressType m_address_type = AddressType::IP4;
     std::string m_unicast_address;
     std::string m_session_name;
-    std::vector<GroupAttribute> m_groups;
+    std::vector<std::unique_ptr<GroupAttribute>> m_groups;
 
     friend class ISDP::IBuilder<SessionDescription, Builder>;
 };

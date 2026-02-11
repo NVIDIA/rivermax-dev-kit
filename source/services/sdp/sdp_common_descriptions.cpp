@@ -57,14 +57,7 @@ SessionDescription::operator json() const
     if (!m_groups.empty()) {
         json groups_array = json::array();
         for (const auto& group : m_groups) {
-            std::string mids_str;
-            for (size_t i = 0; i < group.mids.size(); ++i) {
-                if (i > 0) {
-                    mids_str += " ";
-                }
-                mids_str += group.mids[i];
-            }
-            groups_array.push_back({{"type", group.semantics}, {"mids", mids_str}});
+            groups_array.push_back(static_cast<json>(*group));
         }
         result["groups"] = std::move(groups_array);
     }
@@ -75,6 +68,18 @@ SessionDescription::operator json() const
 TimeDescription::operator json() const
 {
     return {{"timing", {{"start", m_start_time}, {"stop", m_stop_time}}}};
+}
+
+GroupAttribute::operator json() const
+{
+    std::string mids_str;
+    for (auto& mid : m_mids) {
+        if (!mids_str.empty()) {
+            mids_str += " ";
+        }
+        mids_str += mid;
+    }
+    return {{"type", m_semantics}, {"mids", mids_str}};
 }
 
 SourceFilterAttribute::operator json() const
