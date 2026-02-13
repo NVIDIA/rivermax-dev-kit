@@ -80,6 +80,7 @@ struct AppSettings
     bool register_memory;
     bool header_data_split;
     bool app_memory_alloc;
+    bool enable_redundancy;
     bool enable_statistics_reader;
     int statistics_reader_core;
     uint32_t stats_report_interval_ms;

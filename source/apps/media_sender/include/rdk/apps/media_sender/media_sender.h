@@ -56,7 +56,6 @@ public:
     static constexpr uint32_t DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK = 10;
 
     void init_default_values() override;
-    bool enable_redundancy = false;
     std::set<SMPTEStandard> enabled_smpte_standards;
     std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
     std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;

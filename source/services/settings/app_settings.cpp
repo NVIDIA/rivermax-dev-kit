@@ -54,6 +54,7 @@ void AppSettings::init_default_values()
     register_memory = false;
     header_data_split = false;
     app_memory_alloc = false;
+    enable_redundancy = false;
     enable_statistics_reader = false;
     statistics_reader_core = INVALID_CORE_NUMBER;
     stats_report_interval_ms = STATS_REPORT_INTERVAL_MS_DEFAULT;

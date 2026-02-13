@@ -468,6 +468,15 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         }
     },
     {
+        CLIOptStr::ENABLE_REDUNDANCY,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_flag(CLIOptStr::ENABLE_REDUNDANCY,
+                                    app_settings->enable_redundancy,
+                                    "Enable SMPTE 2022-7 redundancy");
+        }
+    },
+    {
         CLIOptStr::STATS_CORE,
         [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
         {

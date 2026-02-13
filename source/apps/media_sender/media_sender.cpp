@@ -153,10 +153,6 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
     m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
     m_cli_parser_manager->add_option(CLIOptStr::SLEEP);
     auto hds = m_cli_parser_manager->add_option(CLIOptStr::HEADER_DATA_SPLIT);
-    m_cli_parser_manager->get_parser()->add_flag(
-        CLIOptStr::ENABLE_REDUNDANCY,
-        settings.enable_redundancy,
-        "Enable SMPTE 2022-7 redundancy");
 #ifdef CUDA_ENABLED
     m_cli_parser_manager->add_option(CLIOptStr::GPU_ID)->needs(hds);
     m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
@@ -167,6 +163,7 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
     auto mem = m_cli_parser_manager->add_option(CLIOptStr::APP_MEMORY_ALLOC);
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE)->needs(mem);
     m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY)->needs(mem);
+    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_REDUNDANCY);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_VIDEO)
         ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ALPHA)
