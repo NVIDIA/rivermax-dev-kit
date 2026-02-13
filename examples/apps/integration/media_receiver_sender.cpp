@@ -62,11 +62,12 @@ void ReceiverSenderExample::configure_rtp_receiver_media_sender_settings(
 {
     /** Configure network settings */
     rtp_receiver_settings.source_ip = m_settings->source_ip;
-    rtp_receiver_settings.local_ip = media_sender_settings.local_ip = m_settings->local_ip;
+    rtp_receiver_settings.local_ip = m_settings->local_ip;
     rtp_receiver_settings.destination_ip = "224.1.1.1";
     rtp_receiver_settings.destination_port = 2000;
-    media_sender_settings.destination_ip = "224.2.2.2";
-    media_sender_settings.destination_port = 3000;
+    media_sender_settings.local_ips = {m_settings->local_ip};
+    media_sender_settings.destination_ips = {"224.2.2.2"};
+    media_sender_settings.destination_ports = {3000};
 
     /** Configure RTP receiver settings */
     rtp_receiver_settings.is_extended_sequence_number = false;

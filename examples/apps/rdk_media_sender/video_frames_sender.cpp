@@ -51,9 +51,9 @@ void VideoFramesSenderExample::configure_media_sender_settings(MediaSenderSettin
     settings.init_default_values();
 
     /** Configure network settings */
-    settings.local_ip = m_settings->local_ip;
-    settings.destination_ip = "224.1.1.1";
-    settings.destination_port = 2000;
+    settings.local_ips = {m_settings->local_ip};
+    settings.destination_ips = {"224.1.1.1"};
+    settings.destination_ports = {2000};
 
     /** Configure video settings */
     settings.media.enable_video = true;

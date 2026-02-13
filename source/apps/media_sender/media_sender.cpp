@@ -20,6 +20,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "rdk/services/cli/options.h"
 #include "rt_threads.h"
 
 #include "rdk/facade.h"
@@ -38,6 +39,10 @@ using namespace rivermax::dev_kit::apps::media_sender;
 void MediaSenderSettings::init_default_values()
 {
     AppSettings::init_default_values();
+    destination_ip = "";
+    destination_port = 0;
+    destination_ips = {DESTINATION_IP_DEFAULT};
+    destination_ports = {DESTINATION_PORT_DEFAULT};
     media.frames_fields_in_mem_block = MediaSenderSettings::DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK;
     media.resolution = { _1080_WIDTH, _1080_HEIGHT };
     num_of_packets_in_chunk = get_default_packets_in_chunk(media.resolution);
@@ -45,6 +50,10 @@ void MediaSenderSettings::init_default_values()
 
 ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& settings) const
 {
+    if (!settings.local_ip.empty() || !settings.destination_ip.empty()) {
+        std::cerr << "Use of single parameters is deprecated. Please use plural parameters instead" << std::endl;
+        return ReturnStatus::failure;
+    }
     if (settings.local_ips.empty()) {
         std::cerr << "At least one local IP must be specified" << std::endl;
         return ReturnStatus::failure;
@@ -53,52 +62,36 @@ ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& s
         std::cerr << "SMPTE 2022-7 redundancy requires at least two local IP addresses" << std::endl;
         return ReturnStatus::failure;
     }
-
-    if (!settings.local_ips.empty()) {
-        if (settings.local_ips.size() > 1 && !settings.enable_redundancy) {
-            std::cerr << "Only one local IP address is supported when SMPTE 2022-7 redundancy is disabled" << std::endl;
-            return ReturnStatus::failure;
-        }
-        if (settings.local_ips.size() > rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()) {
-            std::cerr << "Up to " << rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()
-                      << " local IP addresses are supported" << std::endl;
-            return ReturnStatus::failure;
-        }
-        if (settings.destination_ips.size() != settings.local_ips.size()) {
-            std::cerr << "Must be the same number of destination IPs as number of local IPs" << std::endl;
-            return ReturnStatus::failure;
-        }
-        if (settings.destination_ports.size() != settings.local_ips.size()) {
-            std::cerr << "Must be the same number of destination ports as number of local IPs" << std::endl;
-            return ReturnStatus::failure;
-        }
-        ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ips);
-        if (rc != ReturnStatus::success) {
-            return rc;
-        }
-        rc = ValidatorUtils::validate_ip4_address(settings.destination_ips);
-        if (rc != ReturnStatus::success) {
-            return rc;
-        }
-        rc = ValidatorUtils::validate_ip4_port(settings.destination_ports);
-        if (rc != ReturnStatus::success) {
-            return rc;
-        }
-    } else {
-        ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
-        if (rc != ReturnStatus::success) {
-            return rc;
-        }
-        rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
-        if (rc != ReturnStatus::success) {
-            return rc;
-        }
-        rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
-        if (rc != ReturnStatus::success) {
-            return rc;
-        }
+    if (settings.local_ips.size() > 1 && !settings.enable_redundancy) {
+        std::cerr << "Only one local IP address is supported when SMPTE 2022-7 redundancy is disabled" << std::endl;
+        return ReturnStatus::failure;
     }
-    ReturnStatus rc = ValidatorUtils::validate_core(settings.internal_thread_core);
+    if (settings.local_ips.size() > rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()) {
+        std::cerr << "Up to " << rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()
+                  << " local IP addresses are supported" << std::endl;
+        return ReturnStatus::failure;
+    }
+    if (settings.destination_ips.size() != settings.local_ips.size()) {
+        std::cerr << "Must be the same number of destination IPs as number of local IPs" << std::endl;
+        return ReturnStatus::failure;
+    }
+    if (settings.destination_ports.size() != settings.local_ips.size()) {
+        std::cerr << "Must be the same number of destination ports as number of local IPs" << std::endl;
+        return ReturnStatus::failure;
+    }
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ips);
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ips);
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_ports);
+    if (rc != ReturnStatus::success) {
+        return rc;
+    }
+    rc = ValidatorUtils::validate_core(settings.internal_thread_core);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -137,14 +130,9 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    auto cli_option_ip = m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    auto cli_option_ips = m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IPS);
-    cli_option_ip->excludes(cli_option_ips);
-    cli_option_ips->excludes(cli_option_ip);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP)->needs(cli_option_ip);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IPS)->needs(cli_option_ips);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT)->needs(cli_option_ip);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORTS)->needs(cli_option_ips);
+    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IPS)->required();
+    m_cli_parser_manager->add_option(CLIOptStr::DST_IPS);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_PORTS);
     m_cli_parser_manager->add_option(CLIOptStr::THREADS);
     m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(
         StreamToThreadsValidator(settings.num_of_threads));
@@ -214,15 +202,6 @@ MediaSenderApp::MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSetti
 
 ReturnStatus MediaSenderApp::post_load_settings()
 {
-    if (m_app_settings->local_ips.empty() && !m_app_settings->local_ip.empty()) {
-        m_app_settings->local_ips.push_back(m_app_settings->local_ip);
-    }
-    if (m_app_settings->destination_ips.empty() && !m_app_settings->destination_ip.empty()) {
-        m_app_settings->destination_ips.push_back(m_app_settings->destination_ip);
-    }
-    if (m_app_settings->destination_ports.empty()) {
-        m_app_settings->destination_ports.push_back(m_app_settings->destination_port);
-    }
     if(m_app_settings->media.enable_video) {
         m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_20);
     }
