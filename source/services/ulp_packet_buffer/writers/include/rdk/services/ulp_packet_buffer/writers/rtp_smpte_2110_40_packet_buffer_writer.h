@@ -53,10 +53,12 @@ public:
      * @param [in] media_settings: Media settings.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
-     * @param [in] enable_mock_mode: Flag to enable mock mode.
+     * @param [in] enable_zero_copy: Flag to enable zero copy mode.
+     *                               If true, only headers are written to the header memory,
+     *                               payload is not copied from the media unit to the payload memory.
      */
     RTP_SMPTE_2110_40_PacketBufferWriter(const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode);
+        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_zero_copy);
     /**
      * @brief: Writes RTP packet buffer when Header Data Split mode is off.
      *

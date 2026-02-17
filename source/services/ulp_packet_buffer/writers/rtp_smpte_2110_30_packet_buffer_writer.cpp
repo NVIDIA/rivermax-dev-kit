@@ -27,9 +27,9 @@
 using namespace rivermax::dev_kit::services;
 
 RTP_SMPTE_2110_30_PacketBufferWriter::RTP_SMPTE_2110_30_PacketBufferWriter(const MediaSettings& media_settings,
-    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)
+    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_zero_copy)
     : RTPMediaPacketBufferWriter<RTPPacketContext, RTPPacketWriter>(
-        media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
+        media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_zero_copy)
 {
 }
 
@@ -40,8 +40,8 @@ void RTP_SMPTE_2110_30_PacketBufferWriter::reset_in_media_unit_state()
 
 void RTP_SMPTE_2110_30_PacketBufferWriter::prepare_context_for_packet()
 {
-    // Set source data pointer for payload (nullptr in mock mode)
-    if (!m_mock_mode_enabled && m_current_media_unit) {
+    // Set source data pointer for payload (nullptr in zero copy mode)
+    if (!m_zero_copy_enabled && m_current_media_unit) {
         m_rtp_packet_context->payload_ptr = m_current_media_unit->data->get() + m_bytes_consumed;
     } else {
         m_rtp_packet_context->payload_ptr = nullptr;

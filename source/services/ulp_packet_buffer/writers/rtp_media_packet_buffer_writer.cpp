@@ -33,7 +33,7 @@ using namespace rivermax::dev_kit::services;
 
 template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType>
 RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, MetadataType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
-    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode) :
+    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_zero_copy) :
     IULPPacketBufferWriter(std::move(header_mem_utils), std::move(payload_mem_utils)),
     m_media_settings(media_settings)
 {
@@ -42,7 +42,7 @@ RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, MetadataType>
     m_rtp_packet_context->payload_type = media_settings.payload_type;
     m_rtp_packet_context->payload_size = media_settings.raw_packet_payload_size;
     m_rtp_packet_writer = std::make_unique<RTPPacketWriterType>(nullptr, nullptr);
-    m_mock_mode_enabled = enable_mock_mode;
+    m_zero_copy_enabled = enable_zero_copy;
 }
 
 template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType>
@@ -120,8 +120,8 @@ ReturnStatus RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, 
         return status;
     }
 
-    if (m_mock_mode_enabled) {
-        // Mock mode - Data was pre loaded / No media unit assigned
+    if (m_zero_copy_enabled) {
+        // Zero copy mode - Data was pre loaded / No media unit assigned
         return ReturnStatus::success;
     }
 
@@ -155,10 +155,10 @@ std::unique_ptr<IULPPacketBufferWriter> create_writer(
     const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils,
     std::shared_ptr<MemoryUtils> payload_mem_utils,
-    bool enable_mock_mode)
+    bool enable_zero_copy)
 {
     return std::unique_ptr<WriterType>(new WriterType(media_settings,
-        std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode));
+        std::move(header_mem_utils), std::move(payload_mem_utils), enable_zero_copy));
 }
 
 static rtp_media_packet_buffer_writer_factory_map_t s_rtp_media_packet_buffer_writer_factory = {

@@ -41,7 +41,7 @@ constexpr uint32_t DEFAULT_SSRC = 0x0eb51dbd;
 typedef std::unordered_map<
     SMPTEStandard,
     std::function<std::unique_ptr<IULPPacketBufferWriter>(const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)>> rtp_media_packet_buffer_writer_factory_map_t;
+        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_zero_copy)>> rtp_media_packet_buffer_writer_factory_map_t;
 
 /**
  * @brief: Creates an RTP media packet buffer writer based on the provided parameters.
@@ -76,7 +76,7 @@ protected:
     std::unique_ptr<PacketContextType> m_rtp_packet_context;
     std::unique_ptr<RTPPacketWriterType> m_rtp_packet_writer;
     bool m_metadata_validated = false;
-    bool m_mock_mode_enabled = false;
+    bool m_zero_copy_enabled = false;
 
     /** Media unit tracking state */
     std::shared_ptr<MediaUnit> m_current_media_unit;
@@ -144,10 +144,12 @@ protected:
      * @param [in] media_settings: Media settings.
      * @param [in] header_mem_utils: Shared pointer to header memory utilities.
      * @param [in] payload_mem_utils: Shared pointer to payload memory utilities.
-     * @param [in] enable_mock_mode: Flag to enable mock mode.
+     * @param [in] enable_zero_copy: Flag to enable zero copy mode.
+     *                               If true, only headers are written to the header memory,
+     *                               payload is not copied from the media unit to the payload memory.
      */
     RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
-        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode = false);
+        std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_zero_copy = false);
     /**
      * @brief: Prepares the packet context for the next packet.
      *

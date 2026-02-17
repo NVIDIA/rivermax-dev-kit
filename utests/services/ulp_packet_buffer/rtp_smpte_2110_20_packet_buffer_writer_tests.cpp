@@ -118,10 +118,10 @@ protected:
     }
 
     /** Create the packet buffer writer and store in m_writer. */
-    void init_writer(bool mock_mode = false)
+    void init_writer(bool enable_zero_copy = false)
     {
         m_writer = std::make_unique<RTP_SMPTE_2110_20_PacketBufferWriter>(
-            *m_settings, m_header_mem_utils, m_payload_mem_utils, mock_mode);
+            *m_settings, m_header_mem_utils, m_payload_mem_utils, enable_zero_copy);
     }
 
     /** Allocate scratch buffer and payload sizes for the given number of packets. */

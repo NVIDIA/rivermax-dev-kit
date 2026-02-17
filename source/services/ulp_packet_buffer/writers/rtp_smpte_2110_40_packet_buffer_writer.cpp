@@ -25,11 +25,11 @@
 using namespace rivermax::dev_kit::services;
 
 RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const MediaSettings& media_settings,
-    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_mock_mode)
+    std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_zero_copy)
     : RTPMediaPacketBufferWriter<RTP_SMPTE_2110_40_PacketContext, RTP_SMPTE_2110_40_PacketWriter, AncillaryMediaUnitMetadata>(
-        media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_mock_mode)
+        media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_zero_copy)
 {
-    if (enable_mock_mode) {
+    if (enable_zero_copy) {
         m_cached_packets_in_media_unit = calculate_packets_for_media_unit();
     }
     const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(media_settings);
@@ -67,8 +67,8 @@ void RTP_SMPTE_2110_40_PacketBufferWriter::prepare_context_for_packet()
 {
     const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
 
-    // Set source data pointer for payload (nullptr in mock mode)
-    if (!m_mock_mode_enabled && m_current_media_unit) {
+    // Set source data pointer for payload (nullptr in zero copy mode)
+    if (!m_zero_copy_enabled && m_current_media_unit) {
         m_rtp_packet_context->payload_ptr = m_current_media_unit->data->get();
     } else {
         m_rtp_packet_context->payload_ptr = nullptr;
@@ -254,7 +254,7 @@ ReturnStatus RTP_SMPTE_2110_40_PacketBufferWriter::write_buffer(void* header_ptr
 
 size_t RTP_SMPTE_2110_40_PacketBufferWriter::get_num_packets_for_next_chunk() const
 {
-    // When no descriptors (e.g. mock mode or no metadata), use default packets per chunk
+    // When no descriptors (e.g. zero copy mode or no metadata), use default packets per chunk
     if (!m_descriptors) {
         return RTPMediaPacketBufferWriter::get_num_packets_for_next_chunk();
     }

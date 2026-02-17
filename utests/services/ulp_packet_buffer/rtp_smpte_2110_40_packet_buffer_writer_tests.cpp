@@ -178,10 +178,10 @@ protected:
     }
 
     /** Create the packet buffer writer and store in m_writer. */
-    void init_writer(bool mock_mode = false)
+    void init_writer(bool enable_zero_copy = false)
     {
         m_writer = std::make_unique<RTP_SMPTE_2110_40_PacketBufferWriter>(
-            *m_settings, m_header_mem_utils, m_payload_mem_utils, mock_mode);
+            *m_settings, m_header_mem_utils, m_payload_mem_utils, enable_zero_copy);
     }
 
     /** Allocate scratch buffer and payload sizes for the given number of packets. */
@@ -277,7 +277,7 @@ TEST_F(RTP_SMPTE_2110_40_PacketBufferWriterTest, MockMode_FixedPacketsPerChunk)
 
     for (size_t chunk_idx = 0; chunk_idx < chunks; ++chunk_idx) {
         EXPECT_EQ(m_writer->get_num_packets_for_next_chunk(), expected_packets_per_chunk)
-            << "Chunk " << chunk_idx << " should return fixed packets_per_chunk in mock mode";
+            << "Chunk " << chunk_idx << " should return fixed packets_per_chunk in zero copy mode";
 
         EXPECT_EQ(write_chunk(expected_packets_per_chunk), ReturnStatus::success)
             << "Chunk " << chunk_idx << " write_buffer failed";

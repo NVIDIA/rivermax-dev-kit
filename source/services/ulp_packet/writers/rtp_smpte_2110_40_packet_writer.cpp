@@ -132,7 +132,6 @@ ReturnStatus RTP_SMPTE_2110_40_PacketWriter::fill_payload(const IPacketContext& 
 
     size = 0;
 
-    // Mock mode - no data, just return
     if (rtp_packet_context.payload_ptr == nullptr) {
         size = rtp_packet_context.payload_size;
         return ReturnStatus::success;
