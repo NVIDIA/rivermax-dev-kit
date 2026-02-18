@@ -68,6 +68,8 @@ This submodule contains examples for SDP generation:
 
 - **sdp_smpte_2110_30_description**: This example demonstrates how to generate Session Description Protocol (SDP) strings for SMPTE ST 2110-30 audio streams using the SDP service.
 
+- **sdp_smpte_2110_40_description**: This example demonstrates how to generate Session Description Protocol (SDP) strings for SMPTE ST 2110-40 ancillary data streams using the SDP service.
+
 #### ulp_packet_buffer
 
 This submodule contains examples for ULP packet buffer writing functionality:
