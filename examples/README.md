@@ -64,7 +64,9 @@ This submodule contains examples for memory allocation strategies:
 
 This submodule contains examples for SDP generation:
 
-- **sdp_smpte_2110_20_description**: This example demonstrates how to generate Session Description Protocol (SDP) strings for SMPTE 2110-20 streams using the SDP service.
+- **sdp_smpte_2110_20_description**: This example demonstrates how to generate Session Description Protocol (SDP) strings for SMPTE ST 2110-20 video streams using the SDP service.
+
+- **sdp_smpte_2110_30_description**: This example demonstrates how to generate Session Description Protocol (SDP) strings for SMPTE ST 2110-30 audio streams using the SDP service.
 
 #### ulp_packet_buffer
 
