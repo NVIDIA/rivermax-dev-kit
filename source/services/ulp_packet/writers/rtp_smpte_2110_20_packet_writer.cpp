@@ -19,6 +19,7 @@
 #include <cstring>
 
 #include "rdk/services/ulp_packet/writers/rtp_smpte_2110_20_packet_writer.h"
+#include "rdk/services/ulp_packet/network_byte_order.h"
 #include "rdk/services/ulp_packet/rtp_smpte_2110_20_extension.h"
 
 using namespace rivermax::dev_kit::services;

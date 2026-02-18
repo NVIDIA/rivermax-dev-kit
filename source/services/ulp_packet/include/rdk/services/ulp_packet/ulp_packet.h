@@ -19,6 +19,7 @@
 #ifndef RDK_SERVICES_ULP_PACKET_ULP_PACKET_H_
 #define RDK_SERVICES_ULP_PACKET_ULP_PACKET_H_
 
+#include "rdk/services/ulp_packet/network_byte_order.h"
 #include "rdk/services/ulp_packet/ulp_packet_context.h"
 #include "rdk/services/ulp_packet/rtp_header.h"
 #include "rdk/services/ulp_packet/rtp_packet_context.h"

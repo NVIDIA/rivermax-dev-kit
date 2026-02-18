@@ -16,14 +16,8 @@
  * limitations under the License.
  */
 
-#if defined(_WIN32)
-#include <ws2tcpip.h>
-#pragma comment(lib, "Ws2_32.lib")
-#elif defined(__linux__)
-#include <arpa/inet.h>
-#endif
-
 #include "rdk/services/ulp_packet/readers/rtp_packet_reader.h"
+#include "rdk/services/ulp_packet/network_byte_order.h"
 #include "rdk/services/ulp_packet/rtp_header.h"
 
 #include <cassert>

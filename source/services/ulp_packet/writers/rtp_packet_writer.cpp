@@ -17,6 +17,7 @@
  */
 
 #include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/network_byte_order.h"
 #include "rdk/services/ulp_packet/rtp_header.h"
 
 using namespace rivermax::dev_kit::services;
@@ -42,7 +43,7 @@ ReturnStatus RTPPacketWriter::fill_header(const IPacketContext& context, size_t&
      * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
 
-    RTPHeader* p_rtp_header = reinterpret_cast<RTPHeader*>(m_header_ptr );
+    RTPHeader* p_rtp_header = reinterpret_cast<RTPHeader*>(m_header_ptr);
     p_rtp_header->version = rtp_packet_context.version;
     p_rtp_header->padding = rtp_packet_context.padding;
     p_rtp_header->extension = rtp_packet_context.extension;

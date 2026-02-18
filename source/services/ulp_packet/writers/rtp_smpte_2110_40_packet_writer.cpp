@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include "rdk/services/ulp_packet/writers/rtp_smpte_2110_40_packet_writer.h"
+#include "rdk/services/ulp_packet/network_byte_order.h"
 
 using namespace rivermax::dev_kit::services;
 
