@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -196,7 +196,7 @@ protected:
      */
     virtual ReturnStatus set_rivermax_clock();
     /**
-     * @brief: Initializes the local NIC address.
+     * @brief: Initializes the connection parameters.
      *
      * @return: Status of the operation.
      */

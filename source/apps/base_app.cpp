@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -189,7 +189,12 @@ ReturnStatus BaseApp::initialize_connection_parameters()
     m_local_addresses.clear();
     m_device_interfaces.clear();
 
-    for (const auto& local_ip : m_app_settings->local_ips) {
+    std::vector<std::string> local_ips = m_app_settings->local_ips;
+    if (local_ips.empty()) {
+        local_ips.push_back(m_app_settings->local_ip);
+    }
+
+    for (const auto& local_ip : local_ips) {
         sockaddr_in local_address;
         memset(&local_address, 0, sizeof(sockaddr_in));
         local_address.sin_family = AF_INET;
