@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -143,22 +143,6 @@ ReturnStatus IPMXReceiverApp::set_rivermax_clock()
 {
     std::cout << "Switching to using NIC realtime clock" << std::endl;
     return set_rivermax_ptp_clock(&m_device_interfaces[0]);
-}
-
-ReturnStatus IPMXReceiverApp::initialize_connection_parameters()
-{
-    m_device_interfaces.resize(1);
-    in_addr device_address;
-    if (inet_pton(AF_INET, m_app_settings->local_ip.c_str(), &device_address) != 1) {
-        std::cerr << "Failed to parse address of device " << m_app_settings->local_ip << std::endl;
-        return ReturnStatus::failure;
-    }
-    rmx_status status = rmx_retrieve_device_iface_ipv4(&m_device_interfaces[0], &device_address);
-    if (status != RMX_OK) {
-        std::cerr << "Failed to get device: " << m_app_settings->local_ip << " with status: " << status << std::endl;
-        return ReturnStatus::failure;
-    }
-    return ReturnStatus::success;
 }
 
 ReturnStatus IPMXReceiverApp::initialize_app_settings()

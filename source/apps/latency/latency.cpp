@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -165,8 +165,7 @@ LatencyApp::LatencyApp(std::unique_ptr<ISettingsBuilder<LatencySettings>> settin
     m_tx_payload_mreg{nullptr, 0, 0},
     m_is_tx_payload_mreg_registered{false},
     m_rx_header_mreg{nullptr, 0, 0},
-    m_rx_payload_mreg{nullptr, 0, 0},
-    m_device_interface{0}
+    m_rx_payload_mreg{nullptr, 0, 0}
 {
 }
 
@@ -249,7 +248,7 @@ ReturnStatus LatencyApp::set_rivermax_clock()
         return ReturnStatus::success;
     }
     std::cout << "Switching to PTP clock" << std::endl;
-    return set_rivermax_ptp_clock(&m_device_interface);
+    return set_rivermax_ptp_clock(&m_device_interfaces[0]);
 }
 
 ReturnStatus LatencyApp::initialize_threads()
@@ -369,7 +368,7 @@ ReturnStatus LatencyApp::allocate_app_memory()
     std::cout << rx_header_size << " bytes for Rx separate headers" << std::endl;
 
     rmx_mem_reg_params mem_registry;
-    rmx_init_mem_registry(&mem_registry, &m_device_interface);
+    rmx_init_mem_registry(&mem_registry, &m_device_interfaces[0]);
 
     if (tx_header_size) {
         m_tx_header_mreg.addr = allocate_and_align_header(tx_header_size);
@@ -457,7 +456,7 @@ ReturnStatus LatencyApp::allocate_app_memory()
 void LatencyApp::unregister_app_memory()
 {
     if (m_is_tx_header_mreg_registered) {
-        rmx_status status = rmx_deregister_memory(&m_tx_header_mreg, &m_device_interface);
+        rmx_status status = rmx_deregister_memory(&m_tx_header_mreg, &m_device_interfaces[0]);
         if (status != RMX_OK) {
             std::cerr << "Failed to de-register Tx header with status: "
                 << status << std::endl;
@@ -465,7 +464,7 @@ void LatencyApp::unregister_app_memory()
     }
 
     if (m_is_tx_payload_mreg_registered) {
-        rmx_status status = rmx_deregister_memory(&m_tx_payload_mreg, &m_device_interface);
+        rmx_status status = rmx_deregister_memory(&m_tx_payload_mreg, &m_device_interfaces[0]);
         if (status != RMX_OK) {
             std::cerr << "Failed to de-register Tx payload memory with status: "
                 << status << std::endl;
