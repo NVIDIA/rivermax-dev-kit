@@ -17,25 +17,9 @@
  */
 
 #include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
+#include "rdk/services/ulp_packet/rtp_header.h"
 
 using namespace rivermax::dev_kit::services;
-
-/**
- * @brief: Standard RTP packet header
- *
- * Based on RFC 3550 - RTP: A Transport Protocol for Real-Time Applications.
- */
-struct RTPHeader {
-    uint8_t cc : 4;            /**< CSRC count */
-    uint8_t extension : 1;     /**< Extension bit */
-    uint8_t padding : 1;       /**< Padding bit */
-    uint8_t version : 2;       /**< RTP version */
-    uint8_t payload_type : 7;  /**< Payload type */
-    uint8_t marker : 1;        /**< Marker bit */
-    uint16_t sequence_number;  /**< Sequence number */
-    uint32_t timestamp;        /**< Timestamp */
-    uint32_t ssrc;             /**< Synchronization source (SSRC) identifier */
-};
 
 ReturnStatus RTPPacketWriter::fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {

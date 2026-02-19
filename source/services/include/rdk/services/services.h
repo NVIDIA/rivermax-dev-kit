@@ -20,6 +20,7 @@
 #define RDK_SERVICES_SERVICES_H_
 
 #include "rdk/services/memory_allocation/memory_allocation.h"
+#include "rdk/services/ulp_packet/ulp_packet.h"
 #include "rdk/services/ulp_packet_buffer/ulp_packet_buffer.h"
 #include "rdk/services/media/media.h"
 #include "rdk/services/protocol/protocol.h"

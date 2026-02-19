@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-
-set(RIVERMAX_DEV_KIT_ULP_PACKET_COMPONENTS
-    readers
-    writers
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        rtp_packet_reader.cpp
+        rtp_smpte_2110_20_packet_reader.cpp
+        rtp_smpte_2110_40_packet_reader.cpp
 )
-
-foreach(packet_component ${RIVERMAX_DEV_KIT_ULP_PACKET_COMPONENTS})
-    add_subdirectory(${packet_component})
-endforeach()
+target_include_directories(${PROJECT_NAME} PUBLIC include)
