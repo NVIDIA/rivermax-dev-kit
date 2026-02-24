@@ -42,7 +42,7 @@ protected:
     size_t m_cached_packets_in_media_unit = 0;
 
     /** Media unit tracking state */
-    const std::vector<AncillaryDataDescriptor>* m_descriptors = nullptr;
+    std::vector<AncillaryDataDescriptor>* m_descriptors = nullptr;
     size_t m_current_descriptor_index = 0;
     uint8_t m_current_field_indicator = RTP_2110_40_FIELD_INDICATOR_PROGRESSIVE;
 
@@ -64,7 +64,7 @@ public:
      *
      * @param [in] payload_ptr: Pointer to the payload memory (header + payload together).
      * @param [in] buffer_length: Length of the buffer in strides.
-     * @param [in] payload_sizes: Optional array to fill with actual payload sizes if not nullptr.
+     * @param [out] payload_sizes: Optional array to fill with actual payload sizes if not nullptr.
      *
      * @return: Status of the operation.
      */
@@ -75,8 +75,8 @@ public:
      * @param [in] header_ptr: Pointer to the header memory.
      * @param [in] payload_ptr: Pointer to the payload memory.
      * @param [in] buffer_length: Length of the buffer in strides.
-     * @param [in] header_sizes: Optional array to fill with actual header sizes if not nullptr.
-     * @param [in] payload_sizes: Optional array to fill with actual payload sizes if not nullptr.
+     * @param [out] header_sizes: Optional array to fill with actual header sizes if not nullptr.
+     * @param [out] payload_sizes: Optional array to fill with actual payload sizes if not nullptr.
      *
      * @return: Status of the operation.
      */

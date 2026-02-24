@@ -21,6 +21,7 @@
 #include <cstring>
 
 #include "rdk/services/ulp_packet_buffer/writers/rtp_smpte_2110_40_packet_buffer_writer.h"
+#include "rdk/services/ulp_packet/smpte_2110_40_ancillary_utils.h"
 
 using namespace rivermax::dev_kit::services;
 
@@ -107,7 +108,7 @@ size_t RTP_SMPTE_2110_40_PacketBufferWriter::calculate_descriptors_in_packet(
     size_t descriptor_count = 0;
 
     for (size_t i = start_index; i < descriptors.size(); ++i) {
-        uint16_t ancillary_data_packet_size = AncillaryDataPacketWriter::calculate_packet_size(
+        const size_t ancillary_data_packet_size = AncillaryDataUtils::calculate_packet_size(
             descriptors[i].ancillary_data_header.user_data_words_count);
 
         // Make sure it doesn't exceed the max number of ancillary data packets per RTP packet

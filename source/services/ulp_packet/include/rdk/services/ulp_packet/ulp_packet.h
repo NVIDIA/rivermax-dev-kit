@@ -25,7 +25,9 @@
 #include "rdk/services/ulp_packet/rtp_packet_context.h"
 #include "rdk/services/ulp_packet/rtp_smpte_2110_20_extension.h"
 #include "rdk/services/ulp_packet/rtp_smpte_2110_20_packet_context.h"
+#include "rdk/services/ulp_packet/rtp_smpte_2110_40_extension.h"
 #include "rdk/services/ulp_packet/rtp_smpte_2110_40_packet_context.h"
+#include "rdk/services/ulp_packet/smpte_2110_40_ancillary_utils.h"
 #include "rdk/services/ulp_packet/readers/readers.h"
 #include "rdk/services/ulp_packet/writers/writers.h"
 
