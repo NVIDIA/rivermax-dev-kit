@@ -1,0 +1,26 @@
+name: Rivermax CI Handshake
+
+on:
+  pull_request_target:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  handshake:
+    runs-on: ubuntu-latest
+    environment: RIVERMAX_CI
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Run Rivermax CI handshake
+        run: bash .github/workflows/rivermax-ci-handshake.sh "${{ github.event.pull_request.head.sha }}"
+        timeout-minutes: 1440 # 24 hours
+        env:
+          MEDIA_USER_TOKEN: ${{ secrets.MEDIA_USER_TOKEN }}
