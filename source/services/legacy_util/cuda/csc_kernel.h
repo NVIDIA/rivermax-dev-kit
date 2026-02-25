@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include <inc/helper_cuda.h>
+#include <helper_cuda.h>
 
 // CUDA device constants
 __device__ __constant__ float KB;

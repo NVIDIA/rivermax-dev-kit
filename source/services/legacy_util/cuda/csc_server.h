@@ -40,5 +40,5 @@
 #include <cuda_runtime.h>
 
 // CUDA utilities and system includes
-#include <inc/helper_cuda.h>
+#include <helper_cuda.h>
 #include <vector_types.h>

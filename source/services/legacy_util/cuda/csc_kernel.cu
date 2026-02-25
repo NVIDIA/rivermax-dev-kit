@@ -27,8 +27,8 @@
 #include <string.h>
 #include <math.h>
 
-#include <inc/helper_cuda.h>
-#include <inc/helper_math.h>
+#include <helper_cuda.h>
+#include <helper_math.h>
 
 #include "csc_server.h"
 
