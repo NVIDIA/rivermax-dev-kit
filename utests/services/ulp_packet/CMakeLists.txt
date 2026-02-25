@@ -34,6 +34,8 @@ if (NOT WIN32)
         rtp_packet_reader_writer_tests.cpp
         rtp_smpte_2110_20_packet_reader_tests.cpp
         rtp_smpte_2110_20_packet_reader_writer_tests.cpp
+        rtp_smpte_2110_40_packet_reader_tests.cpp
+        rtp_smpte_2110_40_packet_reader_writer_tests.cpp
     )
 
     gtest_discover_tests(${PROJECT_NAME})
