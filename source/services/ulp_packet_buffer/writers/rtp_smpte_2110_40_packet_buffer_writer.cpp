@@ -83,7 +83,7 @@ void RTP_SMPTE_2110_40_PacketBufferWriter::prepare_context_for_packet()
         m_rtp_packet_context->descriptor_count_in_packet = calculate_descriptors_in_packet(
             *m_descriptors,
             m_current_descriptor_index,
-            m_media_settings.packet_payload_size,
+            m_media_settings.raw_packet_payload_size,
             ancillary_settings.max_ancillary_data_packets_per_packet);
     } else {
         m_rtp_packet_context->descriptor_count_in_packet = 0;
@@ -159,7 +159,7 @@ size_t RTP_SMPTE_2110_40_PacketBufferWriter::calculate_packets_for_media_unit() 
         const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
         data_packets_needed = calculate_rtp_packets_for_descriptors(
             *m_descriptors,
-            m_media_settings.packet_payload_size,
+            m_media_settings.raw_packet_payload_size,
             ancillary_settings.max_ancillary_data_packets_per_packet);
     }
 
@@ -274,7 +274,7 @@ size_t RTP_SMPTE_2110_40_PacketBufferWriter::get_num_packets_for_next_chunk() co
     const auto& ancillary_settings = static_cast<const SMPTE_2110_40_MediaSettings&>(m_media_settings);
     size_t packets_for_remaining_descriptors = calculate_rtp_packets_for_descriptors(
         remaining_descriptors,
-        m_media_settings.packet_payload_size,
+        m_media_settings.raw_packet_payload_size,
         ancillary_settings.max_ancillary_data_packets_per_packet);
 
     // Also check how many packets remain in the media unit (accounts for empty marker packets)
