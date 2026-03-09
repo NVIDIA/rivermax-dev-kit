@@ -282,7 +282,7 @@ int common_cli_main(int argc, const char* argv[],
     try {
         ValidatorType validator;
         auto settings_builder = std::make_unique<SettingsBuilderType>(
-            argc, argv, app_description + rmx_get_version_string(), app_examples, validator);
+            argc, argv, app_description + " " + rmx_get_version_string(), app_examples, validator);
 
         AppType app(std::move(settings_builder));
         ReturnStatus rc = app.initialize();
