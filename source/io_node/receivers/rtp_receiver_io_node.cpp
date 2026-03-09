@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -201,10 +201,12 @@ RTPReceiverIONode::RTPReceiverIONode(
     bool is_extended_sequence_number,
     const std::vector<std::string>& devices,
     size_t index, int cpu_core_affinity,
-    IONodeMemoryUtils& memory_utils) :
+    IONodeMemoryUtils& memory_utils,
+    bool process_headers) :
     ReceiverIONodeBase(app_settings, index, cpu_core_affinity, memory_utils),
     m_devices(devices),
-    m_is_extended_sequence_number(is_extended_sequence_number)
+    m_is_extended_sequence_number(is_extended_sequence_number),
+    m_process_headers(process_headers)
 {
 }
 
@@ -223,7 +225,8 @@ void RTPReceiverIONode::initialize_streams(size_t start_id, const std::vector<Re
             0, m_app_settings.num_of_packets_in_chunk);
         m_streams.emplace_back(new AppRTPReceiveStream(stream_settings,
             m_is_extended_sequence_number,
-            m_app_settings.packet_app_header_size != 0));
+            m_app_settings.packet_app_header_size != 0,
+            m_process_headers));
         m_data_consumers.emplace_back(new NullReceiveDataConsumer());
     }
 }
