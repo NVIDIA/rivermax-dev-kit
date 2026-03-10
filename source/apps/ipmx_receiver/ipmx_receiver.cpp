@@ -303,5 +303,8 @@ void IPMXReceiverApp::initialize_rtcp_stream(RTPReceiverIONode& node, const std:
     auto stream = std::make_unique<AppRTPReceiveStream>(stream_settings, false, false, false);
     streams.push_back(std::move(stream));
     node.assign_streams(0, m_rtcp_flows, streams);
-    node.set_receive_data_consumer(0, std::make_unique<RTCPChunkConsumer>(m_ipmx_trackers));
+    ReturnStatus rc = node.set_receive_data_consumer(0, std::make_unique<RTCPChunkConsumer>(m_ipmx_trackers));
+    if (rc != ReturnStatus::success) {
+        std::cerr << "Failed to set RTCP data consumer" << std::endl;
+    }
 }

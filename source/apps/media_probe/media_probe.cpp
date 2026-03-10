@@ -181,7 +181,10 @@ void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode& node,
     for (size_t stream_index = 0; stream_index < flows.size(); stream_index++) {
         auto stream_monitor = std::make_unique<StreamMonitor>(*m_media_probe_settings, flows[stream_index], media_index, component_index);
         m_media_monitors[media_index]->add_stream_monitor(*stream_monitor);
-        node.set_receive_data_consumer(stream_index, std::make_unique<StreamMonitorAdapter>(*stream_monitor));
+        ReturnStatus rc = node.set_receive_data_consumer(stream_index, std::make_unique<StreamMonitorAdapter>(*stream_monitor));
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to set data consumer for stream " << stream_index << std::endl;
+        }
         m_stream_monitors.push_back(std::move(stream_monitor));
         media_index++;
     }
