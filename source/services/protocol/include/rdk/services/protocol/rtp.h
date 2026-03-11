@@ -28,6 +28,9 @@ namespace dev_kit
 namespace services
 {
 
+namespace protocol
+{
+
 #pragma pack(push, 1)
 
 /**
@@ -39,14 +42,14 @@ namespace services
  */
 struct RTPHeader
 {
-    /** Version/Padding/Extension/CSRC count:  
-     *  - <b>bits 7-6</b>: Version (must be 2)  
-     *  - <b>bit 5</b>: Padding flag  
-     *  - <b>bit 4</b>: Header-extension flag  
+    /** Version/Padding/Extension/CSRC count:
+     *  - <b>bits 7-6</b>: Version (must be 2)
+     *  - <b>bit 5</b>: Padding flag
+     *  - <b>bit 4</b>: Header-extension flag
      *  - <b>bits 3-0</b>: CSRC count */
     uint8_t vpxcc;
-    /** Marker / Payload-type:  
-     *  - <b>bit 7</b>: Marker flag (M)  
+    /** Marker / Payload-type:
+     *  - <b>bit 7</b>: Marker flag (M)
      *  - <b>bits 6-0</b>: Payload-type (PT) */
     uint8_t mpt;
     /** Sequence number. */
@@ -58,6 +61,8 @@ struct RTPHeader
 };
 
 #pragma pack(pop)
+
+} // namespace protocol
 
 } // namespace services
 } // namespace dev_kit

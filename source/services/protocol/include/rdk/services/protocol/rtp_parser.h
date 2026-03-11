@@ -43,7 +43,7 @@ namespace services
  * Parses RTP headers. Validates RTP version and CSRC limits.
  * @note: Handles basic RTP headers only.
  */
-class RTPParser : public TypedProtocolParser<RTPHeader>
+class RTPParser : public TypedProtocolParser<protocol::RTPHeader>
 {
 public:
     size_t get_header_size(const byte_t* data) const override
@@ -52,7 +52,7 @@ public:
             return RTP_HEADER_SIZE;
         }
 
-        const RTPHeader* rtp_header = get_typed_header(data);
+        const protocol::RTPHeader* rtp_header = get_typed_header(data);
         uint8_t csrc_count = rtp_header->vpxcc & 0x0F;
         size_t header_size = RTP_HEADER_SIZE + (csrc_count * RTP_HEADER_CSRC_GRANULARITY_BYTES);
 
@@ -76,7 +76,7 @@ public:
             return false;
         }
 
-        const RTPHeader* rtp_header = get_typed_header(data);
+        const protocol::RTPHeader* rtp_header = get_typed_header(data);
 
         uint8_t version = (rtp_header->vpxcc & RTP_VERSION_MASK);
         if (version != RTP_VERSION_2) {
