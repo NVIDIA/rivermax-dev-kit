@@ -45,6 +45,10 @@ FetchContent_Declare(
 
 FetchContent_Populate(cuda_samples)
 
+if(UNIX)
+    file(REMOVE_RECURSE "${cuda_samples_SOURCE_DIR}/Common/GL")
+endif()
+
 add_library(rivermax-dev-kit-cuda-helpers INTERFACE)
 target_include_directories(rivermax-dev-kit-cuda-helpers INTERFACE
     ${cuda_samples_SOURCE_DIR}/Common
