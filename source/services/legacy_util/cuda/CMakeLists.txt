@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,9 +41,10 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/NVIDIA/cuda-samples.git
     GIT_TAG        v13.1
     GIT_SHALLOW    TRUE
+    SOURCE_SUBDIR  _unused
 )
 
-FetchContent_Populate(cuda_samples)
+FetchContent_MakeAvailable(cuda_samples)
 
 if(UNIX)
     file(REMOVE_RECURSE "${cuda_samples_SOURCE_DIR}/Common/GL")
