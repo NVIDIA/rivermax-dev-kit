@@ -60,10 +60,18 @@ target_link_libraries(${PROJECT_NAME} PUBLIC rivermax-dev-kit-cuda-helpers)
 # Ensure CUDA uses dynamic runtime to match the rest of the project
 if(MSVC)
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        # Use dynamic CUDA runtime library (cudart.dll) instead of static (cudart_static.lib)
-        CUDA_RUNTIME_LIBRARY Shared
         MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
         # Disable LTO/IPO for CUDA - nvcc doesn't fully support MSVC's /GL and /LTCG flags
         INTERPROCEDURAL_OPTIMIZATION OFF
     )
+    if(CUDAToolkit_VERSION_MAJOR GREATER_EQUAL 13)
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:--cudart hybrid>
+        )
+    else()
+        # Use dynamic CUDA runtime library (cudart.dll) instead of static (cudart_static.lib)
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            CUDA_RUNTIME_LIBRARY Shared
+        )
+    endif()
 endif()
