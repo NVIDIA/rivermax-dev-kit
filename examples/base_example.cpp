@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,11 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::examples;
+using namespace rdk::services;
+using namespace rdk::examples;
 
 BaseExample::BaseExample(const std::string& description, const std::string& usage) :
-    m_facade(rivermax::dev_kit::RivermaxDevKitFacade::get_instance()),
+    m_facade(rdk::RivermaxDevKitFacade::get_instance()),
     m_settings(std::make_shared<AppSettings>()),
     m_description(description),
     m_usage(usage)

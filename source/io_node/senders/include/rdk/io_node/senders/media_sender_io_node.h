@@ -35,12 +35,10 @@
 #include "rdk/services/ulp_packet_buffer/ulp_packet_buffer.h"
 #include "rdk/services/utils/synchronizer.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::services;
+using namespace rdk::core;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace io_node
 {
@@ -444,8 +442,7 @@ inline uint64_t MediaSenderIONode::get_commit_timestamp_ns(
     return SEND_IMMEDIATELY_AFTER_PENDING_CHUNKS_TIMESTAMP;
 }
 
-} // io_node
-} // dev_kit
-} // rivermax
+} // namespace io_node
+} // namespace rdk
 
 #endif /* RDK_IO_NODE_SENDERS_MEDIA_SENDER_IO_NODE_H_ */

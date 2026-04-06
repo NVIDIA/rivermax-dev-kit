@@ -23,8 +23,8 @@
 
 #include "rdk/apps/base_app.h"
 
-using namespace rivermax::dev_kit::apps;
-using namespace rivermax::dev_kit::services;
+using namespace rdk::apps;
+using namespace rdk::services;
 
 namespace {
 static const std::map<AllocatorTypeUI, AllocatorType> UI_ALLOCATOR_TYPE_MAP{

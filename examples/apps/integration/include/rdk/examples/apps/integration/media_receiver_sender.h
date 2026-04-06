@@ -24,13 +24,11 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rivermax::dev_kit::apps::rtp_receiver;
-using namespace rivermax::dev_kit::apps::media_sender;
-using namespace rivermax::dev_kit::services;
+using namespace rdk::apps::rtp_receiver;
+using namespace rdk::apps::media_sender;
+using namespace rdk::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -76,7 +74,6 @@ private:
 } // namespace integration
 } // namespace apps
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_EXAMPLES_APPS_INTEGRATION_MEDIA_RECEIVER_SENDER_H_ */

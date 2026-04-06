@@ -23,7 +23,7 @@
 #include "rdk/services/cli/validators.h"
 #include "rdk/services/media/media_defs.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 StreamToThreadsValidator::StreamToThreadsValidator(const size_t& num_of_threads) :
     CLI::Validator("Streams to threads validator")

@@ -28,7 +28,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rtp_smpte_2110_40_test_utils.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 using namespace testing;
 
 /**

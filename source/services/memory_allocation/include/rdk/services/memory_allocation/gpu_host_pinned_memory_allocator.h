@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,9 +24,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/memory_allocation/memory_allocator_interface.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -63,7 +61,6 @@ public:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_MEMORY_ALLOCATION_GPU_HOST_PINNED_MEMORY_ALLOCATOR_H_ */

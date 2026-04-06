@@ -34,9 +34,9 @@
 #include "rdk/services/media/video_settings_calculator.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::io_node;
+using namespace rdk::services;
+using namespace rdk::core;
 
 static constexpr size_t MEDIA_TX_REPLY_SIZE = 1200;
 static constexpr size_t NUM_OF_PACKETS_IN_MEDIA_RECEIVE_BUFFER = 16384;

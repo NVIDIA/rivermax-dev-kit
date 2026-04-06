@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/cli/cli.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -90,7 +88,7 @@ typedef struct gs_mem_block
 /**
  * @brief: Memory utils interface.
  *
- * The memory utils interface should be implemented when adding new type of @ref rivermax::dev_kit::services:MemoryAllocator
+ * The memory utils interface should be implemented when adding new type of @ref rdk::services:MemoryAllocator
  * that need new memory utilities to handle the new memory type.
  * Implementors of this interface, should add implementation of compatible methods
  * in @ref MemoryAllocatorImp class.
@@ -404,7 +402,6 @@ private:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_MEMORY_ALLOCATION_MEMORY_ALLOCATOR_INTERFACE_H_ */

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,9 +35,7 @@
 
 #include "rdk/core/flow/four_tuple_flow.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace core
 {
@@ -152,8 +150,7 @@ public:
 };
 
 } // namespace core
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 namespace std
 {
@@ -161,7 +158,7 @@ namespace std
  * @brief: Hash specialization for @ref ReceiveFlow.
  */
 template<>
-struct hash<rivermax::dev_kit::core::ReceiveFlow>
+struct hash<rdk::core::ReceiveFlow>
 {
     /**
      * @brief: Hash function for @ref ReceiveFlow.
@@ -170,9 +167,9 @@ struct hash<rivermax::dev_kit::core::ReceiveFlow>
      *
      * @return: Hash code.
      */
-    std::size_t operator()(const rivermax::dev_kit::core::ReceiveFlow& flow) const noexcept
+    std::size_t operator()(const rdk::core::ReceiveFlow& flow) const noexcept
     {
-        return std::hash<rivermax::dev_kit::core::FourTupleFlow>{}(flow) ^
+        return std::hash<rdk::core::FourTupleFlow>{}(flow) ^
                std::hash<uint32_t>{}(flow.get_tag());
     }
 };

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,11 +34,9 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/core/flow/flow_interface.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace core
 {
@@ -97,8 +95,7 @@ public:
 };
 
 } // namespace core
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 namespace std
 {
@@ -106,7 +103,7 @@ namespace std
  * @brief: Hash specialization for @ref TwoTupleFlow.
  */
 template<>
-struct hash<rivermax::dev_kit::core::TwoTupleFlow>
+struct hash<rdk::core::TwoTupleFlow>
 {
     /**
      * @brief: Hash function for @ref TwoTupleFlow.
@@ -115,7 +112,7 @@ struct hash<rivermax::dev_kit::core::TwoTupleFlow>
      *
      * @return: Hash code.
      */
-    std::size_t operator()(const rivermax::dev_kit::core::TwoTupleFlow& flow) const noexcept
+    std::size_t operator()(const rdk::core::TwoTupleFlow& flow) const noexcept
     {
         std::size_t h1 = std::hash<std::string>{}(flow.m_ip);
         std::size_t h2 = std::hash<uint16_t>{}(flow.m_port);

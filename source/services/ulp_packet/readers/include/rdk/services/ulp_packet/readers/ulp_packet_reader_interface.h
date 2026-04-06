@@ -23,9 +23,7 @@
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/ulp_packet/ulp_packet_context.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -108,7 +106,6 @@ public:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_ULP_PACKET_READERS_ULP_PACKET_READER_INTERFACE_H_ */

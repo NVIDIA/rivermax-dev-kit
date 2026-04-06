@@ -22,7 +22,7 @@
 
 #include "rdk/services/utils/environment.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 /**
  * @brief: Test fixture for EnvironmentUtils class.

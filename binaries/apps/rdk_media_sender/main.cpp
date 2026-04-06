@@ -19,8 +19,8 @@
 #include "rdk/apps/base_app.h"
 #include "rdk/apps/media_sender/media_sender.h"
 
-using namespace rivermax::dev_kit::apps;
-using namespace rivermax::dev_kit::apps::media_sender;
+using namespace rdk::apps;
+using namespace rdk::apps::media_sender;
 
 /**
  * Application constants.

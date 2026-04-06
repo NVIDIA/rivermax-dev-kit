@@ -28,7 +28,7 @@
 #include "rdk/services/ulp_packet/writers/rtp_smpte_2110_40_packet_writer.h"
 #include "rdk/services/utils/defs.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
 {

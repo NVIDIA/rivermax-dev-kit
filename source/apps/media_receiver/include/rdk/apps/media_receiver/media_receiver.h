@@ -32,13 +32,11 @@
 #include "rdk/services/media/media_unit_pool.h"
 // TODO: #include "rdk/services/ulp_packet_buffer/readers/rtp_media_packet_buffer_reader.h"
 
-using namespace rivermax::dev_kit::core;
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::services;
+using namespace rdk::core;
+using namespace rdk::io_node;
+using namespace rdk::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace apps
 {
@@ -327,7 +325,6 @@ private:
 
 } // namespace media_receiver
 } // namespace apps
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_APPS_MEDIA_RECEIVER_MEDIA_RECEIVER_H_ */

@@ -20,7 +20,7 @@
 #include "rdk/services/ulp_packet/network_byte_order.h"
 #include "rdk/services/ulp_packet/rtp_header.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 ReturnStatus RTPPacketWriter::fill_header(const IPacketContext& context, size_t& size, MemoryUtils* mem_utils)
 {

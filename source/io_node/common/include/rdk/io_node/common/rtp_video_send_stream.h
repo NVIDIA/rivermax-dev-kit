@@ -29,12 +29,10 @@
 #include "rdk/core/stream/send/media_stream.h"
 #include "rdk/services/media/media_settings_video.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::services;
+using namespace rdk::core;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace io_node
 {
@@ -127,8 +125,7 @@ private:
     inline void build_2110_20_rtp_header(byte_t* buffer);
 };
 
-} // io_node
-} // dev_kit
-} // rivermax
+} // namespace io_node
+} // namespace rdk
 
 #endif /* RDK_IO_NODE_COMMON_RTP_VIDEO_SEND_STREAM_H_ */

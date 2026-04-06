@@ -19,8 +19,8 @@
 #include "rdk/apps/base_app.h"
 #include "rdk/apps/media_receiver/media_receiver.h"
 
-using namespace rivermax::dev_kit::apps;
-using namespace rivermax::dev_kit::apps::media_receiver;
+using namespace rdk::apps;
+using namespace rdk::apps::media_receiver;
 
 constexpr const char* APP_DESCRIPTION = "NVIDIA Rivermax Dev Kit media receiver demo app";
 constexpr const char* APP_EXAMPLES = \

@@ -25,7 +25,7 @@
 #include "rdk/services/media/media_unit_pool.h"
 #include "rdk/services/media/media_settings_video.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 RTP_SMPTE_2110_20_PacketBufferWriter::RTP_SMPTE_2110_20_PacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_zero_copy)

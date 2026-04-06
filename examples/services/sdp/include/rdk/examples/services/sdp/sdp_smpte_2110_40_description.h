@@ -22,11 +22,9 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -54,7 +52,6 @@ public:
 
 } // namespace services
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_EXAMPLES_SERVICES_SDP_SDP_SMPTE_2110_40_DESCRIPTION_H_ */

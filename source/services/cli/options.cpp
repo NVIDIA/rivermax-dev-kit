@@ -31,7 +31,7 @@
 #include "rdk/services/sdp/sdp_defs.h"
 #include "rdk/services/utils/defs.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 const char* CLIOptStr::LOCAL_IP = "-l,--local-ip";
 const char* CLIOptStr::LOCAL_IPS = "--li,--local-ips";

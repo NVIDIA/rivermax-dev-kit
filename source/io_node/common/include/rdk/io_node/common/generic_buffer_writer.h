@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,11 +22,9 @@
 #include "rdk/io_node/common/chunk_buffer_writer_interface.h"
 #include "rdk/core/chunk/chunk.h"
 
-using namespace rivermax::dev_kit::core;
+using namespace rdk::core;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace io_node
 {
@@ -46,7 +44,6 @@ public:
 };
 
 } // namespace io_node
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_IO_NODE_COMMON_GENERIC_BUFFER_WRITER_H_ */

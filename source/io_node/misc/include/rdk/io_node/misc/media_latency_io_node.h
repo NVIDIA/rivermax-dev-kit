@@ -32,12 +32,10 @@
 #include "rdk/core/stream/send/generic_stream.h"
 #include "rdk/services/media/media_settings_video.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::services;
+using namespace rdk::core;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace io_node
 {
@@ -264,8 +262,7 @@ protected:
                        uint64_t dropped_pkt_cnt);
 };
 
-} // io_node
-} // dev_kit
-} // rivermax
+} // namespace io_node
+} // namespace rdk
 
 #endif /* RDK_IO_NODE_MISC_MEDIA_LATENCY_IO_NODE_H_ */

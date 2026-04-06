@@ -33,7 +33,7 @@
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/enum_utils.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 // Audio sampling rate to Hz value mapping
 const std::unordered_map<AudioSamplingRate, uint32_t> AUDIO_SAMPLING_RATE_MAP = {

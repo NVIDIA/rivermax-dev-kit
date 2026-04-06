@@ -25,11 +25,9 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -64,7 +62,6 @@ private:
 
 } // namespace services
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_EXAMPLES_SERVICES_ULP_PACKET_BUFFER_WRITERS_SMPTE_2110_20_RTP_BUFFER_WRITER_H_ */

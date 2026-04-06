@@ -23,7 +23,7 @@
 #include "rdk/services/ulp_packet_buffer/writers/rtp_smpte_2110_40_packet_buffer_writer.h"
 #include "rdk/services/ulp_packet/smpte_2110_40_ancillary_utils.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 RTP_SMPTE_2110_40_PacketBufferWriter::RTP_SMPTE_2110_40_PacketBufferWriter(const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils, bool enable_zero_copy)

@@ -27,9 +27,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/core/data_handler/receive_data_consumer_interface.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace apps
 {
@@ -178,7 +176,6 @@ private:
 
 } // namespace ipmx_receiver
 } // namespace apps
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_APPS_IPMX_RECEIVER_IPMX_RECEIVER_H_ */

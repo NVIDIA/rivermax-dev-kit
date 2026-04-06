@@ -27,7 +27,7 @@
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/utils/rational.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 using namespace testing;
 
 /**

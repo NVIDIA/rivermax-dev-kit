@@ -26,12 +26,10 @@
 #include "rdk/services/media/media_settings_video.h"
 #include "rdk/examples/services/ulp_packet_buffer/writers/rtp_smpte_2110_20_packet_buffer_writer.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::examples::services;
+using namespace rdk::services;
+using namespace rdk::examples::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -84,7 +82,7 @@ ReturnStatus RTP_SMPTE_2110_20_PacketBufferWriterExample::operator()()
     auto header_memory_utils = memory_allocator->get_memory_utils();
     auto payload_memory_utils = memory_allocator->get_memory_utils();
 
-    auto packet_buffer_writer = rivermax::dev_kit::services::create_rtp_media_packet_buffer_writer(
+    auto packet_buffer_writer = rdk::services::create_rtp_media_packet_buffer_writer(
         smpte_standard,
         contains_payload,
         *st_2110_20_settings,
@@ -139,10 +137,9 @@ ReturnStatus RTP_SMPTE_2110_20_PacketBufferWriterExample::operator()()
 
 } // namespace services
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 int main(int argc, const char* argv[])
 {
-    return rivermax::dev_kit::examples::common_example_main<RTP_SMPTE_2110_20_PacketBufferWriterExample>(argc, argv);
+    return rdk::examples::common_example_main<RTP_SMPTE_2110_20_PacketBufferWriterExample>(argc, argv);
 }

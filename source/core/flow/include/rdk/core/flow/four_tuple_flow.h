@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,11 +34,9 @@
 #include "rdk/core/flow/flow_interface.h"
 #include "rdk/core/flow/two_tuple_flow.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace core
 {
@@ -139,8 +137,7 @@ public:
 };
 
 } // namespace core
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 namespace std
 {
@@ -148,7 +145,7 @@ namespace std
  * @brief: Hash specialization for @ref FourTupleFlow.
  */
 template<>
-struct hash<rivermax::dev_kit::core::FourTupleFlow>
+struct hash<rdk::core::FourTupleFlow>
 {
     /**
      * @brief: Hash function for @ref FourTupleFlow.
@@ -157,10 +154,10 @@ struct hash<rivermax::dev_kit::core::FourTupleFlow>
      *
      * @return: Hash code.
      */
-    std::size_t operator()(const rivermax::dev_kit::core::FourTupleFlow& flow) const noexcept
+    std::size_t operator()(const rdk::core::FourTupleFlow& flow) const noexcept
     {
-        std::size_t h1 = std::hash<rivermax::dev_kit::core::TwoTupleFlow>{}(flow.m_source_flow);
-        std::size_t h2 = std::hash<rivermax::dev_kit::core::TwoTupleFlow>{}(flow.m_destination_flow);
+        std::size_t h1 = std::hash<rdk::core::TwoTupleFlow>{}(flow.m_source_flow);
+        std::size_t h2 = std::hash<rdk::core::TwoTupleFlow>{}(flow.m_destination_flow);
         return h1 ^ (h2 << 1);
     }
 };

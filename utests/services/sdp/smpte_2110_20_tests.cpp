@@ -27,7 +27,7 @@
 #include "rdk/services/sdp/sdp_common_descriptions.h"
 #include "rdk/services/sdp/sdp_manager.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 using namespace testing;
 
 static std::string generate_complete_sdp_20(std::unique_ptr<SMPTE2110_20_MediaDescription> media_desc)

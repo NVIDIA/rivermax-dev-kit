@@ -25,7 +25,7 @@
 #include "rdk/services/media/buffered_essence_source.h"
 #include "rdk/services/media/media_unit_pool.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 MediaFileStreamingProvider::MediaFileStreamingProvider(
     const std::string& file_path, SMPTEStandard smpte_standard, size_t media_unit_size,

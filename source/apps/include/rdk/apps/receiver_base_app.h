@@ -27,12 +27,10 @@
 
 #include "rdk/apps/base_app.h"
 
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::io_node;
+using namespace rdk::core;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace apps
 {
@@ -128,7 +126,6 @@ std::vector<StatisticsType> ReceiverBaseApp::get_streams_total_statistics() cons
 }
 
 } // namespace apps
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_APPS_RECEIVER_BASE_APP_H_ */

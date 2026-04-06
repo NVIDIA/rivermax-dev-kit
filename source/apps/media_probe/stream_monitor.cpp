@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@
 #include "rdk/apps/media_probe/media_probe.h"
 
 using namespace std::chrono;
-using namespace rivermax::dev_kit::apps::media_probe;
+using namespace rdk::apps::media_probe;
 
 const OnNewFrameCallback null_new_frame_callback = [](const NewFrameEvent& event) {};
 

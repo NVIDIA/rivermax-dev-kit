@@ -24,9 +24,7 @@
 
 #include "rdk/services/media/media_essence_source.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -76,7 +74,6 @@ struct AncillaryMediaUnitMetadata : public MediaUnitMetadata
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_MEDIA_ANCILLARY_METADATA_H_ */

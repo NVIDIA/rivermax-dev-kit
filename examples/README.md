@@ -18,7 +18,7 @@ At the top level of the `examples/` directory, you will currently find the follo
 
 Module directories may contain an `integration/` subdirectory for examples that coordinate multiple modules within that category to achieve unified workflows.
 
-All examples follow the same namespace structure as the main project, using `rivermax::dev_kit::examples` as the prefix. Integration examples add an `integration` namespace level (e.g., `rivermax::dev_kit::examples::apps::integration`).
+All examples follow the same namespace structure as the main project, using `rdk::examples` as the prefix. Integration examples add an `integration` namespace level (e.g., `rdk::examples::apps::integration`).
 
 Additional examples at different levels will be added in the future to cover more modules, features and use cases of the Rivermax Dev Kit.
 
@@ -110,7 +110,7 @@ Each example includes predefined variables that can be seen in the code. Some ex
 
 ### Base Example Framework
 
-All examples inherit from `BaseExample` (`rivermax::dev_kit::examples::BaseExample`) which provides:
+All examples inherit from `BaseExample` (`rdk::examples::BaseExample`) which provides:
 
 - Standardized initialization and settings management
 - Built-in CLI argument parsing with automatic help generation
@@ -142,7 +142,7 @@ When in doubt, prefer module-specific placement unless the example truly require
 
 Examples are integrated with the main project through:
 
-- **Namespace**: `rivermax::dev_kit::examples` with sub-namespaces following the source structure (e.g., `rivermax::dev_kit::examples::services`, `rivermax::dev_kit::examples::apps`)
+- **Namespace**: `rdk::examples` with sub-namespaces following the source structure (e.g., `rdk::examples::services`, `rdk::examples::apps`)
 - **Dependencies**: Link against Rivermax Dev Kit targets
 - **Build System**: Integrated with main CMake build
 - **Documentation**: Included in generated API docs

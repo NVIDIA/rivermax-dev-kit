@@ -29,7 +29,7 @@
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/enum_utils.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 using BytesPerPixelRatio = std::pair<uint32_t, uint32_t>;
 using VideoDepthPixelRatioMap =

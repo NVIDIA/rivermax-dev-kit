@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@
 #include "rdk/services/sdp/sdp_common_descriptions.h"
 #include "rdk/services/sdp/sdp_manager.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 using namespace testing;
 
 static std::string generate_sdp_2110_30(std::unique_ptr<SMPTE2110_30_MediaDescription> media_desc) {

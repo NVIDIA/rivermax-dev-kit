@@ -28,8 +28,8 @@
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/utils/defs.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::services;
+using namespace rdk::core;
 
 MediaStreamSettings::MediaStreamSettings(const std::vector<FourTupleFlow>& flows,
             const MediaSettings& media_settings,

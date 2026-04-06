@@ -26,9 +26,7 @@
 
 #include "rdk/services/media/ancillary_data_encoder_interface.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -186,7 +184,6 @@ private:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_MEDIA_CLOSED_CAPTION_608_ENCODER_H_ */

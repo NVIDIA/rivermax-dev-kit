@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,8 +19,8 @@
 #include "rdk/apps/base_app.h"
 #include "rdk/apps/latency/latency.h"
 
-using namespace rivermax::dev_kit::apps;
-using namespace rivermax::dev_kit::apps::latency;
+using namespace rdk::apps;
+using namespace rdk::apps::latency;
 
 /**
  * Application constants.

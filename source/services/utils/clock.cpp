@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,9 +26,9 @@
 
 #include "rdk/services/utils/clock.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
-ReturnStatus rivermax::dev_kit::services::set_rivermax_user_clock(rmx_user_clock_handler handler, void* ctx)
+ReturnStatus rdk::services::set_rivermax_user_clock(rmx_user_clock_handler handler, void* ctx)
 {
     rmx_user_clock_params clock_params;
 
@@ -45,7 +45,7 @@ ReturnStatus rivermax::dev_kit::services::set_rivermax_user_clock(rmx_user_clock
     return ReturnStatus::success;
 }
 
-ReturnStatus rivermax::dev_kit::services::set_rivermax_ptp_clock(const rmx_device_iface* device_iface)
+ReturnStatus rdk::services::set_rivermax_ptp_clock(const rmx_device_iface* device_iface)
 {
     rmx_ptp_clock_params clock_params;
 
@@ -65,13 +65,13 @@ ReturnStatus rivermax::dev_kit::services::set_rivermax_ptp_clock(const rmx_devic
     return (status == RMX_OK) ? ReturnStatus::success : ReturnStatus::failure;
 }
 
-ReturnStatus rivermax::dev_kit::services::get_rivermax_ptp_time_ns(uint64_t& ptp_time_ns)
+ReturnStatus rdk::services::get_rivermax_ptp_time_ns(uint64_t& ptp_time_ns)
 {
     rmx_status status = rmx_get_time(RMX_TIME_PTP, &ptp_time_ns);
     return (status == RMX_OK) ? ReturnStatus::success : ReturnStatus::failure;
 }
 
-std::string rivermax::dev_kit::services::ptp_to_string(uint64_t timestamp)
+std::string rdk::services::ptp_to_string(uint64_t timestamp)
 {
     constexpr size_t ns_in_sec = std::chrono::nanoseconds{ std::chrono::seconds{ 1 } }.count();
     uint32_t nsec = timestamp % ns_in_sec;

@@ -20,7 +20,7 @@
 #include "rdk/apps/media_probe/stream_monitor.h"
 #include <unordered_set>
 
-using namespace rivermax::dev_kit::apps::media_probe;
+using namespace rdk::apps::media_probe;
 
 void MediaProbeSettings::init_default_values()
 {

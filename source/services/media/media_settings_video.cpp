@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
 
 #include "rdk/services/media/media_settings_video.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 SMPTE_2110_20_MediaSettings::SMPTE_2110_20_MediaSettings(const AppSettings& app_settings, bool is_alpha_stream)
 {

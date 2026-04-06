@@ -30,9 +30,7 @@
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/services/utils/defs.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -106,7 +104,6 @@ public:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif // RDK_SERVICES_MEDIA_MEDIA_FILE_STREAMING_PROVIDER_H_

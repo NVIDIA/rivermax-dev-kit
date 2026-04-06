@@ -34,9 +34,9 @@
 #include "rdk/services/cpu/affinity/affinity.h"
 #include "rdk/core/data_handler/receive_data_consumer_interface.h"
 
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::io_node;
+using namespace rdk::services;
+using namespace rdk::core;
 
 AppRTPReceiveStream::AppRTPReceiveStream(const ReceiveStreamSettings& settings,
     bool is_extended_sequence_number, bool header_data_split, bool process_headers) :

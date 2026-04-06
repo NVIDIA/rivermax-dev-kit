@@ -22,13 +22,11 @@
 #include "rdk/services/utils/defs.h"
 #include "rdk/examples/services/memory_allocation/memory_allocation.h"
 
-using namespace rivermax::dev_kit;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::examples::services;
+using namespace rdk;
+using namespace rdk::services;
+using namespace rdk::examples::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -83,10 +81,9 @@ ReturnStatus MemoryAllocationExample::operator()()
 
 } // namespace services
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 int main(int argc, const char* argv[])
 {
-    return rivermax::dev_kit::examples::common_example_main<MemoryAllocationExample>(argc, argv);
+    return rdk::examples::common_example_main<MemoryAllocationExample>(argc, argv);
 }

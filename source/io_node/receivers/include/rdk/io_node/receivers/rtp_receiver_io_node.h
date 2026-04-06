@@ -34,12 +34,10 @@
 #include "rdk/core/flow/receive_flow.h"
 #include "rdk/services/protocol/media_packet_parser.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::services;
+using namespace rdk::core;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace io_node
 {
@@ -219,8 +217,7 @@ private:
     }
 };
 
-} // io_node
-} // dev_kit
-} // rivermax
+} // namespace io_node
+} // namespace rdk
 
 #endif /* RDK_IO_NODE_RECEIVERS_RTP_RECEIVER_IO_NODE_H_ */

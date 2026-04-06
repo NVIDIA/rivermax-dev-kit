@@ -18,7 +18,7 @@
 
 #include "rdk/apps/rtp_receiver/rtp_receiver.h"
 
-using namespace rivermax::dev_kit::apps::rtp_receiver;
+using namespace rdk::apps::rtp_receiver;
 
 void RTPReceiverSettings::init_default_values()
 {

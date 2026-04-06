@@ -23,9 +23,7 @@
 #include "rdk/services/media/closed_caption_608_encoder.h"
 #include "rdk/services/media/media_defs.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -240,5 +238,4 @@ size_t ClosedCaption608Encoder::encode_cea608_in_cdp(uint8_t* buffer, uint8_t by
 }
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk

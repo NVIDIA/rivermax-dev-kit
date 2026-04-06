@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -547,7 +547,7 @@ int register_handler(PHANDLER_ROUTINE sig_handler)
 void rt_set_thread_affinity(const std::vector<int>& cpu_core_affinities)
 {
     bool needs_affinity = false;
-    rivermax::dev_kit::services::Affinity::mask cpu_affinity_mask;
+    rdk::services::Affinity::mask cpu_affinity_mask;
 
     memset(&cpu_affinity_mask, 0, sizeof(cpu_affinity_mask));
     for (auto cpu : cpu_core_affinities) {
@@ -558,7 +558,7 @@ void rt_set_thread_affinity(const std::vector<int>& cpu_core_affinities)
     }
 
     if (needs_affinity) {
-        rivermax::dev_kit::services::set_affinity(cpu_affinity_mask);
+        rdk::services::set_affinity(cpu_affinity_mask);
     }
 }
 
@@ -587,7 +587,7 @@ bool rt_set_rivermax_thread_affinity(int cpu_core)
 void rt_set_thread_affinity(const int cpu_core)
 {
     if (cpu_core != CPU_NONE) {
-        rivermax::dev_kit::services::set_affinity(static_cast<size_t>(cpu_core));
+        rdk::services::set_affinity(static_cast<size_t>(cpu_core));
     }
 }
 

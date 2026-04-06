@@ -31,7 +31,7 @@
 #include "rdk/services/error_handling/return_status.h"
 
 // Intentional in a test-only header: bring service types into scope for all test utilities below.
-using namespace rivermax::dev_kit::services; // NOLINT(google-build-using-namespace)
+using namespace rdk::services; // NOLINT(google-build-using-namespace)
 
 /**
  * @brief: Constructs an AncillaryDataDescriptor with the given field values.

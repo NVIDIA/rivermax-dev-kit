@@ -27,9 +27,9 @@
 #include "rdk/services/media/media_settings_video.h"
 #include "rdk/services/utils/defs.h"
 
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::io_node;
+using namespace rdk::services;
+using namespace rdk::core;
 
 RtpVideoSendStream::RtpVideoSendStream(const MediaStreamSettings& settings) :
     MediaSendStream(settings),

@@ -23,15 +23,13 @@
 #include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/examples/apps/integration/media_receiver_sender.h"
 
-using namespace rivermax::dev_kit::apps;
-using namespace rivermax::dev_kit::apps::rtp_receiver;
-using namespace rivermax::dev_kit::apps::media_sender;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::examples::apps::integration;
+using namespace rdk::apps;
+using namespace rdk::apps::rtp_receiver;
+using namespace rdk::apps::media_sender;
+using namespace rdk::services;
+using namespace rdk::examples::apps::integration;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -135,10 +133,9 @@ ReturnStatus ReceiverSenderExample::operator()()
 } // namespace integration
 } // namespace apps
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 int main(int argc, const char* argv[])
 {
-    return rivermax::dev_kit::examples::common_example_main<ReceiverSenderExample>(argc, argv);
+    return rdk::examples::common_example_main<ReceiverSenderExample>(argc, argv);
 }

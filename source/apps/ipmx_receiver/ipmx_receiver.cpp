@@ -27,7 +27,7 @@
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/error_handling/return_status.h"
 
-using namespace rivermax::dev_kit::apps::ipmx_receiver;
+using namespace rdk::apps::ipmx_receiver;
 
 constexpr std::chrono::nanoseconds IPMXReceiverApp::STATS_POLLING_PERIOD;
 

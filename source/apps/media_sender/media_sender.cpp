@@ -34,7 +34,7 @@
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/defs.h"
 
-using namespace rivermax::dev_kit::apps::media_sender;
+using namespace rdk::apps::media_sender;
 
 void MediaSenderSettings::init_default_values()
 {
@@ -66,8 +66,8 @@ ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& s
         std::cerr << "Only one local IP address is supported when SMPTE 2022-7 redundancy is disabled" << std::endl;
         return ReturnStatus::failure;
     }
-    if (settings.local_ips.size() > rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()) {
-        std::cerr << "Up to " << rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()
+    if (settings.local_ips.size() > rdk::RivermaxDevKitFacade::get_max_redundant_streams()) {
+        std::cerr << "Up to " << rdk::RivermaxDevKitFacade::get_max_redundant_streams()
                   << " local IP addresses are supported" << std::endl;
         return ReturnStatus::failure;
     }

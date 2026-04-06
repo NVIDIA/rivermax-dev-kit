@@ -23,9 +23,7 @@
 #include "rdk/services/ulp_packet/rtp_smpte_2110_40_packet_context.h"
 #include "rdk/services/media/ancillary_metadata.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -102,7 +100,6 @@ public:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_ULP_PACKET_WRITERS_RTP_SMPTE_2110_40_PACKET_WRITER_H_ */

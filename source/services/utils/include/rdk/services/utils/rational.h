@@ -25,9 +25,7 @@
 #include <string>
 #include <type_traits>
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -530,19 +528,18 @@ bool operator!=(T lhs, const Rational& rhs) { return rhs != lhs; }
 /** @} */
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 namespace std {
-inline string to_string(const rivermax::dev_kit::services::Rational& r)
+inline string to_string(const rdk::services::Rational& r)
 {
     return r.to_string();
 }
 
 template<>
-struct hash<rivermax::dev_kit::services::Rational>
+struct hash<rdk::services::Rational>
 {
-    size_t operator()(const rivermax::dev_kit::services::Rational& r) const noexcept
+    size_t operator()(const rdk::services::Rational& r) const noexcept
     {
         return hash<uint64_t>()(r.total_numerator()) ^
                (hash<uint64_t>()(r.total_denominator()) << 1);
@@ -551,18 +548,18 @@ struct hash<rivermax::dev_kit::services::Rational>
 }
 
 template<>
-struct std::common_type<rivermax::dev_kit::services::Rational, rivermax::dev_kit::services::Rational> {
-    using type = rivermax::dev_kit::services::Rational;
+struct std::common_type<rdk::services::Rational, rdk::services::Rational> {
+    using type = rdk::services::Rational;
 };
 
 template<typename T>
-struct std::common_type<T, rivermax::dev_kit::services::Rational> {
-    using type = rivermax::dev_kit::services::Rational;
+struct std::common_type<T, rdk::services::Rational> {
+    using type = rdk::services::Rational;
 };
 
 template<typename T>
-struct std::common_type<rivermax::dev_kit::services::Rational, T> {
-    using type = rivermax::dev_kit::services::Rational;
+struct std::common_type<rdk::services::Rational, T> {
+    using type = rdk::services::Rational;
 };
 
 #endif // RDK_SERVICES_UTILS_RATIONAL_H_

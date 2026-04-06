@@ -26,7 +26,7 @@
 #include "rdk/services/media/media_defs.h"
 #include "rtp_smpte_2110_40_test_utils.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 using namespace testing;
 
 /* get_header_size() equals RTP 12 + extension 8 = 20 bytes. */

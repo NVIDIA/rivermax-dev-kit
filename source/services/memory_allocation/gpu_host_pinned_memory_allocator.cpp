@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/memory_allocation/gpu_host_pinned_memory_allocator.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 std::shared_ptr<MemoryUtils> MemoryAllocatorImp::utils_gpu_host_pinned;
 

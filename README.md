@@ -41,12 +41,12 @@ The Rivermax Dev Kit integrates seamlessly into the Rivermax software stack:
 
 The kit is organized into four primary modules, each with its corresponding namespace:
 
-- **Apps**: Application-level functionality (`rivermax::dev_kit::apps`)
-- **IO Node**: Input/output management (`rivermax::dev_kit::io_node`)
-- **Services**: Supporting services (`rivermax::dev_kit::services`)
-- **Core**: Essential C++ Rivermax components and interfaces (`rivermax::dev_kit::core`)
+- **Apps**: Application-level functionality (`rdk::apps`)
+- **IO Node**: Input/output management (`rdk::io_node`)
+- **Services**: Supporting services (`rdk::services`)
+- **Core**: Essential C++ Rivermax components and interfaces (`rdk::core`)
 
-All modules are contained within the main `rivermax` namespace, which contains the `dev_kit` namespace.
+All modules are contained within the `rdk` namespace.
 
 ### API Usage
 

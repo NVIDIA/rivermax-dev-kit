@@ -23,7 +23,7 @@
 #include "rdk/services/media/closed_caption_mock_source.h"
 #include "rdk/services/media/closed_caption_srt_source.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 namespace {
 

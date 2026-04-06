@@ -25,9 +25,7 @@
 
 #include "rdk/services/utils/rational.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -391,5 +389,4 @@ bool Rational::operator<(const Rational& other) const
 }
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk

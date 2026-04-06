@@ -27,11 +27,9 @@
 
 #include "rdk/facade.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -164,7 +162,6 @@ int common_example_main(int argc, const char* argv[])
 }
 
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_EXAMPLES_BASE_EXAMPLE_H_ */

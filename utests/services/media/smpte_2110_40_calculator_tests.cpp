@@ -29,9 +29,9 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/utils/rational.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 using namespace testing;
-using rivermax::dev_kit::services::rational_cast;
+using rdk::services::rational_cast;
 
 /**
  * @brief: SMPTE 2110-40 ancillary settings calculator test suite for interlaced video support.

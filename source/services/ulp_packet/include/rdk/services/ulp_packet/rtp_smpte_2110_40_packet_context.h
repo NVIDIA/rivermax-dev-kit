@@ -22,9 +22,7 @@
 #include "rdk/services/ulp_packet/rtp_packet_context.h"
 #include "rdk/services/media/ancillary_metadata.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -54,7 +52,6 @@ struct RTP_SMPTE_2110_40_PacketContext : public RTPPacketContext
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_ULP_PACKET_RTP_SMPTE_2110_40_PACKET_CONTEXT_H_ */

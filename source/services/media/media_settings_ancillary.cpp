@@ -18,7 +18,7 @@
 
 #include "rdk/services/media/media_settings_ancillary.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 SMPTE_2110_40_MediaSettings::SMPTE_2110_40_MediaSettings(const AppSettings& app_settings)
 {

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,9 +31,9 @@
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/counter_math.h"
 
-using namespace rivermax::dev_kit::apps::ipmx_receiver;
+using namespace rdk::apps::ipmx_receiver;
 
-using namespace rivermax::dev_kit::apps::ipmx_receiver;
+using namespace rdk::apps::ipmx_receiver;
 
 IPMXStreamTimelineTracker::IPMXStreamTimelineTracker(uint32_t ipmx_stream_id) :
     m_ipmx_stream_id(ipmx_stream_id),

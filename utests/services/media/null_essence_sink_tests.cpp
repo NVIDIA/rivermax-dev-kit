@@ -23,7 +23,7 @@
 #include "rdk/services/media/null_essence_sink.h"
 #include "rdk/services/media/media_defs.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 /* Put-failure probability constants [0, 1] */
 static constexpr float PROBABILITY_ZERO = 0.0f;

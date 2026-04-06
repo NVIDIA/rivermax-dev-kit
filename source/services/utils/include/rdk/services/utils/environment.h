@@ -23,9 +23,7 @@
 
 #include "rdk/services/error_handling/return_status.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -101,7 +99,6 @@ private:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_UTILS_ENVIRONMENT_H_ */

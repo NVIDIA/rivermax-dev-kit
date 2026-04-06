@@ -22,13 +22,11 @@
 #include "rdk/services/media/null_essence_source.h"
 #include "rdk/examples/apps/rdk_media_sender/video_frames_sender.h"
 
-using namespace rivermax::dev_kit::apps::media_sender;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::examples::apps::rdk_media_sender;
+using namespace rdk::apps::media_sender;
+using namespace rdk::services;
+using namespace rdk::examples::apps::rdk_media_sender;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -137,10 +135,9 @@ ReturnStatus VideoFramesSenderExample::operator()()
 } // namespace rdk_media_sender
 } // namespace apps
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 int main(int argc, const char* argv[])
 {
-    return rivermax::dev_kit::examples::common_example_main<VideoFramesSenderExample>(argc, argv);
+    return rdk::examples::common_example_main<VideoFramesSenderExample>(argc, argv);
 }

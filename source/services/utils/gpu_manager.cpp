@@ -22,7 +22,7 @@
 #include "rdk/services/utils/environment.h"
 #include "rdk/services/utils/gpu_manager.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 GPUManager::~GPUManager()
 {

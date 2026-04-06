@@ -27,9 +27,7 @@
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/settings/app_settings.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -63,8 +61,7 @@ struct SMPTE_2110_40_MediaSettings : public MediaSettings
     VideoScanType video_scan_type = VideoScanType::Progressive;
 };
 
-}  // namespace services
-}  // namespace dev_kit
-}  // namespace rivermax
+} // namespace services
+} // namespace rdk
 
 #endif /* RDK_SERVICES_MEDIA_MEDIA_SETTINGS_ANCILLARY_H_ */

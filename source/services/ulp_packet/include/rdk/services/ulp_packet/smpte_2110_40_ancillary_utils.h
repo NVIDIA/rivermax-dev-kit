@@ -25,9 +25,7 @@
 
 #include "rdk/services/media/media_defs.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -191,7 +189,6 @@ public:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_ULP_PACKET_SMPTE_2110_40_ANCILLARY_UTILS_H_ */

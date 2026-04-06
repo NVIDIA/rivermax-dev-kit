@@ -59,8 +59,8 @@
         } \
     } while (0)
 
-using rivermax::dev_kit::services::Rational;
-using rivermax::dev_kit::services::rational_cast;
+using rdk::services::Rational;
+using rdk::services::rational_cast;
 
 enum FONT_COLOR {
     COLOR_RED,

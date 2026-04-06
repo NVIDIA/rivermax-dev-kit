@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,9 +25,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/cli/cli_manager.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -411,7 +409,6 @@ ReturnStatus CLISettingsBuilder<SettingsType>::init_cli_parser_manager(SettingsT
 }
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_SETTINGS_SETTINGS_BUILDER_INTERFACE_H_ */

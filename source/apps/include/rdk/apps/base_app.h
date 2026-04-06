@@ -30,12 +30,10 @@
 #include "rdk/io_node/io_node.h"
 #include "rdk/services/services.h"
 
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::services;
+using namespace rdk::io_node;
+using namespace rdk::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace apps
 {
@@ -309,7 +307,6 @@ int common_cli_main(int argc, const char* argv[],
 }
 
 } // namespace apps
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_APPS_BASE_APP_H_ */

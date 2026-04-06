@@ -21,7 +21,7 @@
 
 #include "rdk/services/media/null_essence_sink.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 ReturnStatus NullEssenceSink::put_media_unit_blocking(std::shared_ptr<MediaUnit> media_unit)
 {

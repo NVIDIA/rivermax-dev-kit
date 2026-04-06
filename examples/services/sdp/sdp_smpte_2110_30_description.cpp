@@ -23,12 +23,10 @@
 #include "rdk/services/sdp/sdp_smpte_2110_30_description.h"
 #include "rdk/examples/services/sdp/sdp_smpte_2110_30_description.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::examples::services;
+using namespace rdk::services;
+using namespace rdk::examples::services;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -85,10 +83,9 @@ ReturnStatus SMPTE_2110_30_SDPGenerationExample::operator()()
 
 } // namespace services
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 int main(int argc, const char* argv[])
 {
-    return rivermax::dev_kit::examples::common_example_main<SMPTE_2110_30_SDPGenerationExample>(argc, argv);
+    return rdk::examples::common_example_main<SMPTE_2110_30_SDPGenerationExample>(argc, argv);
 }

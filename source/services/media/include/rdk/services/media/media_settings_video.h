@@ -28,9 +28,7 @@
 #include "rdk/services/sdp/sdp_common_descriptions.h"
 #include "rdk/services/settings/app_settings.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -80,8 +78,7 @@ struct SMPTE_2110_20_MediaSettings : public MediaSettings
     uint16_t pixels_per_packet = 0;
 };
 
-}  // namespace services
-}  // namespace dev_kit
-}  // namespace rivermax
+} // namespace services
+} // namespace rdk
 
 #endif /* RDK_SERVICES_MEDIA_MEDIA_SETTINGS_VIDEO_H_ */

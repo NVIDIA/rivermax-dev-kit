@@ -29,7 +29,7 @@
 #include "rdk/services/ulp_packet_buffer/writers/rtp_smpte_2110_30_packet_buffer_writer.h"
 #include "rdk/services/ulp_packet_buffer/writers/rtp_smpte_2110_40_packet_buffer_writer.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 template<typename PacketContextType, typename RTPPacketWriterType, typename MetadataType>
 RTPMediaPacketBufferWriter<PacketContextType, RTPPacketWriterType, MetadataType>::RTPMediaPacketBufferWriter(const MediaSettings& media_settings,
@@ -167,7 +167,7 @@ static rtp_media_packet_buffer_writer_factory_map_t s_rtp_media_packet_buffer_wr
     {SMPTEStandard::ST_2110_40, create_writer<RTP_SMPTE_2110_40_PacketBufferWriter>}
 };
 
-std::unique_ptr<IULPPacketBufferWriter> rivermax::dev_kit::services::create_rtp_media_packet_buffer_writer(
+std::unique_ptr<IULPPacketBufferWriter> rdk::services::create_rtp_media_packet_buffer_writer(
     SMPTEStandard smpte_standard, bool contains_payload, const MediaSettings& media_settings,
     std::shared_ptr<MemoryUtils> header_mem_utils, std::shared_ptr<MemoryUtils> payload_mem_utils)
 {

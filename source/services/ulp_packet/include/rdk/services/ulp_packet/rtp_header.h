@@ -21,9 +21,7 @@
 
 #include <cstdint>
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -47,7 +45,6 @@ struct RTPHeader {
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_ULP_PACKET_RTP_HEADER_H_ */

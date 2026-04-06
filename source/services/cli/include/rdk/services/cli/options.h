@@ -27,9 +27,7 @@
 #include "CLI/CLI.hpp"
 #include "rdk/services/settings/app_settings.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -137,7 +135,6 @@ public:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_CLI_OPTIONS_H_ */

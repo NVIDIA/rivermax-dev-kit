@@ -23,9 +23,7 @@
 #include "rdk/services/ulp_packet/rtp_header.h"
 #include "rdk/services/ulp_packet/rtp_packet_context.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -50,7 +48,6 @@ protected:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_ULP_PACKET_READERS_RTP_PACKET_READER_H_ */

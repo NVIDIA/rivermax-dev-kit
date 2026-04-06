@@ -21,7 +21,7 @@
 
 #include <cassert>
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 ReturnStatus RTP_SMPTE_2110_20_PacketReader::parse_header(IPacketContext& context)
 {

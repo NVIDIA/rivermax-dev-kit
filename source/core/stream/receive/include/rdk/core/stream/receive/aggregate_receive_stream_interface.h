@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,7 @@
 
 #include "rdk/core/stream/receive/receive_stream_interface.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace core
 {
@@ -47,7 +45,6 @@ protected:
 };
 
 } // namespace core
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_CORE_STREAM_RECEIVE_AGGREGATE_RECEIVE_STREAM_INTERFACE_H_ */

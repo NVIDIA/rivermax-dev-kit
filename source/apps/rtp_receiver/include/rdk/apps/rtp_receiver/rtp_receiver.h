@@ -21,9 +21,7 @@
 
 #include "rdk/apps/receiver_base_app.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace apps
 {
@@ -126,7 +124,6 @@ private:
 
 } // namespace rtp_receiver
 } // namespace apps
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_APPS_RTP_RECEIVER_RTP_RECEIVER_H_ */

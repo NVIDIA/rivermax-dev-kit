@@ -20,9 +20,9 @@
 
 #include "rdk/services/utils/rational.h"
 
-using rivermax::dev_kit::services::Rational;
-using rivermax::dev_kit::services::RationalException;
-using rivermax::dev_kit::services::rational_cast;
+using rdk::services::Rational;
+using rdk::services::RationalException;
+using rdk::services::rational_cast;
 
 /* Tests default and parameterized constructors for the Rational class. */
 TEST(RationalTests, Init)
@@ -542,7 +542,7 @@ TEST(RationalTests, StringConstructionOverflow)
 /* Tests that division by zero throws RationalException. */
 TEST(RationalTests, DivisionByZero)
 {
-    using rivermax::dev_kit::services::RationalException;
+    using rdk::services::RationalException;
 
     // Constructor with zero denominator (numerator, denominator)
     ASSERT_THROW(Rational(1, 0), RationalException);

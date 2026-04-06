@@ -30,8 +30,8 @@
 #include "rdk/services/media/null_essence_sink.h"
 #include "rdk/core/flow/receive_flow.h"
 
-using namespace rivermax::dev_kit::apps::media_receiver;
-using rivermax::dev_kit::services::IP_OCTET_LEN;
+using namespace rdk::apps::media_receiver;
+using rdk::services::IP_OCTET_LEN;
 
 
 MediaReconstructionDataConsumer::MediaReconstructionDataConsumer(

@@ -24,9 +24,9 @@
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/defs.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::apps::ipmx_sender;
-using namespace rivermax::dev_kit::apps::ipmx_sender;
+using namespace rdk::services;
+using namespace rdk::apps::ipmx_sender;
+using namespace rdk::apps::ipmx_sender;
 
 void IPMXSenderSettings::init_default_values()
 {
@@ -48,8 +48,8 @@ ReturnStatus IPMXSenderSettingsValidator::validate(const IPMXSenderSettings& set
         std::cerr << "Cannot set both a single local IP and a local IP list" << std::endl;
         return ReturnStatus::failure;
     }
-    if (settings.local_ips.size() > rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()) {
-        std::cerr << "Up to " << rivermax::dev_kit::RivermaxDevKitFacade::get_max_redundant_streams()
+    if (settings.local_ips.size() > rdk::RivermaxDevKitFacade::get_max_redundant_streams()) {
+        std::cerr << "Up to " << rdk::RivermaxDevKitFacade::get_max_redundant_streams()
                   << " local IP addresses are supported" << std::endl;
         return ReturnStatus::failure;
     }

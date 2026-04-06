@@ -22,7 +22,7 @@
 #include "rdk/services/ulp_packet/network_byte_order.h"
 #include "rdk/services/ulp_packet/rtp_smpte_2110_20_extension.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 RTP_SMPTE_2110_20_PacketWriter::RTP_SMPTE_2110_20_PacketWriter(byte_t* header_ptr, byte_t* payload_ptr)
     : RTPPacketWriter(header_ptr, payload_ptr)

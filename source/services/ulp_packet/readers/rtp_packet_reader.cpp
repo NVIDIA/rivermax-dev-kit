@@ -22,7 +22,7 @@
 
 #include <cassert>
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 ReturnStatus RTPPacketReader::parse_header(IPacketContext& context)
 {

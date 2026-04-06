@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@
 #include "rdk/services/utils/enum_utils.h"
 #include "rdk/services/sdp/sdp_defs.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 template <>
 const EnumNameArray<NetworkType> EnumMapper<NetworkType>::names = {

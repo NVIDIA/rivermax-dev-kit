@@ -25,7 +25,7 @@
 #include "rdk/services/ulp_packet/rtp_smpte_2110_40_extension.h"
 #include "rdk/services/ulp_packet/smpte_2110_40_ancillary_utils.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 RTP_SMPTE_2110_40_PacketWriter::RTP_SMPTE_2110_40_PacketWriter(byte_t* header_ptr, byte_t* payload_ptr)
     : RTPPacketWriter(header_ptr, payload_ptr)

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,12 +27,12 @@
  *
  * ## Module Organization and Namespace Structure
  * The kit is organized into four primary modules, each with its corresponding namespace:
- * - Apps: Application-level functionality (@ref rivermax::dev_kit::apps)
- * - IO Node: Input/output management (@ref rivermax::dev_kit::io_node)
- * - Services: Supporting services (@ref rivermax::dev_kit::services)
- * - Core: Essential C++ Rivermax components and interfaces (@ref rivermax::dev_kit::core)
+ * - Apps: Application-level functionality (@ref rdk::apps)
+ * - IO Node: Input/output management (@ref rdk::io_node)
+ * - Services: Supporting services (@ref rdk::services)
+ * - Core: Essential C++ Rivermax components and interfaces (@ref rdk::core)
  *
- * All modules are contained within the main "rivermax" namespace, which contains the "dev_kit" namespace.
+ * All modules are contained within the "rdk" namespace.
  *
  * ## Navigation
  * - Module headers are located in their respective include directories

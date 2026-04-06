@@ -21,9 +21,7 @@
 #include "rdk/services/media/timecode_encoder.h"
 #include "rdk/services/media/media_defs.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -141,5 +139,4 @@ void TimecodeEncoder::reset()
 }
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk

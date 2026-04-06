@@ -38,9 +38,9 @@
 #include "rdk/services/media/media.h"
 
 using namespace std::chrono;
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::io_node;
+using namespace rdk::services;
+using namespace rdk::core;
 
 constexpr size_t MediaSenderIONode::DEFAULT_PRINT_TIME_INTERVAL_MS;
 

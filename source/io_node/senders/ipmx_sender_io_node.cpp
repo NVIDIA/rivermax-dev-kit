@@ -39,9 +39,9 @@
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/enum_utils.h"
 
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::io_node;
+using namespace rdk::services;
+using namespace rdk::core;
 
 /**
 * @brief: Modifies a given field in the SDP file.

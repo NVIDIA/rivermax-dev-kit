@@ -22,13 +22,11 @@
 #include "rdk/apps/receiver_base_app.h"
 #include "rdk/io_node/receivers/ipo_receiver_io_node.h"
 
-using namespace rivermax::dev_kit::io_node;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::io_node;
+using namespace rdk::services;
+using namespace rdk::core;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace apps
 {
@@ -131,7 +129,6 @@ private:
 
 } // namespace ipo_receiver
 } // namespace apps
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_APPS_IPO_RECEIVER_IPO_RECEIVER_H_ */

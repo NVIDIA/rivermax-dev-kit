@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,12 +32,10 @@
 #include "rdk/core/stream/send/generic_stream.h"
 #include "rdk/core/stream/receive/receive_stream.h"
 
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::core;
+using namespace rdk::services;
+using namespace rdk::core;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace io_node
 {
@@ -280,8 +278,7 @@ private:
                        uint32_t iteration, bool valid);
 };
 
-} // io_node
-} // dev_kit
-} // rivermax
+} // namespace io_node
+} // namespace rdk
 
 #endif /* RDK_IO_NODE_MISC_GENERIC_LATENCY_IO_NODE_H_ */

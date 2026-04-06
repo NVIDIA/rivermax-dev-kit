@@ -23,7 +23,7 @@
 
 #include "rdk/services/utils/environment.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 #ifdef __linux__
 

@@ -30,12 +30,10 @@
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/utils/rational.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 using namespace testing;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -57,8 +55,7 @@ inline std::ostream& operator<<(std::ostream& os, const RTPPacketContext& contex
 }
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 /**
  * @brief: Build expected RTPPacketContext from header fields (RTPPacketContext has a base class, so no aggregate init).

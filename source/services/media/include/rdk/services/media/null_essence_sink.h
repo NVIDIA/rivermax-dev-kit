@@ -24,9 +24,7 @@
 #include "rdk/services/media/media_essence_sink.h"
 #include "rdk/services/utils/defs.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -88,7 +86,6 @@ private:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_MEDIA_NULL_ESSENCE_SINK_H_ */

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@
 #include "rdk/io_node/common/io_node_memory_utils.h"
 #include "rdk/services/memory_allocation/memory_allocator_interface.h"
 
-using namespace rivermax::dev_kit::io_node;
+using namespace rdk::io_node;
 
 IONodeMemoryUtils::IONodeMemoryUtils(MemoryAllocator& header_allocator, MemoryAllocator& payload_allocator) :
     m_header_allocator(header_allocator),

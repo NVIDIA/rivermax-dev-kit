@@ -21,13 +21,11 @@
 #include "rdk/apps/rtp_receiver/rtp_receiver.h"
 #include "rdk/examples/apps/rdk_rtp_receiver/rtp_chunks_receiver.h"
 
-using namespace rivermax::dev_kit::apps::rtp_receiver;
-using namespace rivermax::dev_kit::services;
-using namespace rivermax::dev_kit::examples::apps::rdk_rtp_receiver;
+using namespace rdk::apps::rtp_receiver;
+using namespace rdk::services;
+using namespace rdk::examples::apps::rdk_rtp_receiver;
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace examples
 {
@@ -121,10 +119,9 @@ ReturnStatus RTPChunksReceiverExample::operator()()
 } // namespace rdk_rtp_receiver
 } // namespace apps
 } // namespace examples
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 int main(int argc, const char* argv[])
 {
-    return rivermax::dev_kit::examples::common_example_main<RTPChunksReceiverExample>(argc, argv);
+    return rdk::examples::common_example_main<RTPChunksReceiverExample>(argc, argv);
 }

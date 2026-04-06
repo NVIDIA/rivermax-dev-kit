@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@
 #include "rdk/services/cpu/cpu_utils.h"
 #include "rdk/services/cpu/affinity/rivermax_affinity.h"
 
-bool rivermax::dev_kit::services::set_rivermax_thread_cpu_affinity(int cpu)
+bool rdk::services::set_rivermax_thread_cpu_affinity(int cpu)
 {
     if (cpu == INVALID_CORE_NUMBER) {
         return true;
@@ -47,7 +47,7 @@ bool rivermax::dev_kit::services::set_rivermax_thread_cpu_affinity(int cpu)
     return true;
 }
 
-void rivermax::dev_kit::services::set_current_thread_affinity(const int cpu)
+void rdk::services::set_current_thread_affinity(const int cpu)
 {
     if (cpu == INVALID_CORE_NUMBER) {
         return;

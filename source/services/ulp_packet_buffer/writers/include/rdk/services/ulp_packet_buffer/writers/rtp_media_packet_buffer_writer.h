@@ -23,9 +23,7 @@
 #include "rdk/services/ulp_packet_buffer/writers/ulp_packet_buffer_writer_interface.h"
 #include "rdk/services/ulp_packet/writers/rtp_packet_writer.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -172,7 +170,6 @@ protected:
 };
 
 } // namespace services
-} // namespace dev_kit
-} // namespace rivermax
+} // namespace rdk
 
 #endif /* RDK_SERVICES_ULP_PACKET_BUFFER_WRITERS_RTP_MEDIA_PACKET_BUFFER_WRITER_H_ */

@@ -28,7 +28,7 @@
 #include "rdk/services/memory_allocation/new_memory_allocator.h"
 #include "rdk/services/error_handling/return_status.h"
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 using namespace testing;
 
 static std::shared_ptr<SMPTE_2110_20_MediaSettings> create_1080i50_settings()

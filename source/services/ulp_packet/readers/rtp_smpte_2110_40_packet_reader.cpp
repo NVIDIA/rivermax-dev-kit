@@ -25,7 +25,7 @@
 #include <iostream>
 #include <vector>
 
-using namespace rivermax::dev_kit::services;
+using namespace rdk::services;
 
 size_t AncillaryDataPacketReader::read_ancillary_data(const byte_t* buffer,
     size_t remaining_bytes,

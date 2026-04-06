@@ -29,9 +29,7 @@
 #include "rdk/services/sdp/sdp_defs.h"
 #include "rdk/services/settings/app_settings.h"
 
-namespace rivermax
-{
-namespace dev_kit
+namespace rdk
 {
 namespace services
 {
@@ -88,8 +86,7 @@ struct SMPTE_2110_30_MediaSettings : public MediaSettings
     uint32_t packets_per_second = 0;
 };
 
-}  // namespace services
-}  // namespace dev_kit
-}  // namespace rivermax
+} // namespace services
+} // namespace rdk
 
 #endif /* RDK_SERVICES_MEDIA_MEDIA_SETTINGS_AUDIO_H_ */

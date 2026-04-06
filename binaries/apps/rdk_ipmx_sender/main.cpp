@@ -19,8 +19,8 @@
 #include "rdk/apps/base_app.h"
 #include "rdk/apps/ipmx_sender/ipmx_sender.h"
 
-using namespace rivermax::dev_kit::apps;
-using namespace rivermax::dev_kit::apps::ipmx_sender;
+using namespace rdk::apps;
+using namespace rdk::apps::ipmx_sender;
 
 /**
  * Application constants.
