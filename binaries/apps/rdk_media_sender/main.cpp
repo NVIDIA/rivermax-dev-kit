@@ -35,7 +35,7 @@ constexpr const char* APP_EXAMPLES = \
     "  3. rdk_media_sender --local-ips 1.2.3.4 --enable-video --video-resolution"
     " 1920x1080 --video-frame-rate 60 --streams 10\n"
     "  4. rdk_media_sender --local-ips 1.2.3.4 --enable-video --video-resolution"
-    " 1920x1080 --video-frame-rate 60 --threads 2 --streams 10 -a 1,2 -c 3\n"
+    " 1920x1080 --video-frame-rate 60 --threads 2 --streams 10 -a 1,2 -i 3\n"
     "  5. rdk_media_sender --local-ips 1.2.3.4 --enable-video --video-resolution"
     " 1920x1080 --video-frame-rate 30 --video-scan-type interlaced -v\n"
     "  6. rdk_media_sender --local-ips 1.2.3.4 --dst-ips 224.1.1.2 --dst-ports 50001 --enable-video --vr"

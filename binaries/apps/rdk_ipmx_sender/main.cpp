@@ -36,7 +36,7 @@ constexpr const char* APP_EXAMPLES = \
     "  3. rdk_ipmx_sender --local-ip 1.2.3.4 --video-resolution 1920x1080 "
     "--video-frame-rate 60 --streams 10\n"
     "  4. rdk_ipmx_sender --local-ip 1.2.3.4 --video-resolution 1920x1080 "
-    "--video-frame-rate 60 --threads 2 --streams 10 -a 1,2 -c 3\n"
+    "--video-frame-rate 60 --threads 2 --streams 10 -a 1,2 -i 3\n"
     "  5. rdk_ipmx_sender --local-ip 1.2.3.4 --video-resolution 1920x1080 "
     "--video-frame-rate 30 --video-scan-type interlaced -v\n";
 
