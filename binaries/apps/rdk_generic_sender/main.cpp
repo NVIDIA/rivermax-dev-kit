@@ -20,7 +20,6 @@
 #include "rdk/apps/generic_sender/generic_sender.h"
 
 using namespace rdk::apps;
-using namespace rdk::apps::generic_sender;
 
 /**
  * Application constants.

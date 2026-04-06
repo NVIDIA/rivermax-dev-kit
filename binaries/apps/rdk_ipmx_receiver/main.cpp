@@ -20,7 +20,6 @@
 #include "rdk/apps/ipmx_receiver/ipmx_receiver.h"
 
 using namespace rdk::apps;
-using namespace rdk::apps::ipmx_receiver;
 
 /**
  * Application constants.

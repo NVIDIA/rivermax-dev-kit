@@ -20,7 +20,6 @@
 #include "rdk/apps/ipo_receiver/ipo_receiver.h"
 
 using namespace rdk::apps;
-using namespace rdk::apps::ipo_receiver;
 
 /**
  * Application constants.

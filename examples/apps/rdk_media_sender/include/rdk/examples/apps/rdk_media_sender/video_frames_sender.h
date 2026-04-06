@@ -23,7 +23,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rdk::apps::media_sender;
+using namespace rdk::apps;
 using namespace rdk::services;
 
 namespace rdk
@@ -31,8 +31,6 @@ namespace rdk
 namespace examples
 {
 namespace apps
-{
-namespace rdk_media_sender
 {
 
 /**
@@ -61,7 +59,6 @@ private:
     void configure_media_sender_settings(MediaSenderSettings& settings) const;
 };
 
-} // namespace rdk_media_sender
 } // namespace apps
 } // namespace examples
 } // namespace rdk

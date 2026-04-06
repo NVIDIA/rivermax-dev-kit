@@ -20,7 +20,7 @@
 
 #include "rdk/apps/generic_sender/generic_sender.h"
 
-using namespace rdk::apps::generic_sender;
+using namespace rdk::apps;
 
 void GenericSenderSettings::init_default_values()
 {

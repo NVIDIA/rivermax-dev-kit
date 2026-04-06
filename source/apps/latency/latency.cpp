@@ -24,8 +24,8 @@
 #include "rdk/services/media/media_settings_calculator.h"
 #include "rdk/services/utils/clock.h"
 
+using namespace rdk::apps;
 using namespace rdk::services;
-using namespace rdk::apps::latency;
 
 constexpr const char* MODE_PINGPONG = "pp";
 constexpr const char* MODE_FRAME = "frame";

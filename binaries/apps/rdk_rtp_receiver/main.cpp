@@ -20,7 +20,6 @@
 #include "rdk/apps/rtp_receiver/rtp_receiver.h"
 
 using namespace rdk::apps;
-using namespace rdk::apps::rtp_receiver;
 
 /**
  * Application constants.

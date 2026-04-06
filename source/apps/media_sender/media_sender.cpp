@@ -34,7 +34,7 @@
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/defs.h"
 
-using namespace rdk::apps::media_sender;
+using namespace rdk::apps;
 
 void MediaSenderSettings::init_default_values()
 {

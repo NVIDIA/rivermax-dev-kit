@@ -24,7 +24,6 @@
 
 #include "rdk/apps/base_app.h"
 
-using namespace rdk::apps;
 using namespace rdk::io_node;
 using namespace rdk::services;
 using namespace rdk::core;
@@ -32,8 +31,6 @@ using namespace rdk::core;
 namespace rdk
 {
 namespace apps
-{
-namespace ipmx_sender
 {
 constexpr size_t DEFAULT_MEMORY_BUFFER_SIZE_IN_FRAMES = 10;
 /**
@@ -234,7 +231,6 @@ private:
     ReturnStatus read_local_mac_addresses();
 };
 
-} // namespace ipmx_sender
 } // namespace apps
 } // namespace rdk
 

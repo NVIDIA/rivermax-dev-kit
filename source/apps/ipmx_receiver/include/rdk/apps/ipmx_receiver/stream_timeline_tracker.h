@@ -36,8 +36,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace ipmx_receiver
-{
 /**
  * @brief: Tracks IPMX stream timing between sender and receiver using RTP/RTCP protocol data.
  *
@@ -176,7 +174,6 @@ protected:
      void print_clock_new_info(std::ostream& out);
 };
 
-} // namespace ipmx_receiver
 } // namespace apps
 } // namespace rdk
 

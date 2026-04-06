@@ -19,7 +19,7 @@
 #include "rdk/services/utils/counter_math.h"
 #include "rdk/apps/media_probe/media_monitor.h"
 
-using namespace rdk::apps::media_probe;
+using namespace rdk::apps;
 
 void MediaMonitor::reset_rtp_matching()
 {

@@ -37,8 +37,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace media_sender
-{
 /**
  * @brief: Configuration settings for Rivermax Dev Kit Media Sender.
  */
@@ -313,7 +311,6 @@ private:
     ReturnStatus set_internal_media_essence_sources();
 };
 
-} // namespace media_sender
 } // namespace apps
 } // namespace rdk
 

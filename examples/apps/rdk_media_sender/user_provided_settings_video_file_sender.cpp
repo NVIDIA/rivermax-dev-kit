@@ -21,17 +21,15 @@
 #include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/examples/apps/rdk_media_sender/user_provided_settings_video_file_sender.h"
 
-using namespace rdk::apps::media_sender;
+using namespace rdk::apps;
 using namespace rdk::services;
-using namespace rdk::examples::apps::rdk_media_sender;
+using namespace rdk::examples::apps;
 
 namespace rdk
 {
 namespace examples
 {
 namespace apps
-{
-namespace rdk_media_sender
 {
 
 constexpr const char* EXAMPLE_DESCRIPTION =
@@ -108,7 +106,6 @@ ReturnStatus UserProvidedSettingsVideoFileSenderExample::operator()()
     return ReturnStatus::success;
 }
 
-} // namespace rdk_media_sender
 } // namespace apps
 } // namespace examples
 } // namespace rdk

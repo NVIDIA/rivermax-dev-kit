@@ -36,8 +36,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace media_probe
-{
 
 /**
  * @brief: Media component identifiers.
@@ -251,7 +249,6 @@ protected:
     StreamMonitor& m_stream_monitor;
 };
 
-} // namespace media_probe
 } // namespace apps
 } // namespace rdk
 

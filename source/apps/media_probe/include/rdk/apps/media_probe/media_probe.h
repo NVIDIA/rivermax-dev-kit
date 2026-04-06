@@ -29,8 +29,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace media_probe
-{
 
 /**
  * @brief: Configuration settings for Rivermax Dev Kit Media Probe.
@@ -198,7 +196,6 @@ private:
     static constexpr size_t RECEIVE_CHUNK_SIZE_LIMIT = 1024;
 };
 
-} // namespace media_probe
 } // namespace apps
 } // namespace rdk
 

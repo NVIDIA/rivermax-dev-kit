@@ -25,8 +25,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace rtp_receiver
-{
 
 /**
  * @brief: Configuration settings for Rivermax Dev Kit RTP Receiver.
@@ -122,7 +120,6 @@ private:
     void run_receiver_threads() final;
 };
 
-} // namespace rtp_receiver
 } // namespace apps
 } // namespace rdk
 

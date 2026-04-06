@@ -40,8 +40,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace media_receiver
-{
 
 /**
  * @brief: Data consumer that reconstructs media units from RTP packets.
@@ -323,7 +321,6 @@ private:
         std::unique_ptr<IReceiveDataConsumer> data_consumer) = delete;
 };
 
-} // namespace media_receiver
 } // namespace apps
 } // namespace rdk
 

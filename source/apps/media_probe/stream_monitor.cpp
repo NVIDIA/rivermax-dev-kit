@@ -26,7 +26,7 @@
 #include "rdk/apps/media_probe/media_probe.h"
 
 using namespace std::chrono;
-using namespace rdk::apps::media_probe;
+using namespace rdk::apps;
 
 const OnNewFrameCallback null_new_frame_callback = [](const NewFrameEvent& event) {};
 

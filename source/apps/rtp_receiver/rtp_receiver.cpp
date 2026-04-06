@@ -18,7 +18,7 @@
 
 #include "rdk/apps/rtp_receiver/rtp_receiver.h"
 
-using namespace rdk::apps::rtp_receiver;
+using namespace rdk::apps;
 
 void RTPReceiverSettings::init_default_values()
 {

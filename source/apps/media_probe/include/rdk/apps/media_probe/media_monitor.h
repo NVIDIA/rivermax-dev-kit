@@ -35,8 +35,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace media_probe
-{
 
 /**
  * @brief: Structure representing a media component with timing and sequence information.
@@ -128,7 +126,6 @@ protected:
     void reset_stats();
 };
 
-} // namespace media_probe
 } // namespace apps
 } // namespace rdk
 

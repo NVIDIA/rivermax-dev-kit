@@ -22,17 +22,15 @@
 #include "rdk/services/media/null_essence_source.h"
 #include "rdk/examples/apps/rdk_media_sender/video_frames_sender.h"
 
-using namespace rdk::apps::media_sender;
+using namespace rdk::apps;
 using namespace rdk::services;
-using namespace rdk::examples::apps::rdk_media_sender;
+using namespace rdk::examples::apps;
 
 namespace rdk
 {
 namespace examples
 {
 namespace apps
-{
-namespace rdk_media_sender
 {
 
 constexpr const char* EXAMPLE_DESCRIPTION = "NVIDIA Rivermax Dev Kit Video Frames Sender Example";
@@ -132,7 +130,6 @@ ReturnStatus VideoFramesSenderExample::operator()()
     return ReturnStatus::success;
 }
 
-} // namespace rdk_media_sender
 } // namespace apps
 } // namespace examples
 } // namespace rdk

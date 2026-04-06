@@ -20,7 +20,6 @@
 #include "rdk/apps/media_sender/media_sender.h"
 
 using namespace rdk::apps;
-using namespace rdk::apps::media_sender;
 
 /**
  * Application constants.

@@ -29,8 +29,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace generic_sender
-{
 /**
  * @brief: Configuration settings for Rivermax Dev Kit Generic Sender.
  */
@@ -175,7 +173,6 @@ private:
     void distribute_memory_for_senders(const int mem_block_index);
 };
 
-} // namespace generic_sender
 } // namespace apps
 } // namespace rdk
 

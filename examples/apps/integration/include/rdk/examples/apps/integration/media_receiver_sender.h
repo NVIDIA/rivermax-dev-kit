@@ -24,8 +24,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rdk::apps::rtp_receiver;
-using namespace rdk::apps::media_sender;
+using namespace rdk::apps;
 using namespace rdk::services;
 
 namespace rdk

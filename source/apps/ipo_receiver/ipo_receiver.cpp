@@ -20,7 +20,7 @@
 
 #include "rdk/apps/ipo_receiver/ipo_receiver.h"
 
-using namespace rdk::apps::ipo_receiver;
+using namespace rdk::apps;
 
 void IPOReceiverSettings::init_default_values()
 {

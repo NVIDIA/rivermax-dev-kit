@@ -30,7 +30,7 @@
 #include "rdk/services/media/null_essence_sink.h"
 #include "rdk/core/flow/receive_flow.h"
 
-using namespace rdk::apps::media_receiver;
+using namespace rdk::apps;
 using rdk::services::IP_OCTET_LEN;
 
 

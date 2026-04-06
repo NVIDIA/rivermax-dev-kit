@@ -31,9 +31,7 @@
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/counter_math.h"
 
-using namespace rdk::apps::ipmx_receiver;
-
-using namespace rdk::apps::ipmx_receiver;
+using namespace rdk::apps;
 
 IPMXStreamTimelineTracker::IPMXStreamTimelineTracker(uint32_t ipmx_stream_id) :
     m_ipmx_stream_id(ipmx_stream_id),

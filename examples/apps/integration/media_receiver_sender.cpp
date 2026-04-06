@@ -24,8 +24,6 @@
 #include "rdk/examples/apps/integration/media_receiver_sender.h"
 
 using namespace rdk::apps;
-using namespace rdk::apps::rtp_receiver;
-using namespace rdk::apps::media_sender;
 using namespace rdk::services;
 using namespace rdk::examples::apps::integration;
 

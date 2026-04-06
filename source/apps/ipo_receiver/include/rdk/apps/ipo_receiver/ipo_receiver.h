@@ -30,8 +30,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace ipo_receiver
-{
 
 /**
  * @brief: Configuration settings for Rivermax Dev Kit IPO Receiver.
@@ -127,7 +125,6 @@ private:
     void run_receiver_threads() final;
 };
 
-} // namespace ipo_receiver
 } // namespace apps
 } // namespace rdk
 

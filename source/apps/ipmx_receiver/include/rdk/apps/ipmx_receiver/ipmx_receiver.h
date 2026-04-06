@@ -31,8 +31,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace ipmx_receiver
-{
 
 /**
  * @brief: This class consumes a chunk of RTCP packets and distributes them to the IPMX
@@ -174,7 +172,6 @@ private:
     void initialize_rtcp_stream(RTPReceiverIONode& node, const std::vector<ReceiveFlow>& flows);
 };
 
-} // namespace ipmx_receiver
 } // namespace apps
 } // namespace rdk
 

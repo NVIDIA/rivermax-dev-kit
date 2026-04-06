@@ -30,8 +30,6 @@ namespace examples
 {
 namespace apps
 {
-namespace rdk_media_sender
-{
 /**
  * @brief: CLI settings media file sender example.
  *
@@ -58,7 +56,6 @@ private:
     const char** m_argv = nullptr;
 };
 
-} // namespace rdk_media_sender
 } // namespace apps
 } // namespace examples
 } // namespace rdk

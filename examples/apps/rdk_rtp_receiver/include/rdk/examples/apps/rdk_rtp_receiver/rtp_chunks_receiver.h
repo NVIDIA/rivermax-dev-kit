@@ -23,7 +23,7 @@
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/examples/base_example.h"
 
-using namespace rdk::apps::rtp_receiver;
+using namespace rdk::apps;
 using namespace rdk::services;
 
 namespace rdk
@@ -31,8 +31,6 @@ namespace rdk
 namespace examples
 {
 namespace apps
-{
-namespace rdk_rtp_receiver
 {
 
 /**
@@ -62,7 +60,6 @@ private:
     void configure_rtp_receiver_settings(RTPReceiverSettings& settings) const;
 };
 
-} // namespace rdk_rtp_receiver
 } // namespace apps
 } // namespace examples
 } // namespace rdk

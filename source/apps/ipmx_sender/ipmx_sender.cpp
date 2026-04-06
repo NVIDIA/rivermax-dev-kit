@@ -24,9 +24,8 @@
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/defs.h"
 
+using namespace rdk::apps;
 using namespace rdk::services;
-using namespace rdk::apps::ipmx_sender;
-using namespace rdk::apps::ipmx_sender;
 
 void IPMXSenderSettings::init_default_values()
 {

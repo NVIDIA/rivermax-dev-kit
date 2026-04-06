@@ -21,17 +21,15 @@
 #include "rdk/apps/rtp_receiver/rtp_receiver.h"
 #include "rdk/examples/apps/rdk_rtp_receiver/rtp_chunks_receiver.h"
 
-using namespace rdk::apps::rtp_receiver;
+using namespace rdk::apps;
 using namespace rdk::services;
-using namespace rdk::examples::apps::rdk_rtp_receiver;
+using namespace rdk::examples::apps;
 
 namespace rdk
 {
 namespace examples
 {
 namespace apps
-{
-namespace rdk_rtp_receiver
 {
 
 constexpr const char* EXAMPLE_DESCRIPTION = "NVIDIA Rivermax Dev Kit RTP Chunks Receiver Example";
@@ -116,7 +114,6 @@ ReturnStatus RTPChunksReceiverExample::operator()()
     return ReturnStatus::success;
 }
 
-} // namespace rdk_rtp_receiver
 } // namespace apps
 } // namespace examples
 } // namespace rdk

@@ -20,7 +20,6 @@
 #include "rdk/apps/media_probe/media_probe.h"
 
 using namespace rdk::apps;
-using namespace rdk::apps::media_probe;
 
 /**
  * Application constants.

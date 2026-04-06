@@ -29,8 +29,6 @@ namespace rdk
 {
 namespace apps
 {
-namespace latency
-{
 /**
 * @brief: Latency measurement mode.
 */
@@ -254,7 +252,6 @@ private:
     static uint64_t get_time_ns(void* context = nullptr);
 };
 
-} // namespace latency
 } // namespace apps
 } // namespace rdk
 
