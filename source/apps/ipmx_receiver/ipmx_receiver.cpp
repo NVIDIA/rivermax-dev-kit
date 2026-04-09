@@ -23,11 +23,13 @@
 #include <rivermax_api.h>
 
 #include "rdk/apps/ipmx_receiver/ipmx_receiver.h"
+#include "rdk/services/memory_allocation/memory_allocator_interface.h"
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/error_handling/return_status.h"
 
 using namespace rdk::apps;
+using rdk::services::MemoryLocation;
 
 constexpr std::chrono::nanoseconds IPMXReceiverApp::STATS_POLLING_PERIOD;
 
@@ -35,15 +37,28 @@ ReturnStatus RTCPChunkConsumer::consume_chunk(const ReceiveChunk& chunk,
     const IReceiveStream& stream, size_t& consumed_packets)
 {
     size_t stride_size = stream.get_payload_stride_size();
-    const byte_t* packet_ptr = reinterpret_cast<const byte_t*>(chunk.get_payload_ptr());
-    assert(packet_ptr != nullptr);
+    const byte_t* payload_src = reinterpret_cast<const byte_t*>(chunk.get_payload_ptr());
+    assert(payload_src != nullptr);
+
+    const byte_t* packet_ptr = payload_src;
+    if (m_rtcp_payload_on_gpu) {
+        size_t total_bytes = static_cast<size_t>(chunk.get_length()) * stride_size;
+        m_host_chunk_staging.resize(total_bytes);
+        ReturnStatus copy_rc = m_payload_memory_utils->memory_copy_to(m_host_chunk_staging.data(), payload_src,
+            total_bytes, MemoryLocation::Host);
+        if (copy_rc != ReturnStatus::success) {
+            std::cerr << "Failed to copy RTCP chunk to host memory" << std::endl;
+            return copy_rc;
+        }
+        packet_ptr = m_host_chunk_staging.data();
+    }
 
     for (uint32_t stride_index = 0; stride_index < chunk.get_length(); ++stride_index) {
         const ReceivePacketInfo& info = chunk.get_packet_info(stride_index);
-        size_t len = info.get_packet_sub_block_size(0);
         uint32_t flow_tag = info.get_packet_flow_tag();
         assert(flow_tag < m_trackers.size());
         m_trackers[flow_tag]->consume_rtcp_packet(packet_ptr, info);
+        packet_ptr += stride_size;
     }
     consumed_packets = chunk.get_length();
     return ReturnStatus::success;
@@ -303,7 +318,8 @@ void IPMXReceiverApp::initialize_rtcp_stream(RTPReceiverIONode& node, const std:
     auto stream = std::make_unique<AppRTPReceiveStream>(stream_settings, false, false, false);
     streams.push_back(std::move(stream));
     node.assign_streams(0, m_rtcp_flows, streams);
-    ReturnStatus rc = node.set_receive_data_consumer(0, std::make_unique<RTCPChunkConsumer>(m_ipmx_trackers));
+    ReturnStatus rc = node.set_receive_data_consumer(0,
+        std::make_unique<RTCPChunkConsumer>(m_ipmx_trackers, m_memory_utils->get_payload_memory_utils()));
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to set RTCP data consumer" << std::endl;
     }

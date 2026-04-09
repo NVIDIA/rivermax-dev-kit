@@ -25,11 +25,11 @@
 #include <sstream>
 #include <string>
 
-#include "rdk/apps/ipmx_receiver/stream_timeline_tracker.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/counter_math.h"
+#include "rdk/apps/ipmx_receiver/stream_timeline_tracker.h"
 
 using namespace rdk::apps;
 
@@ -73,7 +73,6 @@ void IPMXStreamTimelineTracker::IPMXSenderReportState::update(uint32_t ipmx_stre
     stats.reports_received++;
     stats.last_report_rx_ts = info.get_packet_timestamp();
     size_t len = info.get_packet_sub_block_size(0);
-
 
     auto status = last_report.fill_from_rtcp_sr_packet(data, len);
     if (status == ReturnStatus::success) {

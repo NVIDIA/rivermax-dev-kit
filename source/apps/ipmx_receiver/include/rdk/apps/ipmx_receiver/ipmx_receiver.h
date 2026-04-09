@@ -19,10 +19,13 @@
 #ifndef RDK_APPS_IPMX_RECEIVER_IPMX_RECEIVER_H_
 #define RDK_APPS_IPMX_RECEIVER_IPMX_RECEIVER_H_
 
+#include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "rdk/apps/receiver_base_app.h"
 #include "rdk/apps/ipmx_receiver/stream_timeline_tracker.h"
+#include "rdk/io_node/common/io_node_memory_utils.h"
 #include "rdk/io_node/receivers/rtp_receiver_io_node.h"
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/core/data_handler/receive_data_consumer_interface.h"
@@ -40,6 +43,9 @@ class RTCPChunkConsumer : public IReceiveDataConsumer
 {
 private:
     std::vector<std::shared_ptr<IPMXStreamTimelineTracker>> m_trackers;
+    const std::shared_ptr<rdk::services::MemoryUtils> m_payload_memory_utils;
+    const bool m_rtcp_payload_on_gpu;
+    std::vector<std::uint8_t> m_host_chunk_staging;
 public:
     /**
      * @brief: RTCPChunkConsumer constructor.
@@ -47,9 +53,13 @@ public:
      * @param [in] trackers: An array of pointers to IPMX Stream Timeline Trackers that receive
      * the packets from the chunk, while Flow tag of the packets is used as an index to find the
      * corresponding Tracker.
+     * @param [in] payload_memory_utils: Memory utilities to use for handling packet payloads.
      */
-    RTCPChunkConsumer(std::vector<std::shared_ptr<IPMXStreamTimelineTracker>>& trackers) :
-        m_trackers(trackers) {}
+    RTCPChunkConsumer(std::vector<std::shared_ptr<IPMXStreamTimelineTracker>>& trackers,
+        std::shared_ptr<rdk::services::MemoryUtils> payload_memory_utils) :
+        m_trackers(trackers),
+        m_payload_memory_utils(std::move(payload_memory_utils)),
+        m_rtcp_payload_on_gpu(m_payload_memory_utils->get_memory_location() == rdk::services::MemoryLocation::GPU) {}
     virtual ~RTCPChunkConsumer() = default;
     ReturnStatus consume_chunk(
         const ReceiveChunk& chunk, const IReceiveStream& stream, size_t& consumed_packets) override;
