@@ -67,8 +67,8 @@ void LatencyStats::calc_percentiles()
 {
     std::sort(m_samples.begin(), m_samples.end());
     m_perc_values.clear();
-    m_perc_values.reserve(m_percentiles.size());
     if (m_percentiles.size()) {
+        m_perc_values.reserve(m_percentiles.size());
         if (m_samples.size() == 0) {
             return;
         }
