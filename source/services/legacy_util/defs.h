@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,8 +92,8 @@ const uint32_t RAW_2022_6_STREAM_HEADER_SIZE = RTP_2022_6_STREAM_MIN_HEADER_SIZE
 
 #define ETH_TYPE_802_1Q (0x8100)          /* 802.1Q VLAN Extended Header  */
 
-/* This DSCP value is required by AES67 section 6.2 for audio streams */
-#define DSCP_MEDIA_RTP_CLASS (34)
+/* Recommended DSCP for audio (ST 2110-30) streams per AES67 section 6.2 */
+#define AES67_DSCP_MEDIA_RTP_CLASS (34)
 /* TAI is currently ahead of UTC by 37 seconds */
 #define LEAP_SECONDS (37)
 
