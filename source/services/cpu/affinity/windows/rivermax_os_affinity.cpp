@@ -16,10 +16,12 @@
  * limitations under the License.
  */
 
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
 #include "rdk/services/cpu/affinity/windows/rivermax_os_affinity.h"
+#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 
 namespace rdk
 {
@@ -105,6 +107,32 @@ void WindowsAffinity::editor::apply()
     if (status != NO_ERROR) {
         throw std::runtime_error("SetThreadGroupAffinity returned error #" + std::to_string(status));
     }
+}
+
+bool validate_thread_affinity_cpus(int internal_thread_affinity, const std::vector<int>& cpus)
+{
+    DWORD_PTR process_affinity = 0;
+    DWORD_PTR tmp = 0;
+    if (!GetProcessAffinityMask(GetCurrentProcess(), &process_affinity, &tmp)) {
+        std::cerr << "Failed to obtain process CPU affinity mask, error: " << GetLastError() << std::endl;
+        return false;
+    }
+    if ((internal_thread_affinity != NO_CPU_AFFINITY) &&
+        !(((ULONG_PTR)1 << internal_thread_affinity) & process_affinity)) {
+        std::cerr << "Requested thread affinity (" << internal_thread_affinity
+            << ") is not in the process affinity (" << std::hex << process_affinity << ")" << std::endl;
+        return false;
+    }
+    for (const auto cpu : cpus) {
+        if (cpu == NO_CPU_AFFINITY)
+            continue;
+        if (!(((ULONG_PTR)1 << cpu) & process_affinity)) {
+            std::cerr << "Requested thread affinity (" << cpu
+                << ") is not in the process affinity (" << std::hex << process_affinity << ")" << std::endl;
+            return false;
+        }
+    }
+    return true;
 }
 
 size_t WindowsAffinity::count_cores() const {

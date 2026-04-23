@@ -43,12 +43,11 @@ struct OsApiMock: public LinuxAffinity::os_api {
 };
 
 struct AffinityMaskMock: public Affinity::mask {
-    AffinityMaskMock() { std::memset(rmax_bits, 0, sizeof(rmax_bits)); }
     auto set_cpu(size_t cpu) {
-        constexpr auto entry_bit_size = sizeof(rmax_bits[0]) << 3;
+        constexpr auto entry_bit_size = sizeof(bits[0]) << 3;
         const auto entry = cpu / entry_bit_size;
         const auto bit_offset = cpu % entry_bit_size;
-        rmax_bits[entry] |= (1ULL << bit_offset);
+        bits[entry] |= (1ULL << bit_offset);
         return *this;
     }
 };
@@ -61,10 +60,10 @@ protected:
 
     Expectation expect_cpu_set_allocation(OsApiMock &api_mock) {
         Expectation allocation =
-            EXPECT_CALL(api_mock, cpu_alloc(RMAX_CPU_SETSIZE))
+            EXPECT_CALL(api_mock, cpu_alloc(Affinity::mask::max_cpus))
                 .WillOnce(Return(&m_fake_cpu_set))
                 .RetiresOnSaturation();
-        EXPECT_CALL(api_mock, cpu_alloc_size(RMAX_CPU_SETSIZE))
+        EXPECT_CALL(api_mock, cpu_alloc_size(Affinity::mask::max_cpus))
             .WillOnce(Return(m_fake_set_size));
         Expectation initialization =
             EXPECT_CALL(api_mock, cpu_zero_s(m_fake_set_size, &m_fake_cpu_set))
@@ -82,7 +81,7 @@ TEST_F(AffinityTest, NumericInput_SingleCore) {
     OsApiMock api_mock;
     Affinity affinity(api_mock);
 
-    const std::array processor_numbers = {0, RMAX_CPU_SETSIZE/3, RMAX_CPU_SETSIZE - 1};
+    const std::array<size_t, 3> processor_numbers = {0, Affinity::mask::max_cpus/3, Affinity::mask::max_cpus - 1};
     for (auto processor: processor_numbers) {
         Expectation allocation = expect_cpu_set_allocation(api_mock);
         Expectation configuration =
@@ -107,7 +106,7 @@ TEST_F(AffinityTest, NumericInput_SingleCore) {
 TEST_F(AffinityTest, NumericInput_CurrentThread) {
     OsApiMock api_mock;
     Affinity affinity(api_mock);
-    size_t processor = RMAX_NCPUBITS - 1;
+    size_t processor = Affinity::mask::bits_per_word - 1;
     Expectation allocation = expect_cpu_set_allocation(api_mock);
     Expectation configuration =
         EXPECT_CALL(api_mock, cpu_set(processor, &m_fake_cpu_set))
@@ -132,7 +131,7 @@ TEST_F(AffinityTest, NumericInput_ExceptionUponSetAllocation) {
     StrictMock<OsApiMock> api_mock;
     Affinity affinity(api_mock);
 
-    EXPECT_CALL(api_mock, cpu_alloc(RMAX_CPU_SETSIZE))
+    EXPECT_CALL(api_mock, cpu_alloc(Affinity::mask::max_cpus))
                 .WillOnce(Return(nullptr));
 
     EXPECT_THROW( {
@@ -168,7 +167,7 @@ TEST_F(AffinityTest, NumericInput_ExceptionUponSetAffinity) {
 TEST_F(AffinityTest, NumericInput_ExceptionUponIllegalCoreNumber) {
     OsApiMock api_mock;
     Affinity affinity(api_mock);
-    constexpr size_t bad_number {RMAX_CPU_SETSIZE};
+    constexpr size_t bad_number {Affinity::mask::max_cpus};
 
     ON_CALL(api_mock, cpu_alloc(_))
         .WillByDefault([&](size_t size) {
@@ -177,7 +176,7 @@ TEST_F(AffinityTest, NumericInput_ExceptionUponIllegalCoreNumber) {
                 .RetiresOnSaturation();
             return &m_fake_cpu_set;
         });
-    ON_CALL(api_mock, cpu_alloc_size(RMAX_CPU_SETSIZE))
+    ON_CALL(api_mock, cpu_alloc_size(Affinity::mask::max_cpus))
         .WillByDefault(Return(m_fake_set_size));
 
     EXPECT_CALL(api_mock, cpu_set(0, _))
@@ -186,14 +185,14 @@ TEST_F(AffinityTest, NumericInput_ExceptionUponIllegalCoreNumber) {
         .Times(0);
 
     EXPECT_THROW( {
-        affinity.set(m_thread, RMAX_CPU_SETSIZE);
+        affinity.set(m_thread, Affinity::mask::max_cpus);
     }, std::runtime_error);
 }
 
 TEST_F(AffinityTest, MaskInput_SingleCore) {
     OsApiMock api_mock;
     Affinity affinity(api_mock);
-    constexpr const size_t processor { RMAX_NCPUBITS };
+    constexpr const size_t processor { Affinity::mask::bits_per_word };
     const auto cpu_mask = AffinityMaskMock().set_cpu(processor);
 
     Expectation allocation = expect_cpu_set_allocation(api_mock);
@@ -218,7 +217,7 @@ TEST_F(AffinityTest, MaskInput_SingleCore) {
 TEST_F(AffinityTest, MaskInput_ManyCores) {
     OsApiMock api_mock;
     Affinity affinity(api_mock);
-    constexpr const size_t processors[] { 0, RMAX_CPU_SETSIZE/2, RMAX_CPU_SETSIZE-1};
+    constexpr const size_t processors[] { 0, Affinity::mask::max_cpus/2, Affinity::mask::max_cpus-1};
     const auto cpu_mask = AffinityMaskMock().set_cpu(processors[0]).set_cpu(processors[1]).set_cpu(processors[2]);
 
     Expectation allocation = expect_cpu_set_allocation(api_mock);
@@ -245,7 +244,7 @@ TEST_F(AffinityTest, MaskInput_ManyCores) {
 TEST_F(AffinityTest, MaskInput_CurrentThread) {
     OsApiMock api_mock;
     Affinity affinity(api_mock);
-    constexpr const size_t processors[] { 0, RMAX_CPU_SETSIZE/2, RMAX_CPU_SETSIZE-1};
+    constexpr const size_t processors[] { 0, Affinity::mask::max_cpus/2, Affinity::mask::max_cpus-1};
     const auto cpu_mask = AffinityMaskMock().set_cpu(processors[0]).set_cpu(processors[1]).set_cpu(processors[2]);
 
     Expectation allocation = expect_cpu_set_allocation(api_mock);
@@ -275,7 +274,7 @@ TEST_F(AffinityTest, MaskInput_ExceptionUponSetAllocation) {
     Affinity affinity(api_mock);
     const auto cpu_mask = AffinityMaskMock().set_cpu(0);
 
-    EXPECT_CALL(api_mock, cpu_alloc(RMAX_CPU_SETSIZE))
+    EXPECT_CALL(api_mock, cpu_alloc(Affinity::mask::max_cpus))
                 .WillOnce(Return(nullptr));
 
     EXPECT_THROW( {

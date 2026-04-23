@@ -71,13 +71,13 @@ void Affinity::fill_with(const mask &cpu_mask, editor &editor)
 {
     size_t processor = 0;
     size_t count = 0;
-    for (auto entry: cpu_mask.rmax_bits) {
+    for (auto entry: cpu_mask.bits) {
         if (!entry) {
-            processor += sizeof(rmax_cpu_mask_t) * 8;
+            processor += mask::bits_per_word;
             continue;
         }
-        for (rmax_cpu_mask_t mask = 1; mask; mask <<= 1, processor++) {
-            if (entry & mask) {
+        for (uint64_t bit = 1; bit; bit <<= 1, processor++) {
+            if (entry & bit) {
                 editor.set(processor);
                 ++count;
             }

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-#include "rt_threads.h"
-
 #include "rdk/facade.h"
 #include "rdk/apps/ipmx_sender/ipmx_sender.h"
 #include "rdk/services/sdp/sdp_common_descriptions.h"
@@ -411,7 +409,7 @@ void IPMXSenderApp::initialize_sender_threads()
         } else {
             std::cerr << "Warning: CPU affinity for Sender " << sender_index <<
                          " is not set!!!" << std::endl;
-            sender_cpu_core = CPU_NONE;
+            sender_cpu_core = NO_CPU_AFFINITY;
         }
         auto src_address = TwoTupleFlow(
             sender_index,

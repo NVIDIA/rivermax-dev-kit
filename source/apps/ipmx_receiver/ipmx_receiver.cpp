@@ -70,7 +70,7 @@ void IPMXReceiverSettings::init_default_values()
     app_memory_alloc = true;
     num_of_packets_in_chunk = IPMXReceiverSettings::NUM_OF_RTP_PACKETS_IN_RX_BUFFER;
     is_extended_sequence_number = false;
-    rtcp_thread_core = INVALID_CORE_NUMBER;
+    rtcp_thread_core = NO_CPU_AFFINITY;
 }
 
 ReturnStatus IPMXReceiverSettingsValidator::validate(const IPMXReceiverSettings& settings) const

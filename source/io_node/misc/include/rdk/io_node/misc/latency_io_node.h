@@ -27,6 +27,7 @@
 
 #include <rivermax_api.h>
 
+#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 #include "rdk/services/settings/settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/core/flow/flow.h"
@@ -143,7 +144,7 @@ protected:
     rmx_mem_region m_receive_payload_region;
     bool m_gpu_direct_tx;
     bool m_gpu_direct_rx;
-    rmax_cpu_set_t m_cpu_affinity_mask;
+    cpu_mask_t m_cpu_affinity_mask;
     int m_cpu_core_affinity;
     bool m_client_mode;
     size_t m_measure_interval_sec;

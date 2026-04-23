@@ -16,10 +16,13 @@
  * limitations under the License.
  */
 
+#include <iostream>
+#include <sched.h>
 #include <stdexcept>
 #include <string>
 
 #include "rdk/services/cpu/affinity/linux/rivermax_os_affinity.h"
+#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 
 namespace rdk
 {
@@ -34,18 +37,19 @@ LinuxAffinity::LinuxAffinity(const os_api &os_api)
 LinuxAffinity::editor::editor(const LinuxAffinity &affinity, std::thread::native_handle_type thread)
     : m_os_api {affinity.m_os_api}, m_thread {thread}
 {
-    m_cpu_set = m_os_api.cpu_alloc(RMAX_CPU_SETSIZE);
+    m_cpu_set = m_os_api.cpu_alloc(cpu_mask_t::max_cpus);
     if (m_cpu_set == nullptr) {
-        throw std::runtime_error("failed to allocate cpu_set for " + std::to_string(RMAX_CPU_SETSIZE) + " cpus");
+        throw std::runtime_error("failed to allocate cpu_set for " + std::to_string(cpu_mask_t::max_cpus) + " cpus");
     }
-    m_set_size = m_os_api.cpu_alloc_size(RMAX_CPU_SETSIZE);
+    m_set_size = m_os_api.cpu_alloc_size(cpu_mask_t::max_cpus);
     m_os_api.cpu_zero_s(m_set_size, m_cpu_set);
 }
 
 void LinuxAffinity::editor::set(size_t processor)
 {
-    if (processor >= RMAX_CPU_SETSIZE) {
-        throw std::runtime_error("failed to apply illegal core number: " + std::to_string(processor) );
+    if (processor >= cpu_mask_t::max_cpus) {
+        throw std::runtime_error("failed to apply illegal core number: " + std::to_string(processor)
+            + " (must be < " + std::to_string(cpu_mask_t::max_cpus) + ")");
     }
     m_os_api.cpu_set(processor, m_cpu_set);
 }
@@ -66,6 +70,11 @@ LinuxAffinity::editor::~editor()
 size_t LinuxAffinity::count_cores() const
 {
     return m_os_api.get_proc_count();
+}
+
+bool validate_thread_affinity_cpus(int /* internal_thread_affinity */, const std::vector<int>& /* cpus */)
+{
+    return true;
 }
 
 } // namespace services

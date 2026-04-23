@@ -63,7 +63,7 @@ StatisticsReader::StatisticsReader() :
     m_stats_consumer_created(false),
     m_thread_id(RMX_STATS_INVALID_THREAD_ID),
     m_session_id(DEFAULT_SESSION_ID),
-    m_cpu_core_affinity(CPU_NONE),
+    m_cpu_core_affinity(NO_CPU_AFFINITY),
     m_update_time_sec(DEFAULT_UPDATE_TIME),
     m_statistics_handler_cb_map(s_statistics_handler_cb_map)
 {
@@ -108,7 +108,7 @@ ReturnStatus StatisticsReader::init_stats_reader()
 void StatisticsReader::operator()()
 {
     std::cout << "Start StatisticsReader thread" << std::endl;
-    if (m_cpu_core_affinity != CPU_NONE) {
+    if (m_cpu_core_affinity != NO_CPU_AFFINITY) {
         set_current_thread_affinity(m_cpu_core_affinity);
     }
 

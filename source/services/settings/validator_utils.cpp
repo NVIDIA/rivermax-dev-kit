@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,8 +20,7 @@
 #include <cstring>
 #include <thread>
 
-#include "rt_threads.h"
-
+#include "rdk/services/cpu/cpu.h"
 #include "rdk/services/settings/validator_utils.h"
 
 ReturnStatus ValidatorUtils::validate_ip4_address(const std::string& ip)
@@ -69,7 +68,7 @@ ReturnStatus ValidatorUtils::validate_ip4_port(const std::vector<uint16_t>& port
 
 ReturnStatus ValidatorUtils::validate_core(int core)
 {
-    if (core == CPU_NONE) {
+    if (core == NO_CPU_AFFINITY) {
         return ReturnStatus::success;
     }
     unsigned int max_cores = std::thread::hardware_concurrency();

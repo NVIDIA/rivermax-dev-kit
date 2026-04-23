@@ -17,14 +17,12 @@
  */
 
 #include <rivermax_api.h>
-#include "rt_threads.h"
 
-#include "rdk/services/utils/defs.h"
 #include "rdk/services/cli/options.h"
+#include "rdk/services/cpu/cpu.h"
+#include "rdk/services/utils/defs.h"
 
 using namespace rdk::services;
-
-constexpr int INVALID_CORE_NUMBER = -1;
 
 void AppSettings::init_default_values()
 {
@@ -34,8 +32,8 @@ void AppSettings::init_default_values()
     num_of_threads = NUM_OF_THREADS_DEFAULT;
     num_of_total_streams = NUM_OF_TOTAL_STREAMS_DEFAULT;
     num_of_total_flows = NUM_OF_TOTAL_FLOWS_DEFAULT;
-    internal_thread_core = CPU_NONE;
-    app_threads_cores = std::vector<int>(num_of_threads, CPU_NONE);
+    internal_thread_core = NO_CPU_AFFINITY;
+    app_threads_cores = std::vector<int>(num_of_threads, NO_CPU_AFFINITY);
     rate = { 0, 0 };
     num_of_chunks = NUM_OF_CHUNKS_DEFAULT;
     num_of_packets_in_chunk = NUM_OF_PACKETS_IN_CHUNK_DEFAULT;
@@ -56,7 +54,7 @@ void AppSettings::init_default_values()
     app_memory_alloc = false;
     enable_redundancy = false;
     enable_statistics_reader = false;
-    statistics_reader_core = INVALID_CORE_NUMBER;
+    statistics_reader_core = NO_CPU_AFFINITY;
     stats_report_interval_ms = STATS_REPORT_INTERVAL_MS_DEFAULT;
     dynamic_media_file_load = false;
     rx_stream_type = RMX_INPUT_APP_PROTOCOL_PACKET;

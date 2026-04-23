@@ -19,12 +19,12 @@
 #ifndef RDK_SERVICES_CPU_CPU_UTILS_H_
 #define RDK_SERVICES_CPU_CPU_UTILS_H_
 
+#include <vector>
+
 namespace rdk
 {
 namespace services
 {
-constexpr int INVALID_CORE_NUMBER = -1;
-
 /**
 * @brief: Sets CPU affinity for the rivermax internal thread.
 *
@@ -41,6 +41,13 @@ bool set_rivermax_thread_cpu_affinity(int cpu);
 * @param [in] cpu: A CPU core number to assign to the current thread.
 */
 void set_current_thread_affinity(const int cpu);
+/**
+* @brief: Sets CPU affinity for the current thread to a set of cores.
+*
+* @param [in] cpus: CPU core numbers to assign to the current thread.
+*                   Values equal to NO_CPU_AFFINITY are ignored.
+*/
+void set_current_thread_affinity(const std::vector<int> &cpus);
 
 } // namespace services
 } // namespace rdk

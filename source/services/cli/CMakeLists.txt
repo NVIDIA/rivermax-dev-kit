@@ -30,6 +30,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         rivermax-dev-kit-build
         rivermax-dev-kit-services-media
+        rivermax-dev-kit-services-rivermax-cpu
         rivermax-dev-kit-services-sdp
         rivermax-dev-kit-services-utils
     PUBLIC

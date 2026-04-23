@@ -21,7 +21,6 @@
 #include <unordered_map>
 
 #include "rdk/services/cli/options.h"
-#include "rt_threads.h"
 
 #include "rdk/facade.h"
 #include "rdk/apps/media_sender/media_sender.h"
@@ -510,7 +509,7 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
         } else {
             std::cerr << "Warning: CPU affinity for Sender " << sender_idx <<
                          " is not set!!!" << std::endl;
-            sender_cpu_core = CPU_NONE;
+            sender_cpu_core = NO_CPU_AFFINITY;
         }
         auto flows = std::vector<FourTupleFlow>(
             m_flows.begin() + streams_offset,

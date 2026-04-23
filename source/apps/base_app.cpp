@@ -268,7 +268,7 @@ ReturnStatus BaseApp::run_stats_reader()
         return ReturnStatus::failure;
     }
 
-    if (m_app_settings->statistics_reader_core != INVALID_CORE_NUMBER) {
+    if (m_app_settings->statistics_reader_core != NO_CPU_AFFINITY) {
         m_stats_reader->set_cpu_core_affinity(m_app_settings->statistics_reader_core);
     }
     if (m_app_settings->session_id_stats != UINT_MAX) {

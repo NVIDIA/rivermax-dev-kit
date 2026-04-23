@@ -37,12 +37,11 @@ struct WinApiMock: public WindowsAffinity::os_api {
 };
 
 struct AffinityMaskMock: public Affinity::mask {
-    AffinityMaskMock() { std::memset(rmax_bits, 0, sizeof(rmax_bits)); }
     auto set_cpu(size_t cpu) {
-        constexpr auto entry_bit_size = sizeof(rmax_bits[0]) << 3;
+        constexpr auto entry_bit_size = sizeof(bits[0]) << 3;
         const auto entry = cpu / entry_bit_size;
         const auto bit_offset = cpu % entry_bit_size;
-        rmax_bits[entry] |= (1ULL << bit_offset);
+        bits[entry] |= (1ULL << bit_offset);
         return *this;
     }
 };
@@ -371,7 +370,7 @@ TEST_F(AffinityTest, MaskInput_ExceptionUponSettingAffinity) {
 TEST_F(AffinityTest, MaskInput_EmptyBitmapOverGivenThread) {
     constexpr KAFFINITY masks[] {0};
     Affinity affinity = setup_affinity(masks);
-    constexpr Affinity::mask affinity_mask { 0};
+    constexpr Affinity::mask affinity_mask { 0ULL };
 
     EXPECT_THROW( {
         affinity.set(m_thread, affinity_mask);
@@ -381,7 +380,7 @@ TEST_F(AffinityTest, MaskInput_EmptyBitmapOverGivenThread) {
 TEST_F(AffinityTest, MaskInput_EmptyBitmapOverCurrentThread) {
     constexpr KAFFINITY masks[] {0};
     Affinity affinity = setup_affinity(masks);
-    constexpr Affinity::mask affinity_mask { 0};
+    constexpr Affinity::mask affinity_mask { 0ULL };
 
     EXPECT_THROW( {
         affinity.set(affinity_mask);

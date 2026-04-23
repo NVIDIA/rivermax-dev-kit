@@ -27,7 +27,7 @@
 
 bool rdk::services::set_rivermax_thread_cpu_affinity(int cpu)
 {
-    if (cpu == INVALID_CORE_NUMBER) {
+    if (cpu == NO_CPU_AFFINITY) {
         return true;
     }
     if (cpu < 0) {
@@ -35,10 +35,9 @@ bool rdk::services::set_rivermax_thread_cpu_affinity(int cpu)
         return false;
     }
 
-    constexpr size_t cores_per_mask = 8 * sizeof(uint64_t);
-    std::vector<uint64_t> cpu_mask(cpu / cores_per_mask + 1, 0);
-    rmx_mark_cpu_for_affinity(cpu_mask.data(), cpu);
-    rmx_status status = rmx_set_cpu_affinity(cpu_mask.data(), size_t(cpu) + 1);
+    Affinity::mask cpu_mask;
+    rmx_mark_cpu_for_affinity(cpu_mask.bits, static_cast<size_t>(cpu));
+    rmx_status status = rmx_set_cpu_affinity(cpu_mask.bits, static_cast<size_t>(cpu) + 1);
     if (status != RMX_OK) {
         std::cerr << "Failed to initialize Rivermax CPU affinity: " << status << std::endl;
         return false;
@@ -49,7 +48,7 @@ bool rdk::services::set_rivermax_thread_cpu_affinity(int cpu)
 
 void rdk::services::set_current_thread_affinity(const int cpu)
 {
-    if (cpu == INVALID_CORE_NUMBER) {
+    if (cpu == NO_CPU_AFFINITY) {
         return;
     }
     if (cpu < 0) {
@@ -59,5 +58,28 @@ void rdk::services::set_current_thread_affinity(const int cpu)
     auto status = set_affinity(static_cast<size_t>(cpu));
     if (!status) {
         std::cerr << "Failed to set CPU affinity to core " << cpu << std::endl;
+    }
+}
+
+void rdk::services::set_current_thread_affinity(const std::vector<int> &cpus)
+{
+    Affinity::mask mask;
+    bool has_affinity = false;
+    for (auto cpu : cpus) {
+        if (cpu == NO_CPU_AFFINITY) {
+            continue;
+        }
+        if (cpu < 0 || static_cast<size_t>(cpu) >= Affinity::mask::max_cpus) {
+            std::cerr << "Invalid CPU core number: " << cpu << " (skipped)" << std::endl;
+            continue;
+        }
+        rmx_mark_cpu_for_affinity(mask.bits, static_cast<size_t>(cpu));
+        has_affinity = true;
+    }
+    if (has_affinity) {
+        auto status = set_affinity(mask);
+        if (!status) {
+            std::cerr << "Failed to set CPU affinity" << std::endl;
+        }
     }
 }

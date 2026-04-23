@@ -19,8 +19,6 @@
 #include <algorithm>
 #include <sstream>
 
-#include "rt_threads.h"
-
 #include "rdk/apps/media_receiver/media_receiver.h"
 #include "rdk/io_node/receivers/rtp_receiver_io_node.h"
 #include "rdk/services/cli/options.h"

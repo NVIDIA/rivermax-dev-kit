@@ -21,7 +21,6 @@
 #include <functional>
 
 #include "CLI/CLI.hpp"
-#include "rt_threads.h"
 
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/services/cli/cli_manager.h"

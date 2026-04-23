@@ -35,7 +35,6 @@
 #include <ws2tcpip.h>
 #endif
 #include <rivermax_api.h>
-#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 #include "rt_threads.h"
 
 using namespace std;
@@ -58,59 +57,6 @@ using std::chrono::seconds;
 using std::chrono::duration_cast;
 using std::chrono::duration;
 using default_clock = system_clock;
-
-bool cpu_affinity_get(stringstream &s, long &ret)
-{
-    char *endptr;
-    long tmp;
-    string nptr;
-
-    getline(s, nptr, ',');
-    if (nptr.size() == 0)
-        return false;
-
-    tmp = strtol(nptr.c_str(), &endptr, 10);
-    if (*endptr) {
-        cout << "Failed to convert affinity value to CPU index: " << nptr << endl;
-        return false;
-    }
-
-    ret = tmp;
-    return true;
-}
-
-bool rivermax_validate_thread_affinity_cpus(int internal_thread_affinity, std::vector<int> &cpus)
-{
-#if defined(_WIN32)
-    DWORD_PTR process_affinity = 0;
-    DWORD_PTR tmp = 0;
-
-    if (!GetProcessAffinityMask(GetCurrentProcess(), &process_affinity, &tmp)) {
-        cerr << "Failed obtaining process affinity mask returned: " << hex << process_affinity <<
-            "Error:" << GetLastError() << endl;
-        return false;
-    }
-    if ((internal_thread_affinity != CPU_NONE) &&
-        !(((ULONG_PTR)1 << internal_thread_affinity) & process_affinity)) {
-        cerr << "Requested thread affinity (" << internal_thread_affinity << ") "
-                "is not in the process affinity (" << hex << process_affinity << ")" << endl;
-        return false;
-    }
-    for (const auto cpu : cpus) {
-        if (cpu == CPU_NONE)
-            continue;
-        if (!(((ULONG_PTR)1 << cpu) & process_affinity)) {
-            cerr << "Requested thread affinity (" << cpu << ") "
-                "is not in the process affinity (" << hex << process_affinity << ")" << endl;
-            return false;
-        }
-    }
-#else
-    (void)(internal_thread_affinity);
-    (void)(cpus);
-#endif // defined(_WIN32)
-    return true;
-}
 
 std::atomic_bool g_s_signal_received {false};
 
@@ -543,53 +489,6 @@ int register_handler(PHANDLER_ROUTINE sig_handler)
     return 0;
 }
 #endif
-
-void rt_set_thread_affinity(const std::vector<int>& cpu_core_affinities)
-{
-    bool needs_affinity = false;
-    rdk::services::Affinity::mask cpu_affinity_mask;
-
-    memset(&cpu_affinity_mask, 0, sizeof(cpu_affinity_mask));
-    for (auto cpu : cpu_core_affinities) {
-        if (cpu != CPU_NONE) {
-            needs_affinity = true;
-            RMAX_CPU_SET(cpu, &cpu_affinity_mask);
-        }
-    }
-
-    if (needs_affinity) {
-        rdk::services::set_affinity(cpu_affinity_mask);
-    }
-}
-
-bool rt_set_rivermax_thread_affinity(int cpu_core)
-{
-    if (cpu_core == CPU_NONE) {
-        return true;
-    }
-    if (cpu_core < 0) {
-        std::cerr << "Invalid CPU core number " << cpu_core << std::endl;
-        return false;
-    }
-
-    constexpr size_t cores_per_mask = 8 * sizeof(uint64_t);
-    std::vector<uint64_t> cpu_mask(cpu_core / cores_per_mask + 1, 0);
-    rmx_mark_cpu_for_affinity(cpu_mask.data(), cpu_core);
-    rmx_status status = rmx_set_cpu_affinity(cpu_mask.data(), size_t(cpu_core) + 1);
-    if (status != RMX_OK) {
-        std::cerr << "Failed to set Rivermax CPU affinity to core " << cpu_core << ": " << status << std::endl;
-        return false;
-    }
-
-    return true;
-}
-
-void rt_set_thread_affinity(const int cpu_core)
-{
-    if (cpu_core != CPU_NONE) {
-        rdk::services::set_affinity(static_cast<size_t>(cpu_core));
-    }
-}
 
 uint64_t default_time_handler(void*) /* XXX should be refactored and combined with media_sender's clock functions */
 {

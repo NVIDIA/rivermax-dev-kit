@@ -32,8 +32,6 @@
 #include <utility>
 #include <functional>
 #include "rdk/services/utils/rational.h"
-#define CPU_NONE (-1)
-#define MAX_CPU_RANGE 1024
 
 #ifdef __linux__
 #define RMAX_THREAD_PRIORITY_TIME_CRITICAL 0
@@ -48,16 +46,6 @@
 #include <sys/mman.h>
 #endif
 
-#define RMAX_CPUELT(_cpu)  ((_cpu) / RMAX_NCPUBITS)
-#define RMAX_CPUMASK(_cpu) ((rmax_cpu_mask_t) 1 << ((_cpu) % RMAX_NCPUBITS))
-#define RMAX_CPU_SET(_cpu, _cpusetp) \
-    do { \
-        size_t _cpu2 = (_cpu); \
-        if (_cpu2 < (8 * sizeof (rmax_cpu_set_t))) { \
-            (((rmax_cpu_mask_t *)((_cpusetp)->rmax_bits))[RMAX_CPUELT(_cpu2)] |= \
-                                      RMAX_CPUMASK(_cpu2)); \
-        } \
-    } while (0)
 
 using rdk::services::Rational;
 using rdk::services::rational_cast;
@@ -129,11 +117,6 @@ void signal_handler(const int signal_num);
 
 void *color_set(enum FONT_COLOR color);
 void color_reset(void *ctx);
-bool cpu_affinity_get(std::stringstream &s, long &ret);
-bool rivermax_validate_thread_affinity_cpus(int internal_thread_affinity, std::vector<int> &cpus);
-void rt_set_thread_affinity(const std::vector<int>& cpu_core_affinities);
-bool rt_set_rivermax_thread_affinity(int cpu_core);
-void rt_set_thread_affinity(const int cpu_core);
 int rt_set_realtime_class(void);
 int rt_set_thread_priority(int prio);
 uint16_t get_cache_line_size(void);

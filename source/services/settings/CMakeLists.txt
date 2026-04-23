@@ -29,6 +29,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         rivermax-dev-kit-build
         rivermax-dev-kit-services-legacy-util
+        rivermax-dev-kit-services-rivermax-cpu
     PUBLIC
         Rivermax::Include
         rivermax-dev-kit-services-cli
