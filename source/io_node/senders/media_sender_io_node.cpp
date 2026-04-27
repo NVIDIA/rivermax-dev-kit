@@ -66,7 +66,7 @@ MediaSenderIONode::MediaSenderIONode(
     m_block_payload_memory_size(0),
     m_header_total_memory_size(0),
     m_payload_total_memory_size(0),
-    m_dscp(0), m_pcp(0), m_ecn(0),
+    m_dscp(get_default_dscp(media_settings.get_smpte_standard())), m_pcp(0), m_ecn(0),
     m_get_time_ns_cb(std::move(time_hanlder_cb)),
     m_gpu_enabled(app_settings.gpu_id != INVALID_GPU_ID),
     m_synchronizer(nullptr)

@@ -230,6 +230,8 @@ constexpr uint8_t RTP_VERSION_2 = 0x80;
 constexpr uint8_t RTP_M_BIT_MASK = 0x80;
 /* Video constants */
 constexpr size_t VIDEO_TRO_DEFAULT_MODIFICATION = 2;
+/* Audio constants */
+constexpr uint8_t AES67_DSCP_MEDIA_RTP_CLASS = 34;
 /* Ancillary data constants */
 constexpr size_t DEFAULT_ANCILLARY_DATA_PACKETS_PER_PACKET = 10;
 constexpr size_t DEFAULT_ANCILLARY_DATA_WORDS_COUNT = 128;
@@ -278,7 +280,26 @@ enum class SMPTEStandard
     ST_2110_40,
     Unknown
 };
- /* Supported video bit depths */
+/**
+ * @brief: Returns the default DSCP value for the given SMPTE standard.
+ *
+ * @param [in] standard: SMPTE standard.
+ *
+ * @return: Default DSCP value.
+ */
+constexpr uint8_t get_default_dscp(SMPTEStandard standard)
+{
+    switch (standard) {
+    case SMPTEStandard::ST_2110_30:
+        return AES67_DSCP_MEDIA_RTP_CLASS;
+    case SMPTEStandard::ST_2110_20:
+    case SMPTEStandard::ST_2110_40:
+    case SMPTEStandard::Unknown:
+        break;
+    }
+    return 0;
+}
+/* Supported video bit depths */
 const std::vector<VideoBitDepth> SUPPORTED_VIDEO_BIT_DEPTHS = {
     VideoBitDepth::_8,
     VideoBitDepth::_10,
