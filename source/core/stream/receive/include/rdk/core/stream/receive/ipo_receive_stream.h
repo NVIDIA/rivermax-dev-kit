@@ -164,6 +164,7 @@ protected:
     size_t m_payload_stride_size = 0;
     size_t m_header_buffer_size = 0;
     size_t m_payload_buffer_size = 0;
+    size_t m_auxiliary_buffer_size = 0;
     size_t m_index = 0;
     clock::time_point m_next_packet_time;
     clock::time_point m_start_time;
@@ -186,9 +187,9 @@ public:
     ReturnStatus destroy_stream() override;
     ReturnStatus get_next_chunk(ReceiveChunk& chunk)  override;
     ReturnStatus initialize_memory_layout() override;
-    ReturnStatus determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const override;
-    ReturnStatus apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) override;
-    ReturnStatus validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_respose) const override;
+    ReturnStatus determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const override;
+    ReturnStatus apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) override;
+    ReturnStatus validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_respose) const override;
     ReturnStatus apply_runtime_parameters() override;
     ReturnStatus set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec) override;
     size_t get_header_stride_size() const override { return !m_streams.empty() ? m_streams[0].get_header_stride_size() : 0; }

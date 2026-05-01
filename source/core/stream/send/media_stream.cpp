@@ -193,7 +193,7 @@ ReturnStatus MediaSendStream::initialize_memory_layout()
 }
 
 ReturnStatus MediaSendStream::determine_memory_layout(
-    HeaderPayloadMemoryLayoutRequest& memory_layout_request) const
+    StreamMemoryLayoutRequest& memory_layout_request) const
 {
     return ReturnStatus::success;
 }

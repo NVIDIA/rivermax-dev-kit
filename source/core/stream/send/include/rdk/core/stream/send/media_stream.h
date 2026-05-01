@@ -27,7 +27,7 @@
 
 #include "rdk/services/error_handling/return_status.h"
 #include "rdk/core/memory_layout/media_memory_layout.h"
-#include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/core/memory_layout/stream_memory_layout.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/core/stream/send/send_stream_interface.h"
 #include "rdk/core/chunk/media_chunk.h"
@@ -228,7 +228,7 @@ public:
  * This class implements @ref ISendStream operations.
  * It uses Rivermax TX media API.
  */
-class MediaSendStream : public ISendStream, public IMemoryLayoutComponent<HeaderPayloadMemoryLayoutRequest, MediaMemoryLayoutResponse>
+class MediaSendStream : public ISendStream, public IMemoryLayoutComponent<StreamMemoryLayoutRequest, MediaMemoryLayoutResponse>
 {
 protected:
     MediaStreamSettings m_stream_settings;
@@ -266,7 +266,7 @@ public:
     virtual ReturnStatus create_stream() override;
     virtual ReturnStatus destroy_stream() override;
     ReturnStatus initialize_memory_layout() override;
-    ReturnStatus determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const override;
+    ReturnStatus determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const override;
     ReturnStatus apply_memory_layout(const MediaMemoryLayoutResponse& memory_layout_response) override;
     ReturnStatus validate_memory_layout(const MediaMemoryLayoutResponse& memory_layout_respose) const override;
     /**

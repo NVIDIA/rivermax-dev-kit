@@ -88,6 +88,7 @@ const char* CLIOptStr::AUDIO_ENCODING = "--ae,--audio-encoding";
 const char* CLIOptStr::ANCILLARY_TYPES = "--ant,--ancillary-types";
 const char* CLIOptStr::ANCILLARY_DATA_WORDS_COUNT = "--adwc,--ancillary-data-words-count";
 const char* CLIOptStr::ENABLE_REDUNDANCY = "--er,--enable-redundancy";
+const char* CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS = "--eb,--ext-buffers";
 
 const char* CLIGroupStr::VIDEO_FORMAT_OPTIONS = "Video format options";
 const char* CLIGroupStr::AUDIO_FORMAT_OPTIONS = "Audio format options";
@@ -719,6 +720,15 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT,
                                     app_settings->media.ancillary_data_words_count,
                                     "Ancillary data words count");
+        }
+    },
+    {
+        CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS,
+        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
+        {
+            return parser->add_flag(CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS,
+                                    app_settings->allocate_extra_stream_buffers,
+                                    "Allocate extra stream buffers (auxiliary and internal data)");
         }
     },
 };

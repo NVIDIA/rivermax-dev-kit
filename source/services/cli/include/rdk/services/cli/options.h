@@ -120,6 +120,7 @@ public:
     static const char* ANCILLARY_TYPES;
     static const char* ANCILLARY_DATA_WORDS_COUNT;
     static const char* ENABLE_REDUNDANCY;
+    static const char* ALLOCATE_EXTRA_STREAM_BUFFERS;
 };
 /**
  * @brief: CLI groups string key.

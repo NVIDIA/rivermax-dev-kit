@@ -85,12 +85,13 @@ void ReceiverBaseApp::distribute_work_for_threads()
 ReturnStatus ReceiverBaseApp::initialize_memory_strategy()
 {
     auto base_memory_strategy = std::make_unique<BaseMemoryStrategy>(
-        *m_header_allocator, *m_payload_allocator,
+        *m_header_allocator, *m_payload_allocator, *m_auxiliary_allocator,
         *m_memory_utils,
         m_device_interfaces,
         m_num_paths_per_stream,
         m_app_settings->app_memory_alloc,
-        m_app_settings->register_memory);
+        m_app_settings->register_memory,
+        m_app_settings->allocate_extra_stream_buffers);
 
     for (const auto& receiver : m_receivers) {
         base_memory_strategy->add_memory_subcomponent(receiver);

@@ -163,14 +163,16 @@ ReturnStatus GenericSendStream::initialize_memory_layout()
     return ReturnStatus::success;
 }
 
-ReturnStatus GenericSendStream::determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const
+ReturnStatus GenericSendStream::determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const
 {
-    memory_layout_request.header_payload_buffers_size =
-        {get_header_memory_length(), get_payload_memory_length()};
+    auto& buffer_sizes = memory_layout_request.buffer_sizes;
+    buffer_sizes.header_buffer_size = get_header_memory_length();
+    buffer_sizes.payload_buffer_size = get_payload_memory_length();
+    buffer_sizes.auxiliary_buffer_size = 0;
     return ReturnStatus::success;
 }
 
-ReturnStatus GenericSendStream::apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response)
+ReturnStatus GenericSendStream::apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response)
 {
     ReturnStatus status = validate_memory_layout(memory_layout_response);
     if (status != ReturnStatus::success) {
@@ -198,7 +200,7 @@ ReturnStatus GenericSendStream::apply_memory_layout(const HeaderPayloadMemoryLay
     }
 }
 
-ReturnStatus GenericSendStream::validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) const
+ReturnStatus GenericSendStream::validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) const
 {
     const auto& stream_memory_layout = memory_layout_response.memory_layout;
     if (!stream_memory_layout.register_memory) {

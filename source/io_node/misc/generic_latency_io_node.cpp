@@ -113,7 +113,8 @@ void GenericLatencyIONode::distribute_memory_for_streams(rmx_mem_region& tx_head
     m_receive_header_region = rx_header_mreg;
     m_receive_payload_region = rx_payload_mreg;
     m_receive_stream->set_buffers(reinterpret_cast<byte_t*>(rx_header_mreg.addr),
-                                  reinterpret_cast<byte_t*>(rx_payload_mreg.addr));
+                                  reinterpret_cast<byte_t*>(rx_payload_mreg.addr),
+                                  nullptr);
 }
 
 void GenericLatencyIONode::print_parameters()

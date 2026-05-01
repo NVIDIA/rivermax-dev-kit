@@ -97,25 +97,29 @@ ReturnStatus IPOReceiveStream::initialize_memory_layout()
     bool first = true;
 
     for (auto& stream : m_streams) {
-        size_t header, payload;
+        size_t header, payload, auxiliary;
         size_t header_stride, payload_stride;
-        HeaderPayloadMemoryLayoutRequest sub_stream_memory_layout;
+        StreamMemoryLayoutRequest sub_stream_memory_layout;
         ReturnStatus status = stream.determine_memory_layout(sub_stream_memory_layout);
         if (status != ReturnStatus::success) {
             std::cerr << "Failed to determine memory layout for stream " << stream.get_id() << std::endl;
             return status;
         }
-        std::tie(header, payload) = sub_stream_memory_layout.header_payload_buffers_size;
+        const auto& buffer_sizes = sub_stream_memory_layout.buffer_sizes;
+        header = buffer_sizes.header_buffer_size;
+        payload = buffer_sizes.payload_buffer_size;
+        auxiliary = buffer_sizes.auxiliary_buffer_size;
         header_stride = stream.get_header_stride_size();
         payload_stride = stream.get_payload_stride_size();
         if (first) {
             m_header_buffer_size = header;
             m_payload_buffer_size = payload;
+            m_auxiliary_buffer_size = auxiliary;
             m_header_stride_size = header_stride;
             m_payload_stride_size = payload_stride;
             first = false;
-        } else if (std::tie(header, payload, header_stride, payload_stride) !=
-                   std::tie(m_header_buffer_size, m_payload_buffer_size, m_header_stride_size, m_payload_stride_size)) {
+        } else if (std::tie(header, payload, auxiliary, header_stride, payload_stride) !=
+                   std::tie(m_header_buffer_size, m_payload_buffer_size, m_auxiliary_buffer_size, m_header_stride_size, m_payload_stride_size)) {
             std::cerr << "Redundant stream buffer sizes don't match" << std::endl;
             return ReturnStatus::failure;
         }
@@ -124,7 +128,7 @@ ReturnStatus IPOReceiveStream::initialize_memory_layout()
     return ReturnStatus::success;
 }
 
-ReturnStatus IPOReceiveStream::determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const
+ReturnStatus IPOReceiveStream::determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const
 {
 
     if (!m_payload_buffer_size) {
@@ -132,12 +136,15 @@ ReturnStatus IPOReceiveStream::determine_memory_layout(HeaderPayloadMemoryLayout
         return ReturnStatus::failure;
     }
 
-    memory_layout_request.header_payload_buffers_size = {m_header_buffer_size, m_payload_buffer_size};
+    auto& buffer_sizes = memory_layout_request.buffer_sizes;
+    buffer_sizes.header_buffer_size = m_header_buffer_size;
+    buffer_sizes.payload_buffer_size = m_payload_buffer_size;
+    buffer_sizes.auxiliary_buffer_size = m_auxiliary_buffer_size * m_streams.size();
 
     return ReturnStatus::success;
 }
 
-ReturnStatus IPOReceiveStream::validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) const
+ReturnStatus IPOReceiveStream::validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) const
 {
     const auto& stream_memory_layout = memory_layout_response.memory_layout;
 
@@ -159,10 +166,15 @@ ReturnStatus IPOReceiveStream::validate_memory_layout(const HeaderPayloadMemoryL
         return ReturnStatus::failure;
     }
 
+    if (stream_memory_layout.auxiliary_memory_size < m_auxiliary_buffer_size * m_streams.size()) {
+        std::cerr << "Invalid auxiliary buffer size" << std::endl;
+        return ReturnStatus::failure;
+    }
+
     return ReturnStatus::success;
 }
 
-ReturnStatus IPOReceiveStream::apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response)
+ReturnStatus IPOReceiveStream::apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response)
 {
     ReturnStatus status = validate_memory_layout(memory_layout_response);
     if (status != ReturnStatus::success) {
@@ -172,14 +184,17 @@ ReturnStatus IPOReceiveStream::apply_memory_layout(const HeaderPayloadMemoryLayo
     const auto& stream_memory_layout = memory_layout_response.memory_layout;
     m_header_buffer = static_cast<byte_t*>(stream_memory_layout.header_memory_ptr);
     m_payload_buffer = static_cast<byte_t*>(stream_memory_layout.payload_memory_ptr);
+    byte_t* auxiliary_ptr = static_cast<byte_t*>(stream_memory_layout.auxiliary_memory_ptr);
 
     for (size_t i = 0; i < m_streams.size(); ++i) {
-        HeaderPayloadMemoryLayoutResponse sub_stream_memory_layout_response;
+        StreamMemoryLayoutResponse sub_stream_memory_layout_response;
         auto& sub_stream_memory_layout = sub_stream_memory_layout_response.memory_layout;
         sub_stream_memory_layout.header_memory_ptr = stream_memory_layout.header_memory_ptr;
         sub_stream_memory_layout.payload_memory_ptr = stream_memory_layout.payload_memory_ptr;
+        sub_stream_memory_layout.auxiliary_memory_ptr = auxiliary_ptr;
         sub_stream_memory_layout.header_memory_size = stream_memory_layout.header_memory_size;
         sub_stream_memory_layout.payload_memory_size = stream_memory_layout.payload_memory_size;
+        sub_stream_memory_layout.auxiliary_memory_size = m_auxiliary_buffer_size;
         sub_stream_memory_layout.register_memory = stream_memory_layout.register_memory;
 
         if (stream_memory_layout.register_memory) {
@@ -191,6 +206,10 @@ ReturnStatus IPOReceiveStream::apply_memory_layout(const HeaderPayloadMemoryLayo
         if (status != ReturnStatus::success) {
             std::cerr << "Failed to set memory layout for stream " << m_streams[i].get_id() << std::endl;
             return status;
+        }
+
+        if (auxiliary_ptr) {
+            auxiliary_ptr += m_auxiliary_buffer_size;
         }
     }
 

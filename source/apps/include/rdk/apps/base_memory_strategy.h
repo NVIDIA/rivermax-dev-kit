@@ -29,7 +29,7 @@
 #include "rdk/apps/base_app.h"
 #include "rdk/apps/memory_strategy_interface.h"
 #include "rdk/io_node/io_node.h"
-#include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/core/memory_layout/stream_memory_layout.h"
 
 using namespace rdk::io_node;
 using namespace rdk::services;
@@ -53,6 +53,8 @@ protected:
     MemoryAllocator& m_header_allocator;
     /* Payload memory allocator */
     MemoryAllocator& m_payload_allocator;
+    /* Auxiliary memory allocator */
+    MemoryAllocator& m_auxiliary_allocator;
     /* Memory utilities */
     IONodeMemoryUtils& m_memory_utils;
     /* Flag indicating if memory layout is determined */
@@ -62,17 +64,21 @@ protected:
     /* Flag indicating if memory is registered */
     bool m_memory_registered = false;
     /* Memory Layout components objects container */
-    std::vector<std::shared_ptr<IHeaderPayloadMemoryLayoutComponent>> m_memory_subcomponents;
+    std::vector<std::shared_ptr<IStreamMemoryLayoutComponent>> m_memory_subcomponents;
     /* Size of header memory buffer */
     size_t m_header_memory_size = 0;
     /* Size of payload memory buffer */
     size_t m_payload_memory_size = 0;
+    /* Size of auxiliary memory buffer */
+    size_t m_auxiliary_memory_size = 0;
     /* Buffer for packet header (if header-data split is enabled) */
     byte_t* m_header_buffer = nullptr;
     /* Buffer for packet payload */
     byte_t* m_payload_buffer = nullptr;
-    /* Subcomponents requested buffer sizes for header and payload */
-    std::vector<std::pair<size_t, size_t>> m_header_payload_subcomponents_buffer_sizes;
+    /* Buffer for auxiliary memory buffer */
+    byte_t* m_auxiliary_buffer = nullptr;
+    /* Subcomponents requested buffer sizes */
+    std::vector<StreamBufferMemorySizes> m_subcomponents_buffer_sizes;
     /* NIC device interfaces */
     std::vector<rmx_device_iface> m_device_interfaces;
     /* Memory regions for header memory allocated for each device interface */
@@ -85,24 +91,30 @@ protected:
     bool m_app_allocated_memory = false;
     /* Flag indicating if memory should be registered */
     bool m_register_memory = false;
+    /* Flag indicating if extra stream buffers should be allocated */
+    bool m_allocate_extra_stream_buffers = false;
 public:
     /**
      * @brief: Constructor for BaseMemoryStrategy.
      *
      * @param [in] header_allocator: Reference to the header memory allocator.
      * @param [in] payload_allocator: Reference to the payload memory allocator.
+     * @param [in] auxiliary_allocator: Reference to the auxiliary memory allocator.
      * @param [in] memory_utils: Reference to the IONodeMemoryUtils object.
      * @param [in] device_interfaces: Vector of NIC device interfaces.
      * @param [in] num_of_mem_regions: Number of memory regions per stream.
      * @param [in] app_allocated_memory: Flag indicating if the application allocated memory.
      * @param [in] register_memory: Flag indicating if memory should be registered.
+     * @param [in] allocate_extra_stream_buffers: Flag indicating if extra stream buffers should be allocated.
      */
     BaseMemoryStrategy(MemoryAllocator& header_allocator, MemoryAllocator& payload_allocator,
+        MemoryAllocator& auxiliary_allocator,
         IONodeMemoryUtils& memory_utils,
         std::vector<rmx_device_iface> device_interfaces,
         size_t num_of_mem_regions,
         bool app_allocated_memory = false,
-        bool register_memory = false);
+        bool register_memory = false,
+        bool allocate_extra_stream_buffers = false);
     /**
      * @brief: Destructor for BaseMemoryStrategy.
      */
@@ -121,34 +133,38 @@ public:
      * @return: Returns status of the operation.
      */
     virtual ReturnStatus add_memory_subcomponent(
-        std::shared_ptr<IHeaderPayloadMemoryLayoutComponent> component);
+        std::shared_ptr<IStreamMemoryLayoutComponent> component);
 protected:
     /**
      * @brief: Allocates memory and aligns it to page size.
      *
      * @param [in] header_size: Requested header memory size.
      * @param [in] payload_size: Requested payload memory size.
+     * @param [in] auxiliary_size: Requested auxiliary memory size.
      * @param [out] header_ptr: Allocated header memory pointer.
      * @param [out] payload_ptr: Allocated payload memory pointer.
+     * @param [out] auxiliary_ptr: Allocated auxiliary memory pointer.
      *
      * @return: True if successful.
      */
-    virtual bool allocate_aligned(size_t header_size, size_t payload_size,
-        byte_t*& header_ptr, byte_t*& payload_ptr);
+    virtual bool allocate_aligned(size_t header_size, size_t payload_size, size_t auxiliary_size,
+                                  byte_t*& header_ptr, byte_t*& payload_ptr, byte_t*& auxiliary_ptr);
     /**
      * @brief: Sets the memory pointers and sizes for a single memory layout component.
      *
-     * @param [in] component_header_payload_buffers_size: The sizes of the header and payload buffer.
+     * @param [in] component_buffer_sizes: The sizes of the stream buffers.
      * @param [in] header_ptr: Pointer to the header buffer.
      * @param [in] payload_ptr: Pointer to the payload buffer.
+     * @param [in] auxiliary_ptr: Pointer to the auxiliary buffer.
      * @param [in] memory_component: The memory subcomponent to apply memory layout for.
      *
      * @return: Returns status of the operation.
      */
     virtual ReturnStatus apply_memory_layout_helper(
-        const std::pair<size_t, size_t>& component_header_payload_buffers_size,
+        const StreamBufferMemorySizes& component_buffer_sizes,
         byte_t* header_ptr, byte_t* payload_ptr,
-        IHeaderPayloadMemoryLayoutComponent& memory_component);
+        byte_t* auxiliary_ptr,
+        IStreamMemoryLayoutComponent& memory_component);
 };
 
 } // namespace apps

@@ -102,7 +102,9 @@ ReceiveStream::ReceiveStream(const ReceiveStreamSettings& settings) :
     m_buffer_elements(settings.m_capacity_in_packets),
     m_header_mem_block_id(settings.m_header_size ? 0 : 1),
     m_payload_mem_block_id(settings.m_header_size ? 1 : 0),
-    m_header_block(nullptr), m_payload_block(nullptr),
+    m_header_block(nullptr),
+    m_payload_block(nullptr),
+    m_auxiliary_block(nullptr),
     m_min_packets_in_chunk(settings.m_min_packets_in_chunk),
     m_max_packets_in_chunk(settings.m_max_packets_in_chunk),
     m_completion_moderation_timeout_usec(settings.m_completion_moderation_timeout_usec)
@@ -228,6 +230,9 @@ ReturnStatus ReceiveStream::initialize_memory_layout()
     if (is_header_data_split_on() && !m_header_block) {
         m_header_block = rmx_input_get_mem_block_buffer(&m_stream_params, m_header_mem_block_id);
     }
+    if (!m_auxiliary_block) {
+        m_auxiliary_block = rmx_input_get_auxiliary_buffer(&m_stream_params);
+    }
 
     m_buffer_elements = (uint32_t)rmx_input_get_mem_capacity_in_packets(&m_stream_params);
 
@@ -252,7 +257,7 @@ ReturnStatus ReceiveStream::query_buffer_size(size_t& header_buffer_size, size_t
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiveStream::determine_memory_layout_helper(size_t& header_buffer_size, size_t& payload_buffer_size) const
+ReturnStatus ReceiveStream::determine_memory_layout_helper(size_t& header_buffer_size, size_t& payload_buffer_size, size_t& auxiliary_buffer_size) const
 {
     header_buffer_size = 0;
     payload_buffer_size = 0;
@@ -266,11 +271,12 @@ ReturnStatus ReceiveStream::determine_memory_layout_helper(size_t& header_buffer
     if (m_header_block != nullptr) {
         header_buffer_size = m_header_block->length;
     }
+    auxiliary_buffer_size = m_auxiliary_block->length;
 
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiveStream::validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) const
+ReturnStatus ReceiveStream::validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) const
 {
     const auto& stream_memory_layout = memory_layout_response.memory_layout;
 
@@ -283,15 +289,17 @@ ReturnStatus ReceiveStream::validate_memory_layout(const HeaderPayloadMemoryLayo
 
     size_t header_buffer_size = 0;
     size_t payload_buffer_size = 0;
+    size_t auxiliary_buffer_size = 0;
 
-    ReturnStatus status = determine_memory_layout_helper(header_buffer_size, payload_buffer_size);
+    ReturnStatus status = determine_memory_layout_helper(header_buffer_size, payload_buffer_size, auxiliary_buffer_size);
     if (status != ReturnStatus::success) {
         std::cerr << "Failed to query buffer size" << std::endl;
         return status;
     }
 
     if (stream_memory_layout.header_memory_size < header_buffer_size ||
-        stream_memory_layout.payload_memory_size < payload_buffer_size) {
+        stream_memory_layout.payload_memory_size < payload_buffer_size ||
+        stream_memory_layout.auxiliary_memory_size < auxiliary_buffer_size) {
         std::cerr << "Invalid buffer size" << std::endl;
         return ReturnStatus::failure;
     }
@@ -299,23 +307,27 @@ ReturnStatus ReceiveStream::validate_memory_layout(const HeaderPayloadMemoryLayo
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiveStream::determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const
+ReturnStatus ReceiveStream::determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const
 {
     size_t header_buffer_size = 0;
     size_t payload_buffer_size = 0;
+    size_t auxiliary_buffer_size = 0;
 
-    ReturnStatus status = determine_memory_layout_helper(header_buffer_size, payload_buffer_size);
+    ReturnStatus status = determine_memory_layout_helper(header_buffer_size, payload_buffer_size, auxiliary_buffer_size);
     if (status != ReturnStatus::success) {
         std::cerr << "Failed to determine memory layout" << std::endl;
         return status;
     }
 
-    memory_layout_request.header_payload_buffers_size = {header_buffer_size, payload_buffer_size};
+    auto& buffer_sizes = memory_layout_request.buffer_sizes;
+    buffer_sizes.header_buffer_size = header_buffer_size;
+    buffer_sizes.payload_buffer_size = payload_buffer_size;
+    buffer_sizes.auxiliary_buffer_size = auxiliary_buffer_size;
 
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiveStream::apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response)
+ReturnStatus ReceiveStream::apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response)
 {
     const auto& stream_memory_layout = memory_layout_response.memory_layout;
     ReturnStatus status = validate_memory_layout(memory_layout_response);
@@ -324,7 +336,7 @@ ReturnStatus ReceiveStream::apply_memory_layout(const HeaderPayloadMemoryLayoutR
         return status;
     }
 
-    set_buffers(stream_memory_layout.header_memory_ptr, stream_memory_layout.payload_memory_ptr);
+    set_buffers(stream_memory_layout.header_memory_ptr, stream_memory_layout.payload_memory_ptr, stream_memory_layout.auxiliary_memory_ptr);
 
     if (stream_memory_layout.register_memory) {
         set_memory_keys(stream_memory_layout.header_memory_keys[0], stream_memory_layout.payload_memory_keys[0]);
@@ -333,12 +345,13 @@ ReturnStatus ReceiveStream::apply_memory_layout(const HeaderPayloadMemoryLayoutR
     return ReturnStatus::success;
 }
 
-void ReceiveStream::set_buffers(void* header_ptr, void* payload_ptr)
+void ReceiveStream::set_buffers(void* header_ptr, void* payload_ptr, void* auxiliary_ptr)
 {
     if (m_header_block != nullptr) {
         m_header_block->addr = header_ptr;
     }
     m_payload_block->addr = payload_ptr;
+    m_auxiliary_block->addr = auxiliary_ptr;
 }
 
 void ReceiveStream::set_memory_keys(rmx_mkey_id header_mkey, rmx_mkey_id payload_mkey)

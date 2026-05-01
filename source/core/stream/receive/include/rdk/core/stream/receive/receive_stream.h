@@ -24,7 +24,7 @@
 #include <rivermax_api.h>
 
 #include "rdk/services/error_handling/return_status.h"
-#include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/core/memory_layout/stream_memory_layout.h"
 #include "rdk/core/stream/receive/single_receive_stream_interface.h"
 #include "rdk/core/chunk/receive_chunk.h"
 #include "rdk/core/flow/receive_flow.h"
@@ -146,9 +146,9 @@ public:
     ReturnStatus detach_flows() override;
     ReturnStatus destroy_stream() override;
     ReturnStatus initialize_memory_layout() override;
-    ReturnStatus determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const override;
-    ReturnStatus apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) override;
-    ReturnStatus validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_respose) const override;
+    ReturnStatus determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const override;
+    ReturnStatus apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) override;
+    ReturnStatus validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_respose) const override;
     ReturnStatus apply_runtime_parameters() override;
     ReturnStatus set_completion_moderation(size_t min_count, size_t max_count, int timeout_usec) override;
     size_t get_header_stride_size() const override { return m_header_stride_size; }
@@ -197,8 +197,9 @@ public:
      * @param [in] header_ptr: Pointer to header data buffer. Should be NULL if
      *                         header-data split mode is not enabled.
      * @param [in] payload_ptr: Pointer to payload data buffer.
+     * @param [in] auxiliary_ptr: Pointer to auxiliary data buffer.
      */
-    void set_buffers(void* header_ptr, void* payload_ptr);
+    void set_buffers(void* header_ptr, void* payload_ptr, void* auxiliary_ptr);
     /**
      * @brief: Sets memory regions for header and payload memory.
      *
@@ -216,12 +217,13 @@ protected:
      *
      * @param [out] header_buffer_size: Header buffer size (if header-data split is enabled).
      * @param [out] payload_buffer_size: Payload buffer size.
+     * @param [out] auxiliary_buffer_size: Auxiliary buffer size.
      *
      * @return: Status of the operation:
      *          @ref ReturnStatus::success - In case of success.
      *          @ref ReturnStatus::failure - In case of failure, Rivermax status will be logged.
      */
-    ReturnStatus determine_memory_layout_helper(size_t& header_buffer_size, size_t& payload_buffer_size) const;
+    ReturnStatus determine_memory_layout_helper(size_t& header_buffer_size, size_t& payload_buffer_size, size_t& auxiliary_buffer_size) const;
 protected:
     ReceiveStreamSettings m_stream_settings;
     rmx_input_stream_params m_stream_params;
@@ -235,6 +237,7 @@ protected:
     std::unordered_set<ReceiveFlow> m_flows;
     rmx_mem_region* m_header_block;
     rmx_mem_region* m_payload_block;
+    rmx_mem_region* m_auxiliary_block;
     size_t m_min_packets_in_chunk;
     size_t m_max_packets_in_chunk;
     int m_completion_moderation_timeout_usec;

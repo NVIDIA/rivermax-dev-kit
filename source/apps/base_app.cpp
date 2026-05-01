@@ -74,16 +74,13 @@ ReturnStatus BaseApp::initialize_memory_allocators()
         return ReturnStatus::failure;
     }
     AllocatorType allocator_type = alloc_type_iter->second;
-    AllocatorType header_allocator_type;
     AllocatorType payload_allocator_type;
     if (m_app_settings->gpu_id != INVALID_GPU_ID) {
-        header_allocator_type = allocator_type;
         payload_allocator_type = AllocatorType::GPU;
     } else {
-        header_allocator_type = allocator_type;
         payload_allocator_type = allocator_type;
     }
-    m_header_allocator = m_rivermax_dev_kit.get_memory_allocator(header_allocator_type, m_app_settings);
+    m_header_allocator = m_rivermax_dev_kit.get_memory_allocator(allocator_type, m_app_settings);
     if (m_header_allocator == nullptr) {
         std::cerr << "Failed to create header memory allocator" << std::endl;
         return ReturnStatus::failure;
@@ -91,6 +88,11 @@ ReturnStatus BaseApp::initialize_memory_allocators()
     m_payload_allocator = m_rivermax_dev_kit.get_memory_allocator(payload_allocator_type, m_app_settings);
     if (m_payload_allocator == nullptr) {
         std::cerr << "Failed to create payload memory allocator" << std::endl;
+        return ReturnStatus::failure;
+    }
+    m_auxiliary_allocator = m_rivermax_dev_kit.get_memory_allocator(allocator_type, m_app_settings);
+    if (m_auxiliary_allocator == nullptr) {
+        std::cerr << "Failed to create auxiliary memory allocator" << std::endl;
         return ReturnStatus::failure;
     }
     m_memory_utils = std::make_unique<IONodeMemoryUtils>(*m_header_allocator, *m_payload_allocator);

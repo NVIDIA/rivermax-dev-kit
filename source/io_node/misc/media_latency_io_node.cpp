@@ -105,7 +105,8 @@ void MediaTxIONode::distribute_memory_for_streams(rmx_mem_region& tx_header_mreg
     m_receive_header_region = rx_header_mreg;
     m_receive_payload_region = rx_payload_mreg;
     m_receive_stream->set_buffers(reinterpret_cast<byte_t*>(rx_header_mreg.addr),
-                                  reinterpret_cast<byte_t*>(rx_payload_mreg.addr));
+                                  reinterpret_cast<byte_t*>(rx_payload_mreg.addr),
+                                  nullptr);
     m_send_mem_blockset = std::unique_ptr<MediaStreamMemBlockset>(
             new MediaStreamMemBlockset(1,
                                        m_media_settings.packet_app_header_size == 0 ? 1 : 2,

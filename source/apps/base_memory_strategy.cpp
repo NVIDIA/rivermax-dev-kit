@@ -36,19 +36,24 @@ using namespace rdk::services;
 using namespace rdk::core;
 
 BaseMemoryStrategy::BaseMemoryStrategy(
-    MemoryAllocator& header_allocator, MemoryAllocator& payload_allocator,
+    MemoryAllocator& header_allocator,
+    MemoryAllocator& payload_allocator,
+    MemoryAllocator& auxiliary_allocator,
     IONodeMemoryUtils& memory_utils,
     std::vector<rmx_device_iface> device_interfaces,
     size_t num_of_mem_regions,
     bool app_allocated_memory,
-    bool register_memory) :
+    bool register_memory,
+    bool allocate_extra_stream_buffers) :
     m_header_allocator(header_allocator),
     m_payload_allocator(payload_allocator),
+    m_auxiliary_allocator(auxiliary_allocator),
     m_memory_utils(memory_utils),
     m_device_interfaces(std::move(device_interfaces)),
     m_num_of_mem_regions(num_of_mem_regions),
     m_app_allocated_memory(app_allocated_memory),
-    m_register_memory(register_memory)
+    m_register_memory(register_memory),
+    m_allocate_extra_stream_buffers(allocate_extra_stream_buffers)
 {
 }
 
@@ -60,8 +65,9 @@ ReturnStatus BaseMemoryStrategy::determine_memory_layout()
 
     m_header_memory_size = 0;
     m_payload_memory_size = 0;
-    m_header_payload_subcomponents_buffer_sizes.clear();
-    m_header_payload_subcomponents_buffer_sizes.reserve(m_memory_subcomponents.size());
+    m_auxiliary_memory_size = 0;
+    m_subcomponents_buffer_sizes.clear();
+    m_subcomponents_buffer_sizes.reserve(m_memory_subcomponents.size());
 
     for (const auto& subcomponent : m_memory_subcomponents) {
         ReturnStatus status = subcomponent->initialize_memory_layout();
@@ -72,21 +78,25 @@ ReturnStatus BaseMemoryStrategy::determine_memory_layout()
     }
 
     for (const auto& subcomponent : m_memory_subcomponents) {
-        HeaderPayloadMemoryLayoutRequest subcomponent_memory_layout;
+        StreamMemoryLayoutRequest subcomponent_memory_layout;
         ReturnStatus status = subcomponent->determine_memory_layout(subcomponent_memory_layout);
         if (status != ReturnStatus::success) {
             std::cerr << "Failed to determine memory layout for memory subcomponent" << std::endl;
             return status;
         }
 
-        m_header_memory_size += subcomponent_memory_layout.header_payload_buffers_size.first;
-        m_payload_memory_size += subcomponent_memory_layout.header_payload_buffers_size.second;
-        m_header_payload_subcomponents_buffer_sizes.push_back(
-            subcomponent_memory_layout.header_payload_buffers_size);
+        m_header_memory_size += subcomponent_memory_layout.buffer_sizes.header_buffer_size;
+        m_payload_memory_size += subcomponent_memory_layout.buffer_sizes.payload_buffer_size;
+        m_auxiliary_memory_size += subcomponent_memory_layout.buffer_sizes.auxiliary_buffer_size;
+        m_subcomponents_buffer_sizes.push_back(subcomponent_memory_layout.buffer_sizes);
     }
     m_memory_layout_determined = true;
-    std::cout << "Application requires " << m_header_memory_size << " bytes of header memory and "
-              << m_payload_memory_size << " bytes of payload memory" << std::endl;
+    if (!m_allocate_extra_stream_buffers) {
+        m_auxiliary_memory_size = 0;
+    }
+    std::cout << "Application requires " << m_header_memory_size << " bytes of header memory, "
+              << m_payload_memory_size << " bytes of payload memory and "
+              << m_auxiliary_memory_size << " bytes of auxiliary buffer memory" << std::endl;
 
     return ReturnStatus::success;
 }
@@ -101,13 +111,15 @@ ReturnStatus BaseMemoryStrategy::allocate_memory()
         return ReturnStatus::failure;
     }
 
-    bool alloc_successful = allocate_aligned(m_header_memory_size, m_payload_memory_size,
-                                             m_header_buffer, m_payload_buffer);
+    bool alloc_successful = allocate_aligned(m_header_memory_size, m_payload_memory_size, m_auxiliary_memory_size,
+                                             m_header_buffer, m_payload_buffer, m_auxiliary_buffer);
     if (alloc_successful) {
         std::cout << "Allocated " << m_header_memory_size << " bytes for header"
             << " at address " << static_cast<void*>(m_header_buffer)
-            << " and " <<  m_payload_memory_size << " bytes for payload"
-            << " at address " << static_cast<void*>(m_payload_buffer) << std::endl;
+            << ", " <<  m_payload_memory_size << " bytes for payload"
+            << " at address " << static_cast<void*>(m_payload_buffer) << " and "
+            << m_auxiliary_memory_size << " bytes for auxiliary buffer"
+            << " at address " << static_cast<void*>(m_auxiliary_buffer) << std::endl;
     } else {
         std::cerr << "Failed to allocate memory" << std::endl;
         return ReturnStatus::failure;
@@ -184,21 +196,25 @@ ReturnStatus BaseMemoryStrategy::apply_memory_layout()
 {
     byte_t* header_ptr = m_header_buffer;
     byte_t* payload_ptr = m_payload_buffer;
+    byte_t* auxiliary_ptr = m_auxiliary_buffer;
     ReturnStatus status;
 
     for (size_t i = 0; i < m_memory_subcomponents.size(); ++i) {
         auto& subcomponent = m_memory_subcomponents[i];
-        auto& subcomponent_header_payload_buffers_size = m_header_payload_subcomponents_buffer_sizes[i];
+        auto& subcomponent_buffers_size = m_subcomponents_buffer_sizes[i];
 
         if (m_app_allocated_memory) {
-            status = apply_memory_layout_helper(subcomponent_header_payload_buffers_size,
-                    header_ptr, payload_ptr, *subcomponent);
+            status = apply_memory_layout_helper(subcomponent_buffers_size,
+                    header_ptr, payload_ptr, auxiliary_ptr, *subcomponent);
             if (header_ptr) {
-                header_ptr += subcomponent_header_payload_buffers_size.first;
+                header_ptr += subcomponent_buffers_size.header_buffer_size;
             }
-            payload_ptr += subcomponent_header_payload_buffers_size.second;
+            payload_ptr += subcomponent_buffers_size.payload_buffer_size;
+            if (auxiliary_ptr) {
+                auxiliary_ptr += subcomponent_buffers_size.auxiliary_buffer_size;
+            }
         } else {
-            status = apply_memory_layout_helper({0, 0}, nullptr, nullptr, *subcomponent);
+            status = apply_memory_layout_helper({0, 0, 0}, nullptr, nullptr, nullptr, *subcomponent);
         }
         if (status != ReturnStatus::success) {
             std::cerr << "Failed to apply memory layout for component." << std::endl;
@@ -210,16 +226,18 @@ ReturnStatus BaseMemoryStrategy::apply_memory_layout()
 }
 
 ReturnStatus BaseMemoryStrategy::apply_memory_layout_helper(
-    const std::pair<size_t, size_t>& component_header_payload_buffers_size,
-    byte_t* header_ptr, byte_t* payload_ptr,
-    IHeaderPayloadMemoryLayoutComponent& memory_component)
+    const StreamBufferMemorySizes& component_buffer_sizes,
+    byte_t* header_ptr, byte_t* payload_ptr, byte_t* auxiliary_ptr,
+    IStreamMemoryLayoutComponent& memory_component)
 {
-    HeaderPayloadMemoryLayoutResponse component_memory_layout_response;
+    StreamMemoryLayoutResponse component_memory_layout_response;
     auto& component_memory_layout = component_memory_layout_response.memory_layout;
     component_memory_layout.header_memory_ptr = header_ptr;
     component_memory_layout.payload_memory_ptr = payload_ptr;
-    component_memory_layout.header_memory_size = component_header_payload_buffers_size.first;
-    component_memory_layout.payload_memory_size = component_header_payload_buffers_size.second;
+    component_memory_layout.auxiliary_memory_ptr = auxiliary_ptr;
+    component_memory_layout.header_memory_size = component_buffer_sizes.header_buffer_size;
+    component_memory_layout.payload_memory_size = component_buffer_sizes.payload_buffer_size;
+    component_memory_layout.auxiliary_memory_size = component_buffer_sizes.auxiliary_buffer_size;
     component_memory_layout.register_memory = m_register_memory;
 
     if (component_memory_layout.register_memory) {
@@ -240,19 +258,24 @@ ReturnStatus BaseMemoryStrategy::apply_memory_layout_helper(
 }
 
 bool BaseMemoryStrategy::allocate_aligned(
-    size_t header_size, size_t payload_size, byte_t*& header_ptr, byte_t*& payload_ptr)
+    size_t header_size, size_t payload_size, size_t auxiliary_size,
+    byte_t*& header_ptr, byte_t*& payload_ptr, byte_t*& auxiliary_ptr)
 {
-    header_ptr = payload_ptr = nullptr;
+    header_ptr = payload_ptr = auxiliary_ptr = nullptr;
     if (header_size) {
         header_ptr = static_cast<byte_t*>(m_header_allocator.allocate_aligned(header_size,
             m_header_allocator.get_page_size()));
     }
     payload_ptr = static_cast<byte_t*>(m_payload_allocator.allocate_aligned(payload_size,
         m_payload_allocator.get_page_size()));
-    return payload_ptr && (header_size == 0 || header_ptr);
+    if (auxiliary_size) {
+        auxiliary_ptr = static_cast<byte_t*>(m_auxiliary_allocator.allocate_aligned(auxiliary_size,
+            m_auxiliary_allocator.get_page_size()));
+    }
+    return payload_ptr && (header_size == 0 || header_ptr) && (auxiliary_size == 0 || auxiliary_ptr);
 }
 
-ReturnStatus BaseMemoryStrategy::add_memory_subcomponent(std::shared_ptr<IHeaderPayloadMemoryLayoutComponent> component) {
+ReturnStatus BaseMemoryStrategy::add_memory_subcomponent(std::shared_ptr<IStreamMemoryLayoutComponent> component) {
     m_memory_subcomponents.push_back(std::move(component));
     return ReturnStatus::success;
 }

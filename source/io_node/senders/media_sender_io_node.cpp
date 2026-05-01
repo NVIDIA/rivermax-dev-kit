@@ -147,22 +147,25 @@ ReturnStatus MediaSenderIONode::initialize_memory_layout()
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaSenderIONode::determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const
+ReturnStatus MediaSenderIONode::determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const
 {
     if (m_payload_total_memory_size == 0) {
         std::cerr << "No memory requirements found for sender " << get_index() << std::endl;
         return ReturnStatus::failure;
     }
-    memory_layout_request.header_payload_buffers_size = {m_header_total_memory_size, m_payload_total_memory_size};
+    auto& buffer_sizes = memory_layout_request.buffer_sizes;
+    buffer_sizes.header_buffer_size = m_header_total_memory_size;
+    buffer_sizes.payload_buffer_size = m_payload_total_memory_size;
+    buffer_sizes.auxiliary_buffer_size = 0;
     return ReturnStatus::success;
 }
 
-bool MediaSenderIONode::is_internal_allocation_requested(const HeaderPayloadMemoryLayout& layout) const
+bool MediaSenderIONode::is_internal_allocation_requested(const StreamMemoryLayout& layout) const
 {
     return layout.header_memory_size == 0 && layout.payload_memory_size == 0;
 }
 
-ReturnStatus MediaSenderIONode::apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response)
+ReturnStatus MediaSenderIONode::apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response)
 {
     if (is_internal_allocation_requested(memory_layout_response.memory_layout)) {
         return apply_memory_layout_to_subcomponents();
@@ -176,7 +179,7 @@ ReturnStatus MediaSenderIONode::apply_memory_layout(const HeaderPayloadMemoryLay
     return apply_memory_layout_to_subcomponents(memory_layout_response.memory_layout);
 }
 
-ReturnStatus MediaSenderIONode::validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) const
+ReturnStatus MediaSenderIONode::validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) const
 {
     const auto& io_node_memory_layout = memory_layout_response.memory_layout;
 
@@ -202,7 +205,7 @@ ReturnStatus MediaSenderIONode::validate_memory_layout(const HeaderPayloadMemory
 
 ReturnStatus MediaSenderIONode::initialize_mem_blockset(
     MediaStreamMemBlockset& mem_blockset, uint8_t* header_memory_ptr,
-    uint8_t* payload_memory_ptr, const HeaderPayloadMemoryLayout& io_node_memory_layout, size_t number_of_memory_blocks)
+    uint8_t* payload_memory_ptr, const StreamMemoryLayout& io_node_memory_layout, size_t number_of_memory_blocks)
 {
     // Provide size arrays only if it contains valid information. Otherwise, for dynamic streams, no sizes are provided.
     // Header sizes will also be nullptr for non-HDS streams.
@@ -278,7 +281,7 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents()
 }
 
 ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents(
-    const HeaderPayloadMemoryLayout& memory_layout)
+    const StreamMemoryLayout& memory_layout)
 {
     // Dynamic streams (ancillary) provides sizes at runtime. Otherwise, pre-fill size arrays.
     if (!m_media_settings.needs_dynamic_packet_sizes()) {

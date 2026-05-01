@@ -27,7 +27,7 @@
 
 #include "rdk/services/utils/defs.h"
 #include "rdk/services/error_handling/return_status.h"
-#include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/core/memory_layout/stream_memory_layout.h"
 #include "rdk/core/stream/send/send_stream_interface.h"
 #include "rdk/core/chunk/generic_chunk.h"
 #include "rdk/core/flow/flow.h"
@@ -113,7 +113,7 @@ protected:
  * This class implements @ref ISendStream operations.
  * It uses Rivermax TX generic API.
  */
-class GenericSendStream : public ISendStream, public IHeaderPayloadMemoryLayoutComponent
+class GenericSendStream : public ISendStream, public IStreamMemoryLayoutComponent
 {
 protected:
     GenericStreamSettings m_stream_settings;
@@ -140,9 +140,9 @@ public:
     ReturnStatus create_stream() override;
     ReturnStatus destroy_stream() override;
     ReturnStatus initialize_memory_layout() override;
-    ReturnStatus determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const override;
-    ReturnStatus apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) override;
-    ReturnStatus validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_respose) const override;
+    ReturnStatus determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const override;
+    ReturnStatus apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) override;
+    ReturnStatus validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_respose) const override;
     /**
      * @brief: Returns a generic chunk from the chunk pool by index.
      *

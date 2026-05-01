@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,6 @@
 
 #include "rdk/core/memory_layout/memory_layout_interface.h"
 #include "rdk/core/memory_layout/media_memory_layout.h"
-#include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/core/memory_layout/stream_memory_layout.h"
 
 #endif /* RDK_CORE_MEMORY_LAYOUT_MEMORY_LAYOUT_H_ */

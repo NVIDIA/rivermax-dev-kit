@@ -30,7 +30,7 @@
 
 #include "rdk/io_node/common/io_node_memory_utils.h"
 #include "rdk/core/data_handler/receive_data_consumer_interface.h"
-#include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/core/memory_layout/stream_memory_layout.h"
 
 using namespace rdk::services;
 using namespace rdk::core;
@@ -87,7 +87,7 @@ struct RXStatistics {
  * overriding the operator (). Each receiver will be able to run multiple
  * streams.
  */
-class ReceiverIONodeBase : public IHeaderPayloadMemoryLayoutComponent
+class ReceiverIONodeBase : public IStreamMemoryLayoutComponent
 {
 protected:
     static constexpr size_t DEFAULT_MAX_CHUNK_SIZE = 1024;
@@ -102,15 +102,16 @@ protected:
     std::vector<std::unique_ptr<IReceiveDataConsumer>> m_data_consumers;
     size_t m_header_total_memory_size = 0;
     size_t m_payload_total_memory_size = 0;
-    std::vector<std::pair<size_t, size_t>> m_aligned_header_payload_buffers_size;
+    size_t m_auxiliary_total_memory_size = 0;
+    std::vector<StreamBufferMemorySizes> m_buffer_sizes;
     uint32_t m_print_interval_ms = 1000;
 
 public:
     virtual ~ReceiverIONodeBase() = default;
     ReturnStatus initialize_memory_layout() override;
-    ReturnStatus determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const override;
-    ReturnStatus apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) override;
-    ReturnStatus validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_respose) const override;
+    ReturnStatus determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const override;
+    ReturnStatus apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) override;
+    ReturnStatus validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_respose) const override;
     /**
      * @brief: Prints receiver's parameters to a output stream.
      *
@@ -251,17 +252,18 @@ protected:
      *
      * @param [in] stream: The stream to build the memory layout for.
      * @param [in] provided_memory_layout: The memory layout provided to the IO Node.
-     * @param [in] stream_header_payload_buffers_size: The aligned stream header payload buffer sizes.
+     * @param [in] stream_buffer_sizes: The aligned stream buffer sizes.
      * @param [out] header_offset: The offset for the header memory.
      * @param [out] payload_offset: The offset for the payload memory.
+     * @param [out] auxiliary_offset: The offset for the auxiliary buffer.
      *
      * @return: Status of the operation.
      */
     ReturnStatus apply_memory_layout_for_subcomponent(
         std::unique_ptr<IReceiveStream>& stream,
-        const HeaderPayloadMemoryLayout& provided_memory_layout,
-        const std::pair<size_t, size_t>& stream_header_payload_buffers_size,
-        size_t& header_offset, size_t& payload_offset) const;
+        const StreamMemoryLayout& provided_memory_layout,
+        const StreamBufferMemorySizes& stream_buffer_sizes,
+        size_t& header_offset, size_t& payload_offset, size_t& auxiliary_offset) const;
     /**
      * @brief: Returns whether the memory layout is initialized.
      *

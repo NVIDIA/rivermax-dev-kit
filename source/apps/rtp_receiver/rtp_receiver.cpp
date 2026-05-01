@@ -86,6 +86,7 @@ ReturnStatus RTPReceiverCLISettingsBuilder::add_cli_options(RTPReceiverSettings&
 #endif
     m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
     m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
+    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS);
     m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
     m_cli_parser_manager->add_option(CLIOptStr::RX_STREAM_TYPE);
     m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);

@@ -26,7 +26,7 @@
 #include <rivermax_api.h>
 #include <vector>
 
-#include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/core/memory_layout/stream_memory_layout.h"
 #include "rdk/io_node/common/chunk_buffer_writer_interface.h"
 #include "rdk/io_node/common/io_node_memory_utils.h"
 #include "rdk/io_node/common/rtp_video_send_stream.h"
@@ -57,7 +57,7 @@ constexpr uint64_t SEND_IMMEDIATELY_AFTER_PENDING_CHUNKS_TIMESTAMP = 0;
  * that will be run under a std::thread by overriding the operator ().
  * Each sender will be able to run multiple streams.
  */
-class MediaSenderIONode : public IHeaderPayloadMemoryLayoutComponent
+class MediaSenderIONode : public IStreamMemoryLayoutComponent
 {
 private:
     /**
@@ -124,9 +124,9 @@ public:
         time_handler_ns_cb_t time_hanlder_cb);
     virtual ~MediaSenderIONode() = default;
     ReturnStatus initialize_memory_layout() override;
-    ReturnStatus determine_memory_layout(HeaderPayloadMemoryLayoutRequest& memory_layout_request) const override;
-    ReturnStatus apply_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_response) override;
-    ReturnStatus validate_memory_layout(const HeaderPayloadMemoryLayoutResponse& memory_layout_respose) const override;
+    ReturnStatus determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const override;
+    ReturnStatus apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) override;
+    ReturnStatus validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_respose) const override;
     /**
      * @brief: Prints sender's parameters to a output stream.
      *
@@ -341,7 +341,7 @@ private:
      *
      * @return: Status of the operation.
      */
-    ReturnStatus apply_memory_layout_to_subcomponents(const HeaderPayloadMemoryLayout& memory_layout);
+    ReturnStatus apply_memory_layout_to_subcomponents(const StreamMemoryLayout& memory_layout);
     /**
      * @brief: Initializes memory blockset with application allocation.
      *
@@ -358,7 +358,7 @@ private:
     ReturnStatus initialize_mem_blockset(
         MediaStreamMemBlockset& mem_blockset,
         uint8_t* header_memory_ptr, uint8_t* payload_memory_ptr,
-        const HeaderPayloadMemoryLayout& io_node_memory_layout,
+        const StreamMemoryLayout& io_node_memory_layout,
         size_t number_of_memory_blocks);
     /**
      * @brief: Initializes memory blockset with Rivermax allocation.
@@ -379,7 +379,7 @@ private:
      *
      * @return: True if internal allocation is requested, false otherwise.
      */
-    bool is_internal_allocation_requested(const HeaderPayloadMemoryLayout& layout) const;
+    bool is_internal_allocation_requested(const StreamMemoryLayout& layout) const;
     /**
      * @brief: Processes a media essence unit.
      *

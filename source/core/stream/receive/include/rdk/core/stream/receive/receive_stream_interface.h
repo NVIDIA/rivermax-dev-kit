@@ -25,7 +25,7 @@
 
 #include <rivermax_api.h>
 
-#include "rdk/core/memory_layout/header_payload_memory_layout.h"
+#include "rdk/core/memory_layout/stream_memory_layout.h"
 #include "rdk/core/stream/stream_interface.h"
 #include "rdk/core/chunk/receive_chunk.h"
 
@@ -36,7 +36,7 @@ namespace core
 /**
  * @brief: Receive stream interface.
  */
-class IReceiveStream : public IStream, public IHeaderPayloadMemoryLayoutComponent
+class IReceiveStream : public IStream, public IStreamMemoryLayoutComponent
 {
 public:
     virtual ~IReceiveStream() = default;

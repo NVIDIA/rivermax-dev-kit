@@ -67,6 +67,8 @@ protected:
     std::shared_ptr<MemoryAllocator> m_header_allocator;
     /* Payload memory allocator */
     std::shared_ptr<MemoryAllocator> m_payload_allocator;
+    /* Auxiliary memory allocator */
+    std::shared_ptr<MemoryAllocator> m_auxiliary_allocator;
     /* Application signal handler */
     std::shared_ptr<SignalHandler> m_signal_handler;
     /* Application GPU manager */
