@@ -49,7 +49,8 @@ set(RIVERMAX_DEV_KIT_APP_COMPONENTS
     ipo_receiver
     rtp_receiver
     media_probe
-    media_receiver
+    # TODO: Enable media_receiver when the work is complete.
+    # media_receiver
     media_sender
     generic_sender
     CACHE INTERNAL "Rivermax Dev Kit application components."

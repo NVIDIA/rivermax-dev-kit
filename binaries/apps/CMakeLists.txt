@@ -25,7 +25,8 @@ set(RIVERMAX_DEV_KIT_BINARIES
     rdk_ipo_receiver
     rdk_rtp_receiver
     rdk_media_probe
-    rdk_media_receiver
+    # TODO: Enable rdk_media_receiver when the work is complete.
+    # rdk_media_receiver
     rdk_media_sender
     CACHE INTERNAL "Rivermax Dev Kit application binaries."
 )
