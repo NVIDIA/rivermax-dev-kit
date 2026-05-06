@@ -20,7 +20,7 @@
 #include "rdk/services/media/media_defs.h"
 #include "rdk/services/media/media_settings_video.h"
 #include "rdk/services/media/null_essence_source.h"
-#include "rdk/examples/apps/rdk_media_sender/video_frames_sender.h"
+#include "rdk/examples/apps/media_sender/video_frames_sender.h"
 
 using namespace rdk::apps;
 using namespace rdk::services;

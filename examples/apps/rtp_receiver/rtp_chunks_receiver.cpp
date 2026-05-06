@@ -19,7 +19,7 @@
 #include <memory>
 
 #include "rdk/apps/rtp_receiver/rtp_receiver.h"
-#include "rdk/examples/apps/rdk_rtp_receiver/rtp_chunks_receiver.h"
+#include "rdk/examples/apps/rtp_receiver/rtp_chunks_receiver.h"
 
 using namespace rdk::apps;
 using namespace rdk::services;

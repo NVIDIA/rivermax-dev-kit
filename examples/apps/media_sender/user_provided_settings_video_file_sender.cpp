@@ -19,7 +19,7 @@
 #include <memory>
 
 #include "rdk/apps/media_sender/media_sender.h"
-#include "rdk/examples/apps/rdk_media_sender/user_provided_settings_video_file_sender.h"
+#include "rdk/examples/apps/media_sender/user_provided_settings_video_file_sender.h"
 
 using namespace rdk::apps;
 using namespace rdk::services;

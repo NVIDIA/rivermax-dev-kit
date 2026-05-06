@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RDK_EXAMPLES_APPS_RDK_MEDIA_SENDER_VIDEO_FRAMES_SENDER_H_
-#define RDK_EXAMPLES_APPS_RDK_MEDIA_SENDER_VIDEO_FRAMES_SENDER_H_
+#ifndef RDK_EXAMPLES_APPS_MEDIA_SENDER_USER_PROVIDED_SETTINGS_VIDEO_FILE_SENDER_H_
+#define RDK_EXAMPLES_APPS_MEDIA_SENDER_USER_PROVIDED_SETTINGS_VIDEO_FILE_SENDER_H_
 
 #include "rdk/apps/media_sender/media_sender.h"
 #include "rdk/services/error_handling/return_status.h"
@@ -32,23 +32,23 @@ namespace examples
 {
 namespace apps
 {
-
 /**
- * @brief: Video frames sender example.
+ * @brief: User-provided settings video file sender example.
  *
- * This example demonstrates sending video frames provided by a client application from the app level module.
- * It uses a dummy frame source that simulates frames from external application.
+ * This example demonstrates sending video files using user-provided application settings from
+ * the app level module.
  */
-class VideoFramesSenderExample : public BaseExample
+class UserProvidedSettingsVideoFileSenderExample : public BaseExample
 {
 public:
     /**
-     * @brief: Constructor for the @ref VideoFramesSenderExample class.
+     * @brief: Constructor for the @ref UserProvidedSettingsVideoFileSenderExample class.
      */
-    VideoFramesSenderExample();
+    UserProvidedSettingsVideoFileSenderExample();
 
 protected:
     ReturnStatus operator()() override;
+    void add_cli_options() override;
 
 private:
     /**
@@ -63,4 +63,4 @@ private:
 } // namespace examples
 } // namespace rdk
 
-#endif /* RDK_EXAMPLES_APPS_RDK_MEDIA_SENDER_VIDEO_FRAMES_SENDER_H_ */
+#endif /* RDK_EXAMPLES_APPS_MEDIA_SENDER_USER_PROVIDED_SETTINGS_VIDEO_FILE_SENDER_H_ */

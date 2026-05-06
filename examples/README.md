@@ -28,7 +28,7 @@ Additional examples at different levels will be added in the future to cover mor
 
 The `apps/` directory contains application level examples that demonstrate real-world usage scenarios and end-to-end workflows.
 
-#### rdk_media_sender
+#### media_sender
 
 This submodule contains examples for media streaming:
 
@@ -38,7 +38,7 @@ This submodule contains examples for media streaming:
 
 - **video_frames_sender**: This example demonstrates video frame transmission using the media unit abstract API for efficient media streaming. It shows how to use the media essence source API where media units represent video frames, providing direct control over individual frame processing and delivery.
 
-#### rdk_rtp_receiver
+#### rtp_receiver
 
 This submodule contains examples for RTP packet reception and processing:
 
@@ -123,7 +123,7 @@ All example-related code should be implemented in the overridden call operator f
 
 Examples should be organized to mirror the source code structure and clearly reflect their purpose:
 
-- **Module-specific examples**: Place in the corresponding module's directory (e.g., `apps/rdk_rtp_receiver/`, `services/memory_allocation/`). Use this for examples that demonstrate features, capabilities, or workflows of a single module, even if they use other modules as dependencies or supporting functionality.
+- **Module-specific examples**: Place in the corresponding module's directory (e.g., `apps/rtp_receiver/`, `services/memory_allocation/`). Use this for examples that demonstrate features, capabilities, or workflows of a single module, even if they use other modules as dependencies or supporting functionality.
 
 - **Integration examples**: Place in an `integration/` subdirectory within the module category (e.g., `apps/integration/`, `services/integration/`). Use this only when the example's primary purpose is demonstrating coordination between multiple modules, where the modules are used equally and centrally to achieve the example's unified workflow.
 
