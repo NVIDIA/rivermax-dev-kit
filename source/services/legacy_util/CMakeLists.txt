@@ -46,3 +46,5 @@ target_sources(${PROJECT_NAME}
         rt_threads.cpp
         gpu.cpp
 )
+
+target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})

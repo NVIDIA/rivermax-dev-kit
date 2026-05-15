@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-#ifndef RDK_SERVICES_CPU_AFFINITY_WINDOWS_WINDOWS_H_
-#define RDK_SERVICES_CPU_AFFINITY_WINDOWS_WINDOWS_H_
+#ifndef RDK_SERVICES_CPU_CPU_H_
+#define RDK_SERVICES_CPU_CPU_H_
 
-#include "rdk/services/cpu/affinity/windows/rivermax_os_affinity.h"
+#include "rdk/services/cpu/cpu_utils.h"
 
-#endif /* RDK_SERVICES_CPU_AFFINITY_WINDOWS_WINDOWS_H_ */
+#endif /* RDK_SERVICES_CPU_CPU_H_ */

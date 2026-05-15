@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(rivermax-dev-kit-services-protocol)
 
-add_library(${PROJECT_NAME} OBJECT)
+add_library(${PROJECT_NAME} STATIC)
 
 target_sources(${PROJECT_NAME}
     PRIVATE
@@ -29,7 +29,7 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC
         include
 )
-target_link_libraries(${PROJECT_NAME} 
+target_link_libraries(${PROJECT_NAME}
     PRIVATE
         rivermax-dev-kit-build
     PUBLIC
@@ -38,3 +38,5 @@ target_link_libraries(${PROJECT_NAME}
         rivermax-dev-kit-services-media
         rivermax-dev-kit-services-sdp
 )
+
+target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,22 +14,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(rivermax-dev-kit-services-cpu)
-
-# Dynamic/configurable version (uses RIVERMAX_DEV_KIT_TARGET)
-add_library(${PROJECT_NAME} OBJECT)
-
-target_sources(${PROJECT_NAME}
-    PRIVATE
-        cpu_utils.cpp
-)
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_link_libraries(${PROJECT_NAME} 
-    PUBLIC
-        rivermax-dev-kit-services-cpu-affinity
-    PRIVATE
-        Rivermax::Rivermax
-        rivermax-dev-kit-build
-)
-
 add_subdirectory(affinity)
+add_subdirectory(rivermax_cpu)

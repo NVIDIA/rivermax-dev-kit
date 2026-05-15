@@ -16,7 +16,7 @@
 
 project(rivermax-dev-kit-services-utils)
 
-add_library(${PROJECT_NAME} OBJECT)
+add_library(${PROJECT_NAME} STATIC)
 
 target_sources(${PROJECT_NAME}
     PRIVATE
@@ -34,3 +34,5 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         rivermax-dev-kit-services-error-handling
 )
+
+target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})

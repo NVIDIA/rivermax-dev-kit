@@ -18,25 +18,22 @@ if(RIVERMAX_DEV_KIT_SERVICES_STANDALONE)
     return()
 endif()
 
-project(rivermax-dev-kit-services-statistics)
+project(rivermax-dev-kit-services-rivermax-cpu)
 
+# Dynamic/configurable version (uses RIVERMAX_DEV_KIT_TARGET)
 add_library(${PROJECT_NAME} STATIC)
 
 target_sources(${PROJECT_NAME}
     PRIVATE
-        statistics_reader.cpp
+        cpu_utils.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
-
 target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+        rivermax-dev-kit-services-cpu-affinity
     PRIVATE
         Rivermax::Rivermax
         rivermax-dev-kit-build
-        rivermax-dev-kit-services-rivermax-cpu
-        rivermax-dev-kit-services-legacy-util
-    PUBLIC
-        Rivermax::Include
-        rivermax-dev-kit-services-utils
 )
 
 target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})

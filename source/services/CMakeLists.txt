@@ -14,41 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+cmake_minimum_required(VERSION 3.19)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
+    include(RivermaxDevKitServicesStandalone)
+    set(RIVERMAX_DEV_KIT_SERVICES_STANDALONE ON)
+endif()
+
 project(rivermax-dev-kit-services)
 
-add_library(${PROJECT_NAME} STATIC)
+# Define the umbrella INTERFACE target up-front so each component can self-register
+# into it via target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME}).
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE include)
 
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-#        Rivermax::Include
-        rivermax-dev-kit-build
-    PUBLIC
-        rivermax-dev-kit-services-cpu
-        rivermax-dev-kit-services-legacy-util
-        rivermax-dev-kit-services-error-handling
-        rivermax-dev-kit-services-utils
-        rivermax-dev-kit-services-protocol
-        rivermax-dev-kit-services-sdp
-        rivermax-dev-kit-services-statistics
-        rivermax-dev-kit-services-media
-)
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-
-set(RIVERMAX_DEV_KIT_SERVICE_COMPONENTS
-    legacy_util
+foreach(_component
     error_handling
-    settings
-    cli
-    cpu
-    statistics
     utils
     media
-    protocol
     sdp
+    protocol
+    settings
+    cli
+    memory_allocation
+    legacy_util
+    cpu
     ulp_packet
     ulp_packet_buffer
-    memory_allocation
+    statistics
 )
-foreach(service_component ${RIVERMAX_DEV_KIT_SERVICE_COMPONENTS})
-    add_subdirectory(${service_component})
+    add_subdirectory(${_component})
 endforeach()

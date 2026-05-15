@@ -14,11 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+project(rivermax-dev-kit-services-ulp-packet-buffer)
+
+add_library(${PROJECT_NAME} STATIC)
+
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 
-set(RIVERMAX_DEV_KIT_SERVICES_ULP_PACKET_BUFFER_COMPONENTS
-    writers
+add_subdirectory(writers)
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        rivermax-dev-kit-build
+        rivermax-dev-kit-services-legacy-util
+    PUBLIC
+        rivermax-dev-kit-services-media
+        rivermax-dev-kit-services-memory-allocation
+        rivermax-dev-kit-services-ulp-packet
 )
-foreach(packet_buffer_component ${RIVERMAX_DEV_KIT_SERVICES_ULP_PACKET_BUFFER_COMPONENTS})
-    add_subdirectory(${packet_buffer_component})
-endforeach()
+
+target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})

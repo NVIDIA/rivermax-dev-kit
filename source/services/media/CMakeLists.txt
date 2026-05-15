@@ -16,10 +16,9 @@
 
 project(rivermax-dev-kit-services-media)
 
-add_library(${PROJECT_NAME} INTERFACE)
-target_include_directories(${PROJECT_NAME} INTERFACE include)
+add_library(${PROJECT_NAME} STATIC)
 
-target_sources(rivermax-dev-kit-services
+target_sources(${PROJECT_NAME}
     PRIVATE
         ipmx.cpp
         media_file_reader.cpp
@@ -45,4 +44,20 @@ target_sources(rivermax-dev-kit-services
         media_settings_audio.cpp
         media_settings_ancillary.cpp
 )
-target_include_directories(rivermax-dev-kit-services PUBLIC include)
+target_include_directories(${PROJECT_NAME} PUBLIC include)
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        rivermax-dev-kit-build
+        rivermax-dev-kit-services-legacy-util
+        rivermax-dev-kit-services-ulp-packet
+    PUBLIC
+        Rivermax::Include
+        rivermax-dev-kit-services-error-handling
+        rivermax-dev-kit-services-memory-allocation
+        rivermax-dev-kit-services-sdp
+        rivermax-dev-kit-services-settings
+        rivermax-dev-kit-services-utils
+)
+
+target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})

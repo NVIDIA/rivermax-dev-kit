@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+project(rivermax-dev-kit-services-memory-allocation)
+
+add_library(${PROJECT_NAME} STATIC)
+
 target_sources(${PROJECT_NAME}
     PRIVATE
         gpu_host_pinned_memory_allocator.cpp
@@ -23,3 +27,16 @@ target_sources(${PROJECT_NAME}
         memory_allocator_interface.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        rivermax-dev-kit-build
+        rivermax-dev-kit-services-legacy-util
+    PUBLIC
+        Rivermax::Include
+        rivermax-dev-kit-services-cli
+        rivermax-dev-kit-services-error-handling
+        rivermax-dev-kit-services-utils
+)
+
+target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})
