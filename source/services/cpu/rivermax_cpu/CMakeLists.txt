@@ -29,11 +29,11 @@ target_sources(${PROJECT_NAME}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(${PROJECT_NAME}
-    PUBLIC
-        rivermax-dev-kit-services-cpu-affinity
     PRIVATE
         Rivermax::Rivermax
         rivermax-dev-kit-build
+    PUBLIC
+        rivermax-dev-kit-services-cpu-affinity
 )
 
 target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})

@@ -29,20 +29,21 @@ project(rivermax-dev-kit-services)
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE include)
 
-foreach(_component
+set(RIVERMAX_DEV_KIT_SERVICE_COMPONENTS
+    legacy_util
     error_handling
-    utils
-    media
-    sdp
-    protocol
     settings
     cli
-    memory_allocation
-    legacy_util
     cpu
+    statistics
+    utils
+    media
+    protocol
+    sdp
     ulp_packet
     ulp_packet_buffer
-    statistics
+    memory_allocation
 )
-    add_subdirectory(${_component})
+foreach(service_component ${RIVERMAX_DEV_KIT_SERVICE_COMPONENTS})
+    add_subdirectory(${service_component})
 endforeach()

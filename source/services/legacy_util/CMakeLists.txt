@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if(RIVERMAX_DEV_KIT_SERVICES_STANDALONE)
+    return()
+endif()
+
 project(rivermax-dev-kit-services-legacy-util)
 
 add_library(${PROJECT_NAME} STATIC)
@@ -30,6 +34,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         rivermax-dev-kit-build
         rivermax-dev-kit-services-cpu-affinity
+        Rivermax::Rivermax
     PUBLIC
         Rivermax::Include
         CLI::CLI
