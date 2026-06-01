@@ -64,6 +64,11 @@ ReturnStatus RTCPChunkConsumer::consume_chunk(const ReceiveChunk& chunk,
     return ReturnStatus::success;
 }
 
+IPMXReceiverSettings::IPMXReceiverSettings()
+{
+    init_default_values();
+}
+
 void IPMXReceiverSettings::init_default_values()
 {
     AppSettings::init_default_values();
