@@ -346,7 +346,7 @@ public:
      *
      * @param [in] length: Length of the memory to allocate.
      *
-     * @return: Pointer to the allocated memory.
+     * @return: Pointer to the allocated memory. nullptr if the allocation failed.
      */
     virtual void* allocate(const size_t length) = 0;
     /**
@@ -355,7 +355,7 @@ public:
      * @param [in] length: Requested allocation length.
      * @param [in] alignment: Memory alignment.
      *
-     * @return: Pointer to the allocated memory.
+     * @return: Pointer to the allocated memory. nullptr if the allocation failed.
      */
     virtual void* allocate_aligned(size_t length, size_t align);
     /**
@@ -387,7 +387,7 @@ public:
     /**
      * @brief: Rounds memory length up to page size.
      *
-     * @return: Rounded value.
+     * @return: Rounded value. 0 if alignment failed.
      */
     virtual size_t align_length(size_t length);
 private:

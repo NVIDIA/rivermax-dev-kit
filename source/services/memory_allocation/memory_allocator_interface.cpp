@@ -17,6 +17,7 @@
  */
 
 #include <cstring>
+#include <climits>
 #include <iostream>
 
 #ifdef __linux__
@@ -265,6 +266,10 @@ bool LinuxMemoryAllocatorImp::init_huge_pages(int huge_page_size_log2, size_t& h
         m_huge_page_size_log2 = huge_page_size_log2;
     }
     huge_page_size = size_t(1) << m_huge_page_size_log2;
+    if (huge_page_size == 0) {
+        std::cerr << "Invalid huge page size computed from log2 value " << m_huge_page_size_log2 << std::endl;
+        return false;
+    }
     std::cout << "Init huge pages with size " << huge_page_size << std::endl;
     return true;
 }
@@ -426,18 +431,41 @@ MemoryAllocator::MemoryAllocator() :
 
 void* MemoryAllocator::allocate_aligned(size_t length, size_t alignment)
 {
+    if (alignment == 0) {
+        std::cerr << "Cannot align length with 0 alignment" << std::endl;
+        return nullptr;
+    }
+
+    if (length > SIZE_MAX - alignment) {
+        std::cerr << "Cannot allocate memory with length " << length << ", alignment of " << alignment << " would overflow" << std::endl;
+        return nullptr;
+    }
+
     byte_t* ptr = static_cast<byte_t*>(allocate(length + alignment));
+    if (!ptr) {
+        std::cerr << "Failed to allocate memory" << std::endl;
+        return nullptr;
+    }
+
     size_t remainder = reinterpret_cast<size_t>(ptr) % alignment;
     if (remainder == 0) {
         return ptr;
-    } else {
-        return ptr + (alignment - remainder);
     }
+    return ptr + (alignment - remainder);
 }
 
 size_t MemoryAllocator::align_length(size_t length)
 {
-    return (length + get_page_size() - 1) / get_page_size() * get_page_size();
+    size_t page_size = get_page_size();
+    if (page_size == 0) {
+        std::cerr << "Cannot align length, page size is 0" << std::endl;
+        return 0;
+    }
+    if (length > SIZE_MAX - page_size + 1) {
+        std::cerr << "Cannot align length " << length << ", alignment with page size " << page_size << " would overflow" << std::endl;
+        return 0;
+    }
+    return (length + page_size - 1) / page_size * page_size;
 }
 
 std::unique_ptr<MemoryAllocatorImp> MemoryAllocator::get_os_imp()

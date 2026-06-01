@@ -26,10 +26,15 @@ using namespace rdk::services;
 
 std::shared_ptr<MemoryUtils> MemoryAllocatorImp::utils_huge_pages;
 
-HugePagesMemoryAllocator::HugePagesMemoryAllocator(int page_size_log2)
+HugePagesMemoryAllocator::HugePagesMemoryAllocator(int page_size_log2) :
+    m_page_size(0),
+    m_is_initialized(m_imp->init_huge_pages(page_size_log2, m_page_size))
 {
-    if (!m_imp->init_huge_pages(page_size_log2, m_page_size)) {
+    if (!m_is_initialized) {
         std::cerr << "Failed to initialize Huge Pages" << std::endl;
+    } else if (m_page_size == 0) {
+        std::cerr << "Cannot initialize Huge Pages, page size is 0" << std::endl;
+        m_is_initialized = false;
     }
 }
 
@@ -46,6 +51,11 @@ HugePagesMemoryAllocator::~HugePagesMemoryAllocator()
 
 void* HugePagesMemoryAllocator::allocate(const size_t length)
 {
+    if (!m_is_initialized) {
+        std::cerr << "Cannot allocate memory using Huge Pages, allocator is not initialized" << std::endl;
+        return nullptr;
+    }
+
     size_t aligned_length = align_length(length);
     void* mem_ptr = m_imp->allocate_huge_pages(aligned_length, m_page_size);
     if (!mem_ptr) {
@@ -60,6 +70,10 @@ void* HugePagesMemoryAllocator::allocate(const size_t length)
 
 size_t HugePagesMemoryAllocator::align_length(size_t length)
 {
+    if (m_page_size == 0) {
+        std::cerr << "Cannot align length, page size is 0" << std::endl;
+        return 0;
+    }
     size_t factor = length / m_page_size;
     factor += (length % m_page_size > 0) ? 1 : 0;
     return factor * m_page_size;

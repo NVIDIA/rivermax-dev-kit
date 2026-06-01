@@ -48,6 +48,7 @@ class HugePagesMemoryAllocator : public MemoryAllocator
 {
 private:
     size_t m_page_size;
+    bool m_is_initialized;
     size_t align_length(size_t length) final;
 public:
     /**
