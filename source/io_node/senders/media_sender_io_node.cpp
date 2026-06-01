@@ -748,7 +748,7 @@ ReturnStatus MediaSenderIONode::set_media_essence_sources(
         m_stream_packs[stream_index].preload_essence_source = std::move(preload_essence_source);
         m_stream_packs[stream_index].preload_packet_buffer_writer = std::move(preload_packet_buffer_writer);
         // Update memory requirements based on preload essence size
-        size_t essence_size;
+        size_t essence_size = 0;
         ReturnStatus rc = m_stream_packs[stream_index].preload_essence_source->get_data_size(essence_size);
         if (rc != ReturnStatus::success) {
             std::cerr << "Failed to get data size for preload essence source" << std::endl;

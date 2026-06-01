@@ -75,7 +75,7 @@ private:
         // Preload configuration: Used to fill memory blocks before transmission starts.
         std::shared_ptr<IULPPacketBufferWriter> preload_packet_buffer_writer;
         std::shared_ptr<IMediaEssenceSource> preload_essence_source;
-        size_t number_of_memory_blocks;
+        size_t number_of_memory_blocks = 0;
         uint8_t* header_memory_ptr = nullptr;
         uint8_t* payload_memory_ptr = nullptr;
     };

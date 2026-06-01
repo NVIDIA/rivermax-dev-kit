@@ -706,7 +706,7 @@ void IPMXSenderIONode::operator()()
     * in the same time and keep aligned during the run. It can be updated if needed.
     */
 
-    uint64_t earliest_start_time_ns;
+    uint64_t earliest_start_time_ns = 0;
     get_rivermax_ptp_time_ns(earliest_start_time_ns);
     for (auto& stream_sender : m_stream_senders) {
         m_start_send_time_ns = stream_sender.calculate_send_time_ns(earliest_start_time_ns);
@@ -870,7 +870,7 @@ inline void IPMXSenderIONode::prepare_buffers()
 
 void IPMXSenderIONode::wait_until(uint64_t return_time_ns)
 {
-    uint64_t time_now_ns;
+    uint64_t time_now_ns = 0;
     get_rivermax_ptp_time_ns(time_now_ns);
 
     if (return_time_ns <= time_now_ns) {
@@ -888,14 +888,14 @@ void IPMXSenderIONode::wait_until(uint64_t return_time_ns)
     if (m_sleep_between_operations) {
         std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_time_ns));
     } else {
-        uint64_t current_time;
+        uint64_t current_time = 0;
         while (true) {
             get_rivermax_ptp_time_ns(current_time);
             if (current_time >= return_time_ns) break;
         }
     }
 #else
-    uint64_t current_time;
+    uint64_t current_time = 0;
     while (true) {
         get_rivermax_ptp_time_ns(current_time);
         if (current_time >= return_time_ns) break;
