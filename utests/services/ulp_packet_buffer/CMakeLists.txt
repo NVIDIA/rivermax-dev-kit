@@ -11,7 +11,8 @@ if (NOT WIN32)
 
     target_link_libraries(${PROJECT_NAME}
         PRIVATE
-        rivermax-dev-kit-services
+        rivermax-dev-kit-services-ulp-packet-buffer
+        rivermax-dev-kit-services-utils
         rivermax-dev-kit-utests-utils
         GTest::gtest_main
         GTest::gmock_main
