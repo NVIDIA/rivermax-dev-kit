@@ -17,6 +17,7 @@
  */
 
 #include <cstdint>
+#include <iostream>
 #include <unordered_map>
 
 #include "rt_threads.h"
@@ -37,11 +38,13 @@ media_settings_calculator_factory_map_t IMediaSettingsCalculatorFactory::s_media
     {
         SMPTEStandard::ST_2110_20,
         [](MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters)
+            -> std::shared_ptr<IMediaSettingsCalculator>
         {
             // Runtime type safety check
             if (media_settings.get_smpte_standard() != SMPTEStandard::ST_2110_20) {
-                throw std::invalid_argument("MediaSettings type mismatch: expected ST_2110_20, got " +
-                                          std::to_string(static_cast<int>(media_settings.get_smpte_standard())));
+                std::cerr << "MediaSettings type mismatch: expected ST_2110_20, got "
+                          << static_cast<int>(media_settings.get_smpte_standard()) << std::endl;
+                return nullptr;
             }
             auto& video_settings = static_cast<SMPTE_2110_20_MediaSettings&>(media_settings);
             return std::make_shared<ST_2110_20_MediaSettingsCalculator>(video_settings, extra_parameters);
@@ -50,11 +53,13 @@ media_settings_calculator_factory_map_t IMediaSettingsCalculatorFactory::s_media
     {
         SMPTEStandard::ST_2110_30,
         [](MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters)
+            -> std::shared_ptr<IMediaSettingsCalculator>
         {
             // Runtime type safety check
             if (media_settings.get_smpte_standard() != SMPTEStandard::ST_2110_30) {
-                throw std::invalid_argument("MediaSettings type mismatch: expected ST_2110_30, got " +
-                                          std::to_string(static_cast<int>(media_settings.get_smpte_standard())));
+                std::cerr << "MediaSettings type mismatch: expected ST_2110_30, got "
+                          << static_cast<int>(media_settings.get_smpte_standard()) << std::endl;
+                return nullptr;
             }
             auto& audio_settings = static_cast<SMPTE_2110_30_MediaSettings&>(media_settings);
             return std::make_shared<ST_2110_30_MediaSettingsCalculator>(audio_settings, extra_parameters);
@@ -63,11 +68,13 @@ media_settings_calculator_factory_map_t IMediaSettingsCalculatorFactory::s_media
     {
         SMPTEStandard::ST_2110_40,
         [](MediaSettings& media_settings, const std::vector<FormatSpecificParameter>& extra_parameters)
+            -> std::shared_ptr<IMediaSettingsCalculator>
         {
             // Runtime type safety check
             if (media_settings.get_smpte_standard() != SMPTEStandard::ST_2110_40) {
-                throw std::invalid_argument("MediaSettings type mismatch: expected ST_2110_40, got " +
-                                          std::to_string(static_cast<int>(media_settings.get_smpte_standard())));
+                std::cerr << "MediaSettings type mismatch: expected ST_2110_40, got "
+                          << static_cast<int>(media_settings.get_smpte_standard()) << std::endl;
+                return nullptr;
             }
             auto& ancillary_settings = static_cast<SMPTE_2110_40_MediaSettings&>(media_settings);
             return std::make_shared<ST_2110_40_MediaSettingsCalculator>(ancillary_settings, extra_parameters);
