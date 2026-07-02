@@ -147,65 +147,70 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
         }
     };
 
-    if (auto* option = add_option(CLIOptStr::LOCAL_IPS)) {
-        option->required();
-    }
-    add_option(CLIOptStr::DST_IPS);
-    add_option(CLIOptStr::DST_PORTS);
-    add_option(CLIOptStr::THREADS);
-    if (auto* option = add_option(CLIOptStr::STREAMS)) {
-        option->check(StreamToThreadsValidator(settings.num_of_threads));
-    }
-    add_option(CLIOptStr::VERBOSE);
-    add_option(CLIOptStr::INTERNAL_CORE);
-    add_option(CLIOptStr::APPLICATION_CORE);
-    add_option(CLIOptStr::SLEEP);
-    auto* hds = add_option(CLIOptStr::HEADER_DATA_SPLIT);
-#ifdef CUDA_ENABLED
-    if (auto* option = add_option(CLIOptStr::GPU_ID)) {
-        if (hds != nullptr) {
-            option->needs(hds);
+    try {
+        if (auto* option = add_option(CLIOptStr::LOCAL_IPS)) {
+            option->required();
         }
-    }
-    add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+        add_option(CLIOptStr::DST_IPS);
+        add_option(CLIOptStr::DST_PORTS);
+        add_option(CLIOptStr::THREADS);
+        if (auto* option = add_option(CLIOptStr::STREAMS)) {
+            option->check(StreamToThreadsValidator(settings.num_of_threads));
+        }
+        add_option(CLIOptStr::VERBOSE);
+        add_option(CLIOptStr::INTERNAL_CORE);
+        add_option(CLIOptStr::APPLICATION_CORE);
+        add_option(CLIOptStr::SLEEP);
+        auto* hds = add_option(CLIOptStr::HEADER_DATA_SPLIT);
+#ifdef CUDA_ENABLED
+        if (auto* option = add_option(CLIOptStr::GPU_ID)) {
+            if (hds != nullptr) {
+                option->needs(hds);
+            }
+        }
+        add_option(CLIOptStr::LOCK_GPU_CLOCKS);
 #else
-    NOT_IN_USE(hds);
+        NOT_IN_USE(hds);
 #endif
-    auto* stats_enabled = add_option(CLIOptStr::ENABLE_STATS_READER);
-    if (auto* option = add_option(CLIOptStr::STATS_CORE)) {
-        option->needs(stats_enabled);
+        auto* stats_enabled = add_option(CLIOptStr::ENABLE_STATS_READER);
+        if (auto* option = add_option(CLIOptStr::STATS_CORE)) {
+            option->needs(stats_enabled);
+        }
+        if (auto* option = add_option(CLIOptStr::STATS_SESSION_ID)) {
+            option->needs(stats_enabled);
+        }
+        auto* mem = add_option(CLIOptStr::APP_MEMORY_ALLOC);
+        if (auto* option = add_option(CLIOptStr::ALLOCATOR_TYPE)) {
+            option->needs(mem);
+        }
+        if (auto* option = add_option(CLIOptStr::REGISTER_MEMORY)) {
+            option->needs(mem);
+        }
+        add_option(CLIOptStr::ENABLE_REDUNDANCY);
+        add_grouped_option(CLIOptStr::ENABLE_VIDEO, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ENABLE_ALPHA, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_FILE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_option(CLIOptStr::DYNAMIC_FILE_LOADING);
+        add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_SAMPLING, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ALPHA_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_option(CLIOptStr::PACKETS);
+        add_grouped_option(CLIOptStr::ENABLE_AUDIO, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::AUDIO_FILE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::PTIME_US, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::AUDIO_SAMPLING_RATE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::AUDIO_ENCODING, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ENABLE_ANCILLARY, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ANCILLARY_FILE, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ANCILLARY_TYPES, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    } catch (const CLI::Error& error) {
+        std::cerr << "Failed to register CLI options: " << error.what() << std::endl;
+        return ReturnStatus::failure;
     }
-    if (auto* option = add_option(CLIOptStr::STATS_SESSION_ID)) {
-        option->needs(stats_enabled);
-    }
-    auto* mem = add_option(CLIOptStr::APP_MEMORY_ALLOC);
-    if (auto* option = add_option(CLIOptStr::ALLOCATOR_TYPE)) {
-        option->needs(mem);
-    }
-    if (auto* option = add_option(CLIOptStr::REGISTER_MEMORY)) {
-        option->needs(mem);
-    }
-    add_option(CLIOptStr::ENABLE_REDUNDANCY);
-    add_grouped_option(CLIOptStr::ENABLE_VIDEO, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::ENABLE_ALPHA, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::VIDEO_FILE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_option(CLIOptStr::DYNAMIC_FILE_LOADING);
-    add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::VIDEO_SAMPLING, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::VIDEO_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::ALPHA_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_option(CLIOptStr::PACKETS);
-    add_grouped_option(CLIOptStr::ENABLE_AUDIO, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::AUDIO_FILE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::PTIME_US, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::AUDIO_SAMPLING_RATE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::AUDIO_ENCODING, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::ENABLE_ANCILLARY, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::ANCILLARY_FILE, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::ANCILLARY_TYPES, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
 
     return rc;
 }

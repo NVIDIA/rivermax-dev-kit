@@ -96,31 +96,36 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(IPMXSenderSettings& s
         }
     };
 
-    add_option(CLIOptStr::LOCAL_IP);
-    add_option(CLIOptStr::DST_IP);
-    add_option(CLIOptStr::DST_PORT);
-    add_option(CLIOptStr::THREADS);
-    if (auto* option = add_option(CLIOptStr::STREAMS)) {
-        option->check(StreamToThreadsValidator(settings.num_of_threads));
-    }
-    add_option(CLIOptStr::VERBOSE);
-    add_option(CLIOptStr::INTERNAL_CORE);
-    add_option(CLIOptStr::APPLICATION_CORE);
-    add_option(CLIOptStr::SLEEP);
-    add_option(CLIOptStr::ALLOCATOR_TYPE);
-    auto parser = m_cli_parser_manager->get_parser();
-    add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    // TODO: move PTP flag to App
-    parser->add_flag("--ptp", settings.ref_clk_is_ptp,
-                     "Use NIC RTC as a PTP-synchronized Common Reference clock");
-    auto* stats_enabled = add_option(CLIOptStr::ENABLE_STATS_READER);
-    if (auto* option = add_option(CLIOptStr::STATS_CORE)) {
-        option->needs(stats_enabled);
-    }
-    if (auto* option = add_option(CLIOptStr::STATS_SESSION_ID)) {
-        option->needs(stats_enabled);
+    try {
+        add_option(CLIOptStr::LOCAL_IP);
+        add_option(CLIOptStr::DST_IP);
+        add_option(CLIOptStr::DST_PORT);
+        add_option(CLIOptStr::THREADS);
+        if (auto* option = add_option(CLIOptStr::STREAMS)) {
+            option->check(StreamToThreadsValidator(settings.num_of_threads));
+        }
+        add_option(CLIOptStr::VERBOSE);
+        add_option(CLIOptStr::INTERNAL_CORE);
+        add_option(CLIOptStr::APPLICATION_CORE);
+        add_option(CLIOptStr::SLEEP);
+        add_option(CLIOptStr::ALLOCATOR_TYPE);
+        auto parser = m_cli_parser_manager->get_parser();
+        add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        // TODO: move PTP flag to App
+        parser->add_flag("--ptp", settings.ref_clk_is_ptp,
+                         "Use NIC RTC as a PTP-synchronized Common Reference clock");
+        auto* stats_enabled = add_option(CLIOptStr::ENABLE_STATS_READER);
+        if (auto* option = add_option(CLIOptStr::STATS_CORE)) {
+            option->needs(stats_enabled);
+        }
+        if (auto* option = add_option(CLIOptStr::STATS_SESSION_ID)) {
+            option->needs(stats_enabled);
+        }
+    } catch (const CLI::Error& error) {
+        std::cerr << "Failed to register CLI options: " << error.what() << std::endl;
+        return ReturnStatus::failure;
     }
 
     return rc;

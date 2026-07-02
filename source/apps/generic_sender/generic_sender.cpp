@@ -76,34 +76,39 @@ ReturnStatus GenericSenderCLISettingsBuilder::add_cli_options(GenericSenderSetti
         return option;
     };
 
-    add_option(CLIOptStr::LOCAL_IP);
-    add_option(CLIOptStr::DST_IP);
-    add_option(CLIOptStr::DST_PORT);
-    add_option(CLIOptStr::THREADS);
-    add_option(CLIOptStr::FLOWS);
-    if (auto* option = add_option(CLIOptStr::STREAMS)) {
-        option->check(StreamToThreadsFlowsValidator(
-            settings.num_of_threads, settings.num_of_total_flows));
-    }
-    add_option(CLIOptStr::VERBOSE);
-    add_option(CLIOptStr::CHUNKS);
-    add_option(CLIOptStr::PACKETS);
-    add_option(CLIOptStr::PAYLOAD_SIZE);
-    add_option(CLIOptStr::SLEEP_US);
-    auto* rate_bps_opt = add_option(CLIOptStr::RATE_BPS);
-    auto* rate_burst_opt = add_option(CLIOptStr::RATE_BURST);
-    if (rate_bps_opt != nullptr && rate_burst_opt != nullptr) {
-        rate_bps_opt->needs(rate_burst_opt);
-        rate_burst_opt->needs(rate_bps_opt);
-    }
-    add_option(CLIOptStr::INTERNAL_CORE);
-    add_option(CLIOptStr::APPLICATION_CORE);
-    add_option(CLIOptStr::WAIT_RETRY);
+    try {
+        add_option(CLIOptStr::LOCAL_IP);
+        add_option(CLIOptStr::DST_IP);
+        add_option(CLIOptStr::DST_PORT);
+        add_option(CLIOptStr::THREADS);
+        add_option(CLIOptStr::FLOWS);
+        if (auto* option = add_option(CLIOptStr::STREAMS)) {
+            option->check(StreamToThreadsFlowsValidator(
+                settings.num_of_threads, settings.num_of_total_flows));
+        }
+        add_option(CLIOptStr::VERBOSE);
+        add_option(CLIOptStr::CHUNKS);
+        add_option(CLIOptStr::PACKETS);
+        add_option(CLIOptStr::PAYLOAD_SIZE);
+        add_option(CLIOptStr::SLEEP_US);
+        auto* rate_bps_opt = add_option(CLIOptStr::RATE_BPS);
+        auto* rate_burst_opt = add_option(CLIOptStr::RATE_BURST);
+        if (rate_bps_opt != nullptr && rate_burst_opt != nullptr) {
+            rate_bps_opt->needs(rate_burst_opt);
+            rate_burst_opt->needs(rate_bps_opt);
+        }
+        add_option(CLIOptStr::INTERNAL_CORE);
+        add_option(CLIOptStr::APPLICATION_CORE);
+        add_option(CLIOptStr::WAIT_RETRY);
 #ifdef CUDA_ENABLED
-    add_option(CLIOptStr::GPU_ID);
-    add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+        add_option(CLIOptStr::GPU_ID);
+        add_option(CLIOptStr::LOCK_GPU_CLOCKS);
 #endif
-    add_option(CLIOptStr::ALLOCATOR_TYPE);
+        add_option(CLIOptStr::ALLOCATOR_TYPE);
+    } catch (const CLI::Error& error) {
+        std::cerr << "Failed to register CLI options: " << error.what() << std::endl;
+        return ReturnStatus::failure;
+    }
 
     return rc;
 }

@@ -130,48 +130,53 @@ ReturnStatus LatencyCLISettingsBuilder::add_cli_options(LatencySettings& setting
         }
     };
 
-    add_option(CLIOptStr::LOCAL_IP);
-    if (auto* option = add_option(CLIOptStr::DST_IP)) {
-        option->description("Send stream destination IP");
-    }
-    if (auto* option = add_option(CLIOptStr::DST_PORT)) {
-        option->description("Send stream destination port");
-    }
-    auto parser = m_cli_parser_manager->get_parser();
-    parser->add_option("-r,--receive-ip", settings.receive_ip,
-                       "Receive stream destination IP", true)->
-                       check(CLI::ValidIPV4);
-    parser->add_option("-o,--receive-port", settings.receive_port,
-                       "Receive stream destination port", true)->
-                       check(CLI::Range(MIN_PORT, MAX_PORT));
-    parser->add_option("-m,--measure", settings.measure_interval_sec,
-                       "Measurement interval, sec", true)->
-                       check(CLI::PositiveNumber);
-    parser->add_flag("-c,--client", settings.client,
-                     "Operate as client, if not specified - operate as server");
-    parser->add_flag("--disable-ts", settings.disable_ts,
-                     "Disable processing of realtime completion timestamps");
-    parser->add_flag("--disable-percent", settings.disable_percentile,
-                     "Disable percentile calculation");
-    add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    parser->add_option("--mode", settings.latency_mode,
-                       "Latency measurement mode", true)->
-                       transform(CLI::Transformer(oper_modes));
-    add_option(CLIOptStr::PAYLOAD_SIZE);
-    add_option(CLIOptStr::CHUNKS);
-    add_option(CLIOptStr::PACKETS);
-    if (auto* option = add_option(CLIOptStr::SLEEP_US)) {
-        option->description("Sleep duration in microsecond between latency measurement iterations");
-    }
-    add_option(CLIOptStr::INTERNAL_CORE);
-    add_option(CLIOptStr::APPLICATION_CORE);
-    add_option(CLIOptStr::ALLOCATOR_TYPE);
+    try {
+        add_option(CLIOptStr::LOCAL_IP);
+        if (auto* option = add_option(CLIOptStr::DST_IP)) {
+            option->description("Send stream destination IP");
+        }
+        if (auto* option = add_option(CLIOptStr::DST_PORT)) {
+            option->description("Send stream destination port");
+        }
+        auto parser = m_cli_parser_manager->get_parser();
+        parser->add_option("-r,--receive-ip", settings.receive_ip,
+                           "Receive stream destination IP", true)->
+                           check(CLI::ValidIPV4);
+        parser->add_option("-o,--receive-port", settings.receive_port,
+                           "Receive stream destination port", true)->
+                           check(CLI::Range(MIN_PORT, MAX_PORT));
+        parser->add_option("-m,--measure", settings.measure_interval_sec,
+                           "Measurement interval, sec", true)->
+                           check(CLI::PositiveNumber);
+        parser->add_flag("-c,--client", settings.client,
+                         "Operate as client, if not specified - operate as server");
+        parser->add_flag("--disable-ts", settings.disable_ts,
+                         "Disable processing of realtime completion timestamps");
+        parser->add_flag("--disable-percent", settings.disable_percentile,
+                         "Disable percentile calculation");
+        add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        parser->add_option("--mode", settings.latency_mode,
+                           "Latency measurement mode", true)->
+                           transform(CLI::Transformer(oper_modes));
+        add_option(CLIOptStr::PAYLOAD_SIZE);
+        add_option(CLIOptStr::CHUNKS);
+        add_option(CLIOptStr::PACKETS);
+        if (auto* option = add_option(CLIOptStr::SLEEP_US)) {
+            option->description("Sleep duration in microsecond between latency measurement iterations");
+        }
+        add_option(CLIOptStr::INTERNAL_CORE);
+        add_option(CLIOptStr::APPLICATION_CORE);
+        add_option(CLIOptStr::ALLOCATOR_TYPE);
 #ifdef CUDA_ENABLED
-    add_option(CLIOptStr::GPU_ID);
-    add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+        add_option(CLIOptStr::GPU_ID);
+        add_option(CLIOptStr::LOCK_GPU_CLOCKS);
 #endif
-    add_option(CLIOptStr::VERBOSE);
+        add_option(CLIOptStr::VERBOSE);
+    } catch (const CLI::Error& error) {
+        std::cerr << "Failed to register CLI options: " << error.what() << std::endl;
+        return ReturnStatus::failure;
+    }
 
     return rc;
 }

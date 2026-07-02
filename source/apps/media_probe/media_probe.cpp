@@ -66,27 +66,32 @@ ReturnStatus MediaProbeCLISettingsBuilder::add_cli_options(MediaProbeSettings& s
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::SRC_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
-    m_cli_parser_manager->add_option(CLIOptStr::THREADS);
-    m_cli_parser_manager->add_option(CLIOptStr::STREAMS);
-    m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
-    m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
-    m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
-    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
-    m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
-    m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
+    try {
+        m_cli_parser_manager->add_option(CLIOptStr::SRC_IP);
+        m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
+        m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
+        m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
+        m_cli_parser_manager->add_option(CLIOptStr::THREADS);
+        m_cli_parser_manager->add_option(CLIOptStr::STREAMS);
+        m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
+        m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
+        m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
+        m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
+        m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
+        m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
+        m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
+        m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
-    CLI::App_p parser = m_cli_parser_manager->get_parser();
-    auto video_cli_flag = parser->add_flag("--video", settings.is_video_enabled,
-        "Parse video stream");
-    auto alpha_cli_flag = parser->add_flag("--alpha", settings.is_alpha_enabled,
-        "Parse alpha stream");
-    alpha_cli_flag->needs(video_cli_flag);
+        CLI::App_p parser = m_cli_parser_manager->get_parser();
+        auto video_cli_flag = parser->add_flag("--video", settings.is_video_enabled,
+            "Parse video stream");
+        auto alpha_cli_flag = parser->add_flag("--alpha", settings.is_alpha_enabled,
+            "Parse alpha stream");
+        alpha_cli_flag->needs(video_cli_flag);
+    } catch (const CLI::Error& error) {
+        std::cerr << "Failed to register CLI options: " << error.what() << std::endl;
+        return ReturnStatus::failure;
+    }
 
     return ReturnStatus::success;
 }

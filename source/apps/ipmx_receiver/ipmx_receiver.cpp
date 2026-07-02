@@ -122,33 +122,38 @@ ReturnStatus IPMXReceiverCLISettingsBuilder::add_cli_options(IPMXReceiverSetting
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::SRC_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
-    m_cli_parser_manager->add_option(CLIOptStr::THREADS);
-    m_cli_parser_manager->add_option(CLIOptStr::STREAMS);
-    m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
-    m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
-    m_cli_parser_manager->add_option(CLIOptStr::APP_HDR_SIZE);
-    m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
+    try {
+        m_cli_parser_manager->add_option(CLIOptStr::SRC_IP);
+        m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
+        m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
+        m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
+        m_cli_parser_manager->add_option(CLIOptStr::THREADS);
+        m_cli_parser_manager->add_option(CLIOptStr::STREAMS);
+        m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
+        m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
+        m_cli_parser_manager->add_option(CLIOptStr::APP_HDR_SIZE);
+        m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
+        m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
+        m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
 #ifdef CUDA_ENABLED
-    m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+        m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
+        m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
 #endif
-    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
-    m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
-    m_cli_parser_manager->add_option(CLIOptStr::RX_STREAM_TYPE);
-    m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
-    m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
+        m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
+        m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
+        m_cli_parser_manager->add_option(CLIOptStr::RX_STREAM_TYPE);
+        m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
+        m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
-    CLI::App_p parser = m_cli_parser_manager->get_parser();
-    parser->add_flag("-X,--ext-seq-num", settings.is_extended_sequence_number,
-        "Parse extended sequence number from RTP payload");
-    parser->add_option("-r,--rtcp-core", settings.rtcp_thread_core,
-        "RTCP receiver thread core");
+        CLI::App_p parser = m_cli_parser_manager->get_parser();
+        parser->add_flag("-X,--ext-seq-num", settings.is_extended_sequence_number,
+            "Parse extended sequence number from RTP payload");
+        parser->add_option("-r,--rtcp-core", settings.rtcp_thread_core,
+            "RTCP receiver thread core");
+    } catch (const CLI::Error& error) {
+        std::cerr << "Failed to register CLI options: " << error.what() << std::endl;
+        return ReturnStatus::failure;
+    }
     return ReturnStatus::success;
 }
 
