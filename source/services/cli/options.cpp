@@ -17,9 +17,12 @@
  */
 
 #include <cstring>
+#include <functional>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <rivermax_api.h>
+#include <utility>
 #include <vector>
 
 #include "rdk/services/cli/cli_manager.h"
@@ -148,6 +151,26 @@ std::vector<std::pair<std::string, EnumType>> create_mapping_vector(const std::v
     }
     return mapping;
 }
+
+/**
+ * @brief: Builds a CLI option factory lambda.
+ *
+ * Wraps the given option creation statements in a lambda that catches
+ * @ref CLI::Error, reports the failure and returns nullptr.
+ *
+ * @param [in] option_name: The name of the option, used for error reporting.
+ */
+#define RDK_CLI_OPTION_BUILDER(option_name, ...) \
+    [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings) -> CLI::Option* { \
+        try { \
+            __VA_ARGS__ \
+        } catch (const CLI::Error& error) { \
+            std::cerr << "Failed to add CLI option [" << option_name << "]; error: " \
+                      << error.what() << std::endl; \
+            return nullptr; \
+        } \
+    }
+
 /**
  * @brief: CLI options factory map.
  *
@@ -157,551 +180,500 @@ std::vector<std::pair<std::string, EnumType>> create_mapping_vector(const std::v
  *
  * Future CLI options, that are common enough, can be added to this map and used using
  * @ref CLIParserManager::add_option method.
+ *
+ * @note: Builders are wrapped by @c RDK_CLI_OPTION_BUILDER, which catches
+ *        @ref CLI::Error and returns nullptr on failure.
  */
 cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
     {
         CLIOptStr::LOCAL_IP,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::LOCAL_IP,
             return parser->add_option(CLIOptStr::LOCAL_IP,
                                       app_settings->local_ip,
                                       "Local IP of the NIC")
                             ->check(CLI::ValidIPV4);
-        }
+        )
     },
     {
         CLIOptStr::LOCAL_IPS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::LOCAL_IPS,
             return parser->add_option(CLIOptStr::LOCAL_IPS,
                                       app_settings->local_ips,
                                       "Local IPs of the NICs (comma-separated)")
                             ->delimiter(',')
                             ->check(CLI::ValidIPV4);
-        }
+        )
     },
     {
         CLIOptStr::SRC_IP,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::SRC_IP,
             return parser->add_option(CLIOptStr::SRC_IP,
                                       app_settings->source_ip,
                                       "Source IP address")
                             ->check(CLI::ValidIPV4);
-        }
+        )
     },
     {
         CLIOptStr::SRC_IPS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::SRC_IPS,
             return parser->add_option(CLIOptStr::SRC_IPS,
                                       app_settings->source_ips,
                                       "Source IP addresses (comma-separated)")
                             ->delimiter(',')
                             ->check(CLI::ValidIPV4);
-        }
+        )
     },
     {
         CLIOptStr::DST_IP,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::DST_IP,
             return parser->add_option(CLIOptStr::DST_IP,
                                       app_settings->destination_ip,
                                       "Destination IP of the connection",
                                       true)
                             ->check(CLI::ValidIPV4);
-        }
+        )
     },
     {
         CLIOptStr::DST_IPS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::DST_IPS,
             return parser->add_option(CLIOptStr::DST_IPS,
                                       app_settings->destination_ips,
                                       "Destination IP addresses (comma-separated)")
                             ->delimiter(',')
                             ->check(CLI::ValidIPV4);
-        }
+        )
     },
     {
         CLIOptStr::DST_PORT,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::DST_PORT,
             return parser->add_option(CLIOptStr::DST_PORT,
                                       app_settings->destination_port,
                                       "Destination port of the connection",
                                       true)->check(CLI::Range(MIN_PORT, MAX_PORT));
-        }
+        )
     },
     {
         CLIOptStr::DST_PORTS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::DST_PORTS,
             return parser->add_option(CLIOptStr::DST_PORTS,
                                       app_settings->destination_ports,
                                       "Destination ports of the connection (comma-separated)",
                                       true)->delimiter(',')
                                       ->check(CLI::Range(MIN_PORT, MAX_PORT));
-        }
+        )
     },
     {
         CLIOptStr::THREADS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::THREADS,
             return parser->add_option(CLIOptStr::THREADS,
                                       app_settings->num_of_threads,
                                       "Number of threads to use",
                                       true)->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::FLOWS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::FLOWS,
             return parser->add_option(CLIOptStr::FLOWS,
                                       app_settings->num_of_total_flows,
                                       "Number of total flows",
                                       true)->check(CLI::PositiveNumber)->check(
                                           CLI::Range(MIN_NUM_OF_TOTAL_FLOWS, MAX_NUM_OF_TOTAL_FLOWS))->check(
                                               FlowNumberValidator(app_settings->num_of_total_streams));
-        }
+        )
     },
     {
         CLIOptStr::STREAMS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::STREAMS,
             return parser->add_option(CLIOptStr::STREAMS,
                                       app_settings->num_of_total_streams,
                                       "Number of total streams",
                                       true)->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::VERBOSE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::VERBOSE,
             return parser->add_flag(CLIOptStr::VERBOSE,
                                     app_settings->print_parameters,
                                     "Print verbose info");
-        }
+        )
     },
     {
         CLIOptStr::CHUNKS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::CHUNKS,
             return parser->add_option(CLIOptStr::CHUNKS,
                                       app_settings->num_of_chunks,
                                       "Number of memory chunks",
                                       true)->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::PACKETS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::PACKETS,
             return parser->add_option(CLIOptStr::PACKETS,
                                       app_settings->num_of_packets_in_chunk,
                                       "Number of packets in chunk (default depends on resolution)",
                                       true)->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::PAYLOAD_SIZE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::PAYLOAD_SIZE,
             return parser->add_option(CLIOptStr::PAYLOAD_SIZE,
                                       app_settings->packet_payload_size,
                                       "Packet's payload size",
                                       true)->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::APP_HDR_SIZE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::APP_HDR_SIZE,
             return parser->add_option(CLIOptStr::APP_HDR_SIZE,
                                       app_settings->packet_app_header_size,
                                       "Packet's application header size",
                                       true)->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::SLEEP_US,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::SLEEP_US,
             return parser->add_option(CLIOptStr::SLEEP_US,
                                       app_settings->sleep_between_operations_us,
                                       "Sleep duration in microsecond after processing all thread's streams",
                                       true)->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::SLEEP,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::SLEEP,
             return parser->add_flag(CLIOptStr::SLEEP,
                                     app_settings->sleep_between_operations,
                                     "Don't block on send, do sleep");
-        }
+        )
     },
     {
         CLIOptStr::RATE_BPS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::RATE_BPS,
             return parser->add_option(CLIOptStr::RATE_BPS,
                                       app_settings->rate.bps,
                                       "Rate limit in bits per second per flow")->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::RATE_BURST,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::RATE_BURST,
             return parser->add_option(CLIOptStr::RATE_BURST,
                                       app_settings->rate.max_burst_in_packets,
                                       "Maximum allowed burst size in number of packets per flow",
                                       true)->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::INTERNAL_CORE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::INTERNAL_CORE,
             return parser->add_option(CLIOptStr::INTERNAL_CORE,
                                       app_settings->internal_thread_core,
                                       "CPU core affinity for Rivermax internal thread",
                                       true)->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_RANGE));
-        }
+        )
     },
     {
         CLIOptStr::APPLICATION_CORE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::APPLICATION_CORE,
             return parser->add_option(CLIOptStr::APPLICATION_CORE,
                                       app_settings->app_threads_cores,
                                       "CPU core affinities comma separated list for the application")
                                       ->delimiter(',')->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_RANGE));
-        }
+        )
     },
     {
         CLIOptStr::CHECKSUM_HEADER,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::CHECKSUM_HEADER,
             return parser->add_flag(CLIOptStr::CHECKSUM_HEADER,
                                     app_settings->use_checksum_header,
                                     "Use checksum header");
-        }
+        )
     },
     {
         CLIOptStr::WAIT_RETRY,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::WAIT_RETRY,
             return parser->add_option(CLIOptStr::WAIT_RETRY,
                                       app_settings->hw_queue_full_sleep_us,
                                       "Time to sleep in microseconds between subsequent "
                                       "commit retries if the HW queue is full")->check(CLI::PositiveNumber);
-        }
+        )
     },
     {
         CLIOptStr::GPU_ID,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::GPU_ID,
             return parser->add_option(CLIOptStr::GPU_ID,
                                       app_settings->gpu_id,
                                       "Enable GPU direct, value is GPU id")->check(CLI::Range(0, MAX_GPU_ID));
-        }
+        )
     },
     {
         CLIOptStr::LOCK_GPU_CLOCKS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::LOCK_GPU_CLOCKS,
             return parser->add_option(CLIOptStr::LOCK_GPU_CLOCKS,
                                     app_settings->lock_gpu_clocks,
                                     "Lock GPU clocks to their maximum frequency",
                                     true)->check(CLI::Range(0, 1));
-        }
+        )
     },
     {
         CLIOptStr::ALLOCATOR_TYPE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ALLOCATOR_TYPE,
             return parser->add_option(CLIOptStr::ALLOCATOR_TYPE,
                                       app_settings->allocator_type,
                                       "Memory allocator type")
                                       ->transform(CLI::CheckedTransformer(UI_ALLOCATOR_TYPES));
-        }
+        )
     },
     {
         CLIOptStr::REGISTER_MEMORY,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::REGISTER_MEMORY,
             return parser->add_flag(CLIOptStr::REGISTER_MEMORY,
                                     app_settings->register_memory,
                                     "Register memory on the application side for better performance");
-        }
+        )
     },
     {
         CLIOptStr::HEADER_DATA_SPLIT,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::HEADER_DATA_SPLIT,
             return parser->add_flag(CLIOptStr::HEADER_DATA_SPLIT,
                                     app_settings->header_data_split,
                                     "Use separate memory for headers and payloads");
-        }
+        )
     },
     {
         CLIOptStr::APP_MEMORY_ALLOC,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::APP_MEMORY_ALLOC,
             return parser->add_flag(CLIOptStr::APP_MEMORY_ALLOC,
                                     app_settings->app_memory_alloc,
                                     "I\\O Memory allocated by application");
-        }
+        )
     },
     {
         CLIOptStr::ENABLE_STATS_READER,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ENABLE_STATS_READER,
             return parser->add_flag(CLIOptStr::ENABLE_STATS_READER,
                                     app_settings->enable_statistics_reader,
                                     "Enable statistics reader");
-        }
+        )
     },
     {
         CLIOptStr::ENABLE_REDUNDANCY,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ENABLE_REDUNDANCY,
             return parser->add_flag(CLIOptStr::ENABLE_REDUNDANCY,
                                     app_settings->enable_redundancy,
                                     "Enable SMPTE 2022-7 redundancy");
-        }
+        )
     },
     {
         CLIOptStr::STATS_CORE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::STATS_CORE,
             return parser->add_option(CLIOptStr::STATS_CORE,
                                       app_settings->statistics_reader_core,
                                       "CPU core affinity for statistics reader thread")
                                       ->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_RANGE));
-        }
+        )
     },
     {
         CLIOptStr::STATS_SESSION_ID,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::STATS_SESSION_ID,
             return parser->add_option(CLIOptStr::STATS_SESSION_ID,
                                       app_settings->session_id_stats,
                                       "Present runtime statistics of the given session id")
                                       ->check(CLI::NonNegativeNumber);
-        }
+        )
     },
     {
         CLIOptStr::STATS_REPORT_INTERVAL,
-        [](std::shared_ptr<CLI::App> parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::STATS_REPORT_INTERVAL,
             return parser->add_option(CLIOptStr::STATS_REPORT_INTERVAL,
                                       app_settings->stats_report_interval_ms,
                                       "Display statistics interval, ms",
                                       true)->check(CLI::NonNegativeNumber);
-        }
+        )
     },
     {
         CLIOptStr::RX_STREAM_TYPE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::RX_STREAM_TYPE,
             return parser->add_option(CLIOptStr::RX_STREAM_TYPE,
                                       app_settings->rx_stream_type,
                                       "RX stream type (raw, app-protocol)")
                                       ->transform(CLI::CheckedTransformer(UI_RX_STREAM_TYPES, CLI::ignore_case))
                                       ->default_val(RMX_INPUT_APP_PROTOCOL_PACKET);
-        }
+        )
     },
     {
         CLIOptStr::VIDEO_RESOLUTION,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::VIDEO_RESOLUTION,
             return parser->add_option(CLIOptStr::VIDEO_RESOLUTION,
                                       app_settings->media.resolution,
                                       "Video resolution in format <width>x<height>")
                                       ->check(VideoResolutionValidator())
                                       ->check(CLI::IsMember(SUPPORTED_VIDEO_RESOLUTIONS))
                                       ->default_val(Resolution(_1080_WIDTH, _1080_HEIGHT));
-        }
+        )
     },
     {
         CLIOptStr::VIDEO_FRAME_RATE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::VIDEO_FRAME_RATE,
             return parser->add_option(CLIOptStr::VIDEO_FRAME_RATE,
                                       app_settings->media.frame_rate,
                                       "Video frame rate in format <integer> or <numerator>/<denominator>")
                                       ->check(VideoFrameRateValidator())
                                       ->check(CLI::IsMember(SUPPORTED_VIDEO_FRAME_RATES))
                                       ->default_val(60);
-        }
+        )
     },
     {
         CLIOptStr::VIDEO_SAMPLING,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::VIDEO_SAMPLING,
             return parser->add_option(CLIOptStr::VIDEO_SAMPLING,
                                       app_settings->media.sampling_type,
                                       "Video sampling type")
                                       ->transform(CLI::CheckedTransformer(create_mapping_vector(
                                                   SUPPORTED_VIDEO_SAMPLING_TYPES), CLI::ignore_case))
                                       ->default_val(enum_to_string(VideoSampling::YCbCr_4_2_2));
-        }
+        )
     },
     {
         CLIOptStr::VIDEO_SCAN_TYPE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::VIDEO_SCAN_TYPE,
             return parser->add_option(CLIOptStr::VIDEO_SCAN_TYPE,
                                       app_settings->media.video_scan_type,
                                       "Video scan type")
                                       ->transform(CLI::CheckedTransformer(create_mapping_vector(
                                                   SUPPORTED_VIDEO_SCAN_TYPES), CLI::ignore_case))
                                       ->default_val(enum_to_string(VideoScanType::Progressive));
-        }
+        )
     },
     {
         CLIOptStr::VIDEO_BIT_DEPTH,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::VIDEO_BIT_DEPTH,
             return parser->add_option(CLIOptStr::VIDEO_BIT_DEPTH,
                                       app_settings->media.color_bit_depth,
                                       "Video bit depth")
                                       ->transform(CLI::CheckedTransformer(create_mapping_vector(
                                                   SUPPORTED_VIDEO_BIT_DEPTHS), CLI::ignore_case))
                                       ->default_val(enum_to_string(VideoBitDepth::_10));
-        }
+        )
     },
     {
         CLIOptStr::ALPHA_BIT_DEPTH,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ALPHA_BIT_DEPTH,
             return parser->add_option(CLIOptStr::ALPHA_BIT_DEPTH,
                                       app_settings->media.alpha_bit_depth,
                                       "Alpha channel bit depth")
                                       ->transform(CLI::CheckedTransformer(create_mapping_vector(
                                                   SUPPORTED_VIDEO_BIT_DEPTHS), CLI::ignore_case));
-        }
+        )
     },
     {
         CLIOptStr::ENABLE_VIDEO,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ENABLE_VIDEO,
             return parser->add_flag(CLIOptStr::ENABLE_VIDEO,
                                     app_settings->media.enable_video,
                                     "Enable video essence");
-        }
+        )
     },
     {
         CLIOptStr::ENABLE_ALPHA,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ENABLE_ALPHA,
             return parser->add_flag(CLIOptStr::ENABLE_ALPHA,
                                     app_settings->media.enable_alpha,
                                     "Enable Alpha channel with default bit depth of main video");
-        }
+        )
     },
     {
         CLIOptStr::VIDEO_FILE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::VIDEO_FILE,
             return parser->add_option(CLIOptStr::VIDEO_FILE,
                                       app_settings->video_file,
                                       "Video file to send")
                                       ->check(CLI::ExistingFile);
-        }
+        )
     },
     {
         CLIOptStr::AUDIO_FILE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::AUDIO_FILE,
             return parser->add_option(CLIOptStr::AUDIO_FILE,
                                       app_settings->audio_file,
                                       "Audio file to send")
                                       ->check(CLI::ExistingFile);
-        }
+        )
     },
     {
         CLIOptStr::ANCILLARY_FILE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ANCILLARY_FILE,
             return parser->add_option(CLIOptStr::ANCILLARY_FILE,
                                       app_settings->ancillary_file,
                                       "Ancillary data file (e.g., .srt for closed captions)")
                                       ->check(CLI::ExistingFile);
-        }
+        )
     },
     {
         CLIOptStr::DYNAMIC_FILE_LOADING,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::DYNAMIC_FILE_LOADING,
             return parser->add_flag(CLIOptStr::DYNAMIC_FILE_LOADING,
                                       app_settings->dynamic_media_file_load,
                                       "Enable dynamic file loading: Load media frames on the fly during transmission)");
-        }
+        )
     },
     {
         CLIOptStr::ENABLE_AUDIO,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ENABLE_AUDIO,
             return parser->add_flag(CLIOptStr::ENABLE_AUDIO,
                                     app_settings->media.enable_audio,
                                     "Enable audio essence");
-        }
+        )
     },
     {
         CLIOptStr::ENABLE_ANCILLARY,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ENABLE_ANCILLARY,
             return parser->add_flag(CLIOptStr::ENABLE_ANCILLARY,
                                     app_settings->media.enable_ancillary,
                                     "Enable ancillary essence")
                                     ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-        }
+        )
     },
     {
         CLIOptStr::PTIME_US,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::PTIME_US,
             return parser->add_option(CLIOptStr::PTIME_US,
                                     app_settings->media.ptime_us,
                                     "Audio packet time in microseconds")
                                     ->default_val(1000);
-        }
+        )
     },
     {
         CLIOptStr::AUDIO_SAMPLING_RATE,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::AUDIO_SAMPLING_RATE,
             return parser->add_option(CLIOptStr::AUDIO_SAMPLING_RATE,
                                     app_settings->media.audio_sampling_rate,
                                     "Audio sampling rate")
                                     ->transform(CLI::CheckedTransformer(create_mapping_vector(
                                                 SUPPORTED_AUDIO_SAMPLING_RATES), CLI::ignore_case))
                                     ->default_val(enum_to_string(AudioSamplingRate::_48000));
-        }
+        )
     },
     {
         CLIOptStr::AUDIO_ENCODING,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::AUDIO_ENCODING,
             return parser->add_option(CLIOptStr::AUDIO_ENCODING,
                                     app_settings->media.audio_encoding,
                                     "Audio encoding")
                                     ->transform(CLI::CheckedTransformer(create_mapping_vector(
                                                 SUPPORTED_AUDIO_ENCODINGS), CLI::ignore_case))
                                     ->default_val(enum_to_string(AudioEncoding::L24));
-        }
+        )
     },
     {
         CLIOptStr::ANCILLARY_TYPES,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ANCILLARY_TYPES,
             auto enable_anc_opt = parser->get_option(CLIOptStr::ENABLE_ANCILLARY);
             return parser->add_option(CLIOptStr::ANCILLARY_TYPES,
                                     app_settings->media.ancillary_data_identifiers,
@@ -710,24 +682,23 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
                                     ->delimiter(',')
                                     ->transform(CLI::CheckedTransformer(UI_ANCILLARY_TYPES, CLI::ignore_case))
                                     ->needs(enable_anc_opt);
-        }
+        )
     },
     {
         CLIOptStr::ANCILLARY_DATA_WORDS_COUNT,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT,
             return parser->add_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT,
                                     app_settings->media.ancillary_data_words_count,
                                     "Ancillary data words count");
-        }
+        )
     },
     {
         CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS,
-        [](CLI::App_p parser, std::shared_ptr<AppSettings> app_settings)
-        {
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS,
             return parser->add_flag(CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS,
                                     app_settings->allocate_extra_stream_buffers,
                                     "Allocate extra stream buffers (auxiliary and internal data)");
-        }
+        )
     },
 };
+#undef RDK_CLI_OPTION_BUILDER

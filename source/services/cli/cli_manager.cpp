@@ -77,11 +77,12 @@ CLI::Option* CLIParserManager::add_option(const std::string& option_name)
         try {
             return iter->second(m_parser, m_app_settings);
         }
-        catch (const CLI::BadNameString& error) {
-            std::cerr << "Failed to add CLI option [" << option_name << "]; error: " << error.get_exit_code() << std::endl;
+        catch (const CLI::Error& error) {
+            std::cerr << "Failed to add CLI option [" << option_name << "]; error: " << error.what() << std::endl;
             return nullptr;
         }
     } else {
+        std::cerr << "Failed to add CLI option [" << option_name << "]; error: unknown option" << std::endl;
         return nullptr;
     }
 }
