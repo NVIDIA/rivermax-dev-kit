@@ -78,31 +78,52 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(IPMXSenderSettings& s
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
-    m_cli_parser_manager->add_option(CLIOptStr::THREADS);
-    m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(
-        StreamToThreadsValidator(settings.num_of_threads));
-    m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
-    m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::SLEEP);
-    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
+
+    ReturnStatus rc = ReturnStatus::success;
+
+    // Adds a CLI option and records a failure if it could not be registered.
+    auto add_option = [&](const std::string& option_name) -> CLI::Option* {
+        auto* option = m_cli_parser_manager->add_option(option_name);
+        if (option == nullptr) {
+            rc = ReturnStatus::failure;
+        }
+        return option;
+    };
+
+    auto add_grouped_option = [&](const std::string& option_name, const std::string& group) {
+        if (auto* option = add_option(option_name)) {
+            option->group(group);
+        }
+    };
+
+    add_option(CLIOptStr::LOCAL_IP);
+    add_option(CLIOptStr::DST_IP);
+    add_option(CLIOptStr::DST_PORT);
+    add_option(CLIOptStr::THREADS);
+    if (auto* option = add_option(CLIOptStr::STREAMS)) {
+        option->check(StreamToThreadsValidator(settings.num_of_threads));
+    }
+    add_option(CLIOptStr::VERBOSE);
+    add_option(CLIOptStr::INTERNAL_CORE);
+    add_option(CLIOptStr::APPLICATION_CORE);
+    add_option(CLIOptStr::SLEEP);
+    add_option(CLIOptStr::ALLOCATOR_TYPE);
     auto parser = m_cli_parser_manager->get_parser();
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_RESOLUTION)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FRAME_RATE)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_SCAN_TYPE)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     // TODO: move PTP flag to App
     parser->add_flag("--ptp", settings.ref_clk_is_ptp,
                      "Use NIC RTC as a PTP-synchronized Common Reference clock");
-    auto stats_enabled = m_cli_parser_manager->add_option(CLIOptStr::ENABLE_STATS_READER);
-    auto stats_core = m_cli_parser_manager->add_option(CLIOptStr::STATS_CORE)->needs(stats_enabled);
-    m_cli_parser_manager->add_option(CLIOptStr::STATS_SESSION_ID)->needs(stats_enabled);
-    return ReturnStatus::success;
+    auto* stats_enabled = add_option(CLIOptStr::ENABLE_STATS_READER);
+    if (auto* option = add_option(CLIOptStr::STATS_CORE)) {
+        option->needs(stats_enabled);
+    }
+    if (auto* option = add_option(CLIOptStr::STATS_SESSION_ID)) {
+        option->needs(stats_enabled);
+    }
+
+    return rc;
 }
 
 IPMXSenderApp::IPMXSenderApp(std::unique_ptr<ISettingsBuilder<IPMXSenderSettings>> settings_builder) :

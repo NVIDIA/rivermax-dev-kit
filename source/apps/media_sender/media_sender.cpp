@@ -129,68 +129,85 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IPS)->required();
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IPS);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORTS);
-    m_cli_parser_manager->add_option(CLIOptStr::THREADS);
-    m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(
-        StreamToThreadsValidator(settings.num_of_threads));
-    m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
-    m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::SLEEP);
-    auto hds = m_cli_parser_manager->add_option(CLIOptStr::HEADER_DATA_SPLIT);
-#ifdef CUDA_ENABLED
-    m_cli_parser_manager->add_option(CLIOptStr::GPU_ID)->needs(hds);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
-#endif
-    auto stats_enabled = m_cli_parser_manager->add_option(CLIOptStr::ENABLE_STATS_READER);
-    auto stats_core = m_cli_parser_manager->add_option(CLIOptStr::STATS_CORE)->needs(stats_enabled);
-    m_cli_parser_manager->add_option(CLIOptStr::STATS_SESSION_ID)->needs(stats_enabled);
-    auto mem = m_cli_parser_manager->add_option(CLIOptStr::APP_MEMORY_ALLOC);
-    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE)->needs(mem);
-    m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY)->needs(mem);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_REDUNDANCY);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_VIDEO)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ALPHA)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FILE)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::DYNAMIC_FILE_LOADING);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_RESOLUTION)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FRAME_RATE)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_SAMPLING)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_SCAN_TYPE)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_BIT_DEPTH)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ALPHA_BIT_DEPTH)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_AUDIO)
-        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_FILE)
-        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::PTIME_US)
-        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_SAMPLING_RATE)
-        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_ENCODING)
-        ->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ANCILLARY)
-        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_FILE)
-        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_TYPES)
-        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT)
-        ->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
 
-    return ReturnStatus::success;
+    ReturnStatus rc = ReturnStatus::success;
+
+    // Adds a CLI option and records a failure if it could not be registered.
+    auto add_option = [&](const std::string& option_name) -> CLI::Option* {
+        auto* option = m_cli_parser_manager->add_option(option_name);
+        if (option == nullptr) {
+            rc = ReturnStatus::failure;
+        }
+        return option;
+    };
+
+    auto add_grouped_option = [&](const std::string& option_name, const std::string& group) {
+        if (auto* option = add_option(option_name)) {
+            option->group(group);
+        }
+    };
+
+    if (auto* option = add_option(CLIOptStr::LOCAL_IPS)) {
+        option->required();
+    }
+    add_option(CLIOptStr::DST_IPS);
+    add_option(CLIOptStr::DST_PORTS);
+    add_option(CLIOptStr::THREADS);
+    if (auto* option = add_option(CLIOptStr::STREAMS)) {
+        option->check(StreamToThreadsValidator(settings.num_of_threads));
+    }
+    add_option(CLIOptStr::VERBOSE);
+    add_option(CLIOptStr::INTERNAL_CORE);
+    add_option(CLIOptStr::APPLICATION_CORE);
+    add_option(CLIOptStr::SLEEP);
+    auto* hds = add_option(CLIOptStr::HEADER_DATA_SPLIT);
+#ifdef CUDA_ENABLED
+    if (auto* option = add_option(CLIOptStr::GPU_ID)) {
+        if (hds != nullptr) {
+            option->needs(hds);
+        }
+    }
+    add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+#else
+    NOT_IN_USE(hds);
+#endif
+    auto* stats_enabled = add_option(CLIOptStr::ENABLE_STATS_READER);
+    if (auto* option = add_option(CLIOptStr::STATS_CORE)) {
+        option->needs(stats_enabled);
+    }
+    if (auto* option = add_option(CLIOptStr::STATS_SESSION_ID)) {
+        option->needs(stats_enabled);
+    }
+    auto* mem = add_option(CLIOptStr::APP_MEMORY_ALLOC);
+    if (auto* option = add_option(CLIOptStr::ALLOCATOR_TYPE)) {
+        option->needs(mem);
+    }
+    if (auto* option = add_option(CLIOptStr::REGISTER_MEMORY)) {
+        option->needs(mem);
+    }
+    add_option(CLIOptStr::ENABLE_REDUNDANCY);
+    add_grouped_option(CLIOptStr::ENABLE_VIDEO, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::ENABLE_ALPHA, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_FILE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_option(CLIOptStr::DYNAMIC_FILE_LOADING);
+    add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_SAMPLING, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::ALPHA_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_option(CLIOptStr::PACKETS);
+    add_grouped_option(CLIOptStr::ENABLE_AUDIO, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::AUDIO_FILE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::PTIME_US, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::AUDIO_SAMPLING_RATE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::AUDIO_ENCODING, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::ENABLE_ANCILLARY, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::ANCILLARY_FILE, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::ANCILLARY_TYPES, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+
+    return rc;
 }
 
 MediaSenderApp::MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder) :

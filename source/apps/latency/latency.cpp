@@ -112,11 +112,31 @@ ReturnStatus LatencyCLISettingsBuilder::add_cli_options(LatencySettings& setting
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP)->
-            description("Send stream destination IP");
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT)->
-            description("Send stream destination port");
+
+    ReturnStatus rc = ReturnStatus::success;
+
+    // Adds a CLI option and records a failure if it could not be registered.
+    auto add_option = [&](const std::string& option_name) -> CLI::Option* {
+        auto* option = m_cli_parser_manager->add_option(option_name);
+        if (option == nullptr) {
+            rc = ReturnStatus::failure;
+        }
+        return option;
+    };
+
+    auto add_grouped_option = [&](const std::string& option_name, const std::string& group) {
+        if (auto* option = add_option(option_name)) {
+            option->group(group);
+        }
+    };
+
+    add_option(CLIOptStr::LOCAL_IP);
+    if (auto* option = add_option(CLIOptStr::DST_IP)) {
+        option->description("Send stream destination IP");
+    }
+    if (auto* option = add_option(CLIOptStr::DST_PORT)) {
+        option->description("Send stream destination port");
+    }
     auto parser = m_cli_parser_manager->get_parser();
     parser->add_option("-r,--receive-ip", settings.receive_ip,
                        "Receive stream destination IP", true)->
@@ -133,28 +153,27 @@ ReturnStatus LatencyCLISettingsBuilder::add_cli_options(LatencySettings& setting
                      "Disable processing of realtime completion timestamps");
     parser->add_flag("--disable-percent", settings.disable_percentile,
                      "Disable percentile calculation");
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_RESOLUTION)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FRAME_RATE)
-        ->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+    add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
     parser->add_option("--mode", settings.latency_mode,
                        "Latency measurement mode", true)->
                        transform(CLI::Transformer(oper_modes));
-    m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
-    m_cli_parser_manager->add_option(CLIOptStr::CHUNKS);
-    m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
-    m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US)->
-            description("Sleep duration in microsecond between latency measurement iterations");
-    m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
+    add_option(CLIOptStr::PAYLOAD_SIZE);
+    add_option(CLIOptStr::CHUNKS);
+    add_option(CLIOptStr::PACKETS);
+    if (auto* option = add_option(CLIOptStr::SLEEP_US)) {
+        option->description("Sleep duration in microsecond between latency measurement iterations");
+    }
+    add_option(CLIOptStr::INTERNAL_CORE);
+    add_option(CLIOptStr::APPLICATION_CORE);
+    add_option(CLIOptStr::ALLOCATOR_TYPE);
 #ifdef CUDA_ENABLED
-    m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+    add_option(CLIOptStr::GPU_ID);
+    add_option(CLIOptStr::LOCK_GPU_CLOCKS);
 #endif
-    m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
+    add_option(CLIOptStr::VERBOSE);
 
-    return ReturnStatus::success;
+    return rc;
 }
 
 LatencyApp::LatencyApp(std::unique_ptr<ISettingsBuilder<LatencySettings>> settings_builder) :

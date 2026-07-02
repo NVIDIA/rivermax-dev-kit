@@ -64,31 +64,48 @@ ReturnStatus GenericSenderCLISettingsBuilder::add_cli_options(GenericSenderSetti
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
-    m_cli_parser_manager->add_option(CLIOptStr::THREADS);
-    m_cli_parser_manager->add_option(CLIOptStr::FLOWS);
-    m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(StreamToThreadsFlowsValidator(
-        settings.num_of_threads, settings.num_of_total_flows));
-    m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
-    m_cli_parser_manager->add_option(CLIOptStr::CHUNKS);
-    m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
-    m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
-    m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
-    auto* rate_bps_opt = m_cli_parser_manager->add_option(CLIOptStr::RATE_BPS);
-    auto* rate_burst_opt = m_cli_parser_manager->add_option(CLIOptStr::RATE_BURST);
-    rate_bps_opt->needs(rate_burst_opt);
-    rate_burst_opt->needs(rate_bps_opt);
-    m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::WAIT_RETRY);
+
+    ReturnStatus rc = ReturnStatus::success;
+
+    // Adds a CLI option and records a failure if it could not be registered.
+    auto add_option = [&](const std::string& option_name) -> CLI::Option* {
+        auto* option = m_cli_parser_manager->add_option(option_name);
+        if (option == nullptr) {
+            rc = ReturnStatus::failure;
+        }
+        return option;
+    };
+
+    add_option(CLIOptStr::LOCAL_IP);
+    add_option(CLIOptStr::DST_IP);
+    add_option(CLIOptStr::DST_PORT);
+    add_option(CLIOptStr::THREADS);
+    add_option(CLIOptStr::FLOWS);
+    if (auto* option = add_option(CLIOptStr::STREAMS)) {
+        option->check(StreamToThreadsFlowsValidator(
+            settings.num_of_threads, settings.num_of_total_flows));
+    }
+    add_option(CLIOptStr::VERBOSE);
+    add_option(CLIOptStr::CHUNKS);
+    add_option(CLIOptStr::PACKETS);
+    add_option(CLIOptStr::PAYLOAD_SIZE);
+    add_option(CLIOptStr::SLEEP_US);
+    auto* rate_bps_opt = add_option(CLIOptStr::RATE_BPS);
+    auto* rate_burst_opt = add_option(CLIOptStr::RATE_BURST);
+    if (rate_bps_opt != nullptr && rate_burst_opt != nullptr) {
+        rate_bps_opt->needs(rate_burst_opt);
+        rate_burst_opt->needs(rate_bps_opt);
+    }
+    add_option(CLIOptStr::INTERNAL_CORE);
+    add_option(CLIOptStr::APPLICATION_CORE);
+    add_option(CLIOptStr::WAIT_RETRY);
 #ifdef CUDA_ENABLED
-    m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+    add_option(CLIOptStr::GPU_ID);
+    add_option(CLIOptStr::LOCK_GPU_CLOCKS);
 #endif
-    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
-    return ReturnStatus::success;
+    add_option(CLIOptStr::ALLOCATOR_TYPE);
+
+    return rc;
 }
 
 GenericSenderApp::GenericSenderApp(std::unique_ptr<ISettingsBuilder<GenericSenderSettings>> settings_builder) :
