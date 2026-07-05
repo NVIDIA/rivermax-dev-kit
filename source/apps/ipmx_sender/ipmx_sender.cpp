@@ -37,36 +37,19 @@ void IPMXSenderSettings::init_default_values()
 
 ReturnStatus IPMXSenderSettingsValidator::validate(const IPMXSenderSettings& settings) const
 {
-    if (settings.local_ips.empty() && settings.local_ip.empty()) {
-        std::cerr << "At least one local IP must be specified" << std::endl;
+    if (settings.local_ip.empty()) {
+        std::cerr << "A local IP must be specified" << std::endl;
         return ReturnStatus::failure;
     }
-    if (!settings.local_ips.empty() && !settings.local_ip.empty()) {
-        std::cerr << "Cannot set both a single local IP and a local IP list" << std::endl;
-        return ReturnStatus::failure;
-    }
-    if (settings.local_ips.size() > rdk::RivermaxDevKitFacade::get_max_redundant_streams()) {
-        std::cerr << "Up to " << rdk::RivermaxDevKitFacade::get_max_redundant_streams()
-                  << " local IP addresses are supported" << std::endl;
-        return ReturnStatus::failure;
-    }
-    if (settings.destination_ips.size() != settings.local_ips.size()) {
-        std::cerr << "Must be the same number of destination multicast IPs as number of local IPs" << std::endl;
-        return ReturnStatus::failure;
-    }
-    if (settings.destination_ports.size() != settings.local_ips.size()) {
-        std::cerr << "Must be the same number of destination ports as number of local IPs" << std::endl;
-        return ReturnStatus::failure;
-    }
-    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ips);
+    ReturnStatus rc = ValidatorUtils::validate_ip4_address(settings.local_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_address(settings.destination_ips);
+    rc = ValidatorUtils::validate_ip4_address(settings.destination_ip);
     if (rc != ReturnStatus::success) {
         return rc;
     }
-    rc = ValidatorUtils::validate_ip4_port(settings.destination_ports);
+    rc = ValidatorUtils::validate_ip4_port(settings.destination_port);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -95,14 +78,9 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(IPMXSenderSettings& s
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    auto cli_option_ip = m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    auto cli_option_ips = m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IPS);
-    cli_option_ip->excludes(cli_option_ips);
-    cli_option_ips->excludes(cli_option_ip);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP)->needs(cli_option_ip);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IPS)->needs(cli_option_ips);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT)->needs(cli_option_ip);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORTS)->needs(cli_option_ips);
+    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
+    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
     m_cli_parser_manager->add_option(CLIOptStr::THREADS);
     m_cli_parser_manager->add_option(CLIOptStr::STREAMS)->check(
         StreamToThreadsValidator(settings.num_of_threads));
