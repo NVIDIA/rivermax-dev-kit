@@ -93,29 +93,41 @@ ReturnStatus IPOReceiverCLISettingsBuilder::add_cli_options(IPOReceiverSettings&
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
+
+    ReturnStatus rc = ReturnStatus::success;
+
+    // Adds a CLI option and records a failure if it could not be registered.
+    auto add_option = [&](const std::string& option_name) -> CLI::Option* {
+        auto* option = m_cli_parser_manager->add_option(option_name);
+        if (option == nullptr) {
+            rc = ReturnStatus::failure;
+        }
+        return option;
+    };
+
     try {
-        m_cli_parser_manager->add_option(CLIOptStr::SRC_IPS);
-        m_cli_parser_manager->add_option(CLIOptStr::DST_IPS);
-        m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IPS);
-        m_cli_parser_manager->add_option(CLIOptStr::DST_PORTS);
-        m_cli_parser_manager->add_option(CLIOptStr::THREADS);
-        m_cli_parser_manager->add_option(CLIOptStr::STREAMS);
-        m_cli_parser_manager->add_option(CLIOptStr::PACKETS);
-        m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
-        m_cli_parser_manager->add_option(CLIOptStr::APP_HDR_SIZE);
-        m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
-        m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
-        m_cli_parser_manager->add_option(CLIOptStr::SLEEP_US);
+        add_option(CLIOptStr::SRC_IPS);
+        add_option(CLIOptStr::DST_IPS);
+        add_option(CLIOptStr::LOCAL_IPS);
+        add_option(CLIOptStr::DST_PORTS);
+        add_option(CLIOptStr::THREADS);
+        add_option(CLIOptStr::STREAMS);
+        add_option(CLIOptStr::PACKETS);
+        add_option(CLIOptStr::PAYLOAD_SIZE);
+        add_option(CLIOptStr::APP_HDR_SIZE);
+        add_option(CLIOptStr::INTERNAL_CORE);
+        add_option(CLIOptStr::APPLICATION_CORE);
+        add_option(CLIOptStr::SLEEP_US);
 #ifdef CUDA_ENABLED
-        m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
-        m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+        add_option(CLIOptStr::GPU_ID);
+        add_option(CLIOptStr::LOCK_GPU_CLOCKS);
 #endif
-        m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
-        m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
-        m_cli_parser_manager->add_option(CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS);
-        m_cli_parser_manager->add_option(CLIOptStr::RX_STREAM_TYPE);
-        m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
-        m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
+        add_option(CLIOptStr::ALLOCATOR_TYPE);
+        add_option(CLIOptStr::REGISTER_MEMORY);
+        add_option(CLIOptStr::ALLOCATE_EXTRA_STREAM_BUFFERS);
+        add_option(CLIOptStr::RX_STREAM_TYPE);
+        add_option(CLIOptStr::VERBOSE);
+        add_option(CLIOptStr::STATS_REPORT_INTERVAL);
 
         CLI::App_p parser = m_cli_parser_manager->get_parser();
         parser->add_option("-D,--max-pd", settings.max_path_differential_us, "Maximum path differential, us", true)
@@ -126,7 +138,7 @@ ReturnStatus IPOReceiverCLISettingsBuilder::add_cli_options(IPOReceiverSettings&
         std::cerr << "Failed to register CLI options: " << error.what() << std::endl;
         return ReturnStatus::failure;
     }
-    return ReturnStatus::success;
+    return rc;
 }
 
 IPOReceiverApp::IPOReceiverApp(std::unique_ptr<ISettingsBuilder<IPOReceiverSettings>> settings_builder) :

@@ -105,38 +105,61 @@ ReturnStatus MediaReceiverCLISettingsBuilder::add_cli_options(MediaReceiverSetti
         std::cerr << "CLI parser manager is not initialized" << std::endl;
         return ReturnStatus::failure;
     }
-    m_cli_parser_manager->add_option(CLIOptStr::SRC_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCAL_IP);
-    m_cli_parser_manager->add_option(CLIOptStr::DST_PORT);
-    m_cli_parser_manager->add_option(CLIOptStr::THREADS);
-    m_cli_parser_manager->add_option(CLIOptStr::STREAMS);
-    m_cli_parser_manager->add_option(CLIOptStr::PAYLOAD_SIZE);
-    m_cli_parser_manager->add_option(CLIOptStr::APP_HDR_SIZE);
-    m_cli_parser_manager->add_option(CLIOptStr::INTERNAL_CORE);
-    m_cli_parser_manager->add_option(CLIOptStr::APPLICATION_CORE);
+
+    ReturnStatus rc = ReturnStatus::success;
+
+    // Adds a CLI option and records a failure if it could not be registered.
+    auto add_option = [&](const std::string& option_name) -> CLI::Option* {
+        auto* option = m_cli_parser_manager->add_option(option_name);
+        if (option == nullptr) {
+            rc = ReturnStatus::failure;
+        }
+        return option;
+    };
+
+    auto add_grouped_option = [&](const std::string& option_name, const std::string& group) {
+        if (auto* option = add_option(option_name)) {
+            option->group(group);
+        }
+    };
+
+    try {
+        add_option(CLIOptStr::SRC_IP);
+        add_option(CLIOptStr::DST_IP);
+        add_option(CLIOptStr::LOCAL_IP);
+        add_option(CLIOptStr::DST_PORT);
+        add_option(CLIOptStr::THREADS);
+        add_option(CLIOptStr::STREAMS);
+        add_option(CLIOptStr::PAYLOAD_SIZE);
+        add_option(CLIOptStr::APP_HDR_SIZE);
+        add_option(CLIOptStr::INTERNAL_CORE);
+        add_option(CLIOptStr::APPLICATION_CORE);
 #ifdef CUDA_ENABLED
-    m_cli_parser_manager->add_option(CLIOptStr::GPU_ID);
-    m_cli_parser_manager->add_option(CLIOptStr::LOCK_GPU_CLOCKS);
+        add_option(CLIOptStr::GPU_ID);
+        add_option(CLIOptStr::LOCK_GPU_CLOCKS);
 #endif
-    m_cli_parser_manager->add_option(CLIOptStr::ALLOCATOR_TYPE);
-    m_cli_parser_manager->add_option(CLIOptStr::REGISTER_MEMORY);
-    m_cli_parser_manager->add_option(CLIOptStr::VERBOSE);
-    m_cli_parser_manager->add_option(CLIOptStr::STATS_REPORT_INTERVAL);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_VIDEO)->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_RESOLUTION)->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_FRAME_RATE)->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_SAMPLING)->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_SCAN_TYPE)->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::VIDEO_BIT_DEPTH)->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_AUDIO)->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::PTIME_US)->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_SAMPLING_RATE)->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::AUDIO_ENCODING)->group(CLIGroupStr::AUDIO_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ENABLE_ANCILLARY)->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_TYPES)->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    m_cli_parser_manager->add_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT)->group(CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
-    return ReturnStatus::success;
+        add_option(CLIOptStr::ALLOCATOR_TYPE);
+        add_option(CLIOptStr::REGISTER_MEMORY);
+        add_option(CLIOptStr::VERBOSE);
+        add_option(CLIOptStr::STATS_REPORT_INTERVAL);
+        add_grouped_option(CLIOptStr::ENABLE_VIDEO, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_SAMPLING, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::VIDEO_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ENABLE_AUDIO, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::PTIME_US, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::AUDIO_SAMPLING_RATE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::AUDIO_ENCODING, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ENABLE_ANCILLARY, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ANCILLARY_TYPES, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ANCILLARY_DATA_WORDS_COUNT, CLIGroupStr::ANCILLARY_FORMAT_OPTIONS);
+    } catch (const CLI::Error& error) {
+        std::cerr << "Failed to register CLI options: " << error.what() << std::endl;
+        return ReturnStatus::failure;
+    }
+    return rc;
 }
 
 const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaReceiverApp*)>>
