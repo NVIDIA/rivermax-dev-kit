@@ -78,7 +78,6 @@ struct MediaSettings
 
     /* Constants */
     static constexpr size_t MIN_MEDIA_UNITS_FOR_SIMULTANEOUS_TX_AND_FILLUP = 2;
-    static constexpr uint32_t MAX_PAYLOAD_SIZE = 1440;
     static constexpr size_t DEFAULT_NUM_OF_MEDIA_UNITS_IN_MEM_BLOCK = 10;
     static constexpr size_t DEFAULT_NUM_OF_MEM_BLOCKS = 1;
     static constexpr uint8_t DEFAULT_PTP_DOMAIN_ID = 127;

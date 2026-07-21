@@ -34,8 +34,10 @@ ReturnStatus ST_2110_40_MediaSettingsCalculator::calculate_packet_parameters()
 {
     // Calculate maximum packet size. Ancillary data packet size will be adjusted at runtime.
     m_media_settings.protocol_header_size = RTP_ST_2110_40_ANCILLARY_HEADER_SIZE;
-    m_media_settings.raw_packet_payload_size = MediaSettings::MAX_PAYLOAD_SIZE - m_media_settings.protocol_header_size;
-    m_media_settings.packet_payload_size = m_media_settings.protocol_header_size + m_media_settings.raw_packet_payload_size;
+    m_media_settings.raw_packet_payload_size = static_cast<uint16_t>(
+        max_raw_media_bytes(m_media_settings.protocol_header_size));
+    m_media_settings.packet_payload_size = static_cast<uint16_t>(
+        m_media_settings.protocol_header_size + m_media_settings.raw_packet_payload_size);
 
     // HDS for ancillary keeps data header with payload
     if (m_media_settings.header_data_split) {

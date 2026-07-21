@@ -19,6 +19,7 @@
 #ifndef RDK_SERVICES_PROTOCOL_UDP_H_
 #define RDK_SERVICES_PROTOCOL_UDP_H_
 
+#include <cstddef>
 #include <cstdint>
 
 namespace rdk

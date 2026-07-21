@@ -153,6 +153,9 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
 
     video_settings.bytes_per_media_unit = bytes_in_pgroup * pgroups_in_line * video_settings.resolution.height;
 
+    const size_t protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
+    const size_t max_raw_payload = max_raw_media_bytes(protocol_header_size);
+
     uint32_t pgroups_in_packet = 1; /* Non-zero initialization for Coverity to avoid a false "divide by zero" error */
     for (uint32_t pkt_cnt = 1; pkt_cnt <= pgroups_in_line; pkt_cnt++) {
         if (pgroups_in_line % pkt_cnt != 0) {
@@ -160,19 +163,28 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         }
         /* We get here at least once, e.g. when pkt_cnt == pgroups_in_line, and pgroups_in_packet will be > 0 */
         pgroups_in_packet = pgroups_in_line / pkt_cnt;
-        if (pgroups_in_packet * bytes_in_pgroup <= MediaSettings::MAX_PAYLOAD_SIZE) {
+        if (pgroups_in_packet * bytes_in_pgroup <= max_raw_payload) {
             break;
         }
     }
 
-    video_settings.packets_in_line = pgroups_in_line / pgroups_in_packet;
-    video_settings.packet_payload_size = static_cast<uint16_t>(pgroups_in_packet * bytes_in_pgroup + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
+    const size_t raw_payload_size = pgroups_in_packet * bytes_in_pgroup;
+    if (!fits_standard_udp_size(protocol_header_size, raw_payload_size)) {
+        std::cerr << "Error: Video UDP datagram size ("
+                  << (UDP_HEADER_SIZE + protocol_header_size + raw_payload_size)
+                  << " bytes) exceeds ST 2110-10 Standard UDP Size Limit ("
+                  << STANDARD_UDP_SIZE_LIMIT << " bytes)" << std::endl;
+        return ReturnStatus::failure;
+    }
 
-    video_settings.protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
-    video_settings.raw_packet_payload_size = static_cast<uint16_t>(pgroups_in_packet * bytes_in_pgroup);
+    video_settings.packets_in_line = pgroups_in_line / pgroups_in_packet;
+    video_settings.protocol_header_size = static_cast<uint16_t>(protocol_header_size);
+    video_settings.raw_packet_payload_size = static_cast<uint16_t>(raw_payload_size);
+    video_settings.packet_payload_size = static_cast<uint16_t>(
+        video_settings.raw_packet_payload_size + video_settings.protocol_header_size);
     if (video_settings.header_data_split) {
-        video_settings.packet_app_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
-        video_settings.packet_payload_size -= RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
+        video_settings.packet_app_header_size = video_settings.protocol_header_size;
+        video_settings.packet_payload_size -= video_settings.protocol_header_size;
     }
 
     video_settings.pixels_per_packet = static_cast<uint16_t>(pgroups_in_packet * pixels_in_pgroup);

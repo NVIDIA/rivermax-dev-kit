@@ -19,6 +19,7 @@
 #ifndef RDK_SERVICES_PROTOCOL_RTP_H_
 #define RDK_SERVICES_PROTOCOL_RTP_H_
 
+#include <cstddef>
 #include <cstdint>
 
 namespace rdk
@@ -61,6 +62,23 @@ struct RTPHeader
 #pragma pack(pop)
 
 } // namespace protocol
+
+// ============================================================================
+// RTP PROTOCOL CONSTANTS (RFC 3550)
+// ============================================================================
+
+/** RTP fixed header size in bytes (always 12). */
+constexpr size_t RTP_HEADER_SIZE = 12;
+/** Maximum number of CSRC identifiers in an RTP header. */
+constexpr size_t RTP_HEADER_MAX_CSRCS = 15;
+/** Size of one CSRC entry in bytes. */
+constexpr size_t RTP_HEADER_CSRC_GRANULARITY_BYTES = 4;
+/** Mask for the RTP version field in vpxcc. */
+constexpr uint8_t RTP_VERSION_MASK = 0xC0;
+/** RTP version 2 encoded in the version field of vpxcc. */
+constexpr uint8_t RTP_VERSION_2 = 0x80;
+/** Mask for the RTP marker bit. */
+constexpr uint8_t RTP_M_BIT_MASK = 0x80;
 
 } // namespace services
 } // namespace rdk

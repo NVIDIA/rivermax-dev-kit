@@ -81,16 +81,18 @@ ReturnStatus ST_2110_30_MediaSettingsCalculator::calculate_packet_parameters()
                           m_media_settings.bytes_per_sample;
 
     m_media_settings.protocol_header_size = RTP_HEADER_SIZE;
-    m_media_settings.raw_packet_payload_size = static_cast<uint16_t>(payload_size);
-    m_media_settings.packet_payload_size = static_cast<uint16_t>(payload_size + m_media_settings.protocol_header_size);
-
-    // Validate packet size doesn't exceed UDP limit
-    if (m_media_settings.packet_payload_size > MediaSettings::MAX_PAYLOAD_SIZE) {
-        std::cerr << "Error: Audio packet size (" << m_media_settings.packet_payload_size
-                  << " bytes) exceeds network limit (" << MediaSettings::MAX_PAYLOAD_SIZE << " bytes). "
+    if (!fits_standard_udp_size(m_media_settings.protocol_header_size, payload_size)) {
+        std::cerr << "Error: Audio UDP datagram size ("
+                  << (UDP_HEADER_SIZE + m_media_settings.protocol_header_size + payload_size)
+                  << " bytes) exceeds ST 2110-10 Standard UDP Size Limit ("
+                  << STANDARD_UDP_SIZE_LIMIT << " bytes). "
                   << "Consider shorter ptime or fewer channels/lower bit depth." << std::endl;
         return ReturnStatus::failure;
     }
+
+    m_media_settings.raw_packet_payload_size = static_cast<uint16_t>(payload_size);
+    m_media_settings.packet_payload_size = static_cast<uint16_t>(
+        payload_size + m_media_settings.protocol_header_size);
 
     if (m_media_settings.header_data_split) {
         m_media_settings.packet_app_header_size = m_media_settings.protocol_header_size;

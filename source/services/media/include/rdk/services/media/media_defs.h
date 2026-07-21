@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 
+#include "rdk/services/protocol/rtp.h"
+#include "rdk/services/protocol/udp.h"
 #include "rdk/services/sdp/sdp_defs.h"
 #include "rdk/services/utils/rational.h"
 
@@ -195,14 +197,14 @@ constexpr size_t _2160_WIDTH = 3840;
 constexpr size_t _2160_HEIGHT = 2160;
 constexpr size_t _4320_WIDTH = 7680;
 constexpr size_t _4320_HEIGHT = 4320;
+/* ST 2110-10 UDP Size Limit */
+constexpr size_t STANDARD_UDP_SIZE_LIMIT = 1460;
+constexpr size_t MAX_RTP_PACKET_SIZE = STANDARD_UDP_SIZE_LIMIT - UDP_HEADER_SIZE;
 /* RTP header constants */
 constexpr size_t RTP_HEADER_EXT_SEQ_NUM_SIZE = 2;
 constexpr size_t RTP_HEADER_SRD_MIN_SIZE = RTP_HEADER_EXT_SEQ_NUM_SIZE + 2;  // When first SRD length is 0
 constexpr size_t RTP_HEADER_SRD_SIZE = 6;
-constexpr size_t RTP_HEADER_SIZE = 12;
 constexpr size_t RTP_HEADER_SMPTE_2110_20_MAX_SRDS_NUM = 3;
-constexpr size_t RTP_HEADER_MAX_CSRCS = 15;
-constexpr size_t RTP_HEADER_CSRC_GRANULARITY_BYTES = 4;
 constexpr size_t RTP_SINGLE_SRD_HEADER_SIZE = RTP_HEADER_SRD_SIZE + RTP_HEADER_EXT_SEQ_NUM_SIZE;
 constexpr size_t RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE = \
     RTP_HEADER_SIZE + RTP_SINGLE_SRD_HEADER_SIZE;
@@ -225,9 +227,6 @@ constexpr size_t RTP_ST_2110_40_CHECKSUM_MSB_POSITION = 8;
 constexpr size_t RTP_ST_2110_40_CHECKSUM_INVERSE_BIT_POSITION = 9;
 constexpr uint32_t RTP_SEQUENCE_NUMBER_MASK_16BIT = 0xFFFF;
 constexpr uint32_t RTP_SEQUENCE_NUMBER_MASK_32BIT = 0xFFFFFFFF;
-constexpr uint8_t RTP_VERSION_MASK = 0xC0;
-constexpr uint8_t RTP_VERSION_2 = 0x80;
-constexpr uint8_t RTP_M_BIT_MASK = 0x80;
 /* Video constants */
 constexpr size_t VIDEO_TRO_DEFAULT_MODIFICATION = 2;
 /* Audio constants */
@@ -280,6 +279,33 @@ enum class SMPTEStandard
     ST_2110_40,
     Unknown
 };
+/**
+ * @brief: Maximum raw media octets that fit in a standard UDP datagram.
+ *
+ * @param [in] protocol_header_size: RTP (+ extensions / SRDs / anc header) size in octets.
+ *
+ * @return: Max raw media octets; 0 if the header is at or above the limit.
+ */
+constexpr size_t max_raw_media_bytes(size_t protocol_header_size)
+{
+    if (protocol_header_size > MAX_RTP_PACKET_SIZE) {
+        return 0;
+    }
+    return MAX_RTP_PACKET_SIZE - protocol_header_size;
+}
+/**
+ * @brief: Checks whether a media packet fits the ST 2110-10 Standard UDP Size Limit.
+ *
+ * @param [in] protocol_header_size: RTP (+ extensions / SRDs / anc header) size in octets.
+ * @param [in] raw_payload_size: Raw media payload size in octets.
+ *
+ * @return: True if the media packet fits the ST 2110-10 Standard UDP Size Limit, false otherwise.
+ */
+constexpr bool fits_standard_udp_size(size_t protocol_header_size, size_t raw_payload_size)
+{
+    return protocol_header_size <= MAX_RTP_PACKET_SIZE &&
+           raw_payload_size <= max_raw_media_bytes(protocol_header_size);
+}
 /**
  * @brief: Returns the default DSCP value for the given SMPTE standard.
  *

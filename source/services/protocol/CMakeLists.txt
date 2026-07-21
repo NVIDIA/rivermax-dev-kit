@@ -35,8 +35,6 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         Rivermax::Include
         rivermax-dev-kit-services-utils
-        rivermax-dev-kit-services-media
-        rivermax-dev-kit-services-sdp
 )
 
 target_link_libraries(rivermax-dev-kit-services INTERFACE ${PROJECT_NAME})
