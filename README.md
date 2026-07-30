@@ -287,7 +287,7 @@ In addition to being available as CLI interfaces, these applications are also ac
 
 - **[`rdk_media_sender`](source/apps/media_sender)**: A media sender application for streaming media content over IP networks. Supports industry-standard SMPTE 2110-20 (video), SMPTE 2110-30 (audio), and SMPTE 2110-40 (ancillary data) formats for professional media streaming workflows.
 
-- **[`rdk_media_receiver`](source/apps/media_receiver)**: A media receiver application for receiving media streams over IP networks. Supports industry-standard SMPTE 2110-20 (video), SMPTE 2110-30 (audio), and SMPTE 2110-40 (ancillary data) formats for professional media streaming workflows.
+<!-- - **[`rdk_media_receiver`](source/apps/media_receiver)**: A media receiver application for receiving media streams over IP networks. Supports industry-standard SMPTE 2110-20 (video), SMPTE 2110-30 (audio), and SMPTE 2110-40 (ancillary data) formats for professional media streaming workflows. -->
 
 - **[`rdk_rtp_receiver`](source/apps/rtp_receiver)**: A Real-time Transport Protocol (RTP) receiver application for receiving and processing RTP streams. Supports both standard and extended RTP sequence numbers for flexible packet handling.
 
