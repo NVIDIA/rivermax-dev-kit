@@ -46,19 +46,19 @@ public:
     size_t get_header_size(const byte_t* data) const override
     {
         NOT_IN_USE(data);
-        return UDP_HEADER_SIZE;
+        return sizeof(UDPHeader);
     }
 
     bool validate(const byte_t* data, size_t available_length) const override
     {
-        if (available_length < UDP_HEADER_SIZE) {
+        if (available_length < sizeof(UDPHeader)) {
             return false;
         }
 
         const UDPHeader* udp_header = get_typed_header(data);
         uint16_t udp_length = ntohs(udp_header->length);
 
-        if (udp_length < UDP_HEADER_SIZE) {
+        if (udp_length < sizeof(UDPHeader)) {
             return false;
         }
 

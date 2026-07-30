@@ -55,7 +55,6 @@ target_link_libraries(${PROJECT_NAME}
         Rivermax::Include
         rivermax-dev-kit-services-error-handling
         rivermax-dev-kit-services-memory-allocation
-        rivermax-dev-kit-services-protocol
         rivermax-dev-kit-services-sdp
         rivermax-dev-kit-services-settings
         rivermax-dev-kit-services-utils

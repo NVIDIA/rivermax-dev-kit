@@ -19,7 +19,6 @@
 #ifndef RDK_SERVICES_PROTOCOL_UDP_H_
 #define RDK_SERVICES_PROTOCOL_UDP_H_
 
-#include <cstddef>
 #include <cstdint>
 
 namespace rdk
@@ -48,13 +47,6 @@ struct UDPHeader
 };
 
 #pragma pack(pop)
-
-// ============================================================================
-// UDP PROTOCOL CONSTANTS
-// ============================================================================
-
-/** UDP header size in bytes (always 8). */
-constexpr size_t UDP_HEADER_SIZE = 8;
 
 } // namespace services
 } // namespace rdk

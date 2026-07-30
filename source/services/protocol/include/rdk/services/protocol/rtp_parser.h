@@ -29,6 +29,7 @@
 
 #include "rdk/services/protocol/protocol_parsers.h"
 #include "rdk/services/protocol/rtp.h"
+#include "rdk/services/media/media_defs.h"
 
 namespace rdk
 {
