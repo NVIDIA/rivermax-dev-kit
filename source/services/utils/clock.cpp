@@ -81,6 +81,7 @@ std::string rdk::services::ptp_to_string(uint64_t timestamp)
     auto time = std::chrono::system_clock::to_time_t(tp_system);
     std::ostringstream oss;
     oss.imbue(std::locale::classic());
+    // coverity[uninit_use_in_call] Coverity does not model the std::ostringstream constructor
     oss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
     oss << "." << std::setw (9) << std::setfill ('0') << nsec;
     return oss.str();
