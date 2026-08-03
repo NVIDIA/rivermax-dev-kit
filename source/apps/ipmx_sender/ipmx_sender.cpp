@@ -437,7 +437,7 @@ size_t IPMXSenderApp::query_memory_size()
 {
     size_t app_mem_len = 0;
     for (auto& sender : m_senders) {
-        size_t tx_size;
+        size_t tx_size = 0;
         sender->query_memory_size(tx_size);
         app_mem_len += tx_size;
     }

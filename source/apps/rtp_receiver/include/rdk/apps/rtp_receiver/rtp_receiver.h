@@ -35,7 +35,7 @@ public:
     static constexpr uint32_t DEFAULT_NUM_OF_PACKETS_IN_CHUNK = 262144;
     void init_default_values() override;
 
-    bool is_extended_sequence_number;
+    bool is_extended_sequence_number = false;
 };
 
 /**

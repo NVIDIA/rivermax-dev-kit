@@ -42,8 +42,8 @@ public:
      */
     void init_default_values() override;
 
-    bool is_video_enabled;
-    bool is_alpha_enabled;
+    bool is_video_enabled = false;
+    bool is_alpha_enabled = false;
 };
 
 /**

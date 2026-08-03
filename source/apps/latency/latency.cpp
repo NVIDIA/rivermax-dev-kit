@@ -375,10 +375,10 @@ void* LatencyApp::allocate_and_align_payload(size_t size)
 
 ReturnStatus LatencyApp::allocate_app_memory()
 {
-    size_t tx_header_size;
-    size_t tx_payload_size;
-    size_t rx_header_size;
-    size_t rx_payload_size;
+    size_t tx_header_size = 0;
+    size_t tx_payload_size = 0;
+    size_t rx_header_size = 0;
+    size_t rx_payload_size = 0;
 
     if (m_io_node->query_memory_size(tx_header_size, tx_payload_size,
                                      rx_header_size, rx_payload_size) != ReturnStatus::success) {
@@ -505,7 +505,7 @@ void LatencyApp::distribute_memory_for_streams()
 uint64_t LatencyApp::get_time_ns(void* context)
 {
     NOT_IN_USE(context);
-    uint64_t time_ns;
+    uint64_t time_ns = 0;
     if (rmx_get_time(RMX_TIME_PTP, &time_ns) != RMX_OK) {
         return 0;
     }
