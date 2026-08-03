@@ -99,6 +99,8 @@ public:
      *
      * @param [in] thread: Thread to pin.
      * @param [in] processor: Zero-based CPU core number.
+     *
+     * @throws std::runtime_error if the CPU set cannot be allocated or applied.
      */
     void set(std::thread &thread, const size_t processor);
     /**
@@ -106,18 +108,26 @@ public:
      *
      * @param [in] thread: Thread to pin.
      * @param [in] cpu_mask: Bitmask of CPU cores to assign.
+     *
+     * @throws std::runtime_error if the CPU set cannot be allocated or applied.
+     * @throws std::underflow_error if @p cpu_mask contains no CPUs.
      */
     void set(std::thread &thread, const mask &cpu_mask);
     /**
      * @brief: Sets CPU affinity for the calling thread to a single core.
      *
      * @param [in] processor: Zero-based CPU core number.
+     *
+     * @throws std::runtime_error if the CPU set cannot be allocated or applied.
      */
     void set(const size_t processor);
     /**
      * @brief: Sets CPU affinity for the calling thread to a set of cores.
      *
      * @param [in] cpu_mask: Bitmask of CPU cores to assign.
+     *
+     * @throws std::runtime_error if the CPU set cannot be allocated or applied.
+     * @throws std::underflow_error if @p cpu_mask contains no CPUs.
      */
     void set(const mask &cpu_mask);
 private:
