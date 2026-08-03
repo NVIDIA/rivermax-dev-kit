@@ -21,7 +21,6 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
-#include <regex>
 #include <rivermax_api.h>
 #include <sstream>
 #include <thread>
@@ -42,22 +41,6 @@
 using namespace rdk::io_node;
 using namespace rdk::services;
 using namespace rdk::core;
-
-/**
-* @brief: Modifies a given field in the SDP file.
-*
-* @pram [in] sdp_contents: SDP file to change.
-* @pram [in] prefix_str: Prefix string before source_str.
-* @pram [in] new_str: The new string to replace.
-* @pram [in] suffix_str: Suffix string after source_str.
-*/
-static inline void modify_sdp_field(
-    std::string& sdp_contents, const std::string& prefix,
-    const std::string& replacement, const char* suffix)
-{
-    std::regex re(prefix + ".*?" + suffix);
-    sdp_contents = std::regex_replace(sdp_contents, re, prefix + replacement + suffix);
-}
 
 SharedMessageHandler::SharedMessageHandler(const std::shared_ptr<GenericChunk>& chunk_handle) :
     m_pending_message_count(0),
