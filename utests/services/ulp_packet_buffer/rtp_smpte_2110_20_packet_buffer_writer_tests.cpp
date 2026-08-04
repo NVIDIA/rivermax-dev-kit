@@ -51,6 +51,25 @@ static std::shared_ptr<SMPTE_2110_20_MediaSettings> create_1080i50_settings()
     return settings;
 }
 
+static std::shared_ptr<SMPTE_2110_20_MediaSettings> create_1080p60_420_settings()
+{
+    auto settings = std::make_shared<SMPTE_2110_20_MediaSettings>();
+    settings->video_scan_type = VideoScanType::Progressive;
+    settings->frame_rate = FrameRate(60);
+    settings->resolution = Resolution(_1080_WIDTH, _1080_HEIGHT);
+    settings->sampling_type = VideoSampling::YCbCr_4_2_0;
+    settings->bit_depth = VideoBitDepth::_10;
+    settings->sample_rate = 90000;
+
+    ST_2110_20_MediaSettingsCalculator calculator(*settings);
+    if (calculator.calculate_media_settings() != ReturnStatus::success) {
+        ADD_FAILURE() << "Failed to calculate 1080p60 YCbCr 4:2:0 media settings";
+        return nullptr;
+    }
+
+    return settings;
+}
+
 static std::shared_ptr<MediaUnit> create_test_media_unit(size_t bytes_per_media_unit)
 {
     auto media_unit = std::make_shared<MediaUnit>(bytes_per_media_unit, SMPTEStandard::ST_2110_20);
@@ -74,6 +93,11 @@ static uint16_t extract_line_number(const uint8_t* rtp_payload_header)
     // SRD Row Number is 15 bits starting from bit 1 of byte 4
     uint16_t line = ((rtp_payload_header[4] & 0x7F) << 8) | rtp_payload_header[5];
     return line;
+}
+
+static uint16_t extract_srd_offset(const uint8_t* rtp_payload_header)
+{
+    return static_cast<uint16_t>(((rtp_payload_header[6] & 0x7F) << 8) | rtp_payload_header[7]);
 }
 
 static uint32_t extract_timestamp(const uint8_t* rtp_header)
@@ -188,6 +212,31 @@ protected:
     std::vector<uint8_t> m_scratch_buffer;
     std::vector<uint16_t> m_payload_sizes;
 };
+
+/* Test progressive 4:2:0 SRD row and offset geometry */
+TEST_F(RTP_SMPTE_2110_20_PacketBufferWriterTest, Progressive_420_UsesRowPairsAndHorizontalPgroupColumns)
+{
+    m_settings = create_1080p60_420_settings();
+    ASSERT_NE(m_settings, nullptr);
+    ASSERT_EQ(m_settings->packets_in_pgroup_row, 6);
+
+    init_writer();
+    allocate_buffers(7);
+    set_media_unit();
+
+    ASSERT_EQ(write_chunk(7), ReturnStatus::success);
+
+    const uint16_t expected_offsets[] = {0, 320, 640, 960, 1280, 1600};
+    for (size_t packet = 0; packet < m_settings->packets_in_pgroup_row; ++packet) {
+        const uint8_t* srd = packet_data_at(packet) + RTP_HEADER_SIZE;
+        EXPECT_EQ(extract_line_number(srd), 0);
+        EXPECT_EQ(extract_srd_offset(srd), expected_offsets[packet]);
+    }
+
+    const uint8_t* next_row_pair_srd = packet_data_at(m_settings->packets_in_pgroup_row) + RTP_HEADER_SIZE;
+    EXPECT_EQ(extract_line_number(next_row_pair_srd), 2);
+    EXPECT_EQ(extract_srd_offset(next_row_pair_srd), 0);
+}
 
 /* Test F-bit alternates between fields */
 TEST_F(RTP_SMPTE_2110_20_PacketBufferWriterTest, Interlaced_FBitAlternatesBetweenFields)

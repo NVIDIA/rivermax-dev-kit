@@ -217,6 +217,22 @@ TEST_F(VideoSettingsCalculatorTest, ProgressiveVsInterlaced_CompareFieldToFrame)
         << "Interlaced field packets should be half of progressive frame packets";
 }
 
+/* Test progressive 4:2:0 uses two-row pgroup geometry */
+TEST_F(VideoSettingsCalculatorTest, Progressive_420_UsesTwoRowPgroupGeometry)
+{
+    create_settings(VideoScanType::Progressive, FrameRate(60));
+    m_settings.sampling_type = VideoSampling::YCbCr_4_2_0;
+    m_settings.bit_depth = VideoBitDepth::_10;
+    calculate_and_assert_success();
+
+    EXPECT_EQ(m_settings.pixel_columns_in_pgroup, 4);
+    EXPECT_EQ(m_settings.pixel_rows_in_pgroup, 2);
+    EXPECT_EQ(m_settings.pgroups_in_pgroup_row, 480);
+    EXPECT_EQ(m_settings.pgroups_in_packet, 80);
+    EXPECT_EQ(m_settings.packets_in_pgroup_row, 6);
+    EXPECT_EQ(m_settings.packets_in_media_unit, 3240);
+}
+
 /* Test rejection of 4:2:0 sampling with interlaced video */
 TEST_F(VideoSettingsCalculatorTest, Interlaced_Rejects_420_Sampling)
 {
