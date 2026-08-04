@@ -38,7 +38,7 @@ RTP_SMPTE_2110_20_PacketBufferWriter::RTP_SMPTE_2110_20_PacketBufferWriter(const
 void RTP_SMPTE_2110_20_PacketBufferWriter::reset_in_media_unit_state()
 {
     m_current_line_number = 0;
-    m_current_srd_offset = 0;
+    m_current_pgroup_index_in_row = 0;
 }
 
 void RTP_SMPTE_2110_20_PacketBufferWriter::prepare_context_for_packet()
@@ -54,7 +54,8 @@ void RTP_SMPTE_2110_20_PacketBufferWriter::prepare_context_for_packet()
 
     // Copy tracking state to context for packet writer
     m_rtp_packet_context->line_number = m_current_line_number;
-    m_rtp_packet_context->srd_offset = m_current_srd_offset;
+    m_rtp_packet_context->srd_offset = static_cast<uint16_t>(
+        m_current_pgroup_index_in_row * video_settings.pixel_columns_in_pgroup);
     m_rtp_packet_context->rtp_interlace_field_indicator = m_current_field_indicator;
     m_rtp_packet_context->srd_length = video_settings.raw_packet_payload_size;
 
@@ -67,14 +68,15 @@ inline void RTP_SMPTE_2110_20_PacketBufferWriter::update_in_media_unit_state(siz
     auto& video_settings = static_cast<const SMPTE_2110_20_MediaSettings&>(m_media_settings);
 
     // Update tracking state for next packet
-    m_current_srd_offset = (m_current_srd_offset + video_settings.pixels_per_packet) %
-        (video_settings.resolution.width);
+    m_current_pgroup_index_in_row = (m_current_pgroup_index_in_row + video_settings.pgroups_in_packet) %
+        video_settings.pgroups_in_pgroup_row;
 
     m_packet_counter++;
 
-    if (!(m_packet_counter % video_settings.packets_in_line)) {
+    if (!(m_packet_counter % video_settings.packets_in_pgroup_row)) {
         // Prepare line number for next iteration:
-        m_current_line_number = (m_current_line_number + 1) % video_settings.lines_in_frame_field;
+        m_current_line_number =
+            (m_current_line_number + video_settings.pixel_rows_in_pgroup) % video_settings.lines_in_media_unit;
     }
 
     if (m_packet_counter == video_settings.packets_in_media_unit) {

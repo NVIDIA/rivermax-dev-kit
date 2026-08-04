@@ -31,53 +31,54 @@
 
 using namespace rdk::services;
 
-using BytesPerPixelRatio = std::pair<uint32_t, uint32_t>;
-using VideoDepthPixelRatioMap =
-    std::unordered_map<VideoSampling, std::unordered_map<VideoBitDepth, BytesPerPixelRatio>>;
 /**
- * @brief: Map of video sampling formats to bytes-per-pixel ratios for each color bit depth.
- *
- * This map defines the pixel format characteristics by storing the ratio of bytes to pixels
- * for different video sampling types (RGB, YCbCr 4:4:4, YCbCr 4:2:2, YCbCr 4:2:0, KEY) and
- * video bit depths (8-bit, 10-bit, 12-bit). The ratio is expressed as a pair {bytes, pixels}
- * where the actual bytes-per-pixel value is calculated as bytes/pixels.
- *
- * The KEY sampling type is used for alpha channel in video.
- *
- * For example:
- * - RGB 8-bit: {3, 1} = 3 bytes per pixel (8 bits × 3 components ÷ 8 bits/byte)
- * - YCbCr 4:2:2 10-bit: {5, 2} = 2.5 bytes per pixel (10 bits × 2 pixels with shared chroma)
- * - KEY 10-bit: {4, 5} = 0.8 bytes per pixel (10 bits × 4 pixels)
- *
- * This is commonly referred to as the "pixel format stride" or "bytes per pixel" in video processing.
+ * @brief: Number of bytes, pixel columns, and pixel rows in one SMPTE ST 2110-20 pgroup.
  */
-const VideoDepthPixelRatioMap VIDEO_DEPTH_TO_PIXEL_RATIO = {
+struct PgroupGeometry
+{
+    uint32_t octets;
+    uint32_t columns;
+    uint32_t rows;
+};
+
+using VideoDepthPgroupGeometryMap =
+    std::unordered_map<VideoSampling, std::unordered_map<VideoBitDepth, PgroupGeometry>>;
+/**
+ * @brief: Map of video sampling formats to pgroup geometry for each color bit depth.
+ *
+ * Each entry is {octets, columns, rows}. Most pgroups cover one raster row.
+ * YCbCr 4:2:0 pgroups cover two consecutive rows, so their horizontal
+ * coverage must not be flattened into the total number of covered samples.
+ *
+ * The KEY sampling type is used for the alpha channel.
+ */
+const VideoDepthPgroupGeometryMap VIDEO_DEPTH_TO_PGROUP_GEOMETRY = {
     {VideoSampling::RGB,
-        {{VideoBitDepth::_8, {3, 1}},
-         {VideoBitDepth::_10, {15, 4}},
-         {VideoBitDepth::_12, {9, 2}}}},
+        {{VideoBitDepth::_8, {3, 1, 1}},
+         {VideoBitDepth::_10, {15, 4, 1}},
+         {VideoBitDepth::_12, {9, 2, 1}}}},
     {VideoSampling::YCbCr_4_4_4,
-        {{VideoBitDepth::_8, {3, 1}},
-         {VideoBitDepth::_10, {15, 4}},
-         {VideoBitDepth::_12, {9, 2}}}},
+        {{VideoBitDepth::_8, {3, 1, 1}},
+         {VideoBitDepth::_10, {15, 4, 1}},
+         {VideoBitDepth::_12, {9, 2, 1}}}},
     {VideoSampling::YCbCr_4_2_2,
-        {{VideoBitDepth::_8, {4, 2}},
-         {VideoBitDepth::_10, {5, 2}},
-         {VideoBitDepth::_12, {6, 2}}}},
+        {{VideoBitDepth::_8, {4, 2, 1}},
+         {VideoBitDepth::_10, {5, 2, 1}},
+         {VideoBitDepth::_12, {6, 2, 1}}}},
     {VideoSampling::YCbCr_4_2_0,
-        {{VideoBitDepth::_8, {6, 4}},
-         {VideoBitDepth::_10, {15, 8}},
-         {VideoBitDepth::_12, {9, 4}}}},
+        {{VideoBitDepth::_8, {6, 2, 2}},
+         {VideoBitDepth::_10, {15, 4, 2}},
+         {VideoBitDepth::_12, {9, 2, 2}}}},
     {VideoSampling::KEY,
-        {{VideoBitDepth::_8, {1, 1}},
-         {VideoBitDepth::_10, {5, 4}},
-         {VideoBitDepth::_12, {3, 2}}}}
+        {{VideoBitDepth::_8, {1, 1, 1}},
+         {VideoBitDepth::_10, {5, 4, 1}},
+         {VideoBitDepth::_12, {3, 2, 1}}}}
 };
 
 bool ST_2110_20_MediaSettingsCalculator::is_bit_depth_supported(VideoSampling sampling, VideoBitDepth bit_depth)
 {
-    auto sampling_it = VIDEO_DEPTH_TO_PIXEL_RATIO.find(sampling);
-    if (sampling_it != VIDEO_DEPTH_TO_PIXEL_RATIO.end()) {
+    auto sampling_it = VIDEO_DEPTH_TO_PGROUP_GEOMETRY.find(sampling);
+    if (sampling_it != VIDEO_DEPTH_TO_PGROUP_GEOMETRY.end()) {
         return sampling_it->second.find(bit_depth) != sampling_it->second.end();
     }
     return false;
@@ -139,6 +140,9 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         return ReturnStatus::failure;
     }
 
+    const auto pgroup =
+        VIDEO_DEPTH_TO_PGROUP_GEOMETRY.at(video_settings.sampling_type).at(video_settings.bit_depth);
+
     if (video_settings.sampling_type == VideoSampling::YCbCr_4_2_0 &&
         video_settings.video_scan_type == VideoScanType::Interlaced) {
         std::cerr << "Error: " << enum_to_string(VideoSampling::YCbCr_4_2_0)
@@ -146,23 +150,25 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         return ReturnStatus::failure;
     }
 
-    auto bytes_per_pixel_ratio = VIDEO_DEPTH_TO_PIXEL_RATIO.at(video_settings.sampling_type).at(video_settings.bit_depth);
-    uint32_t bytes_in_pgroup = bytes_per_pixel_ratio.first;
-    uint32_t pixels_in_pgroup = bytes_per_pixel_ratio.second;
-    uint32_t pgroups_in_line = (video_settings.resolution.width + pixels_in_pgroup - 1) / pixels_in_pgroup;
+    const uint32_t bytes_in_pgroup = pgroup.octets;
+    const uint32_t pixel_columns_in_pgroup = pgroup.columns;
+    const uint32_t pgroups_in_pgroup_row =
+        (video_settings.resolution.width + pixel_columns_in_pgroup - 1) / pixel_columns_in_pgroup;
+    const uint32_t pgroup_rows_in_frame = video_settings.resolution.height / pgroup.rows;
 
-    video_settings.bytes_per_media_unit = bytes_in_pgroup * pgroups_in_line * video_settings.resolution.height;
+    video_settings.bytes_per_media_unit =
+        bytes_in_pgroup * pgroups_in_pgroup_row * pgroup_rows_in_frame;
 
     const size_t protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
     const size_t max_raw_payload = max_raw_media_bytes(protocol_header_size);
 
     uint32_t pgroups_in_packet = 1; /* Non-zero initialization for Coverity to avoid a false "divide by zero" error */
-    for (uint32_t pkt_cnt = 1; pkt_cnt <= pgroups_in_line; pkt_cnt++) {
-        if (pgroups_in_line % pkt_cnt != 0) {
+    for (uint32_t pkt_cnt = 1; pkt_cnt <= pgroups_in_pgroup_row; pkt_cnt++) {
+        if (pgroups_in_pgroup_row % pkt_cnt != 0) {
             continue;
         }
-        /* We get here at least once, e.g. when pkt_cnt == pgroups_in_line, and pgroups_in_packet will be > 0 */
-        pgroups_in_packet = pgroups_in_line / pkt_cnt;
+        /* At pkt_cnt == pgroups_in_pgroup_row, pgroups_in_packet is always non-zero. */
+        pgroups_in_packet = pgroups_in_pgroup_row / pkt_cnt;
         if (pgroups_in_packet * bytes_in_pgroup <= max_raw_payload) {
             break;
         }
@@ -177,7 +183,7 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         return ReturnStatus::failure;
     }
 
-    video_settings.packets_in_line = pgroups_in_line / pgroups_in_packet;
+    video_settings.packets_in_pgroup_row = pgroups_in_pgroup_row / pgroups_in_packet;
     video_settings.protocol_header_size = static_cast<uint16_t>(protocol_header_size);
     video_settings.raw_packet_payload_size = static_cast<uint16_t>(raw_payload_size);
     video_settings.packet_payload_size = static_cast<uint16_t>(
@@ -187,15 +193,19 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         video_settings.packet_payload_size -= video_settings.protocol_header_size;
     }
 
-    video_settings.pixels_per_packet = static_cast<uint16_t>(pgroups_in_packet * pixels_in_pgroup);
-    video_settings.packets_in_media_unit = static_cast<uint32_t>(video_settings.packets_in_line * video_settings.resolution.height);
+    video_settings.pgroups_in_pgroup_row = pgroups_in_pgroup_row;
+    video_settings.pgroups_in_packet = pgroups_in_packet;
+    video_settings.pixel_columns_in_pgroup = static_cast<uint16_t>(pixel_columns_in_pgroup);
+    video_settings.pixel_rows_in_pgroup = static_cast<uint8_t>(pgroup.rows);
+    video_settings.packets_in_media_unit = static_cast<uint32_t>(
+        video_settings.packets_in_pgroup_row * pgroup_rows_in_frame);
     video_settings.media_unit_time_interval_ns = rational_cast<double>(NS_IN_SEC / video_settings.frame_rate);
-    video_settings.lines_in_frame_field = video_settings.resolution.height;
+    video_settings.lines_in_media_unit = video_settings.resolution.height;
     video_settings.ticks_per_media_unit = video_settings.sample_rate / video_settings.frame_rate;
 
     if (video_settings.video_scan_type == VideoScanType::Interlaced) {
         video_settings.packets_in_media_unit /= 2;
-        video_settings.lines_in_frame_field /= 2;
+        video_settings.lines_in_media_unit /= 2;
         video_settings.media_unit_time_interval_ns /= 2;
         video_settings.ticks_per_media_unit /= 2;
         video_settings.bytes_per_media_unit /= 2;
@@ -214,8 +224,8 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     }
 
     if (!chunk_size_applied) {
-        constexpr size_t lines_in_chunk = 4;
-        video_settings.packets_in_chunk = lines_in_chunk * video_settings.packets_in_line;
+        constexpr size_t pgroup_rows_in_chunk = 4;
+        video_settings.packets_in_chunk = pgroup_rows_in_chunk * video_settings.packets_in_pgroup_row;
     }
 
     video_settings.chunks_in_media_unit =

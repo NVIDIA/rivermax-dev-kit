@@ -325,7 +325,7 @@ TEST_F(RTP_SMPTE_2110_20_PacketBufferWriterTest, Interlaced_1080i_FieldHas540Lin
     init_settings();
 
     // For 1080i, each field should have 540 lines (1080 / 2)
-    EXPECT_EQ(m_settings->lines_in_frame_field, 540) << "1080i field should have 540 lines";
+    EXPECT_EQ(m_settings->lines_in_media_unit, 540) << "1080i field should have 540 lines";
 
     init_writer();
     allocate_buffers(MAX_PACKETS_PER_CHUNK);
@@ -497,7 +497,7 @@ TEST_F(RTP_SMPTE_2110_20_PacketBufferWriterTest, Interlaced_LastLineNumberIsCorr
     init_settings();
 
     // For 1080i, last line should be 539 (lines 0-539 = 540 lines)
-    const uint16_t EXPECTED_LAST_LINE = m_settings->lines_in_frame_field - 1;
+    const uint16_t EXPECTED_LAST_LINE = m_settings->lines_in_media_unit - 1;
 
     init_writer();
     allocate_buffers(MAX_PACKETS_PER_CHUNK);
@@ -511,5 +511,5 @@ TEST_F(RTP_SMPTE_2110_20_PacketBufferWriterTest, Interlaced_LastLineNumberIsCorr
 
     EXPECT_EQ(last_line, EXPECTED_LAST_LINE)
         << "Last packet should be from line " << EXPECTED_LAST_LINE
-        << " (0-indexed line count = " << m_settings->lines_in_frame_field << ")";
+        << " (0-indexed line count = " << m_settings->lines_in_media_unit << ")";
 }

@@ -72,9 +72,11 @@ void RtpVideoSendStream::prepare_chunk_to_send(MediaChunk& chunk)
     while (stride < chunk_length && m_send_stats.packet_counter < m_video_settings.packets_in_media_unit) {
         current_packet_pointer = header_pointer + (stride * header_stride_size);
         build_2110_20_rtp_header(current_packet_pointer);
-        if (!((stride + 1) % m_video_settings.packets_in_line)) {
+        if (!(m_send_stats.packet_counter % m_video_settings.packets_in_pgroup_row)) {
             // Prepare line number for next iteration:
-            m_send_stats.line_number = (m_send_stats.line_number + 1) % m_video_settings.lines_in_frame_field;
+            m_send_stats.line_number =
+                (m_send_stats.line_number + m_video_settings.pixel_rows_in_pgroup) %
+                m_video_settings.lines_in_media_unit;
         }
         stride++;
     }
@@ -111,16 +113,18 @@ inline void RtpVideoSendStream::build_2110_20_rtp_header(byte_t* buffer)
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
     buffer[12] = (m_send_stats.rtp_sequence >> 24) & 0xff;  // High 16 bits of Extended Sequence Number.
     buffer[13] = (m_send_stats.rtp_sequence >> 16) & 0xff;  // Low 16 bits of Extended Sequence Number.
-    *(uint16_t*)&buffer[14] = htons(m_stream_settings.m_media_settings.packet_payload_size - 20);  // SRD Length.
+    *(uint16_t*)&buffer[14] = htons(m_video_settings.raw_packet_payload_size);  // SRD Length.
 
-    uint16_t srd_row_number = m_send_stats.line_number % m_video_settings.lines_in_frame_field;
+    uint16_t srd_row_number = m_send_stats.line_number % m_video_settings.lines_in_media_unit;
     *(uint16_t*)&buffer[16] = htons(srd_row_number);
     buffer[16] |= (m_send_stats.rtp_interlace_field_indicator << 7);
 
-    *(uint16_t*)&buffer[18] = htons(m_send_stats.srd_offset);  // SRD Offset.
-    uint16_t group_size = (uint16_t)((m_stream_settings.m_media_settings.packet_payload_size - 20) / 2.5);
-    m_send_stats.srd_offset = (m_send_stats.srd_offset + group_size) %
-            (group_size * m_video_settings.packets_in_line);
+    const uint16_t srd_offset = static_cast<uint16_t>(
+        m_send_stats.pgroup_index_in_row * m_video_settings.pixel_columns_in_pgroup);
+    *(uint16_t*)&buffer[18] = htons(srd_offset);  // SRD Offset.
+    m_send_stats.pgroup_index_in_row =
+        (m_send_stats.pgroup_index_in_row + m_video_settings.pgroups_in_packet) %
+        m_video_settings.pgroups_in_pgroup_row;
 
     if (++m_send_stats.packet_counter == m_video_settings.packets_in_media_unit) {
         buffer[1] |= 0x80; // Last packet in frame (Marker).

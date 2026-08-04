@@ -86,7 +86,7 @@ TEST_F(VideoSettingsCalculatorTest, Interlaced_1080i50_FieldBasedValues)
     // - Full frame: 1920x1080, 25 fps
     // - Field: 1920x540, 50 fields/sec
 
-    EXPECT_EQ(m_settings.lines_in_frame_field, 540)
+    EXPECT_EQ(m_settings.lines_in_media_unit, 540)
         << "Lines in field should be 540 for 1080i";
 
     // 1 second / 50 fields = 20,000,000 ns per field
@@ -97,8 +97,8 @@ TEST_F(VideoSettingsCalculatorTest, Interlaced_1080i50_FieldBasedValues)
     EXPECT_NEAR(rational_cast<double>(m_settings.ticks_per_media_unit), 1800.0, 1.0)
         << "RTP timestamp increment should be 1800 per field for 1080i50";
 
-    // Packets per field = packets_in_line * 540
-    size_t expected_packets_per_field = m_settings.packets_in_line * 540;
+    // Packets per field = packets_in_pgroup_row * 540
+    size_t expected_packets_per_field = m_settings.packets_in_pgroup_row * 540;
     EXPECT_EQ(m_settings.packets_in_media_unit, expected_packets_per_field)
         << "Packets per field should be half of full frame";
 
@@ -123,7 +123,7 @@ TEST_F(VideoSettingsCalculatorTest, Interlaced_1080i60_FractionalFrameRate)
     EXPECT_NEAR(rational_cast<double>(m_settings.ticks_per_media_unit), expected_ticks, 1.0)
         << "RTP timestamp increment should be ~1501.5 per field for 1080i59.94";
 
-    EXPECT_EQ(m_settings.lines_in_frame_field, 540)
+    EXPECT_EQ(m_settings.lines_in_media_unit, 540)
         << "Lines in field should be 540 for 1080i59.94";
 }
 
@@ -132,7 +132,7 @@ TEST_F(VideoSettingsCalculatorTest, Progressive_1080p60_FrameBasedValues)
 {
     init_settings(VideoScanType::Progressive, FrameRate(60));
 
-    EXPECT_EQ(m_settings.lines_in_frame_field, 1080)
+    EXPECT_EQ(m_settings.lines_in_media_unit, 1080)
         << "Lines should be 1080 for progressive";
 
     // Frame time for 1080p60: 1 second / 60 = 16,666,667 ns
@@ -143,7 +143,7 @@ TEST_F(VideoSettingsCalculatorTest, Progressive_1080p60_FrameBasedValues)
     EXPECT_NEAR(rational_cast<double>(m_settings.ticks_per_media_unit), 1500.0, 1.0)
         << "RTP timestamp increment should be 1500 per frame for 1080p60";
 
-    size_t expected_packets_per_frame = m_settings.packets_in_line * 1080;
+    size_t expected_packets_per_frame = m_settings.packets_in_pgroup_row * 1080;
     EXPECT_EQ(m_settings.packets_in_media_unit, expected_packets_per_frame)
         << "Packets should be for full frame in progressive";
 }
@@ -210,7 +210,7 @@ TEST_F(VideoSettingsCalculatorTest, ProgressiveVsInterlaced_CompareFieldToFrame)
                 rational_cast<double>(intl_settings.ticks_per_media_unit), 1.0)
         << "Progressive 50fps and interlaced 25fps should have same RTP timestamp increment";
 
-    EXPECT_EQ(intl_settings.lines_in_frame_field, prog_settings.lines_in_frame_field / 2)
+    EXPECT_EQ(intl_settings.lines_in_media_unit, prog_settings.lines_in_media_unit / 2)
         << "Interlaced field lines should be half of progressive frame lines";
 
     EXPECT_EQ(intl_settings.packets_in_media_unit, prog_settings.packets_in_media_unit / 2)
@@ -260,7 +260,7 @@ TEST_F(VideoSettingsCalculatorTest, Interlaced_1080i29_97)
 {
     init_settings(VideoScanType::Interlaced, FrameRate(30000, 1001));
 
-    EXPECT_EQ(m_settings.lines_in_frame_field, 540)
+    EXPECT_EQ(m_settings.lines_in_media_unit, 540)
         << "Lines in field should be 540 for 1080i29.97";
 
     double expected_field_time_ns = (NS_IN_SEC * 1001.0 / 30000.0) / 2.0;

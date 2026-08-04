@@ -55,7 +55,7 @@ public:
 protected:
     /** Media unit tracking state */
     uint16_t m_current_line_number = 0;
-    uint16_t m_current_srd_offset = 0;
+    size_t m_current_pgroup_index_in_row = 0;
     uint8_t m_current_field_indicator = 0;
 
     /**

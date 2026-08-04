@@ -73,9 +73,12 @@ struct SMPTE_2110_20_MediaSettings : public MediaSettings
     VideoScanType video_scan_type = VideoScanType::Progressive;
     Colorimetry colorimetry = Colorimetry::BT709;
     SMPTEStandardNumber smpte_standard_number = SMPTEStandardNumber::ST2110_20_2017;
-    size_t packets_in_line = 0;
-    size_t lines_in_frame_field = 0;
-    uint16_t pixels_per_packet = 0;
+    size_t packets_in_pgroup_row = 0;
+    size_t lines_in_media_unit = 0;
+    size_t pgroups_in_pgroup_row = 0;
+    size_t pgroups_in_packet = 0;
+    uint16_t pixel_columns_in_pgroup = 0;
+    uint8_t pixel_rows_in_pgroup = 1;
 };
 
 } // namespace services

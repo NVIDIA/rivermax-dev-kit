@@ -54,7 +54,7 @@ struct SendingStatistics
     Rational rtp_timestamp;
     uint8_t rtp_interlace_field_indicator = 0;
     uint16_t line_number = 0;
-    uint16_t srd_offset = 0;
+    size_t pgroup_index_in_row = 0;
 };
 /**
  * @brief: RTP Video send stream interface.
