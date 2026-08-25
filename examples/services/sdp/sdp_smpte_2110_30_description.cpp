@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <exception>
 #include <iostream>
 #include <string>
 
@@ -43,7 +44,7 @@ SMPTE_2110_30_SDPGenerationExample::SMPTE_2110_30_SDPGenerationExample() :
 }
 
 ReturnStatus SMPTE_2110_30_SDPGenerationExample::operator()()
-{
+try {
     /** Example network parameters */
     constexpr auto local_ip = "1.1.1.1";
     constexpr auto destination_ip = "224.1.2.3";
@@ -77,8 +78,10 @@ ReturnStatus SMPTE_2110_30_SDPGenerationExample::operator()()
         .build()->to_string();
 
     std::cout << "Generated SDP string:\n" << sdp_string << std::endl;
-
     return ReturnStatus::success;
+} catch (const std::exception& error) {
+    std::cerr << "Failed to generate SMPTE ST 2110-30 SDP: " << error.what() << std::endl;
+    return ReturnStatus::failure;
 }
 
 } // namespace services
