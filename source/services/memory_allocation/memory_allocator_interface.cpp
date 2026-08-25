@@ -18,6 +18,7 @@
 
 #include <cstring>
 #include <climits>
+#include <exception>
 #include <iostream>
 
 #ifdef __linux__
@@ -91,11 +92,16 @@ mem_allocator_factory_map_t MemoryAllocator::s_mem_allocator_factory = \
         [](std::shared_ptr<AppSettings> app_settings)
         {
             if (app_settings->gpu_id != INVALID_GPU_ID) {
-                return std::shared_ptr<MemoryAllocator>(new GpuMemoryAllocator(app_settings->gpu_id));
+                try {
+                    return std::shared_ptr<MemoryAllocator>(new GpuMemoryAllocator(app_settings->gpu_id));
+                } catch (const std::exception& error) {
+                    std::cerr << "Failed to create GPU memory allocator: " << error.what() << std::endl;
+                }
             } else {
-                return std::shared_ptr<MemoryAllocator>(nullptr);
+                std::cerr << "Failed to create GPU memory allocator: invalid GPU id" << std::endl;
             }
-            }
+            return std::shared_ptr<MemoryAllocator>(nullptr);
+        }
      },
      {
         AllocatorType::GPUHostPinned,
