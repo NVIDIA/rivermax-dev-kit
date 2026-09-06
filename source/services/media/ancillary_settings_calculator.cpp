@@ -80,7 +80,8 @@ void ST_2110_40_MediaSettingsCalculator::calculate_memory_parameters()
     }
     m_media_settings.chunks_in_mem_block = m_media_settings.media_units_in_mem_block * m_media_settings.chunks_in_media_unit;
     m_media_settings.packets_in_mem_block = m_media_settings.chunks_in_mem_block * m_media_settings.packets_in_chunk;
-    m_media_settings.bytes_per_media_unit = m_media_settings.raw_packet_payload_size * m_media_settings.packets_in_media_unit;
+    m_media_settings.bytes_per_media_unit =
+        static_cast<size_t>(m_media_settings.raw_packet_payload_size) * m_media_settings.packets_in_media_unit;
 }
 
 void ST_2110_40_MediaSettingsCalculator::calculate_stride_parameters()

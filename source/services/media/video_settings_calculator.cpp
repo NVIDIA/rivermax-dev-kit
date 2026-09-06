@@ -217,12 +217,12 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         }
         /* At pkt_cnt == pgroups_in_pgroup_row, pgroups_in_packet is always non-zero. */
         pgroups_in_packet = pgroups_in_pgroup_row / pkt_cnt;
-        if (pgroups_in_packet * bytes_in_pgroup <= max_raw_payload) {
+        if (static_cast<size_t>(pgroups_in_packet) * bytes_in_pgroup <= max_raw_payload) {
             break;
         }
     }
 
-    const size_t raw_payload_size = pgroups_in_packet * bytes_in_pgroup;
+    const size_t raw_payload_size = static_cast<size_t>(pgroups_in_packet) * bytes_in_pgroup;
     if (!fits_standard_udp_size(protocol_header_size, raw_payload_size)) {
         std::cerr << "Error: Video UDP datagram size ("
                   << (UDP_HEADER_SIZE + protocol_header_size + raw_payload_size)

@@ -78,12 +78,10 @@ void LinearSynchronizer::complete_consensus()
 
         for (const auto& checker_function : m_checkers) {
             int checker_result = checker_function(proposed_time);
-            if (checker_result == 0) {
-                continue;
-            } else if (checker_result < 0) {
+            if (checker_result < 0) {
                 any_negative = true;
                 break;
-            } else {
+            } else if (checker_result > 0) {
                 all_zero = false;
                 max_checker_result = std::max(max_checker_result, checker_result);
             }
