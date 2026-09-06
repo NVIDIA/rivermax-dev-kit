@@ -51,6 +51,10 @@ public:
  * Rational numbers are always stored in reduced form with the fractional part less than 1.
  * Only non-negative rational numbers are supported.
  */
+// The arithmetic helpers and the conversion operator below are member templates, so each
+// translation unit instantiates only the specializations it uses. Coverity compares the
+// per-translation-unit member sets and reports that difference as an ODR violation.
+// coverity[odr_violation]
 class Rational
 {
 public:
