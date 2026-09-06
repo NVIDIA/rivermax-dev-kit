@@ -356,7 +356,7 @@ ReturnStatus MediaSenderApp::initialize_memory_strategy()
         base_memory_strategy->add_memory_subcomponent(sender);
     }
 
-    m_memory_strategy.reset(base_memory_strategy.release());
+    m_memory_strategy = std::move(base_memory_strategy);
 
     return ReturnStatus::success;
 }

@@ -270,7 +270,7 @@ ReturnStatus BaseApp::run_stats_reader()
 
     {
         std::lock_guard<std::mutex> lock(m_stats_reader_mutex);
-        m_stats_reader.reset(new StatisticsReader());
+        m_stats_reader = std::make_unique<StatisticsReader>();
     }
 
     ReturnStatus rc = m_stats_reader->init_stats_reader();
