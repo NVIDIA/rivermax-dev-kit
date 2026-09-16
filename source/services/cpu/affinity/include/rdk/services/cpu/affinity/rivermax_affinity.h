@@ -76,6 +76,9 @@ struct cpu_mask_t {
  */
 constexpr int MAX_CPU_RANGE = static_cast<int>(cpu_mask_t::max_cpus);
 
+/** Highest CPU core ID representable by the affinity mask. */
+constexpr int MAX_CPU_ID = MAX_CPU_RANGE - 1;
+
 /**
  * @brief: Manages CPU affinity for threads.
  *

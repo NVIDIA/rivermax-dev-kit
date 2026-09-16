@@ -25,12 +25,21 @@
 #include "rdk/services/cpu/cpu_utils.h"
 #include "rdk/services/cpu/affinity/rivermax_affinity.h"
 
+namespace {
+
+constexpr bool is_valid_cpu_id(int cpu)
+{
+    return cpu >= 0 && cpu <= rdk::services::MAX_CPU_ID;
+}
+
+}
+
 bool rdk::services::set_rivermax_thread_cpu_affinity(int cpu)
 {
     if (cpu == NO_CPU_AFFINITY) {
         return true;
     }
-    if (cpu < 0) {
+    if (!is_valid_cpu_id(cpu)) {
         std::cerr << "Invalid CPU core number: " << cpu << std::endl;
         return false;
     }
@@ -51,7 +60,7 @@ void rdk::services::set_current_thread_affinity(const int cpu)
     if (cpu == NO_CPU_AFFINITY) {
         return;
     }
-    if (cpu < 0) {
+    if (!is_valid_cpu_id(cpu)) {
         std::cerr << "Invalid CPU core number: " << cpu << std::endl;
         return;
     }
@@ -69,7 +78,7 @@ void rdk::services::set_current_thread_affinity(const std::vector<int> &cpus)
         if (cpu == NO_CPU_AFFINITY) {
             continue;
         }
-        if (cpu < 0 || static_cast<size_t>(cpu) >= Affinity::mask::max_cpus) {
+        if (!is_valid_cpu_id(cpu)) {
             std::cerr << "Invalid CPU core number: " << cpu << " (skipped)" << std::endl;
             continue;
         }

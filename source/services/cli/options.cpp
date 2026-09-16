@@ -375,7 +375,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_option(CLIOptStr::INTERNAL_CORE,
                                       app_settings->internal_thread_core,
                                       "CPU core affinity for Rivermax internal thread",
-                                      true)->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_RANGE));
+                                      true)->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_ID));
         )
     },
     {
@@ -384,7 +384,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_option(CLIOptStr::APPLICATION_CORE,
                                       app_settings->app_threads_cores,
                                       "CPU core affinities comma separated list for the application")
-                                      ->delimiter(',')->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_RANGE));
+                                      ->delimiter(',')->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_ID));
         )
     },
     {
@@ -476,7 +476,7 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_option(CLIOptStr::STATS_CORE,
                                       app_settings->statistics_reader_core,
                                       "CPU core affinity for statistics reader thread")
-                                      ->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_RANGE));
+                                      ->check(CLI::Range(NO_CPU_AFFINITY, MAX_CPU_ID));
         )
     },
     {
