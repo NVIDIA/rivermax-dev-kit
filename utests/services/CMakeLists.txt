@@ -16,6 +16,7 @@
 
 add_subdirectory(cpu)
 add_subdirectory(media)
+add_subdirectory(protocol)
 add_subdirectory(sdp)
 add_subdirectory(ulp_packet)
 add_subdirectory(ulp_packet_buffer)
