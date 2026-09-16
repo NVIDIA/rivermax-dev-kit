@@ -31,8 +31,12 @@ namespace services {
 
 bool MediaPacketParser::get_sequence_number(const byte_t* data, size_t length, bool is_extended, uint32_t& sequence_number) const
 {
+    if (unlikely(!data || length < m_rtp_offset || length - m_rtp_offset < sizeof(protocol::RTPHeader))) {
+        return false;
+    }
+
     const protocol::RTPHeader* rtp_header = rtp(data);
-    if (!rtp_header) {
+    if (unlikely(!rtp_header)) {
         return false;
     }
 

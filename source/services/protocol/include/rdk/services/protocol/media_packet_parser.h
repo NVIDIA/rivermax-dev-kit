@@ -115,14 +115,15 @@ public:
     /**
      * @brief: Extract RTP sequence number from packet.
      *
-     * This method performs direct sequence number extraction without packet validation
+     * This method performs direct sequence number extraction without full packet validation
      * for maximum performance. If packet validation is needed, call @ref PacketParser::validate() first.
      *
      * @param [in] data: Packet data buffer.
      * @param [in] length: Packet length.
      * @param [in] is_extended: Whether to extract extended sequence number.
      * @param [out] sequence_number: Extracted sequence number.
-     * @return: true if sequence number extraction succeeded.
+     * @return: true if sequence number extraction succeeded, false if the RTP header is missing from
+     *          the protocol chain or the packet is too short to hold the requested fields.
      */
     bool get_sequence_number(const byte_t* data, size_t length, bool is_extended, uint32_t& sequence_number) const;
 
@@ -146,6 +147,10 @@ private:
     std::function<const IPv4Header*(const byte_t*)> m_ipv4_accessor;
     std::function<const UDPHeader*(const byte_t*)> m_udp_accessor;
     std::function<const protocol::RTPHeader*(const byte_t*)> m_rtp_accessor;
+    /**
+     * @brief: Offset of RTP header in the packet.
+     */
+    size_t m_rtp_offset = 0;
 
     /**
      * @brief: Extract extended sequence number from RTP header.
@@ -183,6 +188,9 @@ private:
         setup_accessor_if_present<IPv4Header>(m_ipv4_accessor);
         setup_accessor_if_present<UDPHeader>(m_udp_accessor);
         setup_accessor_if_present<protocol::RTPHeader>(m_rtp_accessor);
+
+        size_t rtp_index = get_parser_index<protocol::RTPHeader>();
+        m_rtp_offset = (rtp_index != SIZE_MAX) ? get_parser_offset(rtp_index) : 0;
     }
 
     /**
