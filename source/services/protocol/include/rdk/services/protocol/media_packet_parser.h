@@ -156,11 +156,11 @@ private:
      * @brief: Extract extended sequence number from RTP header.
      *
      * @param [in] rtp_header: Pointer to RTP header.
-     * @param [in] data: Full packet data (for bounds checking).
-     * @param [in] length: Packet length.
-     * @return: Extended sequence number.
+     * @param [in] rtp_length: Length of RTP header and payload.
+     * @param [out] ext_seq_num: Extracted extended sequence number.
+     * @return: true if extended sequence number extraction succeeded.
      */
-    uint16_t get_extended_sequence_number_from_rtp(const protocol::RTPHeader* rtp_header, const byte_t* data, size_t length) const;
+    bool get_extended_sequence_number_from_rtp(const protocol::RTPHeader* rtp_header, size_t rtp_length, uint16_t& ext_seq_num) const;
 
     /**
      * @brief: Setup pre-bound accessor functions (simplified and optimized).

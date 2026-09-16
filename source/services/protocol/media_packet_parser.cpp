@@ -40,26 +40,31 @@ bool MediaPacketParser::get_sequence_number(const byte_t* data, size_t length, b
         return false;
     }
 
-    sequence_number = ntohs(rtp_header->sequence_number);
+    uint32_t seq_num = ntohs(rtp_header->sequence_number);
     if (is_extended) {
-        uint16_t esn = get_extended_sequence_number_from_rtp(rtp_header, data, length);
-        sequence_number |= (static_cast<uint32_t>(esn) << 16);
+        uint16_t esn;
+        if (unlikely(!get_extended_sequence_number_from_rtp(rtp_header, length - m_rtp_offset, esn))) {
+            return false;
+        }
+        seq_num |= (static_cast<uint32_t>(esn) << 16);
     }
 
+    sequence_number = seq_num;
     return true;
 }
 
-uint16_t MediaPacketParser::get_extended_sequence_number_from_rtp(const protocol::RTPHeader* rtp_header, const byte_t* data, size_t length) const
+bool MediaPacketParser::get_extended_sequence_number_from_rtp(const protocol::RTPHeader* rtp_header, size_t rtp_length, uint16_t& ext_seq_num) const
 {
-    uint8_t csrc_count = rtp_header->vpxcc & 0x0F;
-    const byte_t* esn_ptr = reinterpret_cast<const byte_t*>(rtp_header) +
-                           sizeof(protocol::RTPHeader) +
-                           csrc_count * 4;
+    const uint8_t csrc_count = rtp_header->vpxcc & 0x0F;
+    const size_t esn_offset = sizeof(protocol::RTPHeader) + csrc_count * 4;
 
-    if (esn_ptr + 2 > data + length) {
-        return 0;
+    if (unlikely(esn_offset + sizeof(uint16_t) > rtp_length)) {
+        return false;
     }
-    return ntohs(*reinterpret_cast<const uint16_t*>(esn_ptr));
+
+    const byte_t* esn_ptr = reinterpret_cast<const byte_t*>(rtp_header) + esn_offset;
+    ext_seq_num = (static_cast<uint16_t>(esn_ptr[0]) << 8) | esn_ptr[1];
+    return true;
 }
 
 } // namespace services
