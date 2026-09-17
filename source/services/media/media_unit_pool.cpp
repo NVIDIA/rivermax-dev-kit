@@ -128,8 +128,14 @@ size_t MediaUnitPool::get_available_media_units_count() const
     return m_available_indices.size();
 }
 
-void MediaUnitPool::stop()
+void MediaUnitPool::stop() noexcept
 {
-    m_stop = true;
+    {
+        // Must be set under the same lock the waiter checks it under, or the store and notify
+        // can land before the waiter enqueues on the condition variable, and the wakeup is lost.
+        // Being atomic silences the data race but does not close this window.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_stop = true;
+    }
     m_cv.notify_all();
 }

@@ -51,7 +51,7 @@ namespace services
  * The class also provides methods to query the number of available units and
  * the total number of units in the pool.
  */
-class MediaUnitPool {
+class MediaUnitPool : public ILifecycle {
 private:
     /* The total memory block that contains all media units */
     byte_t* m_memory_block;
@@ -134,7 +134,7 @@ public:
     /**
      * @brief: Stop the media unit pool and release all waiting threads.
      */
-    void stop();
+    void stop() noexcept override;
     /**
      * @brief: Return the memory type used for allocation.
      *

@@ -176,8 +176,13 @@ void MediaFileEssenceSource::handle_looping_media_unit(std::shared_ptr<MediaUnit
     m_cv.notify_one();
 }
 
-void MediaFileEssenceSource::stop()
+void MediaFileEssenceSource::stop() noexcept
 {
-    m_stop = true;
+    {
+        // Under the mutex, matching this class's own destructor - see the note in
+        // BufferedEssenceSource::stop for the wakeup this ordering protects.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_stop = true;
+    }
     m_cv.notify_all();
 }

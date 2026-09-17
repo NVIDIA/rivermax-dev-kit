@@ -70,7 +70,7 @@ public:
     virtual ~BufferedEssenceSource();
     std::shared_ptr<MediaUnit> get_media_unit_blocking() override;
     std::shared_ptr<MediaUnit> get_media_unit_non_blocking() override;
-    void stop() override;
+    void stop() noexcept override;
     /**
      * @brief: Add a media unit to the queue.
      *

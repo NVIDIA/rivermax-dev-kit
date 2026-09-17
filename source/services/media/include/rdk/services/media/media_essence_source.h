@@ -32,6 +32,7 @@
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/services/utils/defs.h"
+#include "rdk/services/utils/lifecycle.h"
 
 namespace rdk
 {
@@ -257,7 +258,7 @@ private:
 /**
  * @brief: Interface for media essence sources.
  */
-class IMediaEssenceSource {
+class IMediaEssenceSource : public ILifecycle {
 public:
     virtual ~IMediaEssenceSource() = default;
     /**
@@ -274,8 +275,12 @@ public:
     virtual std::shared_ptr<MediaUnit> get_media_unit_non_blocking() = 0;
     /**
      * @brief: Stop the source and release all waiting threads.
+     *
+     * May be called while another thread is blocked in @ref get_media_unit_blocking, so an
+     * implementation must be safe to call concurrently with it. If ending the wait via a flag,
+     * set it under the same lock the wait predicate checks, or the wakeup can be silently lost.
      */
-     virtual void stop() {};
+     void stop() noexcept override {};
     /**
      * @brief: Sets the start time for the source.
      *

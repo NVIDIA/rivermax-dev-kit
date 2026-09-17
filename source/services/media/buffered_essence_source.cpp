@@ -81,8 +81,13 @@ size_t BufferedEssenceSource::get_queue_size() const
     return m_media_unit_queue.size();
 }
 
-void BufferedEssenceSource::stop()
+void BufferedEssenceSource::stop() noexcept
 {
-    m_stop = true;
+    {
+        // Must be set under the same lock the waiter checks it under, or the store and notify
+        // can land before the waiter enqueues on the condition variable, and the wakeup is lost.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_stop = true;
+    }
     m_cv.notify_all();
 }
