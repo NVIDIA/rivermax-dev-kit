@@ -133,7 +133,7 @@ ReturnStatus GenericSendStream::blocking_get_next_chunk(std::shared_ptr<GenericC
 
     do {
         status = get_next_chunk(chunk);
-    } while (unlikely(status == ReturnStatus::no_free_chunks && retries--));
+    } while (unlikely(status == ReturnStatus::no_free_chunks && retries-- && !m_stop_requested.load()));
 
     return status;
 }
@@ -149,7 +149,7 @@ ReturnStatus GenericSendStream::blocking_commit_chunk(std::shared_ptr<GenericChu
 
     do {
         status = commit_chunk(chunk, time);
-    } while (unlikely(status == ReturnStatus::hw_send_queue_full && retries--));
+    } while (unlikely(status == ReturnStatus::hw_send_queue_full && retries-- && !m_stop_requested.load()));
 
     return status;
 }

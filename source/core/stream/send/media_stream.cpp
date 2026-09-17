@@ -284,7 +284,7 @@ ReturnStatus MediaSendStream::blocking_get_next_chunk(MediaChunk& chunk, size_t 
 
     do {
         status = get_next_chunk(chunk);
-    } while (unlikely(status == ReturnStatus::no_free_chunks && retries--));
+    } while (unlikely(status == ReturnStatus::no_free_chunks && retries-- && !m_stop_requested.load()));
 
     return status;
 }
@@ -300,7 +300,7 @@ ReturnStatus MediaSendStream::blocking_commit_chunk(MediaChunk& chunk, uint64_t 
 
     do {
         status = commit_chunk(chunk, time);
-    } while (unlikely(status == ReturnStatus::hw_send_queue_full && retries--));
+    } while (unlikely(status == ReturnStatus::hw_send_queue_full && retries-- && !m_stop_requested.load()));
 
     return status;
 }

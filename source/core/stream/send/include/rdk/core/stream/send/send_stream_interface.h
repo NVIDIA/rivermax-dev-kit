@@ -19,11 +19,13 @@
 #ifndef RDK_CORE_STREAM_SEND_SEND_STREAM_INTERFACE_H_
 #define RDK_CORE_STREAM_SEND_SEND_STREAM_INTERFACE_H_
 
+#include <atomic>
 #include <ostream>
 #include <vector>
 
 #include "rdk/core/stream/stream_interface.h"
 #include "rdk/core/flow/flow.h"
+#include "rdk/services/utils/lifecycle.h"
 
 namespace rdk
 {
@@ -32,13 +34,21 @@ namespace core
 /**
  * @brief: Send stream interface.
  */
-class ISendStream : public IStream
+class ISendStream : public IStream, public services::ILifecycle
 {
 protected:
     std::vector<TwoTupleFlow> m_local_addresses;
+    std::atomic<bool> m_stop_requested{false};
 public:
     virtual ~ISendStream() = default;
     std::ostream& print(std::ostream& out) const override;
+    /**
+     * @brief: Requests the stream to stop.
+     *
+     * Non-blocking, idempotent, thread-safe. Lets a blocking chunk-retry loop exit early
+     * instead of exhausting its full retry budget.
+     */
+    void stop() noexcept override { m_stop_requested.store(true); }
 protected:
     /**
      * @brief: ISendStream class constructor.
