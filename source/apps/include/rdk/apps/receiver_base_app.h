@@ -19,6 +19,7 @@
 #ifndef RDK_APPS_RECEIVER_BASE_APP_H_
 #define RDK_APPS_RECEIVER_BASE_APP_H_
 
+#include <chrono>
 #include <cstddef>
 #include <vector>
 #include <memory>
@@ -38,19 +39,20 @@ namespace apps
  * @brief: Receiver application base class.
  *
  * This is a base class containing common functions to use in receiver applications.
+ *
+ * @tparam IONodeSettingsType: The settings type of the receiver I/O nodes this application
+ *                             owns, which must derive from @ref ReceiverIONodeSettings.
  */
+template<typename IONodeSettingsType>
 class ReceiverBaseApp : public BaseApp
 {
 protected:
     /* Receiver objects container */
-    std::vector<std::shared_ptr<ReceiverIONodeBase>> m_receivers;
-    /* Is using extended sequence number */
-    bool m_is_extended_sequence_number = false;
+    std::vector<std::shared_ptr<ReceiverIONodeBase<IONodeSettingsType>>> m_receivers;
     /* Number of paths per stream */
     size_t m_num_paths_per_stream = 0;
 public:
     virtual ~ReceiverBaseApp() = default;
-    ReturnStatus run() override;
     ReturnStatus initialize() override;
     /**
      * @brief: Sets the receive data consumer for the specified stream index.
@@ -61,6 +63,9 @@ public:
      * @return: Status of the operation.
      */
     ReturnStatus set_receive_data_consumer(size_t stream_index, std::unique_ptr<IReceiveDataConsumer> data_consumer);
+    ReturnStatus stop_io_node(size_t id) override;
+    ReturnStatus await_io_node(size_t id, std::chrono::nanoseconds timeout) const override;
+    size_t num_io_nodes() const override;
     /**
      * @brief: Returns application streams total statistics.
      *
@@ -71,7 +76,10 @@ public:
      */
     template<typename StatisticsType, typename ReceiverStreamType>
     std::vector<StatisticsType> get_streams_total_statistics() const;
+private:
+    ReturnStatus do_work() override;
 protected:
+    void stop_io_nodes() noexcept override;
     ReturnStatus initialize_memory_strategy() override;
     /**
      * @brief: ReceiverBaseApp class constructor.
@@ -112,13 +120,14 @@ protected:
     virtual void distribute_work_for_threads();
 };
 
+template<typename IONodeSettingsType>
 template<typename StatisticsType, typename ReceiverStreamType>
-std::vector<StatisticsType> ReceiverBaseApp::get_streams_total_statistics() const
+std::vector<StatisticsType> ReceiverBaseApp<IONodeSettingsType>::get_streams_total_statistics() const
 {
     std::vector<StatisticsType> streams_stats;
 
     for (const auto& receiver : m_receivers) {
-        auto stream_stats = receiver->get_streams_total_statistics<StatisticsType, ReceiverStreamType>();
+        auto stream_stats = receiver->template get_streams_total_statistics<StatisticsType, ReceiverStreamType>();
         streams_stats.insert(streams_stats.end(), stream_stats.begin(), stream_stats.end());
     }
 

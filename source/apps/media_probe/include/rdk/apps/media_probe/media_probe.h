@@ -110,7 +110,7 @@ using MediaProbeUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<MediaP
  *  - the number of received frames, packets, bytes.
  * The application is capable of receiving multiple video and alpha/key streams.
  */
-class MediaProbeApp : public ReceiverBaseApp
+class MediaProbeApp : public ReceiverBaseApp<RTPReceiverIONodeSettings>
 {
 private:
     /* Settings builder pointer */
@@ -136,6 +136,23 @@ public:
      */
     virtual ~MediaProbeApp() = default;
     /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * @return: Settings of the application's I/O nodes, ordered by node id.
+     */
+    std::vector<RTPReceiverIONodeSettings> get_io_nodes_settings() const;
+private:
+    /**
+     * @brief: Builds the settings of one of the application's I/O nodes.
+     *
+     * @param [in] index: Position the node will occupy.
+     * @param [in] cpu_core_affinity: CPU core the node will run on.
+     *
+     * @return: The node's settings.
+     */
+    RTPReceiverIONodeSettings build_node_settings(size_t index, int cpu_core_affinity) const;
+public:
+    /**
      * @brief: Get RTP streams total statistics.
      *
      * This function hides the base class function and provides default template arguments.
@@ -143,7 +160,7 @@ public:
      * @return: A vector of @ref RXStatistics.
      */
     std::vector<RXStatistics> get_streams_total_statistics() const {
-        return ReceiverBaseApp::get_streams_total_statistics<RXStatistics, AppRTPReceiveStream>();
+        return ReceiverBaseApp<RTPReceiverIONodeSettings>::get_streams_total_statistics<RXStatistics, AppRTPReceiveStream>();
     }
 private:
     /**
@@ -170,7 +187,7 @@ private:
      * @param [in] flows: Vector of receive flows to configure.
      * @param [in] component_index: Index of the component being configured.
      */
-    void initialize_media_probe_node_streams(RTPReceiverIONode& node, size_t start_id,
+    void initialize_media_probe_node_streams(RTPReceiverIONode<RTPReceiverIONodeSettings>& node, size_t start_id,
         const std::vector<ReceiveFlow>& flows, MediaComponentId component_index);
     /**
      * @brief: Initialize receive IO nodes for the application.

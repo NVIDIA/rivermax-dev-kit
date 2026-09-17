@@ -25,12 +25,16 @@
 #include <iostream>
 #include <ostream>
 #include <chrono>
+#include <type_traits>
 
 #include <rivermax_api.h>
 
+#include "rdk/io_node/io_node_interface.h"
+#include "rdk/io_node/io_node_settings.h"
 #include "rdk/io_node/common/io_node_memory_utils.h"
 #include "rdk/core/data_handler/receive_data_consumer_interface.h"
 #include "rdk/core/memory_layout/stream_memory_layout.h"
+#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 
 using namespace rdk::services;
 using namespace rdk::core;
@@ -80,21 +84,40 @@ struct RXStatistics {
     virtual double get_Mbits() const { return ((received_bytes * 8) / 1.e6); }
 };
 /**
+ * @brief: Settings common to every receiver I/O node.
+ */
+struct ReceiverIONodeSettings : IONodeSettings
+{
+    /* Application settings the node was built from. */
+    std::shared_ptr<const AppSettings> app_settings;
+    /* CPU core the node runs on, or @ref NO_CPU_AFFINITY. */
+    int cpu_core_affinity = NO_CPU_AFFINITY;
+
+    ReturnStatus validate() const override
+    {
+        if (IONodeSettings::validate() != ReturnStatus::success || !app_settings) {
+            return ReturnStatus::failure;
+        }
+        return ReturnStatus::success;
+    }
+};
+
+/**
  * @brief: ReceiverIONodeBase class.
  *
- * This class implements the required operations in order to be a receiver.
- * The receiver class will be the context that will be run under a std::thread by
- * overriding the operator (). Each receiver will be able to run multiple
+ * Implements the required operations to be a receiver. Each receiver can run multiple
  * streams.
+ *
+ * @tparam SettingsType: The node's settings type, which must derive from @ref ReceiverIONodeSettings.
  */
-class ReceiverIONodeBase : public IStreamMemoryLayoutComponent
+template<typename SettingsType>
+class ReceiverIONodeBase : public IStreamMemoryLayoutComponent, public IIONode<SettingsType>
 {
+    static_assert(std::is_base_of<ReceiverIONodeSettings, SettingsType>::value,
+        "SettingsType must inherit from ReceiverIONodeSettings");
 protected:
     static constexpr size_t DEFAULT_MAX_CHUNK_SIZE = 1024;
-    AppSettings m_app_settings;
-    size_t m_index;
     bool m_print_parameters;
-    int m_cpu_core_affinity;
     std::chrono::microseconds m_sleep_between_operations;
     IONodeMemoryUtils& m_memory_utils;
     std::vector<std::unique_ptr<IReceiveStream>> m_streams;
@@ -134,7 +157,7 @@ public:
     /**
      * @brief: Overrides operator << for @ref ReceiverIONodeBase pointer.
      */
-    friend std::ostream& operator<<(std::ostream& out, ReceiverIONodeBase* receiver)
+    friend std::ostream& operator<<(std::ostream& out, ReceiverIONodeBase<SettingsType>* receiver)
     {
         receiver->print(out);
         return out;
@@ -157,7 +180,7 @@ public:
      *
      * @return: Receiver index.
      */
-    virtual size_t get_index() const { return m_index; }
+    virtual size_t get_index() const { return this->m_settings.id; }
     /**
      * @brief: Sets the receive data consumer for the specified stream index.
      *
@@ -177,24 +200,20 @@ public:
      */
     template<typename StatisticsType, typename StreamType>
     std::vector<StatisticsType> get_streams_total_statistics() const;
+private:
     /**
-     * @brief: Receiver's worker.
-     *
-     * This method is the worker method of the std::thread will run with this
-     * object as it's context.
+     * @brief: Receiver's worker: setup, receive loop, teardown.
      */
-    virtual void operator()();
+    ReturnStatus do_work() override;
 protected:
     /**
      * @brief: ReceiverIONodeBase constructor.
      *
-     * @param [in] app_settings: Application settings.
-     * @param [in] index: Receiver index.
-     * @param [in] cpu_core_affinity: CPU core affinity the receiver will run on.
+     * @param [in] settings: The node's settings, already filled in by the concrete node.
      * @param [in] memory_utils: Memory utilities.
      */
-    ReceiverIONodeBase(const AppSettings& app_settings,
-        size_t index, int cpu_core_affinity, IONodeMemoryUtils& memory_utils);
+    ReceiverIONodeBase(const SettingsType& settings, IONodeMemoryUtils& memory_utils);
+    ReceiverIONodeBase(SettingsType&& settings, IONodeMemoryUtils& memory_utils);
     /**
      * @brief: Creates receiver's streams.
      *
@@ -313,8 +332,9 @@ protected:
     virtual ReturnStatus synchronous_start() { return wait_first_packet(); };
 };
 
+template<typename SettingsType>
 template<typename StatisticsType, typename StreamType>
-std::vector<StatisticsType> ReceiverIONodeBase::get_streams_total_statistics() const
+std::vector<StatisticsType> ReceiverIONodeBase<SettingsType>::get_streams_total_statistics() const
 {
     std::vector<StatisticsType> streams_stats;
 

@@ -170,7 +170,7 @@ ReturnStatus IPMXReceiverCLISettingsBuilder::add_cli_options(IPMXReceiverSetting
 }
 
 IPMXReceiverApp::IPMXReceiverApp(std::unique_ptr<ISettingsBuilder<IPMXReceiverSettings>> settings_builder) :
-    ReceiverBaseApp(),
+    ReceiverBaseApp<RTPReceiverIONodeSettings>(),
     m_settings_builder(std::move(settings_builder))
 {
     m_num_paths_per_stream = 1;
@@ -204,21 +204,21 @@ ReturnStatus IPMXReceiverApp::initialize_app_settings()
 
 void IPMXReceiverApp::initialize_rtcp_ionode_settings()
 {
-    m_rtcp_receiver_settings = *m_app_settings;
-    m_rtcp_receiver_settings.destination_port += 1;
-    m_rtcp_receiver_settings.header_data_split = false;
-    m_rtcp_receiver_settings.packet_app_header_size = 0;
-    m_rtcp_receiver_settings.packet_payload_size = PACKET_PAYLOAD_SIZE_DEFAULT;
-    m_rtcp_receiver_settings.num_of_chunks_in_mem_block = 1;
-    m_rtcp_receiver_settings.num_of_chunks = 1;
-    m_rtcp_receiver_settings.num_of_packets_in_chunk =
+    m_rtcp_receiver_settings = std::make_shared<AppSettings>(*m_app_settings);
+    m_rtcp_receiver_settings->destination_port += 1;
+    m_rtcp_receiver_settings->header_data_split = false;
+    m_rtcp_receiver_settings->packet_app_header_size = 0;
+    m_rtcp_receiver_settings->packet_payload_size = PACKET_PAYLOAD_SIZE_DEFAULT;
+    m_rtcp_receiver_settings->num_of_chunks_in_mem_block = 1;
+    m_rtcp_receiver_settings->num_of_chunks = 1;
+    m_rtcp_receiver_settings->num_of_packets_in_chunk =
         IPMXReceiverSettings::NUM_OF_RTCP_PACKETS_IN_RX_BUFFER_PER_STREAM *
         m_app_settings->num_of_total_streams;
-    m_rtcp_receiver_settings.num_of_packets_in_chunk_specified = 1;
-    m_rtcp_receiver_settings.num_of_packets_in_mem_block =
-        m_rtcp_receiver_settings.num_of_chunks_in_mem_block *
-        m_rtcp_receiver_settings.num_of_packets_in_chunk;
-    m_rtcp_receiver_settings.allocator_type = AllocatorTypeUI::Malloc;
+    m_rtcp_receiver_settings->num_of_packets_in_chunk_specified = 1;
+    m_rtcp_receiver_settings->num_of_packets_in_mem_block =
+        m_rtcp_receiver_settings->num_of_chunks_in_mem_block *
+        m_rtcp_receiver_settings->num_of_packets_in_chunk;
+    m_rtcp_receiver_settings->allocator_type = AllocatorTypeUI::Malloc;
 }
 
 void IPMXReceiverApp::run_receiver_threads()
@@ -227,7 +227,7 @@ void IPMXReceiverApp::run_receiver_threads()
         m_threads.push_back(std::thread(std::ref(*io_node)));
     }
 
-    while (likely(SignalHandler::get_received_signal() < 0)) {
+    while (likely(!should_stop())) {
         std::this_thread::sleep_for(STATS_POLLING_PERIOD);
         for (auto& tracker : m_ipmx_trackers) {
             tracker->print_updates();
@@ -236,6 +236,31 @@ void IPMXReceiverApp::run_receiver_threads()
     for (auto& thread : m_threads) {
         thread.join();
     }
+}
+
+RTPReceiverIONodeSettings IPMXReceiverApp::build_node_settings(
+    const std::shared_ptr<const AppSettings>& app_settings, bool is_extended_sequence_number,
+    size_t index, int cpu_core_affinity) const
+{
+    RTPReceiverIONodeSettings settings;
+
+    settings.id = index;
+    settings.app_settings = app_settings;
+    settings.cpu_core_affinity = cpu_core_affinity;
+    settings.devices = { m_app_settings->local_ip };
+    settings.is_extended_sequence_number = is_extended_sequence_number;
+    return settings;
+}
+
+std::vector<RTPReceiverIONodeSettings> IPMXReceiverApp::get_io_nodes_settings() const
+{
+    std::vector<RTPReceiverIONodeSettings> settings;
+
+    settings.reserve(m_receivers.size());
+    for (const auto& receiver : m_receivers) {
+        settings.push_back(receiver->get_settings());
+    }
+    return settings;
 }
 
 void IPMXReceiverApp::configure_network_flows()
@@ -274,12 +299,9 @@ void IPMXReceiverApp::initialize_receive_io_nodes()
         int recv_cpu_core = m_app_settings->app_threads_cores[
             rx_idx % m_app_settings->app_threads_cores.size()];
 
-        auto rtp_receiver = std::make_unique<RTPReceiverIONode>(
-            *m_app_settings,
-            m_ipmx_receiver_settings->is_extended_sequence_number,
-            std::vector<std::string>{m_app_settings->local_ip},
-            rx_idx,
-            recv_cpu_core,
+        auto rtp_receiver = std::make_unique<RTPReceiverIONode<RTPReceiverIONodeSettings>>(
+            build_node_settings(m_app_settings, m_ipmx_receiver_settings->is_extended_sequence_number,
+                                rx_idx, recv_cpu_core),
             *m_memory_utils);
         auto flows = std::vector<ReceiveFlow>(
             m_data_flows.begin() + streams_offset,
@@ -291,12 +313,10 @@ void IPMXReceiverApp::initialize_receive_io_nodes()
         streams_offset += m_streams_per_thread[rx_idx];
     }
 
-    auto rtcp_receiver = std::make_unique<RTPReceiverIONode>(
-        m_rtcp_receiver_settings,
-        false,
-        std::vector<std::string>{m_app_settings->local_ip},
-        0,
-        m_ipmx_receiver_settings->rtcp_thread_core,
+    const size_t rtcp_receiver_id = m_receivers.size();
+    auto rtcp_receiver = std::make_unique<RTPReceiverIONode<RTPReceiverIONodeSettings>>(
+        build_node_settings(m_rtcp_receiver_settings, false, rtcp_receiver_id,
+                            m_ipmx_receiver_settings->rtcp_thread_core),
         *m_memory_utils);
 
     initialize_rtcp_stream(*rtcp_receiver, m_rtcp_flows);
@@ -304,7 +324,7 @@ void IPMXReceiverApp::initialize_receive_io_nodes()
     m_receivers.push_back(std::move(rtcp_receiver));
 }
 
-void IPMXReceiverApp::initialize_rtp_streams(RTPReceiverIONode& node, size_t start_id, const std::vector<ReceiveFlow>& flows)
+void IPMXReceiverApp::initialize_rtp_streams(RTPReceiverIONode<RTPReceiverIONodeSettings>& node, size_t start_id, const std::vector<ReceiveFlow>& flows)
 {
     std::vector<std::unique_ptr<IReceiveStream>> streams;
     streams.reserve(flows.size());
@@ -318,7 +338,7 @@ void IPMXReceiverApp::initialize_rtp_streams(RTPReceiverIONode& node, size_t sta
             m_app_settings->packet_app_header_size,
             0, m_app_settings->num_of_packets_in_chunk);
         auto stream = std::make_unique<AppRTPReceiveStream>(stream_settings,
-            m_is_extended_sequence_number,
+            node.get_settings().is_extended_sequence_number,
             m_app_settings->packet_app_header_size != 0);
         stream->set_frame_start_handler(std::make_unique<IPMXFrameStartNotifier>(m_ipmx_trackers[id]));
         streams.push_back(std::move(stream));
@@ -326,17 +346,17 @@ void IPMXReceiverApp::initialize_rtp_streams(RTPReceiverIONode& node, size_t sta
     node.assign_streams(start_id, flows, streams);
 }
 
-void IPMXReceiverApp::initialize_rtcp_stream(RTPReceiverIONode& node, const std::vector<ReceiveFlow>& flows)
+void IPMXReceiverApp::initialize_rtcp_stream(RTPReceiverIONode<RTPReceiverIONodeSettings>& node, const std::vector<ReceiveFlow>& flows)
 {
     std::vector<std::unique_ptr<IReceiveStream>> streams;
     ReceiveStreamSettings stream_settings(TwoTupleFlow(0, m_app_settings->local_ip, 0),
-        m_rtcp_receiver_settings.rx_stream_type,
+        m_rtcp_receiver_settings->rx_stream_type,
         RMX_INPUT_TIMESTAMP_SYNCED,
         {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
-        m_rtcp_receiver_settings.num_of_packets_in_chunk,
-        m_rtcp_receiver_settings.packet_payload_size,
-        m_rtcp_receiver_settings.packet_app_header_size,
-        0, m_rtcp_receiver_settings.num_of_packets_in_chunk);
+        m_rtcp_receiver_settings->num_of_packets_in_chunk,
+        m_rtcp_receiver_settings->packet_payload_size,
+        m_rtcp_receiver_settings->packet_app_header_size,
+        0, m_rtcp_receiver_settings->num_of_packets_in_chunk);
     auto stream = std::make_unique<AppRTPReceiveStream>(stream_settings, false, false, false);
     streams.push_back(std::move(stream));
     node.assign_streams(0, m_rtcp_flows, streams);

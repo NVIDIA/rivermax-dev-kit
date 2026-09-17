@@ -133,14 +133,23 @@ protected:
 };
 
 /**
+ * @brief: Settings of an IPO receiver I/O node.
+ */
+struct IPOReceiverIONodeSettings : RTPReceiverIONodeSettings
+{
+    /* Maximum path differential the node tolerates between its redundant legs. */
+    uint64_t max_path_differential_us = 0;
+    /* Receive paths per stream, one entry per redundancy leg. */
+    std::vector<std::vector<IPOReceivePath>> stream_paths;
+};
+
+/**
  * @brief: IPOReceiverIONode class.
  *
- * This class implements the required operations in order to be a IPO receiver.
- * The sender class will be the context that will be run under a std::thread by
- * overriding the operator (). Each receiver will be able to run multiple
- * streams.
+ * Implements the required operations to be an IPO receiver. Each receiver can run
+ * multiple streams.
  */
-class IPOReceiverIONode : public RTPReceiverIONode
+class IPOReceiverIONode : public RTPReceiverIONode<IPOReceiverIONodeSettings>
 {
 private:
     ipo_stream_settings_t m_stream_settings;
@@ -156,7 +165,7 @@ public:
      * @param [in] cpu_core_affinity: CPU core affinity the receiver will run on.
      * @param [in] memory_utils: Memory utilities.
      */
-    IPOReceiverIONode(const AppSettings& app_settings,
+    IPOReceiverIONode(const std::shared_ptr<const AppSettings>& app_settings,
         uint64_t max_path_differential_us,
         bool is_extended_sequence_number,
         const std::vector<std::string>& devices,

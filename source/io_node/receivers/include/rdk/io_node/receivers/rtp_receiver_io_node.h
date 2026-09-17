@@ -113,7 +113,7 @@ protected:
     /**
      * @brief: Extracts sequence number from RTP packet and (if needed) payload header.
      *
-     * If @ref m_is_extended_sequence_number is set then parse the 16 high
+     * If @ref m_settings.is_extended_sequence_number is set then parse the 16 high
      * order bits of the extended 32-bit sequence number from the start of RTP
      * payload.
      *
@@ -133,37 +133,51 @@ protected:
 };
 
 /**
+ * @brief: Settings of an RTP receiver I/O node.
+ */
+struct RTPReceiverIONodeSettings : ReceiverIONodeSettings
+{
+    /* NICs the node receives on. */
+    std::vector<std::string> devices;
+    /* Whether the node parses an extended sequence number. */
+    bool is_extended_sequence_number = false;
+    /* Whether the node's streams parse RTP headers themselves. */
+    bool process_headers = true;
+    /* Flows the node receives, across all of its streams. */
+    std::vector<ReceiveFlow> flows;
+
+    ReturnStatus validate() const override
+    {
+        if (ReceiverIONodeSettings::validate() != ReturnStatus::success || devices.empty()) {
+            return ReturnStatus::failure;
+        }
+        return ReturnStatus::success;
+    }
+};
+
+/**
  * @brief: RTPReceiverIONode class.
  *
- * This class implements the required operations in order to be a RTP receiver.
- * The sender class will be the context that will be run under a std::thread by
- * overriding the operator (). Each receiver will be able to run multiple
- * streams.
+ * Implements the required operations to be a RTP receiver. Each receiver can run
+ * multiple streams.
+ *
+ * @tparam SettingsType: The node's settings type, which must derive from
+ *                       @ref RTPReceiverIONodeSettings. Defaults to it; a derived node
+ *                       family with its own settings, such as @ref IPOReceiverIONode,
+ *                       passes its own type.
  */
-class RTPReceiverIONode : public ReceiverIONodeBase
+template<typename SettingsType = RTPReceiverIONodeSettings>
+class RTPReceiverIONode : public ReceiverIONodeBase<SettingsType>
 {
-private:
-    std::vector<ReceiveFlow> m_flows;
 public:
     /**
-     * @brief: RTPReceiverNode constructor.
+     * @brief: Constructor taking settings the caller built.
      *
-     * @param [in] app_settings: Application settings.
-     * @param [in] is_extended_sequence_number: Parse extended sequence number.
-     * @param [in] devices: List of NICs to receive data.
-     * @param [in] index: Receiver index.
-     * @param [in] cpu_core_affinity: CPU core affinity the sender will run on.
+     * @param [in] settings: The node's settings, already filled in.
      * @param [in] memory_utils: Memory utilities.
-     * @param [in] process_headers: Enable RTP header processing in streams.
-     *             Pass false when an injected @ref IReceiveDataConsumer
-     *             handles header parsing, to avoid redundant double-parsing.
      */
-    RTPReceiverIONode(const AppSettings& app_settings,
-        bool is_extended_sequence_number,
-        const std::vector<std::string>& devices,
-        size_t index, int cpu_core_affinity,
-        IONodeMemoryUtils& memory_utils,
-        bool process_headers = true);
+    RTPReceiverIONode(const SettingsType& settings, IONodeMemoryUtils& memory_utils);
+    RTPReceiverIONode(SettingsType&& settings, IONodeMemoryUtils& memory_utils);
     virtual ~RTPReceiverIONode() = default;
 
     /**
@@ -184,10 +198,6 @@ public:
     void assign_streams(size_t start_id, const std::vector<ReceiveFlow>& flows,
                         std::vector<std::unique_ptr<IReceiveStream>>& streams);
 protected:
-    std::vector<std::string> m_devices;
-    bool m_is_extended_sequence_number;
-    bool m_process_headers;
-
     ReturnStatus attach_flows() override { return process_flows(true); }
     ReturnStatus detach_flows() override { return process_flows(false); }
     ReturnStatus consume_chunk(std::unique_ptr<IReceiveDataConsumer>& data_consumer,

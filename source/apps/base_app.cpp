@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <chrono>
 #include <string>
 #include <cstring>
 
@@ -252,16 +253,29 @@ ReturnStatus BaseApp::configure_memory_layout()
     return ReturnStatus::success;
 }
 
+ReturnStatus BaseApp::await(std::chrono::nanoseconds timeout) const
+{
+    if (m_completed.load()) {
+        return ReturnStatus::success;
+    }
+    std::this_thread::sleep_for(timeout);
+    return m_completed.load() ? ReturnStatus::success : ReturnStatus::still_active;
+}
+
 ReturnStatus BaseApp::run_stats_reader()
 {
-    if (!is_run_stats_reader()) {
+    if (!is_run_stats_reader() || is_app_stop_requested()) {
         return ReturnStatus::success;
     }
 
-    m_stats_reader.reset(new StatisticsReader());
+    {
+        std::lock_guard<std::mutex> lock(m_stats_reader_mutex);
+        m_stats_reader.reset(new StatisticsReader());
+    }
 
     ReturnStatus rc = m_stats_reader->init_stats_reader();
     if (rc == ReturnStatus::failure) {
+        std::lock_guard<std::mutex> lock(m_stats_reader_mutex);
         m_stats_reader.reset();
         std::cerr << "Failed to run StatisticsReader\n"
                      "Ensure that the producer exists and that RIVERMAX_ENABLE_STATISTICS is set" << std::endl;
@@ -276,6 +290,9 @@ ReturnStatus BaseApp::run_stats_reader()
         m_stats_reader->set_session_id(m_app_settings->session_id_stats);
     }
 
+    if (is_app_stop_requested()) {
+        m_stats_reader->stop();
+    }
     m_threads.push_back(std::thread(std::ref(*m_stats_reader)));
     return ReturnStatus::success;
 }

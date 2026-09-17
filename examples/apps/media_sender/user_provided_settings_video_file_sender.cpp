@@ -100,7 +100,7 @@ ReturnStatus UserProvidedSettingsVideoFileSenderExample::operator()()
     RETURN_FAILURE_ON_ERROR(status, "Failed to initialize Media Sender application");
 
     /** 5. Start sending media data */
-    status = app.run();
+    status = app.start();
     RETURN_FAILURE_ON_ERROR(status, "Failed to run Media Sender application");
 
     return ReturnStatus::success;

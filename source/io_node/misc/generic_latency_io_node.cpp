@@ -38,17 +38,12 @@ using namespace rdk::services;
 using namespace rdk::core;
 
 GenericLatencyIONode::GenericLatencyIONode(
-        const LatencyNodeSettings& settings,
-        const StreamDimensions& send_dim,
-        const StreamDimensions& receive_dim,
+        const LatencyIONodeSettings& settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb
     ) : LatencyIONode(settings, std::move(header_mem_utils), std::move(payload_mem_utils), std::move(time_handler_cb)),
-    m_send_dim(send_dim),
-    m_receive_dim(receive_dim),
-    m_hw_queue_full_sleep_us(settings.app->hw_queue_full_sleep_us),
-    m_track_completions(settings.track_completions),
+    m_hw_queue_full_sleep_us(settings.app_settings->hw_queue_full_sleep_us),
     m_buffer_writer(std::unique_ptr<IChunkBufferWriter>(dynamic_cast<IChunkBufferWriter*>(new GenericBufferWriter(payload_mem_utils))))
 {
 }
@@ -56,7 +51,7 @@ GenericLatencyIONode::GenericLatencyIONode(
 std::ostream& GenericLatencyIONode::print(std::ostream& out) const
 {
     out << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
-        << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
+        << "| CPU core affinity: " << m_settings.cpu_core_affinity << "\n"
         << "| Tx Header address: " << m_send_header_region.addr << "\n"
         << "| Tx Header length: " << m_send_header_region.length << "[B]" << "\n"
         << "| Tx Header key: " << m_send_header_region.mkey << "\n"
@@ -74,7 +69,7 @@ std::ostream& GenericLatencyIONode::print(std::ostream& out) const
 
 ReturnStatus GenericLatencyIONode::initialize_send_stream()
 {
-    if (m_gpu_direct_tx && (m_send_dim.header_size == 0)) {
+    if (m_settings.gpu_direct_tx && (m_send_dim.header_size == 0)) {
         m_send_dim.header_size = RTP_HEADER_SIZE;
         m_send_dim.payload_size -= RTP_HEADER_SIZE;
     }
@@ -170,7 +165,7 @@ ReturnStatus GenericLatencyIONode::destroy_send_stream()
 
 void GenericLatencyIONode::initialize_receive_stream(const TwoTupleFlow& flow)
 {
-    if (m_gpu_direct_rx  && (m_receive_dim.header_size == 0)) {
+    if (m_settings.gpu_direct_rx  && (m_receive_dim.header_size == 0)) {
         m_receive_dim.header_size = RTP_HEADER_SIZE;
         m_receive_dim.payload_size -= RTP_HEADER_SIZE;
     }
@@ -236,17 +231,17 @@ ReturnStatus GenericLatencyIONode::destroy_receive_stream()
 }
 
 PingPongIONode::PingPongIONode(
-        const LatencyNodeSettings& settings,
+        const LatencyIONodeSettings& settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb
-    ) : GenericLatencyIONode(settings,
-                      StreamDimensions(DEFAULT_NUM_OF_SEND_CHUNKS, 1,
-                      0, settings.app->packet_payload_size),
-                      StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1,
-                      0, settings.app->packet_payload_size),
-                      std::move(header_mem_utils), std::move(payload_mem_utils), std::move(time_handler_cb))
+    ) : GenericLatencyIONode(settings, std::move(header_mem_utils), std::move(payload_mem_utils),
+                             std::move(time_handler_cb))
 {
+    m_send_dim = StreamDimensions(DEFAULT_NUM_OF_SEND_CHUNKS, 1, 0,
+                                  m_settings.app_settings->packet_payload_size);
+    m_receive_dim = StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1, 0,
+                                     m_settings.app_settings->packet_payload_size);
 }
 
 void PingPongIONode::prepare_send_buffer()
@@ -279,18 +274,18 @@ void PingPongIONode::send_receive()
     uint64_t token = 0;
     uint64_t tx_hw_timestamp = 0;
     uint64_t rx_hw_timestamp = 0;
-    LatencyStats end_to_end("End-to-End Latency", m_percentiles);
-    LatencyStats tx_latency("Tx Latency", m_percentiles);
-    LatencyStats rx_latency("Rx Latency", m_percentiles);
+    LatencyStats end_to_end("End-to-End Latency", m_settings.percentiles);
+    LatencyStats tx_latency("Tx Latency", m_settings.percentiles);
+    LatencyStats rx_latency("Rx Latency", m_settings.percentiles);
 
     while (rc != ReturnStatus::failure && rc != ReturnStatus::signal_received &&
-                  SignalHandler::get_received_signal() < 0) {
+                  !should_stop()) {
         for (size_t chunk = 0; chunk < 1; chunk++) {
             rc = m_send_stream->get_next_chunk(commit_chunk);
             if (rc == ReturnStatus::no_free_chunks) {
                 continue;
             }
-            if (m_track_completions) {
+            if (m_settings.track_completions) {
                 rc = commit_chunk->mark_for_tracking(token++);
                 if (rc != ReturnStatus::success) {
                     std::cerr << "Failed to mark a chunk for tracking" << std::endl;
@@ -317,7 +312,7 @@ void PingPongIONode::send_receive()
                     default:
                         break;
                 }
-            } while (rc == ReturnStatus::hw_send_queue_full);
+            } while (rc == ReturnStatus::hw_send_queue_full && !should_stop());
         }
         if (rc != ReturnStatus::success) {
             break;
@@ -333,7 +328,7 @@ void PingPongIONode::send_receive()
             return;
         }
 
-        if (m_track_completions) {
+        if (m_settings.track_completions) {
             rc = commit_chunk->poll_for_completion();
             if (rc != ReturnStatus::success) {
                 std::cerr << "Failed to get a completion for a sent chunk" << std::endl;
@@ -363,7 +358,7 @@ void PingPongIONode::send_receive()
             end_to_end.update(delta);
             packet_cnt++;
 
-            if (m_track_completions) {
+            if (m_settings.track_completions) {
                 int64_t tx_delta = tx_hw_timestamp - send_ts;
                 tx_latency.update(tx_delta);
 
@@ -375,7 +370,7 @@ void PingPongIONode::send_receive()
         }
 
         if (std::chrono::nanoseconds(receive_ts) > std::chrono::nanoseconds(start_time_ns) +
-                                                   std::chrono::seconds(m_measure_interval_sec)) {
+                                                   std::chrono::seconds(m_settings.measure_interval)) {
             break;
         }
 
@@ -387,7 +382,7 @@ void PingPongIONode::send_receive()
         end_to_end.calc_percentiles();
         std::cout << "\nAll values are in nanoseconds.\n\n";
         std::cout << end_to_end;
-        if (m_track_completions) {
+        if (m_settings.track_completions) {
             tx_latency.calc_percentiles();
             std::cout << tx_latency;
             rx_latency.calc_percentiles();
@@ -404,7 +399,7 @@ void PingPongIONode::receive_send()
     m_receive_stream->set_completion_moderation(1, 1, 0);
 
     while (rc != ReturnStatus::failure && rc != ReturnStatus::signal_received &&
-                  SignalHandler::get_received_signal() < 0) {
+                  !should_stop()) {
 
         /* Prepare a reply chunk in advance */
         rc = m_send_stream->get_next_chunk(commit_chunk);
@@ -453,36 +448,34 @@ void PingPongIONode::receive_send()
                 default:
                     break;
             }
-        } while (rc == ReturnStatus::hw_send_queue_full);
+        } while (rc == ReturnStatus::hw_send_queue_full && !should_stop());
     }
 }
 
 FrameIONode::FrameIONode(
-        const LatencyNodeSettings& settings,
+        const LatencyIONodeSettings& settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb
-    ) : GenericLatencyIONode(
-                settings,
-                settings.client_mode ?
-                        StreamDimensions(settings.app->num_of_chunks,
-                                         settings.app->num_of_packets_in_chunk,
-                                         settings.app->packet_app_header_size,
-                                         settings.app->packet_payload_size) :
-                        StreamDimensions(DEFAULT_NUM_OF_SEND_CHUNKS, 1,
-                                         0, DEFAULT_RESPONSE_SIZE),
-                settings.client_mode ?
-                        StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1,
-                                         0, DEFAULT_RESPONSE_SIZE) :
-                        StreamDimensions(settings.app->num_of_chunks,
-                                         settings.app->num_of_packets_in_chunk,
-                                         settings.app->packet_app_header_size,
-                                         settings.app->packet_payload_size),
-                std::move(header_mem_utils), std::move(payload_mem_utils), std::move(time_handler_cb)),
+    ) : GenericLatencyIONode(settings, std::move(header_mem_utils), std::move(payload_mem_utils),
+                             std::move(time_handler_cb)),
     m_rx_next_pkt_num{0},
     m_rx_iteration{0},
     m_rx_drop_cnt{0}
 {
+    const StreamDimensions frame_dim(m_settings.app_settings->num_of_chunks,
+                                     m_settings.app_settings->num_of_packets_in_chunk,
+                                     m_settings.app_settings->packet_app_header_size,
+                                     m_settings.app_settings->packet_payload_size);
+    const StreamDimensions reply_dim(DEFAULT_NUM_OF_SEND_CHUNKS, 1, 0, DEFAULT_RESPONSE_SIZE);
+
+    if (m_settings.client_mode) {
+        m_send_dim = frame_dim;
+        m_receive_dim = StreamDimensions(DEFAULT_NUM_OF_RECEIVE_CHUNKS, 1, 0, DEFAULT_RESPONSE_SIZE);
+    } else {
+        m_send_dim = reply_dim;
+        m_receive_dim = frame_dim;
+    }
 }
 
 void FrameIONode::prepare_send_buffer()
@@ -543,21 +536,21 @@ void FrameIONode::send_receive()
     uint64_t send_ts = 0, receive_ts = 0;
     uint64_t token = 0;
     uint64_t tx_hw_timestamp = 0;
-    LatencyStats total_time("Total SW Time (Commit to Reply)", m_percentiles);
-    LatencyStats commit_to_tx_done("Tx Commit to Tx Done TS", m_percentiles);
-    LatencyStats commit_to_rx_ts("Tx Commit to Reply Rx TS", m_percentiles);
-    LatencyStats commit_to_rx_first("Tx Commit to First Pkt Rx TS", m_percentiles);
-    LatencyStats commit_to_rx_last("Tx Commit to Last Pkt Rx TS", m_percentiles);
-    LatencyStats commit_to_rx_soft("Tx Commit to Rx SW done", m_percentiles);
-    LatencyStats rx_first_hw_to_soft("Rx First HW TS to Rx SW done", m_percentiles);
-    LatencyStats soft_feedback("Rx SW done to Reply", m_percentiles);
+    LatencyStats total_time("Total SW Time (Commit to Reply)", m_settings.percentiles);
+    LatencyStats commit_to_tx_done("Tx Commit to Tx Done TS", m_settings.percentiles);
+    LatencyStats commit_to_rx_ts("Tx Commit to Reply Rx TS", m_settings.percentiles);
+    LatencyStats commit_to_rx_first("Tx Commit to First Pkt Rx TS", m_settings.percentiles);
+    LatencyStats commit_to_rx_last("Tx Commit to Last Pkt Rx TS", m_settings.percentiles);
+    LatencyStats commit_to_rx_soft("Tx Commit to Rx SW done", m_settings.percentiles);
+    LatencyStats rx_first_hw_to_soft("Rx First HW TS to Rx SW done", m_settings.percentiles);
+    LatencyStats soft_feedback("Rx SW done to Reply", m_settings.percentiles);
     uint64_t rx_hw_timestamp = 0;
 
     uint32_t iteration = 0;
 
     std::this_thread::sleep_for(std::chrono::microseconds(100000));
 
-    while (rc == ReturnStatus::success && SignalHandler::get_received_signal() < 0) {
+    while (rc == ReturnStatus::success && !should_stop()) {
 
         std::this_thread::sleep_for(std::chrono::microseconds(m_sleep_between_operations_us));
         prepare_chunks(iteration);
@@ -570,15 +563,15 @@ void FrameIONode::send_receive()
 
             do {
                 rc = m_send_stream->blocking_get_next_chunk(commit_chunk, BLOCKING_CHUNK_RETRIES);
-            } while (unlikely(rc == ReturnStatus::no_free_chunks));
+            } while (unlikely(rc == ReturnStatus::no_free_chunks) && !should_stop());
 
             if (rc != ReturnStatus::success) {
-                if (rc != ReturnStatus::signal_received) {
+                if (rc != ReturnStatus::signal_received && !should_stop()) {
                     std::cerr << "Failed to get a next chunk to send" << std::endl;
                 }
                 break;
             }
-            if (m_track_completions) {
+            if (m_settings.track_completions) {
                 if (chunk + 1 == m_send_dim.num_of_chunks) {
                     rc = commit_chunk->mark_for_tracking(token++);
                     if (rc != ReturnStatus::success) {
@@ -615,7 +608,7 @@ void FrameIONode::send_receive()
                                   << ")" << std::endl;
                         break;
                 }
-            } while (rc == ReturnStatus::hw_send_queue_full);
+            } while (rc == ReturnStatus::hw_send_queue_full && !should_stop());
         }
         if (rc != ReturnStatus::success) {
             break;
@@ -633,7 +626,7 @@ void FrameIONode::send_receive()
             break;
         }
 
-        if (m_track_completions) {
+        if (m_settings.track_completions) {
             /* Need to poll multiple times because only the last completion is marked for tracking,
                and each poll can process only a limited number of HW completions */
             for (size_t i = 0; i < m_send_dim.num_of_chunks; i++) {
@@ -664,7 +657,7 @@ void FrameIONode::send_receive()
         }
 
         if (std::chrono::nanoseconds(receive_ts) > std::chrono::nanoseconds(start_time_ns) +
-                                                   std::chrono::seconds(m_measure_interval_sec)) {
+                                                   std::chrono::seconds(m_settings.measure_interval)) {
             break;
         }
 
@@ -697,7 +690,7 @@ void FrameIONode::send_receive()
         total_time.update(delta);
         packet_cnt++;
 
-        if (m_track_completions) {
+        if (m_settings.track_completions) {
             int64_t tx_delta = tx_hw_timestamp - send_ts;
             commit_to_tx_done.update(tx_delta);
             int64_t rx_delta = rx_hw_timestamp - send_ts;
@@ -722,7 +715,7 @@ void FrameIONode::send_receive()
         total_time.calc_percentiles();
         std::cout << "\nAll values are in nanoseconds.\n\n";
         std::cout << total_time;
-        if (m_track_completions) {
+        if (m_settings.track_completions) {
             commit_to_tx_done.calc_percentiles();
             std::cout << commit_to_tx_done;
             commit_to_rx_ts.calc_percentiles();
@@ -829,7 +822,7 @@ void FrameIONode::receive_send()
     uint64_t receive_ts = 0;
 
     while (rc != ReturnStatus::failure && rc != ReturnStatus::signal_received &&
-                  SignalHandler::get_received_signal() < 0) {
+                  !should_stop()) {
 
         rc = prepare_reply_chunk(commit_chunk);
         if (rc != ReturnStatus::success) {
@@ -846,7 +839,7 @@ void FrameIONode::receive_send()
         uint64_t first_packet_ts = 0;
         uint64_t last_packet_ts = 0;
 
-        while (!frame_received) {
+        while (!frame_received && !should_stop()) {
             rc = m_receive_stream->get_next_chunk(receive_chunk);
             if (rc != ReturnStatus::success) {
                 if (rc != ReturnStatus::signal_received) {
@@ -877,6 +870,10 @@ void FrameIONode::receive_send()
             }
         }
 
+        if (!frame_received) {
+            break;
+        }
+
         do {
             compose_reply(commit_chunk, first_packet_ts, last_packet_ts, receive_ts,
                           m_rx_iteration, valid);
@@ -895,6 +892,6 @@ void FrameIONode::receive_send()
                 default:
                     break;
             }
-        } while (rc == ReturnStatus::hw_send_queue_full);
+        } while (rc == ReturnStatus::hw_send_queue_full && !should_stop());
     }
 }

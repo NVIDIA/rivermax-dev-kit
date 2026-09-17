@@ -120,63 +120,64 @@ std::ostream& LatencyStats::print(std::ostream& out) const
 }
 
 LatencyIONode::LatencyIONode(
-    const LatencyNodeSettings& settings,
+    const LatencyIONodeSettings& settings,
     std::shared_ptr<MemoryUtils> header_mem_utils,
     std::shared_ptr<MemoryUtils> payload_mem_utils,
     time_handler_ns_cb_t time_handler_cb
     ) :
-    m_send_flow(0, settings.app->destination_ip, settings.app->destination_port),
+    IIONode<LatencyIONodeSettings>(settings),
+    m_send_flow(0, settings.app_settings->destination_ip, settings.app_settings->destination_port),
     m_receive_flow(ReceiveFlow(0, "0.0.0.0", 0, settings.receive_ip, settings.receive_port)),
-    m_network_address(ReceiveFlow(0, settings.app->local_ip, settings.app->source_port,
-        settings.app->destination_ip, settings.app->destination_port)),
-    m_sleep_between_operations_us(settings.app->sleep_between_operations_us),
-    m_print_parameters(settings.app->print_parameters),
+    m_network_address(ReceiveFlow(0, settings.app_settings->local_ip, settings.app_settings->source_port,
+        settings.app_settings->destination_ip, settings.app_settings->destination_port)),
+    m_sleep_between_operations_us(settings.app_settings->sleep_between_operations_us),
+    m_print_parameters(settings.app_settings->print_parameters),
     m_send_header_region{nullptr, 0, 0},
     m_send_payload_region{nullptr, 0, 0},
     m_receive_header_region{nullptr, 0, 0},
     m_receive_payload_region{nullptr, 0, 0},
-    m_gpu_direct_tx(settings.gpu_direct_tx),
-    m_gpu_direct_rx(settings.gpu_direct_rx),
-    m_cpu_core_affinity(settings.app->app_threads_cores[0]),
-    m_client_mode(settings.client_mode),
-    m_measure_interval_sec(settings.measure_interval),
     m_header_mem_utils(std::move(header_mem_utils)),
     m_payload_mem_utils(std::move(payload_mem_utils)),
-    m_get_time_ns_cb(std::move(time_handler_cb)),
-    m_percentiles(settings.percentiles)
+    m_get_time_ns_cb(std::move(time_handler_cb))
 {
+    if (m_settings.cpu_core_affinity == NO_CPU_AFFINITY) {
+        m_settings.cpu_core_affinity = m_settings.app_settings->app_threads_cores[0];
+    }
     m_cpu_affinity_mask = {};
 }
 
 void LatencyIONode::set_cpu_resources()
 {
-    set_current_thread_affinity(m_cpu_core_affinity);
+    set_current_thread_affinity(m_settings.cpu_core_affinity);
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }
 
-void LatencyIONode::operator()()
+ReturnStatus LatencyIONode::do_work()
 {
+    if (should_stop()) {
+        return ReturnStatus::success;
+    }
     set_cpu_resources();
     ReturnStatus rc = create_send_stream();
 
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to create sender stream !!!!!" << std::endl;
-        return;
+        return rc;
     }
     print_parameters();
     prepare_send_buffer();
 
     rc = create_receive_stream();
     if (rc != ReturnStatus::success) {
-        return;
+        return rc;
     }
     rc = attach_receive_flow();
     if (rc != ReturnStatus::success) {
-        return;
+        return rc;
     }
 
     std::cout << "Main measurement loop started" << std::endl;
-    if (m_client_mode) {
+    if (m_settings.client_mode) {
         send_receive();
     } else {
         receive_send();
@@ -185,4 +186,6 @@ void LatencyIONode::operator()()
     detach_receive_flow();
     destroy_receive_stream();
     destroy_send_stream();
+
+    return ReturnStatus::success;
 }

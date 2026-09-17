@@ -28,6 +28,7 @@
 #include "rt_threads.h"
 
 #include "rdk/io_node/receivers/rtp_receiver_io_node.h"
+#include "rdk/io_node/receivers/ipo_receiver_io_node.h"
 #include "rdk/services/cpu/cpu.h"
 #include "rdk/services/error_handling/error_handling.h"
 
@@ -35,25 +36,33 @@ using namespace rdk::io_node;
 using namespace rdk::services;
 using namespace rdk::core;
 
-ReceiverIONodeBase::ReceiverIONodeBase(
-        const AppSettings& app_settings,
-        size_t index, int cpu_core_affinity,
+template<typename SettingsType>
+ReceiverIONodeBase<SettingsType>::ReceiverIONodeBase(
+        const SettingsType& settings,
         IONodeMemoryUtils& memory_utils) :
-    m_app_settings(app_settings),
-    m_index(index),
-    m_print_parameters(app_settings.print_parameters),
-    m_cpu_core_affinity(cpu_core_affinity),
-    m_sleep_between_operations(std::chrono::microseconds(app_settings.sleep_between_operations_us)),
+    ReceiverIONodeBase(SettingsType(settings), memory_utils)
+{
+}
+
+template<typename SettingsType>
+ReceiverIONodeBase<SettingsType>::ReceiverIONodeBase(
+        SettingsType&& settings,
+        IONodeMemoryUtils& memory_utils) :
+    IIONode<SettingsType>(std::move(settings)),
+    m_print_parameters(this->m_settings.app_settings->print_parameters),
+    m_sleep_between_operations(
+        std::chrono::microseconds(this->m_settings.app_settings->sleep_between_operations_us)),
     m_memory_utils(memory_utils)
 {
 }
 
-std::ostream& ReceiverIONodeBase::print(std::ostream& out) const
+template<typename SettingsType>
+std::ostream& ReceiverIONodeBase<SettingsType>::print(std::ostream& out) const
 {
     out << "+#############################################\n"
-        << "| Receiver index: " << m_index << "\n"
+        << "| Receiver index: " << this->m_settings.id << "\n"
         << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
-        << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
+        << "| CPU core affinity: " << this->m_settings.cpu_core_affinity << "\n"
         << "| Number of streams in this thread: " << m_streams.size() << "\n"
         << "+---------------------------------------------\n";
     for (const auto& stream : m_streams) {
@@ -63,7 +72,8 @@ std::ostream& ReceiverIONodeBase::print(std::ostream& out) const
     return out;
 }
 
-void ReceiverIONodeBase::print_parameters() const
+template<typename SettingsType>
+void ReceiverIONodeBase<SettingsType>::print_parameters() const
 {
     if (!m_print_parameters) {
         return;
@@ -74,12 +84,14 @@ void ReceiverIONodeBase::print_parameters() const
     std::cout << receiver_parameters.str() << std::endl;
 }
 
-void ReceiverIONodeBase::set_statistics_report_interval(uint32_t print_interval_ms)
+template<typename SettingsType>
+void ReceiverIONodeBase<SettingsType>::set_statistics_report_interval(uint32_t print_interval_ms)
 {
     m_print_interval_ms = print_interval_ms;
 }
 
-ReturnStatus ReceiverIONodeBase::create_streams()
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::create_streams()
 {
     ReturnStatus rc;
     for (size_t i = 0; i < m_streams.size(); ++i) {
@@ -96,7 +108,8 @@ ReturnStatus ReceiverIONodeBase::create_streams()
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverIONodeBase::destroy_streams()
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::destroy_streams()
 {
     ReturnStatus rc;
 
@@ -111,7 +124,8 @@ ReturnStatus ReceiverIONodeBase::destroy_streams()
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverIONodeBase::initialize_memory_layout()
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::initialize_memory_layout()
 {
     size_t header_memory_size = 0;
     size_t payload_memory_size = 0;
@@ -151,7 +165,8 @@ ReturnStatus ReceiverIONodeBase::initialize_memory_layout()
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverIONodeBase::determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::determine_memory_layout(StreamMemoryLayoutRequest& memory_layout_request) const
 {
     if (!is_memory_layout_initialized()) {
         std::cerr << "Memory layout was not initialized for receiver " << get_index() << std::endl;
@@ -165,7 +180,8 @@ ReturnStatus ReceiverIONodeBase::determine_memory_layout(StreamMemoryLayoutReque
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverIONodeBase::apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response)
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::apply_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response)
 {
     ReturnStatus rc = validate_memory_layout(memory_layout_response);
     if (rc != ReturnStatus::success) {
@@ -192,7 +208,8 @@ ReturnStatus ReceiverIONodeBase::apply_memory_layout(const StreamMemoryLayoutRes
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverIONodeBase::validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) const
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::validate_memory_layout(const StreamMemoryLayoutResponse& memory_layout_response) const
 {
     if (!is_memory_layout_initialized()) {
         std::cerr << "Memory layout was not initialized for receiver " << get_index() << std::endl;
@@ -216,7 +233,8 @@ ReturnStatus ReceiverIONodeBase::validate_memory_layout(const StreamMemoryLayout
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverIONodeBase::apply_memory_layout_for_subcomponent(
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::apply_memory_layout_for_subcomponent(
     std::unique_ptr<IReceiveStream>& stream,
     const StreamMemoryLayout& provided_memory_layout,
     const StreamBufferMemorySizes& stream_buffer_sizes,
@@ -266,13 +284,15 @@ ReturnStatus ReceiverIONodeBase::apply_memory_layout_for_subcomponent(
     return ReturnStatus::success;
 }
 
-void ReceiverIONodeBase::set_cpu_resources()
+template<typename SettingsType>
+void ReceiverIONodeBase<SettingsType>::set_cpu_resources()
 {
-    set_current_thread_affinity(m_cpu_core_affinity);
+    set_current_thread_affinity(this->m_settings.cpu_core_affinity);
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }
 
-ReturnStatus ReceiverIONodeBase::update_streams_runtime_parameters()
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::update_streams_runtime_parameters()
 {
     ReturnStatus status = ReturnStatus::success;
     for (auto& stream : m_streams) {
@@ -285,7 +305,8 @@ ReturnStatus ReceiverIONodeBase::update_streams_runtime_parameters()
     return ReturnStatus::success;
 }
 
-void ReceiverIONodeBase::print_statistics(
+template<typename SettingsType>
+void ReceiverIONodeBase<SettingsType>::print_statistics(
     std::ostream& out, const std::chrono::high_resolution_clock::duration& interval_duration) const
 {
     for (const auto& stream : m_streams) {
@@ -294,7 +315,8 @@ void ReceiverIONodeBase::print_statistics(
     }
 }
 
-ReceiveChunk& ReceiverIONodeBase::get_stream_chunk(size_t stream_index) const
+template<typename SettingsType>
+ReceiveChunk& ReceiverIONodeBase<SettingsType>::get_stream_chunk(size_t stream_index) const
 {
     assert(stream_index < m_streams.size());
     assert(stream_index < m_stream_chunks.size());
@@ -302,13 +324,15 @@ ReceiveChunk& ReceiverIONodeBase::get_stream_chunk(size_t stream_index) const
     return *m_stream_chunks[stream_index];
 }
 
-std::unique_ptr<ReceiveChunk> ReceiverIONodeBase::create_chunk(size_t stream_index) const
+template<typename SettingsType>
+std::unique_ptr<ReceiveChunk> ReceiverIONodeBase<SettingsType>::create_chunk(size_t stream_index) const
 {
     assert(stream_index < m_streams.size());
-    return std::make_unique<ReceiveChunk>(m_streams[stream_index]->get_id(), m_app_settings.packet_app_header_size != 0);
+    return std::make_unique<ReceiveChunk>(m_streams[stream_index]->get_id(), this->m_settings.app_settings->packet_app_header_size != 0);
 }
 
-ReturnStatus ReceiverIONodeBase::set_receive_data_consumer(size_t stream_index, std::unique_ptr<IReceiveDataConsumer> data_consumer)
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::set_receive_data_consumer(size_t stream_index, std::unique_ptr<IReceiveDataConsumer> data_consumer)
 {
     if (data_consumer == nullptr) {
         std::cerr << "Invalid data consumer" << std::endl;
@@ -322,7 +346,8 @@ ReturnStatus ReceiverIONodeBase::set_receive_data_consumer(size_t stream_index, 
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverIONodeBase::consume_chunk(std::unique_ptr<IReceiveDataConsumer>& data_consumer,
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::consume_chunk(std::unique_ptr<IReceiveDataConsumer>& data_consumer,
     const ReceiveChunk& chunk, IReceiveStream& stream)
 {
     assert(data_consumer);
@@ -338,12 +363,13 @@ ReturnStatus ReceiverIONodeBase::consume_chunk(std::unique_ptr<IReceiveDataConsu
     return rc;
 }
 
-ReturnStatus ReceiverIONodeBase::wait_first_packet()
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::wait_first_packet()
 {
     ReturnStatus rc = ReturnStatus::success;
     bool initialized = false;
-    while (likely(!initialized && rc != ReturnStatus::failure && SignalHandler::get_received_signal() < 0)) {
-        for (int i = 0; i < m_streams.size(); i++) {
+    while (likely(!initialized && rc != ReturnStatus::failure && !this->should_stop())) {
+        for (int i = 0; i < m_streams.size() && !this->should_stop(); i++) {
             auto& stream = m_streams[i];
             auto& chunk = get_stream_chunk(i);
             auto& data_consumer = m_data_consumers[i];
@@ -364,8 +390,13 @@ ReturnStatus ReceiverIONodeBase::wait_first_packet()
     return rc;
 }
 
-void ReceiverIONodeBase::operator()()
+template<typename SettingsType>
+ReturnStatus ReceiverIONodeBase<SettingsType>::do_work()
 {
+    if (this->should_stop()) {
+        return ReturnStatus::success;
+    }
+
     assert(m_streams.size() > 0);
     assert(m_streams.size() == m_data_consumers.size());
 
@@ -373,20 +404,20 @@ void ReceiverIONodeBase::operator()()
 
     ReturnStatus rc = create_streams();
     if (rc == ReturnStatus::failure) {
-        std::cerr << "Failed to create receiver (" << m_index << ") streams" << std::endl;
-        return;
+        std::cerr << "Failed to create receiver (" << this->m_settings.id << ") streams" << std::endl;
+        return rc;
     }
 
     rc = update_streams_runtime_parameters();
     if (rc == ReturnStatus::failure) {
-        std::cerr << "Failed to update stream runtime parameters for receiver (" << m_index << ")" << std::endl;
-        return;
+        std::cerr << "Failed to update stream runtime parameters for receiver (" << this->m_settings.id << ")" << std::endl;
+        return rc;
     }
 
     rc = attach_flows();
     if (rc == ReturnStatus::failure) {
-        std::cerr << "Failed to attach flows to receiver (" << m_index << ") streams" << std::endl;
-        return;
+        std::cerr << "Failed to attach flows to receiver (" << this->m_settings.id << ") streams" << std::endl;
+        return rc;
     }
 
     print_parameters();
@@ -397,8 +428,8 @@ void ReceiverIONodeBase::operator()()
     }
 
     auto start_time = std::chrono::high_resolution_clock::now();
-    while (likely(rc != ReturnStatus::failure && SignalHandler::get_received_signal() < 0)) {
-        for (int i = 0; i < m_streams.size(); i++) {
+    while (likely(rc != ReturnStatus::failure && !this->should_stop())) {
+        for (int i = 0; i < m_streams.size() && !this->should_stop(); i++) {
             auto& stream = m_streams[i];
             auto& chunk = get_stream_chunk(i);
             auto& data_consumer = m_data_consumers[i];
@@ -427,14 +458,19 @@ void ReceiverIONodeBase::operator()()
         }
     }
 
-    rc = detach_flows();
-    if (rc == ReturnStatus::failure) {
-        std::cerr << "Failed to detach receiver (" << m_index << ")  flows" << std::endl;
+    const ReturnStatus detach_rc = detach_flows();
+    if (detach_rc == ReturnStatus::failure) {
+        std::cerr << "Failed to detach receiver (" << this->m_settings.id << ")  flows" << std::endl;
     }
 
-    rc = destroy_streams();
-    if (rc == ReturnStatus::failure) {
-        std::cerr << "Failed to destroy receiver (" << m_index << ") streams" << std::endl;
-        return;
+    const ReturnStatus destroy_rc = destroy_streams();
+    if (destroy_rc == ReturnStatus::failure) {
+        std::cerr << "Failed to destroy receiver (" << this->m_settings.id << ") streams" << std::endl;
+        return destroy_rc;
     }
+
+    return rc;
 }
+
+template class ReceiverIONodeBase<RTPReceiverIONodeSettings>;
+template class ReceiverIONodeBase<IPOReceiverIONodeSettings>;

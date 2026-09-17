@@ -203,7 +203,38 @@ ReturnStatus IPMXSenderApp::post_load_settings()
     return ReturnStatus::success;
 }
 
-ReturnStatus IPMXSenderApp::run()
+std::vector<IPMXSenderIONodeSettings> IPMXSenderApp::get_io_nodes_settings() const
+{
+    std::vector<IPMXSenderIONodeSettings> settings;
+
+    settings.reserve(m_senders.size());
+    for (const auto& sender : m_senders) {
+        settings.push_back(sender->get_settings());
+    }
+    return settings;
+}
+
+void IPMXSenderApp::stop_io_nodes() noexcept
+{
+    BaseApp::stop_io_nodes(m_senders);
+}
+
+size_t IPMXSenderApp::num_io_nodes() const
+{
+    return m_senders.size();
+}
+
+ReturnStatus IPMXSenderApp::stop_io_node(size_t id)
+{
+    return BaseApp::stop_io_node(m_senders, id);
+}
+
+ReturnStatus IPMXSenderApp::await_io_node(size_t id, std::chrono::nanoseconds timeout) const
+{
+    return BaseApp::await_io_node(m_senders, id, timeout);
+}
+
+ReturnStatus IPMXSenderApp::do_work()
 {
     if (m_obj_init_status != ReturnStatus::obj_init_success) {
         return m_obj_init_status;
@@ -359,7 +390,7 @@ ReturnStatus IPMXSenderApp::configure_video_settings()
 
     m_ipmx_sender_settings->smpte_standard_to_nodes.clear();
 
-    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(*m_app_settings);
+    auto video_settings = std::make_shared<SMPTE_2110_20_MediaSettings>(*m_app_settings);
     auto rc = video_settings->create_default_calculator(extra_ipmx_parameters);
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to create default calculator for 2110-20" << std::endl;
@@ -380,9 +411,8 @@ ReturnStatus IPMXSenderApp::configure_video_settings()
         } else {
             num_of_streams_in_cur_thread = min_number_streams_per_thread;
         }
-        m_ipmx_sender_settings->smpte_standard_to_nodes.emplace_back(*video_settings, num_of_streams_in_cur_thread);
+        m_ipmx_sender_settings->smpte_standard_to_nodes.emplace_back(video_settings, num_of_streams_in_cur_thread);
     }
-    m_ipmx_sender_settings->smpte_standard_configs.push_back(std::move(video_settings));
     return ReturnStatus::success;
 }
 

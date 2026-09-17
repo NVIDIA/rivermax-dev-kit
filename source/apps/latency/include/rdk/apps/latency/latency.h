@@ -19,6 +19,10 @@
 #ifndef RDK_APPS_LATENCY_LATENCY_H_
 #define RDK_APPS_LATENCY_LATENCY_H_
 
+#include <chrono>
+#include <memory>
+#include <vector>
+
 #include "rdk/apps/base_app.h"
 
 using namespace rdk::io_node;
@@ -138,7 +142,7 @@ private:
     /* Transmitter-Receiver objects container */
     std::unique_ptr<LatencyIONode> m_io_node;
     /* Media settings */
-    std::unique_ptr<SMPTE_2110_20_MediaSettings> m_media_settings;
+    std::shared_ptr<SMPTE_2110_20_MediaSettings> m_media_settings;
     /* Transmit header memory region */
     rmx_mem_region m_tx_header_mreg;
     /* Transmit header memory registration status */
@@ -159,9 +163,21 @@ public:
      */
     LatencyApp(std::unique_ptr<ISettingsBuilder<LatencySettings>> settings_builder);
     virtual ~LatencyApp() = default;
-    ReturnStatus run() override;
+    /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * A latency application owns exactly one node, so the vector holds one element, with id 0.
+     *
+     * @return: Settings of the application's I/O nodes.
+     */
+    std::vector<LatencyIONodeSettings> get_io_nodes_settings() const;
+    ReturnStatus stop_io_node(size_t id) override;
+    ReturnStatus await_io_node(size_t id, std::chrono::nanoseconds timeout) const override;
+    size_t num_io_nodes() const override;
     ReturnStatus initialize() override;
 private:
+    ReturnStatus do_work() override;
+    void stop_io_nodes() noexcept override;
     ReturnStatus initialize_app_settings() final;
     ReturnStatus set_rivermax_clock() final;
     /**

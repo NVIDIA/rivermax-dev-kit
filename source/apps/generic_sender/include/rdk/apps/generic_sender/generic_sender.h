@@ -19,6 +19,8 @@
 #ifndef RDK_APPS_GENERIC_SENDER_GENERIC_SENDER_H_
 #define RDK_APPS_GENERIC_SENDER_GENERIC_SENDER_H_
 
+#include <chrono>
+
 #include "rdk/apps/base_app.h"
 
 using namespace rdk::io_node;
@@ -103,9 +105,22 @@ public:
      */
     GenericSenderApp(std::unique_ptr<ISettingsBuilder<GenericSenderSettings>> settings_builder);
     virtual ~GenericSenderApp() = default;
-    ReturnStatus run() override;
+    /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * The returned vector is ordered by node id, so element @c i describes the node
+     * @ref stop_io_node and @ref await_io_node address as @c i.
+     *
+     * @return: Settings of the application's I/O nodes.
+     */
+    std::vector<GenericSenderIONodeSettings> get_io_nodes_settings() const;
+    ReturnStatus stop_io_node(size_t id) override;
+    ReturnStatus await_io_node(size_t id, std::chrono::nanoseconds timeout) const override;
+    size_t num_io_nodes() const override;
     ReturnStatus initialize() override;
 private:
+    ReturnStatus do_work() override;
+    void stop_io_nodes() noexcept override;
     ReturnStatus initialize_app_settings() final;
     ReturnStatus post_load_settings() final;
     ReturnStatus cleanup_rivermax_resources() override;

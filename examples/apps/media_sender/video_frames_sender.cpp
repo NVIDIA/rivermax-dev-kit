@@ -124,7 +124,7 @@ ReturnStatus VideoFramesSenderExample::operator()()
     RETURN_FAILURE_ON_ERROR(status, "Failed to set media essence source");
 
     /** 7. Start sending media data */
-    status = app.run();
+    status = app.start();
     RETURN_FAILURE_ON_ERROR(status, "Failed to run Media Sender application");
 
     return ReturnStatus::success;

@@ -108,18 +108,12 @@ public:
      */
     std::set<SMPTEStandard> enabled_smpte_standards;
     /**
-     * @brief: MediaSettings configurations for each enabled SMPTE standard.
-     *
-     * Created by MediaSettingsCalculator for each enabled standard.
-     */
-    std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
-    /**
      * @brief: Mapping from media settings to the stream count of the corresponding IONode.
      *
-     * Each entry represents one IONode: the first element is the media settings for that
-     * IONode's media type, and the second is the number of streams assigned to it.
+     * Each entry represents one IONode: the first element points to the media settings for
+     * that IONode's media type, and the second is the number of streams assigned to it.
      */
-    std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
+    std::vector<std::pair<std::shared_ptr<const MediaSettings>, size_t>> smpte_standard_to_nodes;
 };
 
 /**
@@ -168,7 +162,7 @@ using MediaReceiverUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<Med
 /**
  * @brief: Media Receiver application.
  */
-class MediaReceiverApp : public ReceiverBaseApp
+class MediaReceiverApp : public ReceiverBaseApp<RTPReceiverIONodeSettings>
 {
 private:
     /* Settings builder pointer */
@@ -193,6 +187,12 @@ public:
      */
     MediaReceiverApp(std::unique_ptr<ISettingsBuilder<MediaReceiverSettings>> settings_builder);
     virtual ~MediaReceiverApp() = default;
+    /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * @return: Settings of the application's I/O nodes, ordered by node id.
+     */
+    std::vector<RTPReceiverIONodeSettings> get_io_nodes_settings() const;
     ReturnStatus initialize() override;
     /**
      * @brief: Initializes SMPTE standards configuration.
@@ -239,6 +239,17 @@ private:
     void initialize_receive_io_nodes() final;
     void run_receiver_threads() final;
     /**
+     * @brief: Builds the settings of one of the application's I/O nodes.
+     *
+     * @param [in] index: Position the node will occupy.
+     * @param [in] cpu_core_affinity: CPU core the node will run on.
+     * @param [in] is_extended_sequence_number: Parse extended sequence number.
+     *
+     * @return: The node's settings.
+     */
+    RTPReceiverIONodeSettings build_node_settings(size_t index, int cpu_core_affinity,
+        bool is_extended_sequence_number) const;
+    /**
      * @brief: Generic helper for configuring media types.
      *
      * This template method handles the common logic for distributing streams across threads
@@ -251,7 +262,7 @@ private:
      * @return: Status of the operation.
      */
     template <typename SettingsType>
-    ReturnStatus configure_media_type_helper(std::unique_ptr<SettingsType> settings,
+    ReturnStatus configure_media_type_helper(std::shared_ptr<SettingsType> settings,
         const std::string& smpte_standard_name);
     /**
      * @brief: Configures video types processing.

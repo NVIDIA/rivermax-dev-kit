@@ -27,7 +27,10 @@
 
 #include <rivermax_api.h>
 
+#include "rdk/io_node/io_node_interface.h"
+#include "rdk/io_node/io_node_settings.h"
 #include "rdk/services/cpu/affinity/rivermax_affinity.h"
+#include "rdk/services/media/media_settings_video.h"
 #include "rdk/services/settings/settings.h"
 #include "rdk/services/memory_allocation/memory_allocation.h"
 #include "rdk/core/flow/flow.h"
@@ -109,28 +112,48 @@ protected:
 /**
  * @brief: Latency node settings.
  */
-struct LatencyNodeSettings {
-    std::shared_ptr<AppSettings> app;
+struct LatencyIONodeSettings : IONodeSettings {
+    /* Application settings the node was built from. */
+    std::shared_ptr<const AppSettings> app_settings;
+    /* Address the node receives on. */
     std::string receive_ip;
-    uint16_t receive_port;
-    bool client_mode;
-    bool gpu_direct_tx;
-    bool gpu_direct_rx;
-    size_t measure_interval;
-    bool track_completions;
+    /* Port the node receives on. */
+    uint16_t receive_port = 0;
+    /* Whether the node drives the measurement (client) or answers it (server). */
+    bool client_mode = false;
+    /* Whether the send side uses GPUDirect. */
+    bool gpu_direct_tx = false;
+    /* Whether the receive side uses GPUDirect. */
+    bool gpu_direct_rx = false;
+    /* Measurement reporting interval, in seconds. */
+    size_t measure_interval = 0;
+    /* Whether the node processes realtime completion timestamps. */
+    bool track_completions = false;
+    /* Percentiles the node reports, empty when percentile reporting is off. */
     std::vector<double> percentiles;
+    /* Media settings, in media measurement mode only; null in every other mode. */
+    std::shared_ptr<const SMPTE_2110_20_MediaSettings> media_settings;
+    /* CPU core the node runs on. Left at @ref NO_CPU_AFFINITY, the node takes the first of
+     * the application's thread cores; set it to choose a different core. */
+    int cpu_core_affinity = NO_CPU_AFFINITY;
+
+    ReturnStatus validate() const override
+    {
+        if (IONodeSettings::validate() != ReturnStatus::success || !app_settings) {
+            return ReturnStatus::failure;
+        }
+        return ReturnStatus::success;
+    }
 };
 
 /**
  * @brief: LatencyIONode class.
  *
- * This class implements a skeleton for a latency measurement process
- * that will be run under a std::thread by overriding the operator ().
- * The class defines the common parameters and resource
- * initialization/deintialization sequences for various latency
- * measurement modes implemented by descendent calsses.
+ * A skeleton for a latency measurement process, defining the common parameters and
+ * resource initialization/deinitialization sequences for the latency measurement modes
+ * implemented by descendant classes.
  */
-class LatencyIONode
+class LatencyIONode : public IIONode<LatencyIONodeSettings>
 {
 protected:
     TwoTupleFlow m_send_flow;
@@ -142,16 +165,10 @@ protected:
     rmx_mem_region m_send_payload_region;
     rmx_mem_region m_receive_header_region;
     rmx_mem_region m_receive_payload_region;
-    bool m_gpu_direct_tx;
-    bool m_gpu_direct_rx;
     cpu_mask_t m_cpu_affinity_mask;
-    int m_cpu_core_affinity;
-    bool m_client_mode;
-    size_t m_measure_interval_sec;
     std::shared_ptr<MemoryUtils> m_header_mem_utils;
     std::shared_ptr<MemoryUtils> m_payload_mem_utils;
     time_handler_ns_cb_t m_get_time_ns_cb;
-    std::vector<double> m_percentiles;
 public:
     /**
      * @brief: LatencyIONode constructor.
@@ -162,7 +179,7 @@ public:
      * @param [in] time_handler_cb: Timer handler.
      */
     LatencyIONode(
-        const LatencyNodeSettings& settings,
+        const LatencyIONodeSettings& settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb);
@@ -225,14 +242,14 @@ public:
      *        @ref app_settings->print_parameters parameter of set to true.
      */
     virtual void print_parameters() = 0;
+private:
     /**
      * @brief: Client/server loop thread worker.
      *
-     * This method is the worker method of the std::thread will run with this object as it's context.
-     * The user of @ref LatencyIONode class can
-     * initialize the object in advance and run std::thread when needed.
+     * Runs setup, the measurement loop and teardown.
      */
-    virtual void operator()();
+    ReturnStatus do_work() override;
+public:
     /**
      * @brief: Returns current time in nanoseconds.
      *

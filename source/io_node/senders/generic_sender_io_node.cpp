@@ -77,12 +77,29 @@ void AppGenericSendStream::set_next_flow_to_send()
     ++m_next_flow_to_send %= m_send_flows.size();
 }
 
+namespace
+{
+/**
+ * @brief: Builds the settings of a generic sender node.
+ */
+GenericSenderIONodeSettings build_settings(
+    const std::shared_ptr<const AppSettings>& app_settings,
+    size_t index, size_t num_of_streams, int cpu_core_affinity)
+{
+    GenericSenderIONodeSettings settings;
+    settings.id = index;
+    settings.app_settings = app_settings;
+    settings.num_of_streams = num_of_streams;
+    settings.cpu_core_affinity = cpu_core_affinity;
+    return settings;
+}
+} // namespace
+
 GenericSenderIONode::GenericSenderIONode(
     std::shared_ptr<AppSettings> app_settings,
     size_t index, size_t num_of_streams, int cpu_core_affinity,
     std::shared_ptr<MemoryUtils> mem_utils) :
-    m_index(index),
-    m_num_of_streams(num_of_streams),
+    IIONode<GenericSenderIONodeSettings>(build_settings(app_settings, index, num_of_streams, cpu_core_affinity)),
     m_sleep_between_operations_us(app_settings->sleep_between_operations_us),
     m_print_parameters(app_settings->print_parameters),
     m_network_address(FourTupleFlow(index, app_settings->local_ip, app_settings->source_port,
@@ -93,7 +110,6 @@ GenericSenderIONode::GenericSenderIONode(
     m_packet_typical_payload_size(app_settings->packet_payload_size),
     m_packet_typical_app_header_size(app_settings->packet_app_header_size),
     m_use_checksum_header(app_settings->use_checksum_header),
-    m_cpu_core_affinity(cpu_core_affinity),
     m_hw_queue_full_sleep_us(app_settings->hw_queue_full_sleep_us),
     m_mem_utils(std::move(mem_utils)),
     m_buffer_writer(std::unique_ptr<IChunkBufferWriter>(app_settings->use_checksum_header
@@ -105,9 +121,9 @@ GenericSenderIONode::GenericSenderIONode(
 
 std::ostream& GenericSenderIONode::print(std::ostream& out) const
 {
-    out << "| Sender index: " << m_index << "\n"
+    out << "| Sender index: " << m_settings.id << "\n"
         << "| Thread ID: 0x" << std::hex << std::this_thread::get_id() << std::dec << "\n"
-        << "| CPU core affinity: " << m_cpu_core_affinity << "\n"
+        << "| CPU core affinity: " << m_settings.cpu_core_affinity << "\n"
         << "| Number of streams in this thread: " << m_streams.size() << "\n"
         << "| Memory address: " << m_mem_region.addr << "\n"
         << "| Memory length: " << m_mem_region.length << "[B]" << "\n"
@@ -121,13 +137,13 @@ void GenericSenderIONode::initialize_send_flows(const std::vector<TwoTupleFlow>&
 
     flows_per_stream.reserve(flows.size());
     for (size_t flow = 0; flow < flows.size(); flow++) {
-        flows_per_stream[flow % m_num_of_streams]++;
+        flows_per_stream[flow % m_settings.num_of_streams]++;
     }
 
     size_t flows_offset = 0;
 
-    for (size_t strm_indx = 0; strm_indx < m_num_of_streams; strm_indx++) {
-        m_flows_in_stream[strm_indx] = std::vector<TwoTupleFlow>(
+    for (size_t strm_indx = 0; strm_indx < m_settings.num_of_streams; strm_indx++) {
+        m_settings.flows_in_stream[strm_indx] = std::vector<TwoTupleFlow>(
             flows.begin() + flows_offset,
             flows.begin() + flows_offset + flows_per_stream[strm_indx]);
         flows_offset += flows_per_stream[strm_indx];
@@ -136,7 +152,7 @@ void GenericSenderIONode::initialize_send_flows(const std::vector<TwoTupleFlow>&
 
 void GenericSenderIONode::initialize_streams(size_t& flows_offset)
 {
-    for (size_t strm_indx = 0; strm_indx < m_num_of_streams; strm_indx++) {
+    for (size_t strm_indx = 0; strm_indx < m_settings.num_of_streams; strm_indx++) {
 
         GenericStreamSettings settings(
             FourTupleFlow(
@@ -145,17 +161,17 @@ void GenericSenderIONode::initialize_streams(size_t& flows_offset)
                 m_network_address.get_source_port(),
                 m_network_address.get_destination_ip(),
                 m_network_address.get_destination_port() + static_cast<uint16_t>(flows_offset)),
-            m_flows_in_stream[strm_indx].size() == 1,
-            PacketPacingRate{static_cast<uint64_t>(m_rate.bps * m_flows_in_stream[strm_indx].size()),
-                      static_cast<uint32_t>(m_rate.max_burst_in_packets * m_flows_in_stream[strm_indx].size() * m_num_of_packets_in_chunk)},
+            m_settings.flows_in_stream[strm_indx].size() == 1,
+            PacketPacingRate{static_cast<uint64_t>(m_rate.bps * m_settings.flows_in_stream[strm_indx].size()),
+                      static_cast<uint32_t>(m_rate.max_burst_in_packets * m_settings.flows_in_stream[strm_indx].size() * m_num_of_packets_in_chunk)},
             m_num_of_chunks,
             m_num_of_packets_in_chunk,
             m_packet_typical_payload_size,
             m_packet_typical_app_header_size);
 
         m_streams.push_back(std::unique_ptr<AppGenericSendStream>(new AppGenericSendStream(
-            settings, m_flows_in_stream[strm_indx])));
-        flows_offset += m_flows_in_stream[strm_indx].size();
+            settings, m_settings.flows_in_stream[strm_indx])));
+        flows_offset += m_settings.flows_in_stream[strm_indx].size();
     }
 }
 
@@ -197,14 +213,28 @@ void GenericSenderIONode::print_parameters()
     std::cout << sender_parameters.str() << std::endl;
 }
 
-void GenericSenderIONode::operator()()
+void GenericSenderIONode::stop() noexcept
 {
+    IIONode::stop();
+
+    for (auto& stream : m_streams) {
+        if (stream) {
+            stream->stop();
+        }
+    }
+}
+
+ReturnStatus GenericSenderIONode::do_work()
+{
+    if (should_stop()) {
+        return ReturnStatus::success;
+    }
     set_cpu_resources();
     ReturnStatus rc = create_streams();
 
     if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to create sender (" << m_index << ") streams" << std::endl;
-        return;
+        std::cerr << "Failed to create sender (" << m_settings.id << ") streams" << std::endl;
+        return rc;
     }
     print_parameters();
     prepare_buffers();
@@ -213,8 +243,8 @@ void GenericSenderIONode::operator()()
     std::shared_ptr<GenericChunk> commit_chunk;
 
     while (likely(rc != ReturnStatus::failure && rc != ReturnStatus::signal_received &&
-                  SignalHandler::get_received_signal() < 0)) {
-        for (size_t chunk = 0; chunk < m_num_of_chunks; chunk++) {
+                  !should_stop())) {
+        for (size_t chunk = 0; chunk < m_num_of_chunks && !should_stop(); chunk++) {
             size_t stream_index = 0;
             do {
                 auto& stream = m_streams[stream_index];
@@ -225,16 +255,16 @@ void GenericSenderIONode::operator()()
                 if (rc != ReturnStatus::success) {
                     break;
                 }
-                if (m_flows_in_stream[stream_index].size() > 1) {
+                if (m_settings.flows_in_stream[stream_index].size() > 1) {
                     auto flow = stream->get_next_flow_to_send();
                     commit_chunk->set_dest_address(flow->get_socket_address());
                 }
                 if (commit_chunk->apply_packets_layout() != ReturnStatus::success) {
                     break;
                 }
-                do {
-                    rc = stream->blocking_commit_chunk(commit_chunk, commit_timestamp_ns);
-                    switch (rc) {
+                rc = retry_while([&] {
+                    ReturnStatus commit_rc = stream->blocking_commit_chunk(commit_chunk, commit_timestamp_ns);
+                    switch (commit_rc) {
                         case ReturnStatus::hw_send_queue_full:
                             std::this_thread::sleep_for(std::chrono::microseconds(m_hw_queue_full_sleep_us));
                             break;
@@ -249,17 +279,21 @@ void GenericSenderIONode::operator()()
                             ++stream_index;
                             break;
                     }
-                } while (rc == ReturnStatus::hw_send_queue_full);
-            } while (likely(rc != ReturnStatus::failure && rc != ReturnStatus::signal_received) && stream_index < num_of_streams);
+                    return commit_rc;
+                }, ReturnStatus::hw_send_queue_full);
+            } while (likely(rc != ReturnStatus::failure && rc != ReturnStatus::signal_received) &&
+                     stream_index < num_of_streams && !should_stop());
         }
         std::this_thread::sleep_for(std::chrono::microseconds(m_sleep_between_operations_us));
     }
 
-    rc = destroy_streams();
-    if (rc == ReturnStatus::failure) {
-        std::cerr << "Failed to destroy sender (" << m_index << ") streams" << std::endl;
-        return;
+    const ReturnStatus destroy_rc = destroy_streams();
+    if (destroy_rc == ReturnStatus::failure) {
+        std::cerr << "Failed to destroy sender (" << m_settings.id << ") streams" << std::endl;
+        return destroy_rc;
     }
+
+    return rc;
 }
 
 ReturnStatus GenericSenderIONode::create_streams()
@@ -295,7 +329,7 @@ ReturnStatus GenericSenderIONode::destroy_streams()
 
 void GenericSenderIONode::set_cpu_resources()
 {
-    set_current_thread_affinity(m_cpu_core_affinity);
+    set_current_thread_affinity(m_settings.cpu_core_affinity);
     rt_set_thread_priority(RMAX_THREAD_PRIORITY_TIME_CRITICAL - 1);
 }
 

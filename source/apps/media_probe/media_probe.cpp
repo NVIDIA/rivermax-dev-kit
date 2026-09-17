@@ -109,7 +109,7 @@ ReturnStatus MediaProbeCLISettingsBuilder::add_cli_options(MediaProbeSettings& s
 }
 
 MediaProbeApp::MediaProbeApp(std::unique_ptr<ISettingsBuilder<MediaProbeSettings>> settings_builder) :
-    ReceiverBaseApp(),
+    ReceiverBaseApp<RTPReceiverIONodeSettings>(),
     m_settings_builder(std::move(settings_builder))
 {
     m_num_paths_per_stream = 1;
@@ -173,7 +173,7 @@ void MediaProbeApp::configure_network_flows()
     }
 }
 
-void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode& node, size_t start_media_index,
+void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode<RTPReceiverIONodeSettings>& node, size_t start_media_index,
     const std::vector<ReceiveFlow>& flows, MediaComponentId component_index)
 {
     std::vector<std::unique_ptr<IReceiveStream>> streams;
@@ -189,7 +189,7 @@ void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode& node,
             m_app_settings->packet_app_header_size,
             0, RECEIVE_CHUNK_SIZE_LIMIT);
         auto stream = std::make_unique<AppRTPReceiveStream>(stream_settings,
-            m_is_extended_sequence_number,
+            node.get_settings().is_extended_sequence_number,
             false, false);
         streams.push_back(std::move(stream));
     }
@@ -208,6 +208,30 @@ void MediaProbeApp::initialize_media_probe_node_streams(RTPReceiverIONode& node,
     node.set_statistics_report_interval(m_app_settings->stats_report_interval_ms);
 }
 
+RTPReceiverIONodeSettings MediaProbeApp::build_node_settings(
+    size_t index, int cpu_core_affinity) const
+{
+    RTPReceiverIONodeSettings settings;
+
+    settings.id = index;
+    settings.app_settings = m_app_settings;
+    settings.cpu_core_affinity = cpu_core_affinity;
+    settings.devices = { m_app_settings->local_ip };
+    settings.is_extended_sequence_number = true;
+    return settings;
+}
+
+std::vector<RTPReceiverIONodeSettings> MediaProbeApp::get_io_nodes_settings() const
+{
+    std::vector<RTPReceiverIONodeSettings> settings;
+
+    settings.reserve(m_receivers.size());
+    for (const auto& receiver : m_receivers) {
+        settings.push_back(receiver->get_settings());
+    }
+    return settings;
+}
+
 void MediaProbeApp::initialize_component_receivers(size_t& receiver_index, MediaComponentId component_index, const std::vector<ReceiveFlow>& flows)
 {
     size_t start_media_index = 0;
@@ -217,13 +241,8 @@ void MediaProbeApp::initialize_component_receivers(size_t& receiver_index, Media
         auto component_flows = std::vector<ReceiveFlow>(
             flows.begin() + start_media_index,
             flows.begin() + start_media_index + m_streams_per_thread[rx_index]);
-        auto receiver = std::make_unique<RTPReceiverIONode>(
-            *m_app_settings,
-            true,
-            std::vector<std::string>{ m_app_settings->local_ip },
-            receiver_index,
-            recv_cpu_core,
-            *m_memory_utils);
+        auto receiver = std::make_unique<RTPReceiverIONode<RTPReceiverIONodeSettings>>(
+            build_node_settings(receiver_index, recv_cpu_core), *m_memory_utils);
         initialize_media_probe_node_streams(*receiver, start_media_index, component_flows, component_index);
         m_receivers.push_back(std::move(receiver));
         start_media_index += m_streams_per_thread[rx_index];
@@ -255,7 +274,7 @@ void MediaProbeApp::run_receiver_threads()
         m_threads.push_back(std::thread(std::ref(*io_node)));
     }
 
-    while (likely(SignalHandler::get_received_signal() < 0)) {
+    while (likely(!should_stop())) {
         std::this_thread::sleep_for(std::chrono::milliseconds(m_app_settings->stats_report_interval_ms));
         for (auto& media_monitor : m_media_monitors) {
             media_monitor->print_and_reset_stats(std::cout);

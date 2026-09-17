@@ -20,6 +20,7 @@
 #define RDK_IO_NODE_SENDERS_GENERIC_SENDER_IO_NODE_H_
 
 #include <cstddef>
+#include <unordered_map>
 #include <vector>
 #include <memory>
 #include <iostream>
@@ -27,10 +28,13 @@
 
 #include <rivermax_api.h>
 
+#include "rdk/io_node/io_node_interface.h"
+#include "rdk/io_node/io_node_settings.h"
 #include "rdk/io_node/common/checksum_buffer_writer.h"
 #include "rdk/io_node/common/generic_buffer_writer.h"
 #include "rdk/core/stream/send/generic_stream.h"
 #include "rdk/core/flow/flow.h"
+#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 
 using namespace rdk::services;
 using namespace rdk::core;
@@ -79,19 +83,39 @@ public:
     void set_next_flow_to_send();
 };
 /**
+ * @brief: Settings of a generic sender I/O node.
+ */
+struct GenericSenderIONodeSettings : IONodeSettings
+{
+    /* Application settings the node was built from. */
+    std::shared_ptr<const AppSettings> app_settings;
+    /* Number of send streams the node owns. */
+    size_t num_of_streams = 0;
+    /* CPU core the node runs on, or @ref NO_CPU_AFFINITY. */
+    int cpu_core_affinity = NO_CPU_AFFINITY;
+    /* Send flows of each stream, keyed by the stream's index within the node. Filled by
+     * @ref GenericSenderIONode::initialize_send_flows, so it is empty before the app calls it. */
+    std::unordered_map<size_t, std::vector<TwoTupleFlow>> flows_in_stream;
+
+    ReturnStatus validate() const override
+    {
+        if (IONodeSettings::validate() != ReturnStatus::success || !app_settings) {
+            return ReturnStatus::failure;
+        }
+        return ReturnStatus::success;
+    }
+};
+
+/**
  * @brief: GenericSenderIONode class.
  *
- * This class implements the required operations in order
- * to be a sender. The sender class will be the context
- * that will be run under a std::thread by overriding the operator ().
- * Each sender will be able to run multiple streams.
+ * Implements the required operations to be a sender. Each sender can run multiple
+ * streams.
  */
-class GenericSenderIONode
+class GenericSenderIONode : public IIONode<GenericSenderIONodeSettings>
 {
 private:
     std::vector<std::unique_ptr<AppGenericSendStream>> m_streams;
-    size_t m_index;
-    size_t m_num_of_streams;
     int m_sleep_between_operations_us;
     bool m_print_parameters;
     FourTupleFlow m_network_address;
@@ -102,11 +126,9 @@ private:
     uint16_t m_packet_typical_app_header_size;
     bool m_use_checksum_header;
     rmx_mem_region m_mem_region;
-    int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
     std::shared_ptr<MemoryUtils> m_mem_utils;
     std::unique_ptr<IChunkBufferWriter> m_buffer_writer;
-    std::unordered_map<size_t,std::vector<TwoTupleFlow>> m_flows_in_stream;
 public:
     /**
      * @brief: GenericSenderIONode constructor.
@@ -200,14 +222,14 @@ public:
      */
     void print_parameters();
     /**
-     * @brief: Sender's worker.
-     *
-     * This method is the worker method of the std::thread will run with this object as it's context.
-     * The user of @ref GenericSenderIONode class can
-     * initialize the object in advance and run std::thread when needed.
+     * @brief: Requests the sender to stop, releasing the streams it holds.
      */
-    void operator()();
+    void stop() noexcept override;
 private:
+    /**
+     * @brief: Sender's worker: setup, send loop, teardown.
+     */
+    ReturnStatus do_work() override;
     /**
      * @brief: Creates sender's streams.
      *

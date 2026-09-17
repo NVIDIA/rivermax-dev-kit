@@ -174,7 +174,38 @@ ReturnStatus GenericSenderApp::initialize()
     return ReturnStatus::success;
 }
 
-ReturnStatus GenericSenderApp::run()
+std::vector<GenericSenderIONodeSettings> GenericSenderApp::get_io_nodes_settings() const
+{
+    std::vector<GenericSenderIONodeSettings> settings;
+
+    settings.reserve(m_senders.size());
+    for (const auto& sender : m_senders) {
+        settings.push_back(sender->get_settings());
+    }
+    return settings;
+}
+
+void GenericSenderApp::stop_io_nodes() noexcept
+{
+    BaseApp::stop_io_nodes(m_senders);
+}
+
+size_t GenericSenderApp::num_io_nodes() const
+{
+    return m_senders.size();
+}
+
+ReturnStatus GenericSenderApp::stop_io_node(size_t id)
+{
+    return BaseApp::stop_io_node(m_senders, id);
+}
+
+ReturnStatus GenericSenderApp::await_io_node(size_t id, std::chrono::nanoseconds timeout) const
+{
+    return BaseApp::await_io_node(m_senders, id, timeout);
+}
+
+ReturnStatus GenericSenderApp::do_work()
 {
     if (m_obj_init_status != ReturnStatus::obj_init_success) {
         return m_obj_init_status;

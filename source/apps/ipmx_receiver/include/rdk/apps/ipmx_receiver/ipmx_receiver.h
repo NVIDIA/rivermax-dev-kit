@@ -144,7 +144,7 @@ using IPMXReceiverUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<IPMX
  * application supports standard RTP sequence numbers or extended sequence
  * numbers as defined in SMPTE ST 2110-20.
  */
-class IPMXReceiverApp : public ReceiverBaseApp
+class IPMXReceiverApp : public ReceiverBaseApp<RTPReceiverIONodeSettings>
 {
 private:
     /* Settings builder pointer */
@@ -152,7 +152,7 @@ private:
     /* Application settings pointer */
     std::shared_ptr<IPMXReceiverSettings> m_ipmx_receiver_settings;
     /* RTCP receiver settings */
-    AppSettings m_rtcp_receiver_settings;
+    std::shared_ptr<AppSettings> m_rtcp_receiver_settings;
     /* Network recv flows */
     std::vector<ReceiveFlow> m_data_flows;
     std::vector<ReceiveFlow> m_rtcp_flows;
@@ -169,6 +169,26 @@ public:
      * @brief: IPMXReceiverApp class destructor.
      */
     virtual ~IPMXReceiverApp() = default;
+    /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * @return: Settings of the application's I/O nodes, ordered by node id.
+     */
+    std::vector<RTPReceiverIONodeSettings> get_io_nodes_settings() const;
+private:
+    /**
+     * @brief: Builds the settings of one of the application's I/O nodes.
+     *
+     * @param [in] app_settings: Application settings for the node.
+     * @param [in] is_extended_sequence_number: Parse extended sequence number.
+     * @param [in] index: Position the node will occupy.
+     * @param [in] cpu_core_affinity: CPU core the node will run on.
+     *
+     * @return: The node's settings.
+     */
+    RTPReceiverIONodeSettings build_node_settings(
+        const std::shared_ptr<const AppSettings>& app_settings, bool is_extended_sequence_number,
+        size_t index, int cpu_core_affinity) const;
 private:
     ReturnStatus set_rivermax_clock() final;
     ReturnStatus initialize_app_settings() final;
@@ -179,8 +199,8 @@ private:
     void configure_network_flows() final;
     void initialize_receive_io_nodes() final;
     void run_receiver_threads() final;
-    void initialize_rtp_streams(RTPReceiverIONode& node, size_t start_id, const std::vector<ReceiveFlow>& flows);
-    void initialize_rtcp_stream(RTPReceiverIONode& node, const std::vector<ReceiveFlow>& flows);
+    void initialize_rtp_streams(RTPReceiverIONode<RTPReceiverIONodeSettings>& node, size_t start_id, const std::vector<ReceiveFlow>& flows);
+    void initialize_rtcp_stream(RTPReceiverIONode<RTPReceiverIONodeSettings>& node, const std::vector<ReceiveFlow>& flows);
 };
 
 } // namespace apps

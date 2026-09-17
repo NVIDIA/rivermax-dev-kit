@@ -20,17 +20,21 @@
 
 #include "rdk/apps/receiver_base_app.h"
 #include "rdk/apps/base_memory_strategy.h"
+#include "rdk/io_node/receivers/rtp_receiver_io_node.h"
+#include "rdk/io_node/receivers/ipo_receiver_io_node.h"
 
 using namespace rdk::apps;
 using namespace rdk::services;
 using namespace rdk::core;
 
-ReceiverBaseApp::ReceiverBaseApp() :
+template<typename IONodeSettingsType>
+ReceiverBaseApp<IONodeSettingsType>::ReceiverBaseApp() :
     BaseApp()
 {
 }
 
-ReturnStatus ReceiverBaseApp::initialize()
+template<typename IONodeSettingsType>
+ReturnStatus ReceiverBaseApp<IONodeSettingsType>::initialize()
 {
     ReturnStatus rc  = BaseApp::initialize();
     if (rc != ReturnStatus::success) {
@@ -56,7 +60,8 @@ ReturnStatus ReceiverBaseApp::initialize()
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverBaseApp::run()
+template<typename IONodeSettingsType>
+ReturnStatus ReceiverBaseApp<IONodeSettingsType>::do_work()
 {
     if (m_obj_init_status != ReturnStatus::obj_init_success) {
         return m_obj_init_status;
@@ -73,7 +78,32 @@ ReturnStatus ReceiverBaseApp::run()
     return ReturnStatus::success;
 }
 
-void ReceiverBaseApp::distribute_work_for_threads()
+template<typename IONodeSettingsType>
+void ReceiverBaseApp<IONodeSettingsType>::stop_io_nodes() noexcept
+{
+    BaseApp::stop_io_nodes(m_receivers);
+}
+
+template<typename IONodeSettingsType>
+size_t ReceiverBaseApp<IONodeSettingsType>::num_io_nodes() const
+{
+    return m_receivers.size();
+}
+
+template<typename IONodeSettingsType>
+ReturnStatus ReceiverBaseApp<IONodeSettingsType>::stop_io_node(size_t id)
+{
+    return BaseApp::stop_io_node(m_receivers, id);
+}
+
+template<typename IONodeSettingsType>
+ReturnStatus ReceiverBaseApp<IONodeSettingsType>::await_io_node(size_t id, std::chrono::nanoseconds timeout) const
+{
+    return BaseApp::await_io_node(m_receivers, id, timeout);
+}
+
+template<typename IONodeSettingsType>
+void ReceiverBaseApp<IONodeSettingsType>::distribute_work_for_threads()
 {
     m_app_settings->num_of_threads = std::min<size_t>(m_app_settings->num_of_threads, m_app_settings->num_of_total_streams);
     m_streams_per_thread.reserve(m_app_settings->num_of_threads);
@@ -82,7 +112,8 @@ void ReceiverBaseApp::distribute_work_for_threads()
     }
 }
 
-ReturnStatus ReceiverBaseApp::initialize_memory_strategy()
+template<typename IONodeSettingsType>
+ReturnStatus ReceiverBaseApp<IONodeSettingsType>::initialize_memory_strategy()
 {
     auto base_memory_strategy = std::make_unique<BaseMemoryStrategy>(
         *m_header_allocator, *m_payload_allocator, *m_auxiliary_allocator,
@@ -102,7 +133,8 @@ ReturnStatus ReceiverBaseApp::initialize_memory_strategy()
     return ReturnStatus::success;
 }
 
-ReturnStatus ReceiverBaseApp::set_receive_data_consumer(
+template<typename IONodeSettingsType>
+ReturnStatus ReceiverBaseApp<IONodeSettingsType>::set_receive_data_consumer(
     size_t stream_index, std::unique_ptr<IReceiveDataConsumer> data_consumer)
 {
     size_t receiver_thread_index = 0;
@@ -124,3 +156,6 @@ ReturnStatus ReceiverBaseApp::set_receive_data_consumer(
 
     return rc;
 }
+
+template class ReceiverBaseApp<RTPReceiverIONodeSettings>;
+template class ReceiverBaseApp<IPOReceiverIONodeSettings>;

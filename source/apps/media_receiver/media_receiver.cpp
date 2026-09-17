@@ -170,7 +170,7 @@ const std::unordered_map<SMPTEStandard, std::function<ReturnStatus(MediaReceiver
 };
 
 MediaReceiverApp::MediaReceiverApp(std::unique_ptr<ISettingsBuilder<MediaReceiverSettings>> settings_builder)
-    : ReceiverBaseApp(),
+    : ReceiverBaseApp<RTPReceiverIONodeSettings>(),
       m_settings_builder(std::move(settings_builder))
 {
     m_num_paths_per_stream = 1;
@@ -230,6 +230,17 @@ ReturnStatus MediaReceiverApp::initialize_smpte_standards()
     return configure_smpte_standards_processing();
 }
 
+std::vector<RTPReceiverIONodeSettings> MediaReceiverApp::get_io_nodes_settings() const
+{
+    std::vector<RTPReceiverIONodeSettings> settings;
+
+    settings.reserve(m_receivers.size());
+    for (const auto& receiver : m_receivers) {
+        settings.push_back(receiver->get_settings());
+    }
+    return settings;
+}
+
 void MediaReceiverApp::configure_network_flows()
 {
     std::string ip_prefix_str;
@@ -256,7 +267,7 @@ void MediaReceiverApp::initialize_receive_io_nodes()
     size_t streams_offset = 0;
     for (size_t rx_idx = 0; rx_idx < m_app_settings->num_of_threads; rx_idx++) {
         const auto& node = m_media_receiver_settings->smpte_standard_to_nodes[rx_idx];
-        const MediaSettings& media_settings = node.first;
+        const MediaSettings& media_settings = *node.first;
         SMPTEStandard config_smpte_standard = media_settings.get_smpte_standard();
         bool is_extended_seq = (config_smpte_standard == SMPTEStandard::ST_2110_20 ||
                                config_smpte_standard == SMPTEStandard::ST_2110_40);
@@ -266,18 +277,27 @@ void MediaReceiverApp::initialize_receive_io_nodes()
         auto flows = std::vector<ReceiveFlow>(
             m_flows.begin() + streams_offset,
             m_flows.begin() + streams_offset + m_streams_per_thread[rx_idx]);
-        m_receivers.push_back(std::unique_ptr<ReceiverIONodeBase>(new RTPReceiverIONode(
-            *m_app_settings,
-            is_extended_seq,
-            { m_app_settings->local_ip },
-            rx_idx,
-            recv_cpu_core,
-            *m_memory_utils,
-            false)));
-        static_cast<RTPReceiverIONode*>(m_receivers[rx_idx].get())->initialize_streams(streams_offset, flows);
-        m_receivers[rx_idx]->set_statistics_report_interval(m_app_settings->stats_report_interval_ms);
+        auto receiver = std::make_unique<RTPReceiverIONode<RTPReceiverIONodeSettings>>(
+            build_node_settings(rx_idx, recv_cpu_core, is_extended_seq), *m_memory_utils);
+        receiver->initialize_streams(streams_offset, flows);
+        receiver->set_statistics_report_interval(m_app_settings->stats_report_interval_ms);
+        m_receivers.push_back(std::move(receiver));
         streams_offset += m_streams_per_thread[rx_idx];
     }
+}
+
+RTPReceiverIONodeSettings MediaReceiverApp::build_node_settings(size_t index, int cpu_core_affinity,
+    bool is_extended_sequence_number) const
+{
+    RTPReceiverIONodeSettings settings;
+
+    settings.id = index;
+    settings.app_settings = m_app_settings;
+    settings.cpu_core_affinity = cpu_core_affinity;
+    settings.devices = { m_app_settings->local_ip };
+    settings.is_extended_sequence_number = is_extended_sequence_number;
+    settings.process_headers = false;
+    return settings;
 }
 
 void MediaReceiverApp::distribute_work_for_threads()
@@ -291,7 +311,7 @@ void MediaReceiverApp::distribute_work_for_threads()
 }
 
 template <typename SettingsType>
-ReturnStatus MediaReceiverApp::configure_media_type_helper(std::unique_ptr<SettingsType> settings,
+ReturnStatus MediaReceiverApp::configure_media_type_helper(std::shared_ptr<SettingsType> settings,
     const std::string& smpte_standard_name)
 {
     size_t num_of_threads = std::min<size_t>(m_app_settings->num_of_threads,
@@ -314,9 +334,8 @@ ReturnStatus MediaReceiverApp::configure_media_type_helper(std::unique_ptr<Setti
             num_of_streams_in_cur_thread = min_number_streams_per_thread;
         }
         m_media_receiver_settings->smpte_standard_to_nodes.emplace_back(
-            *settings, num_of_streams_in_cur_thread);
+            settings, num_of_streams_in_cur_thread);
     }
-    m_media_receiver_settings->smpte_standard_configs.push_back(std::move(settings));
     return ReturnStatus::success;
 }
 
@@ -326,7 +345,7 @@ ReturnStatus MediaReceiverApp::configure_video_types()
         std::cerr << "Video is not enabled" << std::endl;
         return ReturnStatus::failure;
     }
-    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(*m_app_settings);
+    auto video_settings = std::make_shared<SMPTE_2110_20_MediaSettings>(*m_app_settings);
     return configure_media_type_helper(std::move(video_settings), "2110-20");
 }
 
@@ -336,7 +355,7 @@ ReturnStatus MediaReceiverApp::configure_audio_types()
         std::cerr << "Audio is not enabled" << std::endl;
         return ReturnStatus::failure;
     }
-    auto audio_settings = std::make_unique<SMPTE_2110_30_MediaSettings>(*m_app_settings);
+    auto audio_settings = std::make_shared<SMPTE_2110_30_MediaSettings>(*m_app_settings);
     return configure_media_type_helper(std::move(audio_settings), "2110-30");
 }
 
@@ -346,7 +365,7 @@ ReturnStatus MediaReceiverApp::configure_ancillary_types()
         std::cerr << "Ancillary is not enabled" << std::endl;
         return ReturnStatus::failure;
     }
-    auto ancillary_settings = std::make_unique<SMPTE_2110_40_MediaSettings>(*m_app_settings);
+    auto ancillary_settings = std::make_shared<SMPTE_2110_40_MediaSettings>(*m_app_settings);
     return configure_media_type_helper(std::move(ancillary_settings), "2110-40");
 }
 
@@ -357,7 +376,6 @@ ReturnStatus MediaReceiverApp::configure_smpte_standards_processing()
         return ReturnStatus::failure;
     }
     m_media_receiver_settings->smpte_standard_to_nodes.clear();
-    m_media_receiver_settings->smpte_standard_configs.clear();
     for (const auto& smpte_standard : m_media_receiver_settings->enabled_smpte_standards) {
         auto it = s_smpte_standard_config_map.find(smpte_standard);
         if (it == s_smpte_standard_config_map.end()) {
@@ -375,7 +393,7 @@ ReturnStatus MediaReceiverApp::configure_smpte_standards_processing()
 
 ReturnStatus MediaReceiverApp::initialize()
 {
-    ReturnStatus rc = ReceiverBaseApp::initialize();
+    ReturnStatus rc = ReceiverBaseApp<RTPReceiverIONodeSettings>::initialize();
     if (rc != ReturnStatus::success) {
         std::cerr << "Failed to initialize receiver base app" << std::endl;
         return rc;
@@ -418,7 +436,7 @@ ReturnStatus MediaReceiverApp::set_internal_media_essence_sinks()
 {
     for (size_t rx_idx = 0; rx_idx < m_app_settings->num_of_threads; rx_idx++) {
         const auto& node = m_media_receiver_settings->smpte_standard_to_nodes[rx_idx];
-        const MediaSettings& media_settings = node.first;
+        const MediaSettings& media_settings = *node.first;
 
         for (size_t stream_idx = 0; stream_idx < m_streams_per_thread[rx_idx]; stream_idx++) {
             auto default_sink = std::make_shared<NullEssenceSink>();
@@ -454,7 +472,7 @@ ReturnStatus MediaReceiverApp::set_media_essence_sink(
         std::cerr << "Error setting media essence sink, invalid stream index " << stream_index << std::endl;
         return ReturnStatus::failure;
     }
-    const MediaSettings& media_settings = m_media_receiver_settings->smpte_standard_to_nodes[thread_index].first;
+    const MediaSettings& media_settings = *m_media_receiver_settings->smpte_standard_to_nodes[thread_index].first;
     SMPTEStandard stream_smpte_standard = media_settings.get_smpte_standard();
     if (stream_smpte_standard != smpte_standard) {
         std::cerr << "Stream " << stream_index

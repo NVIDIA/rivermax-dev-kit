@@ -57,7 +57,6 @@ protected:
     StreamDimensions m_send_dim;
     StreamDimensions m_receive_dim;
     uint32_t m_hw_queue_full_sleep_us;
-    bool m_track_completions;
     std::unique_ptr<IChunkBufferWriter> m_buffer_writer;
 public:
     /**
@@ -71,9 +70,7 @@ public:
      * @param [in] time_handler_cb: Timer handler.
      */
     GenericLatencyIONode(
-        const LatencyNodeSettings& settings,
-        const StreamDimensions& send_dim,
-        const StreamDimensions& receive_dim,
+        const LatencyIONodeSettings& settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb);
@@ -140,7 +137,7 @@ public:
      * @param [in] time_handler_cb: Timer handler.
      */
     PingPongIONode(
-        const LatencyNodeSettings& settings,
+        const LatencyIONodeSettings& settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb);
@@ -186,7 +183,7 @@ public:
      * @param [in] time_handler_cb: Timer handler.
      */
     FrameIONode(
-        const LatencyNodeSettings& settings,
+        const LatencyIONodeSettings& settings,
         std::shared_ptr<MemoryUtils> header_mem_utils,
         std::shared_ptr<MemoryUtils> payload_mem_utils,
         time_handler_ns_cb_t time_handler_cb);

@@ -19,6 +19,8 @@
 #ifndef RDK_APPS_IPMX_SENDER_IPMX_SENDER_H_
 #define RDK_APPS_IPMX_SENDER_IPMX_SENDER_H_
 
+#include <chrono>
+#include <memory>
 #include <set>
 #include <string>
 
@@ -41,8 +43,7 @@ struct IPMXSenderSettings : AppSettings
 public:
     std::vector<std::string> local_macs;
     std::set<SMPTEStandard> enabled_smpte_standards;
-    std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
-    std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
+    std::vector<std::pair<std::shared_ptr<const MediaSettings>, size_t>> smpte_standard_to_nodes;
     void init_default_values() override;
 };
 
@@ -102,9 +103,22 @@ public:
      */
     IPMXSenderApp(std::unique_ptr<ISettingsBuilder<IPMXSenderSettings>> settings_builder);
     virtual ~IPMXSenderApp() = default;
-    ReturnStatus run() override;
+    /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * The returned vector is ordered by node id, so element @c i describes the node
+     * @ref stop_io_node and @ref await_io_node address as @c i.
+     *
+     * @return: Settings of the application's I/O nodes.
+     */
+    std::vector<IPMXSenderIONodeSettings> get_io_nodes_settings() const;
+    ReturnStatus stop_io_node(size_t id) override;
+    ReturnStatus await_io_node(size_t id, std::chrono::nanoseconds timeout) const override;
+    size_t num_io_nodes() const override;
     ReturnStatus initialize() override;
 private:
+    ReturnStatus do_work() override;
+    void stop_io_nodes() noexcept override;
     ReturnStatus initialize_app_settings() final;
     ReturnStatus post_load_settings() final;
     ReturnStatus initialize_connection_parameters() final;

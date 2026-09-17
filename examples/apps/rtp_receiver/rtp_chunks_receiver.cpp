@@ -108,7 +108,7 @@ ReturnStatus RTPChunksReceiverExample::operator()()
     RETURN_FAILURE_ON_ERROR(status, "Failed to set data consumer");
 
     /** 6. Start receiving RTP chunks */
-    status = app.run();
+    status = app.start();
     RETURN_FAILURE_ON_ERROR(status, "Failed to run RTP Receiver application");
 
     return ReturnStatus::success;

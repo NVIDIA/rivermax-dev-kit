@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <iostream>
+#include <chrono>
 #include <memory>
 #include <set>
 #include <unordered_map>
@@ -28,6 +29,7 @@
 #include "rdk/apps/base_app.h"
 #include "rdk/services/media/app_media_settings.h"
 #include "rdk/services/media/media_settings.h"
+#include "rdk/services/utils/synchronizer.h"
 
 using namespace rdk::io_node;
 using namespace rdk::services;
@@ -53,8 +55,7 @@ public:
 
     void init_default_values() override;
     std::set<SMPTEStandard> enabled_smpte_standards;
-    std::vector<std::unique_ptr<MediaSettings>> smpte_standard_configs;
-    std::vector<std::pair<const MediaSettings&, size_t>> smpte_standard_to_nodes;
+    std::vector<std::pair<std::shared_ptr<const MediaSettings>, size_t>> smpte_standard_to_nodes;
 
     /**
      * @brief: Returns the default number of packets in chunk for a given resolution.
@@ -125,6 +126,8 @@ private:
     std::shared_ptr<MediaSenderSettings> m_media_sender_settings;
     /* Sender objects container */
     std::vector<std::shared_ptr<MediaSenderIONode>> m_senders;
+    /* Start-time barrier the senders share */
+    std::shared_ptr<ISynchronizer> m_synchronizer;
     /* Number of paths per stream */
     size_t m_num_paths_per_stream = 1;
     /* Network send flows */
@@ -144,7 +147,18 @@ public:
      */
     MediaSenderApp(std::unique_ptr<ISettingsBuilder<MediaSenderSettings>> settings_builder);
     virtual ~MediaSenderApp() = default;
-    ReturnStatus run() override;
+    /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * The returned vector is ordered by node id, so element @c i describes the node
+     * @ref stop_io_node and @ref await_io_node address as @c i.
+     *
+     * @return: Settings of the application's I/O nodes.
+     */
+    std::vector<MediaSenderIONodeSettings> get_io_nodes_settings() const;
+    ReturnStatus stop_io_node(size_t id) override;
+    ReturnStatus await_io_node(size_t id, std::chrono::nanoseconds timeout) const override;
+    size_t num_io_nodes() const override;
     /**
      * @brief: Initializes SMPTE standards configuration.
      *
@@ -213,6 +227,8 @@ public:
         std::shared_ptr<IMediaEssenceSource> runtime_essence_source = nullptr,
         bool runtime_contains_payload = true);
 private:
+    ReturnStatus do_work() override;
+    void stop_io_nodes() noexcept override;
     ReturnStatus initialize_app_settings() final;
     ReturnStatus post_load_settings() final;
     ReturnStatus initialize_memory_strategy() override;
@@ -230,7 +246,7 @@ private:
      * @return: Status of the operation.
      */
     template <typename SettingsType>
-    ReturnStatus configure_media_type_helper(std::unique_ptr<SettingsType> settings, const std::string& smpte_standard_name);
+    ReturnStatus configure_media_type_helper(std::shared_ptr<SettingsType> settings, const std::string& smpte_standard_name);
     /**
      * @brief: Configures video types processing.
      *

@@ -230,19 +230,45 @@ bool AppIPOReceiveStream::get_sequence_number(const byte_t* header, size_t lengt
     return true;
 }
 
+namespace
+{
+/**
+ * @brief: Builds the settings of an IPO receiver node.
+ */
+IPOReceiverIONodeSettings build_settings(
+    const std::shared_ptr<const AppSettings>& app_settings,
+    uint64_t max_path_differential_us,
+    bool is_extended_sequence_number,
+    const std::vector<std::string>& devices,
+    size_t index, int cpu_core_affinity)
+{
+    IPOReceiverIONodeSettings settings;
+    settings.id = index;
+    settings.app_settings = app_settings;
+    settings.cpu_core_affinity = cpu_core_affinity;
+    settings.devices = devices;
+    settings.is_extended_sequence_number = is_extended_sequence_number;
+    settings.max_path_differential_us = max_path_differential_us;
+    return settings;
+}
+} // namespace
+
 IPOReceiverIONode::IPOReceiverIONode(
-    const AppSettings& app_settings,
+    const std::shared_ptr<const AppSettings>& app_settings,
     uint64_t max_path_differential_us,
     bool is_extended_sequence_number,
     const std::vector<std::string>& devices,
     size_t index, int cpu_core_affinity,
     IONodeMemoryUtils& memory_utils) :
-    RTPReceiverIONode(app_settings, is_extended_sequence_number, devices, index, cpu_core_affinity,memory_utils)
+    RTPReceiverIONode<IPOReceiverIONodeSettings>(
+        build_settings(app_settings, max_path_differential_us, is_extended_sequence_number,
+                       devices, index, cpu_core_affinity),
+        memory_utils)
 {
     m_stream_settings.stream_options.insert(RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET);
-    m_stream_settings.packet_payload_size = m_app_settings.packet_payload_size;
-    m_stream_settings.packet_app_header_size = m_app_settings.packet_app_header_size;
-    m_stream_settings.capacity_in_packets = m_app_settings.num_of_packets_in_chunk;
+    m_stream_settings.packet_payload_size = m_settings.app_settings->packet_payload_size;
+    m_stream_settings.packet_app_header_size = m_settings.app_settings->packet_app_header_size;
+    m_stream_settings.capacity_in_packets = m_settings.app_settings->num_of_packets_in_chunk;
     m_stream_settings.max_path_differential_us = max_path_differential_us;
     m_stream_settings.min_packets_in_chunk = 0;
     m_stream_settings.max_packets_in_chunk = DEFAULT_MAX_CHUNK_SIZE;
@@ -251,17 +277,24 @@ IPOReceiverIONode::IPOReceiverIONode(
 void IPOReceiverIONode::initialize_streams(size_t start_id, const std::vector<std::vector<ReceiveFlow>>& flows)
 {
     m_streams.reserve(flows.size());
+    m_settings.flows.clear();
+    m_settings.stream_paths.clear();
+    m_settings.stream_paths.reserve(flows.size());
     m_data_consumers.reserve(flows.size());
     for (const auto& flow_list : flows) {
         std::vector<IPOReceivePath> paths;
 
         paths.reserve(flow_list.size());
-        assert(flow_list.size() == m_devices.size());
+        assert(flow_list.size() == m_settings.devices.size());
         for (size_t i = 0; i < flow_list.size(); ++i) {
-            paths.emplace_back(m_devices[i], flow_list[i]);
+            paths.emplace_back(m_settings.devices[i], flow_list[i]);
+        }
+        m_settings.stream_paths.push_back(paths);
+        for (const auto& flow : flow_list) {
+            m_settings.flows.push_back(flow);
         }
         m_streams.emplace_back(std::make_unique<AppIPOReceiveStream>(m_stream_settings,
-            m_is_extended_sequence_number, std::move(paths)));
+            m_settings.is_extended_sequence_number, std::move(paths)));
         m_data_consumers.emplace_back(std::make_unique<NullReceiveDataConsumer>());
     }
 }
@@ -336,7 +369,7 @@ ReturnStatus IPOReceiverIONode::consume_chunk(std::unique_ptr<IReceiveDataConsum
     const ReceiveChunk& chunk, IReceiveStream& stream)
 {
     size_t consumed_packets = 0;
-    auto rc = ReceiverIONodeBase::consume_chunk(data_consumer, chunk, stream);
+    auto rc = ReceiverIONodeBase<IPOReceiverIONodeSettings>::consume_chunk(data_consumer, chunk, stream);
     if (rc != ReturnStatus::success) {
         return rc;
     }

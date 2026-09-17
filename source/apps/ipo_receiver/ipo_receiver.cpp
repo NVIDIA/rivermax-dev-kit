@@ -142,7 +142,7 @@ ReturnStatus IPOReceiverCLISettingsBuilder::add_cli_options(IPOReceiverSettings&
 }
 
 IPOReceiverApp::IPOReceiverApp(std::unique_ptr<ISettingsBuilder<IPOReceiverSettings>> settings_builder) :
-    ReceiverBaseApp(),
+    ReceiverBaseApp<IPOReceiverIONodeSettings>(),
     m_settings_builder(std::move(settings_builder))
 {
 }
@@ -169,6 +169,17 @@ ReturnStatus IPOReceiverApp::initialize_app_settings()
 void IPOReceiverApp::run_receiver_threads()
 {
     run_threads(m_receivers);
+}
+
+std::vector<IPOReceiverIONodeSettings> IPOReceiverApp::get_io_nodes_settings() const
+{
+    std::vector<IPOReceiverIONodeSettings> settings;
+
+    settings.reserve(m_receivers.size());
+    for (const auto& receiver : m_receivers) {
+        settings.push_back(receiver->get_settings());
+    }
+    return settings;
 }
 
 void IPOReceiverApp::configure_network_flows()
@@ -210,8 +221,8 @@ void IPOReceiverApp::initialize_receive_io_nodes()
         auto flows = std::vector<std::vector<ReceiveFlow>>(
             m_flows.begin() + streams_offset,
             m_flows.begin() + streams_offset + m_streams_per_thread[rx_idx]);
-        m_receivers.push_back(std::unique_ptr<ReceiverIONodeBase>(new IPOReceiverIONode(
-            *m_app_settings,
+        m_receivers.push_back(std::unique_ptr<ReceiverIONodeBase<IPOReceiverIONodeSettings>>(new IPOReceiverIONode(
+            m_app_settings,
             m_ipo_receiver_settings->max_path_differential_us,
             m_ipo_receiver_settings->is_extended_sequence_number,
             m_app_settings->local_ips,

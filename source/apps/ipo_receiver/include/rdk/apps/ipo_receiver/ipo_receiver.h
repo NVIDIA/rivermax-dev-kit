@@ -87,7 +87,7 @@ using IPOReceiverUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<IPORe
  *
  * This is an example of usage application for Rivermax Dev Kit Inline Packet Ordering RX API.
  */
-class IPOReceiverApp : public ReceiverBaseApp
+class IPOReceiverApp : public ReceiverBaseApp<IPOReceiverIONodeSettings>
 {
 private:
     /* Settings builder pointer */
@@ -108,6 +108,12 @@ public:
      */
     virtual ~IPOReceiverApp() = default;
     /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * @return: Settings of the application's I/O nodes, ordered by node id.
+     */
+    std::vector<IPOReceiverIONodeSettings> get_io_nodes_settings() const;
+    /**
      * @brief: Get IPO streams total statistics.
      *
      * This function hides the base class function and provides default template arguments.
@@ -115,7 +121,7 @@ public:
      * @return: A vector of @ref IPORXStatistics.
      */
     std::vector<IPORXStatistics> get_streams_total_statistics() const {
-        return ReceiverBaseApp::get_streams_total_statistics<IPORXStatistics, AppIPOReceiveStream>();
+        return ReceiverBaseApp<IPOReceiverIONodeSettings>::get_streams_total_statistics<IPORXStatistics, AppIPOReceiveStream>();
     }
 
 private:

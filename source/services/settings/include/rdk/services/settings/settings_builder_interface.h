@@ -144,7 +144,7 @@ public:
  *
  * // 5. Run application:
  * if (status == ReturnStatus::success) {
- *     app.run();
+ *     app.start();
  * }
  * @endcode
  *
@@ -247,7 +247,7 @@ protected:
  *
  * // 5. Run application:
  * if (status == ReturnStatus::success) {
- *     app.run();
+ *     app.start();
  * }
  *
  * // WARNING: 'settings' is now in a moved-from state and should not be used

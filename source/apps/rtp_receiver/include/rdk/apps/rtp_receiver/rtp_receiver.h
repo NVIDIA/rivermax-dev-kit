@@ -82,7 +82,7 @@ using RTPReceiverUserProvidedSettingsBuilder = UserProvidedSettingsBuilder<RTPRe
  * application supports standard RTP sequence numbers or extended sequence
  * numbers as defined in SMPTE ST 2110-20.
  */
-class RTPReceiverApp : public ReceiverBaseApp
+class RTPReceiverApp : public ReceiverBaseApp<RTPReceiverIONodeSettings>
 {
 private:
     /* Settings builder pointer */
@@ -103,6 +103,12 @@ public:
      */
     virtual ~RTPReceiverApp() = default;
     /**
+     * @brief: Returns the settings of every I/O node the application owns.
+     *
+     * @return: Settings of the application's I/O nodes, ordered by node id.
+     */
+    std::vector<RTPReceiverIONodeSettings> get_io_nodes_settings() const;
+    /**
      * @brief: Get RTP streams total statistics.
      *
      * This function hides the base class function and provides default template arguments.
@@ -110,7 +116,7 @@ public:
      * @return: A vector of @ref RXStatistics.
      */
     std::vector<RXStatistics> get_streams_total_statistics() const {
-        return ReceiverBaseApp::get_streams_total_statistics<RXStatistics, AppRTPReceiveStream>();
+        return ReceiverBaseApp<RTPReceiverIONodeSettings>::get_streams_total_statistics<RXStatistics, AppRTPReceiveStream>();
     }
 
 private:
@@ -118,6 +124,15 @@ private:
     void configure_network_flows() final;
     void initialize_receive_io_nodes() final;
     void run_receiver_threads() final;
+    /**
+     * @brief: Builds the settings of one of the application's I/O nodes.
+     *
+     * @param [in] index: Position the node will occupy.
+     * @param [in] cpu_core_affinity: CPU core the node will run on.
+     *
+     * @return: The node's settings.
+     */
+    RTPReceiverIONodeSettings build_node_settings(size_t index, int cpu_core_affinity) const;
 };
 
 } // namespace apps

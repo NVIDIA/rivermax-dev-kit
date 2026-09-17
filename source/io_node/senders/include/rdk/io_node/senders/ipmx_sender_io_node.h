@@ -28,9 +28,12 @@
 
 #include <rivermax_api.h>
 
+#include "rdk/io_node/io_node_interface.h"
+#include "rdk/io_node/io_node_settings.h"
 #include "rdk/io_node/common/rtp_video_send_stream.h"
 #include "rdk/io_node/senders/generic_sender_io_node.h"
 #include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 #include "rdk/services/media/ipmx.h"
 #include "rdk/services/utils/clock.h"
 
@@ -70,11 +73,19 @@ private:
 struct IPMXStreamSender
 {
 public:
+    /**
+     * @brief: Constructor.
+     *
+     * @param [in] sender_id: Identifier of the sender that owns the stream.
+     * @param [in] src_address: Source address of the network flow.
+     * @param [in] dst_address: Destination address of the network flow.
+     * @param [in] media_settings: Media settings.
+     */
     IPMXStreamSender(
         size_t sender_id,
         const TwoTupleFlow& src_address,
         const TwoTupleFlow& dst_address,
-        const MediaSettings& media_settings);
+        const std::shared_ptr<const MediaSettings>& media_settings);
     uint64_t calculate_send_time_ns(uint64_t earliest_start_time_ns);
     void set_initial_timestamps(uint64_t send_start_time, uint64_t report_trigger_time);
     ReturnStatus commit_sender_report();
@@ -101,13 +112,13 @@ protected:
     void prepare_compound_report_template(const TwoTupleFlow& src_address);
     size_t m_sender_id;
     size_t m_stream_number;
-    std::unique_ptr<RtpVideoSendStream> m_stream;
+    std::shared_ptr<const MediaSettings> m_media_settings;
     std::vector<uint16_t> m_mem_block_payload_sizes;
-    std::unique_ptr<MediaChunk> m_media_chunk_handler;
     std::unique_ptr<MediaStreamMemBlockset> m_mem_blockset;
+    std::unique_ptr<RtpVideoSendStream> m_stream;
+    std::unique_ptr<MediaChunk> m_media_chunk_handler;
     std::unique_ptr<TwoTupleFlow> m_report_dst_flow;
     std::shared_ptr<SharedMessageHandler> m_report_chunk_handler;
-    const MediaSettings& m_media_settings;
     uint64_t m_start_send_time_ns;
     uint64_t m_committed_reports;
     uint64_t m_finished_reports;
@@ -136,6 +147,32 @@ protected:
 };
 
 /**
+ * @brief: Settings of an IPMX sender I/O node.
+ */
+struct IPMXSenderIONodeSettings : IONodeSettings
+{
+    /* Application settings the node was built from. */
+    std::shared_ptr<const AppSettings> app_settings;
+    /* Media settings of the stream the node sends. */
+    std::shared_ptr<const MediaSettings> media_settings;
+    /* Source address every stream of the node sends from. */
+    TwoTupleFlow src_address{0, std::string(), 0};
+    /* Destination address of each stream the node owns, one entry per stream. */
+    std::vector<TwoTupleFlow> dst_addresses;
+    /* CPU core the node runs on, or @ref NO_CPU_AFFINITY. */
+    int cpu_core_affinity = NO_CPU_AFFINITY;
+
+    ReturnStatus validate() const override
+    {
+        if (IONodeSettings::validate() != ReturnStatus::success || !app_settings ||
+            !media_settings) {
+            return ReturnStatus::failure;
+        }
+        return ReturnStatus::success;
+    }
+};
+
+/**
  * @brief: IO-node for IPMX senders.
  *
  * Executive container of the IPMX sender that serves as a thread routine
@@ -143,9 +180,11 @@ protected:
  *
  * @note Each sender can run several streams.
  */
-class IPMXSenderIONode
+class IPMXSenderIONode : public IIONode<IPMXSenderIONodeSettings>
 {
 private:
+    /* Each stream sender takes its own shared pointer to the media settings these hold, so the
+     * settings outlive the senders whatever the member order. */
     /**
     * @brief: Application media send stream rerources
     */
@@ -153,12 +192,9 @@ private:
     std::shared_ptr<GenericSendStream> m_rtcp_stream;
     std::shared_ptr<SharedMessageHandler> m_report_handler;
     std::shared_ptr<GenericChunk> m_rtcp_chunk_handle;
-    const MediaSettings& m_media_settings;
-    size_t m_index;
     int m_sleep_between_operations;
     bool m_print_parameters;
     uint32_t m_stats_report_interval_ms;
-    int m_cpu_core_affinity;
     size_t m_sender_report_buffer_size;
     rmx_mem_region m_report_mem_region;
     uint64_t m_start_send_time_ns;
@@ -176,8 +212,8 @@ public:
     IPMXSenderIONode(
         const TwoTupleFlow& src_address,
         const std::vector<TwoTupleFlow>& dst_addresses,
-        std::shared_ptr<AppSettings>& app_settings,
-        const MediaSettings& media_settings,
+        const std::shared_ptr<const AppSettings>& app_settings,
+        const std::shared_ptr<const MediaSettings>& media_settings,
         size_t index, int cpu_core_affinity);
     virtual ~IPMXSenderIONode() = default;
     /**
@@ -243,15 +279,11 @@ public:
      * @ref app_settings->print_parameters parameter of set to true.
      */
     void print_parameters();
-    /**
-     * @brief: Sender's worker.
-     *
-     * This method is the worker method of the std::thread will run with this object as it's context.
-     * The user of @ref IPMXSenderIONode class can
-     * initialize the object in advance and run std::thread when needed.
-     */
-    void operator()();
 private:
+    /**
+     * @brief: Sender's worker: setup, send loop, teardown.
+     */
+    ReturnStatus do_work() override;
     /**
      * @brief: Prepares stream senders to start sending data, creates underlying Rivermax objects.
      *

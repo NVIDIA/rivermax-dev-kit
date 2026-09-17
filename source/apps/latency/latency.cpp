@@ -246,7 +246,47 @@ LatencyMode LatencyApp::get_latency_mode()
     return m_latency_settings->latency_mode;
 }
 
-ReturnStatus LatencyApp::run()
+/* The only node id this single-node app accepts. */
+static constexpr size_t LATENCY_IO_NODE_ID = 0;
+
+std::vector<LatencyIONodeSettings> LatencyApp::get_io_nodes_settings() const
+{
+    if (!m_io_node) {
+        return {};
+    }
+    return { m_io_node->get_settings() };
+}
+
+void LatencyApp::stop_io_nodes() noexcept
+{
+    if (m_io_node) {
+        m_io_node->stop();
+    }
+}
+
+size_t LatencyApp::num_io_nodes() const
+{
+    return m_io_node ? 1 : 0;
+}
+
+ReturnStatus LatencyApp::stop_io_node(size_t id)
+{
+    if (!m_io_node || id != LATENCY_IO_NODE_ID) {
+        return ReturnStatus::failure;
+    }
+    m_io_node->stop();
+    return ReturnStatus::success;
+}
+
+ReturnStatus LatencyApp::await_io_node(size_t id, std::chrono::nanoseconds timeout) const
+{
+    if (!m_io_node || id != LATENCY_IO_NODE_ID) {
+        return ReturnStatus::failure;
+    }
+    return m_io_node->await(timeout);
+}
+
+ReturnStatus LatencyApp::do_work()
 {
     if (m_obj_init_status != ReturnStatus::obj_init_success) {
         return m_obj_init_status;
@@ -278,8 +318,9 @@ ReturnStatus LatencyApp::set_rivermax_clock()
 ReturnStatus LatencyApp::initialize_threads()
 {
     ReturnStatus rc = ReturnStatus::success;
-    LatencyNodeSettings node_settings;
-    node_settings.app = m_app_settings;
+    LatencyIONodeSettings node_settings;
+    node_settings.id = LATENCY_IO_NODE_ID;
+    node_settings.app_settings = m_app_settings;
     node_settings.receive_ip = m_latency_settings->receive_ip;
     node_settings.receive_port = m_latency_settings->receive_port;
     node_settings.client_mode = m_latency_settings->client;
@@ -322,7 +363,7 @@ ReturnStatus LatencyApp::initialize_threads()
             break;
         case LatencyMode::Media:
             m_app_settings->ref_clk_is_ptp = true;
-            m_media_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(*m_app_settings);
+            m_media_settings = std::make_shared<SMPTE_2110_20_MediaSettings>(*m_app_settings);
             m_media_settings->media_units_in_mem_block =
                 MediaSettings::MIN_MEDIA_UNITS_FOR_SIMULTANEOUS_TX_AND_FILLUP;
 
@@ -332,20 +373,19 @@ ReturnStatus LatencyApp::initialize_threads()
                           << std::endl;
                 return rc;
             }
+            node_settings.media_settings = m_media_settings;
             if (m_latency_settings->client) {
                 if (m_app_settings->num_of_packets_in_chunk != LatencySettings::DEFAULT_NUM_OF_PACKETS_IN_CHUNK) {
                     m_app_settings->num_of_packets_in_chunk_specified = true;
                 }
                 m_io_node = std::unique_ptr<LatencyIONode>(
                         new MediaTxIONode(node_settings,
-                                          *m_media_settings,
                                           m_header_allocator->get_memory_utils(),
                                           m_payload_allocator->get_memory_utils(),
                                           LatencyApp::get_time_ns));
             } else {
                 m_io_node = std::unique_ptr<LatencyIONode>(
                         new MediaRxIONode(node_settings,
-                                          *m_media_settings,
                                           m_header_allocator->get_memory_utils(),
                                           m_payload_allocator->get_memory_utils(),
                                           LatencyApp::get_time_ns));

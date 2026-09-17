@@ -22,10 +22,13 @@
 #include <cstddef>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <rivermax_api.h>
 #include <vector>
 
+#include "rdk/io_node/io_node_interface.h"
+#include "rdk/io_node/io_node_settings.h"
 #include "rdk/core/memory_layout/stream_memory_layout.h"
 #include "rdk/io_node/common/chunk_buffer_writer_interface.h"
 #include "rdk/io_node/common/io_node_memory_utils.h"
@@ -33,6 +36,7 @@
 #include "rdk/services/media/media_essence_source.h"
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/ulp_packet_buffer/ulp_packet_buffer.h"
+#include "rdk/services/cpu/affinity/rivermax_affinity.h"
 #include "rdk/services/utils/synchronizer.h"
 
 using namespace rdk::services;
@@ -50,14 +54,42 @@ namespace io_node
  */
 constexpr uint64_t SEND_IMMEDIATELY_AFTER_PENDING_CHUNKS_TIMESTAMP = 0;
 /**
+ * @brief: Settings of a media sender I/O node.
+ */
+struct MediaSenderIONodeSettings : IONodeSettings
+{
+    /* Application settings the node was built from. */
+    std::shared_ptr<const AppSettings> app_settings;
+    /* Media settings of the SMPTE standard the node sends. */
+    std::shared_ptr<const MediaSettings> media_settings;
+    /* Number of media streams the node owns. */
+    size_t num_of_streams = 0;
+    /* Number of redundant paths each stream sends on, for 2022-7 duplication. */
+    size_t num_paths_per_stream = 0;
+    /* CPU core the node runs on, or @ref NO_CPU_AFFINITY. */
+    int cpu_core_affinity = NO_CPU_AFFINITY;
+    /* Send flows of each stream the node owns: one inner vector per stream, one entry in it per
+     * redundant path. Filled by @ref MediaSenderIONode::initialize_send_flows, so it is empty
+     * before the app calls it. */
+    std::vector<std::vector<FourTupleFlow>> flows_in_stream;
+
+    ReturnStatus validate() const override
+    {
+        if (IONodeSettings::validate() != ReturnStatus::success || !app_settings ||
+            !media_settings) {
+            return ReturnStatus::failure;
+        }
+        return ReturnStatus::success;
+    }
+};
+
+/**
  * @brief: MediaSenderIONode class.
  *
- * This class implements the required operations in order
- * to be a sender. The sender class will be the context
- * that will be run under a std::thread by overriding the operator ().
- * Each sender will be able to run multiple streams.
+ * Implements the required operations to be a sender. Each sender can run multiple
+ * streams.
  */
-class MediaSenderIONode : public IStreamMemoryLayoutComponent
+class MediaSenderIONode : public IStreamMemoryLayoutComponent, public IIONode<MediaSenderIONodeSettings>
 {
 private:
     /**
@@ -65,9 +97,12 @@ private:
     */
     struct MediaStreamPack
     {
+        /* Declared before stream: Rivermax stores the memory-block array by pointer rather than
+         * by value - see rmx_output_media_assign_mem_blocks - and members are destroyed in
+         * reverse declaration order. */
+        std::unique_ptr<MediaStreamMemBlockset> mem_blockset;
         std::unique_ptr<MediaSendStream> stream;
         std::unique_ptr<MediaChunk> chunk_handler;
-        std::unique_ptr<MediaStreamMemBlockset> mem_blockset;
         std::vector<FourTupleFlow> flows;
         std::unique_ptr<IULPPacketBufferWriter> runtime_packet_buffer_writer;
         std::shared_ptr<IMediaEssenceSource> runtime_essence_source;
@@ -80,23 +115,20 @@ private:
         uint8_t* payload_memory_ptr = nullptr;
     };
     static constexpr size_t DEFAULT_PRINT_TIME_INTERVAL_MS = 1000;
+    std::vector<uint16_t> m_mem_block_header_sizes;
+    std::vector<uint16_t> m_mem_block_payload_sizes;
     std::vector<MediaStreamPack> m_stream_packs;
-    const MediaSettings& m_media_settings;
-    size_t m_index;
-    size_t m_num_paths_per_stream;
+    mutable std::mutex m_essence_sources_mutex;
     int m_sleep_between_operations;
     bool m_print_parameters;
     uint32_t m_stats_report_interval_ms;
     uint64_t m_stats_sent_media_unit_chunk_counter;
-    int m_cpu_core_affinity;
     uint32_t m_hw_queue_full_sleep_us;
     IONodeMemoryUtils& m_memory_utils;
     size_t m_block_header_memory_size;
     size_t m_block_payload_memory_size;
     size_t m_header_total_memory_size;
     size_t m_payload_total_memory_size;
-    std::vector<uint16_t> m_mem_block_header_sizes;
-    std::vector<uint16_t> m_mem_block_payload_sizes;
     uint8_t m_dscp, m_pcp, m_ecn;
     time_handler_ns_cb_t m_get_time_ns_cb;
     bool m_gpu_enabled;
@@ -117,8 +149,8 @@ public:
      */
     MediaSenderIONode(
         size_t num_paths_per_stream,
-        const AppSettings& app_settings,
-        const MediaSettings& media_settings,
+        const std::shared_ptr<const AppSettings>& app_settings,
+        const std::shared_ptr<const MediaSettings>& media_settings,
         size_t index, size_t num_of_streams, int cpu_core_affinity,
         IONodeMemoryUtils& memory_utils,
         time_handler_ns_cb_t time_hanlder_cb);
@@ -182,15 +214,7 @@ public:
      *
      * @return: Sender index.
      */
-    virtual size_t get_index() const { return m_index; }
-    /**
-     * @brief: Sender's worker.
-     *
-     * This method is the worker method of the std::thread will run with this object as it's context.
-     * The user of @ref MediaSenderIONode class can
-     * initialize the object in advance and run std::thread when needed.
-     */
-    void operator()();
+    virtual size_t get_index() const { return m_settings.id; }
     /**
      * @brief: Sets media essence sources for a specific stream.
      *
@@ -246,6 +270,10 @@ public:
         std::shared_ptr<IMediaEssenceSource> preload_essence_source = nullptr,
         std::shared_ptr<IMediaEssenceSource> runtime_essence_source = nullptr,
         bool runtime_contains_payload = true);
+    /**
+     * @brief: Requests the sender to stop, releasing the essence sources it holds.
+     */
+    void stop() noexcept override;
     /**
      * @brief: Sets the synchronizer for the sender.
      *
@@ -319,7 +347,7 @@ private:
      *
      * @return: true if Header-Data-Split mode is enabled.
      */
-    bool is_hds_on() const { return m_media_settings.packet_app_header_size != 0; }
+    bool is_hds_on() const { return m_settings.media_settings->packet_app_header_size != 0; }
     /**
      * @brief: Applies memory layout to subcomponents (streams) for Rivermax internal allocation.
      *
@@ -412,6 +440,14 @@ private:
      */
     ReturnStatus coordinate_start_time(uint64_t& send_time_ns);
     /**
+     * @brief: Sender's worker: setup, send loop, teardown.
+     */
+    ReturnStatus do_work() override;
+    /**
+     * @brief: Leaves the start-time barrier without making a request.
+     */
+    void withdraw_from_synchronizer();
+    /**
      * @brief: Calculates the required number of memory blocks based on the essence size.
      *
      * @param [in] essence_size: Total size in bytes of the media essence.
@@ -434,7 +470,7 @@ inline uint64_t MediaSenderIONode::get_commit_timestamp_ns(
         if (time_elapsed >= m_print_interval_ms) {
             start_time = time_now;
             int timeout_ns = current_time_ns - send_time_ns;
-            std::cout << "Sender " << m_index << ", Stream " << stream_id
+            std::cout << "Sender " << m_settings.id << ", Stream " << stream_id
                       << ": Timeout occurred. Send time exceeded by " << timeout_ns << " [ns]." << std::endl;
         }
     }

@@ -119,8 +119,8 @@ ReturnStatus ReceiverSenderExample::operator()()
     RETURN_FAILURE_ON_ERROR(status, "Failed to initialize Media Sender application");
 
     /** 5. Start receiving RTP chunks and sending video frames in separate threads */
-    std::thread receiver_thread(&RTPReceiverApp::run, &rtp_receiver_app);
-    std::thread sender_thread(&MediaSenderApp::run, &media_sender_app);
+    std::thread receiver_thread(&RTPReceiverApp::start, &rtp_receiver_app);
+    std::thread sender_thread(&MediaSenderApp::start, &media_sender_app);
 
     receiver_thread.join();
     sender_thread.join();

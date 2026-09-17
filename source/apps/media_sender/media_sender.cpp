@@ -324,7 +324,41 @@ ReturnStatus MediaSenderApp::initialize_memory_strategy()
     return ReturnStatus::success;
 }
 
-ReturnStatus MediaSenderApp::run()
+std::vector<MediaSenderIONodeSettings> MediaSenderApp::get_io_nodes_settings() const
+{
+    std::vector<MediaSenderIONodeSettings> settings;
+
+    settings.reserve(m_senders.size());
+    for (const auto& sender : m_senders) {
+        settings.push_back(sender->get_settings());
+    }
+    return settings;
+}
+
+void MediaSenderApp::stop_io_nodes() noexcept
+{
+    BaseApp::stop_io_nodes(m_senders);
+    if (m_synchronizer) {
+        m_synchronizer->stop();
+    }
+}
+
+size_t MediaSenderApp::num_io_nodes() const
+{
+    return m_senders.size();
+}
+
+ReturnStatus MediaSenderApp::stop_io_node(size_t id)
+{
+    return BaseApp::stop_io_node(m_senders, id);
+}
+
+ReturnStatus MediaSenderApp::await_io_node(size_t id, std::chrono::nanoseconds timeout) const
+{
+    return BaseApp::await_io_node(m_senders, id, timeout);
+}
+
+ReturnStatus MediaSenderApp::do_work()
 {
     if (m_obj_init_status != ReturnStatus::obj_init_success) {
         return m_obj_init_status;
@@ -395,7 +429,7 @@ void MediaSenderApp::configure_network_flows()
 
 template<typename SettingsType>
 ReturnStatus MediaSenderApp::configure_media_type_helper(
-    std::unique_ptr<SettingsType> settings,
+    std::shared_ptr<SettingsType> settings,
     const std::string& smpte_standard_name)
 {
     size_t min_number_streams_per_thread =
@@ -417,9 +451,8 @@ ReturnStatus MediaSenderApp::configure_media_type_helper(
             num_of_streams_in_cur_thread = min_number_streams_per_thread;
         }
         m_media_sender_settings->smpte_standard_to_nodes.emplace_back(
-            *settings, num_of_streams_in_cur_thread);
+            settings, num_of_streams_in_cur_thread);
     }
-    m_media_sender_settings->smpte_standard_configs.push_back(std::move(settings));
 
     return ReturnStatus::success;
 }
@@ -430,7 +463,7 @@ ReturnStatus MediaSenderApp::configure_video_types()
         return ReturnStatus::failure;
     }
 
-    auto video_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(*m_app_settings);
+    auto video_settings = std::make_shared<SMPTE_2110_20_MediaSettings>(*m_app_settings);
     ReturnStatus rc = configure_media_type_helper(
         std::move(video_settings), "2110-20");
     if (rc != ReturnStatus::success) {
@@ -438,7 +471,7 @@ ReturnStatus MediaSenderApp::configure_video_types()
     }
 
     if (m_app_settings->media.alpha_bit_depth != VideoBitDepth::Unknown) {
-        auto alpha_settings = std::make_unique<SMPTE_2110_20_MediaSettings>(
+        auto alpha_settings = std::make_shared<SMPTE_2110_20_MediaSettings>(
             *m_app_settings, true);
         rc = configure_media_type_helper(
             std::move(alpha_settings), "2110-20 alpha/key");
@@ -453,7 +486,7 @@ ReturnStatus MediaSenderApp::configure_audio_types()
         return ReturnStatus::failure;
     }
 
-    auto audio_settings = std::make_unique<SMPTE_2110_30_MediaSettings>(*m_app_settings);
+    auto audio_settings = std::make_shared<SMPTE_2110_30_MediaSettings>(*m_app_settings);
     return configure_media_type_helper(
         std::move(audio_settings), "2110-30 audio");
 }
@@ -464,7 +497,7 @@ ReturnStatus MediaSenderApp::configure_ancillary_types()
         return ReturnStatus::failure;
     }
 
-    auto ancillary_settings = std::make_unique<SMPTE_2110_40_MediaSettings>(*m_app_settings);
+    auto ancillary_settings = std::make_shared<SMPTE_2110_40_MediaSettings>(*m_app_settings);
     return configure_media_type_helper(
         std::move(ancillary_settings), "2110-40 ancillary");
 }
@@ -483,7 +516,6 @@ ReturnStatus MediaSenderApp::configure_smpte_standards_processing()
     }
 
     m_media_sender_settings->smpte_standard_to_nodes.clear();
-    m_media_sender_settings->smpte_standard_configs.clear();
     ReturnStatus rc = ReturnStatus::success;
     for (const auto& smpte_standard : m_media_sender_settings->enabled_smpte_standards) {
         auto it = s_smpte_standard_config_map.find(smpte_standard);
@@ -521,7 +553,7 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
 {
     size_t streams_offset = 0;
     size_t sender_idx = 0;
-    auto synchronizer = std::make_shared<LinearSynchronizer>(m_media_sender_settings->smpte_standard_to_nodes.size());
+    m_synchronizer = std::make_shared<LinearSynchronizer>(m_media_sender_settings->smpte_standard_to_nodes.size());
     for (const auto& node : m_media_sender_settings->smpte_standard_to_nodes) {
         auto& smpte_standard_config = node.first;
         auto num_of_streams = node.second;
@@ -538,7 +570,7 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
             m_flows.begin() + streams_offset + num_of_streams * m_num_paths_per_stream);
         m_senders.push_back(std::make_unique<MediaSenderIONode>(
             m_num_paths_per_stream,
-            *m_app_settings,
+            m_app_settings,
             smpte_standard_config,
             sender_idx,
             num_of_streams,
@@ -551,7 +583,7 @@ ReturnStatus MediaSenderApp::initialize_sender_threads()
             std::cerr << "Failed to initialize streams for sender " << sender_idx << std::endl;
             return rc;
         }
-        m_senders[sender_idx]->set_synchronizer(synchronizer);
+        m_senders[sender_idx]->set_synchronizer(m_synchronizer);
         streams_offset += num_of_streams * m_num_paths_per_stream;
         sender_idx++;
     }
@@ -594,7 +626,7 @@ ReturnStatus MediaSenderApp::set_internal_media_essence_sources()
     bool contains_payload = true;
     size_t sender_index = 0;
     for (const auto& node : m_media_sender_settings->smpte_standard_to_nodes) {
-        auto& smpte_standard_config = node.first;
+        const auto& smpte_standard_config = *node.first;
         auto num_of_streams = node.second;
         for(size_t stream_index = 0; stream_index < num_of_streams; stream_index++) {
             if (smpte_standard_config.get_smpte_standard() == SMPTEStandard::ST_2110_40) {

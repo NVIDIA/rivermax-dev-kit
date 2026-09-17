@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-#include <cassert>
 #include <cstddef>
 #include <cstring>
 #include <iostream>
@@ -29,6 +28,7 @@
 #include "rt_threads.h"
 
 #include "rdk/io_node/receivers/rtp_receiver_io_node.h"
+#include "rdk/io_node/receivers/ipo_receiver_io_node.h"
 #include "rdk/services/protocol/media_packet_parser.h"
 #include "rdk/services/error_handling/error_handling.h"
 #include "rdk/services/cpu/affinity/affinity.h"
@@ -196,78 +196,83 @@ bool AppRTPReceiveStream::get_sequence_number(const byte_t* header, size_t lengt
     return m_packet_parser->get_sequence_number(header, length, m_is_extended_sequence_number, sequence_number);
 }
 
-RTPReceiverIONode::RTPReceiverIONode(
-    const AppSettings& app_settings,
-    bool is_extended_sequence_number,
-    const std::vector<std::string>& devices,
-    size_t index, int cpu_core_affinity,
-    IONodeMemoryUtils& memory_utils,
-    bool process_headers) :
-    ReceiverIONodeBase(app_settings, index, cpu_core_affinity, memory_utils),
-    m_devices(devices),
-    m_is_extended_sequence_number(is_extended_sequence_number),
-    m_process_headers(process_headers)
+template<typename SettingsType>
+RTPReceiverIONode<SettingsType>::RTPReceiverIONode(
+    const SettingsType& settings,
+    IONodeMemoryUtils& memory_utils) :
+    ReceiverIONodeBase<SettingsType>(settings, memory_utils)
 {
 }
 
-void RTPReceiverIONode::initialize_streams(size_t start_id, const std::vector<ReceiveFlow>& flows)
+template<typename SettingsType>
+RTPReceiverIONode<SettingsType>::RTPReceiverIONode(
+    SettingsType&& settings,
+    IONodeMemoryUtils& memory_utils) :
+    ReceiverIONodeBase<SettingsType>(std::move(settings), memory_utils)
 {
-    m_flows = flows;
-    m_data_consumers.reserve(flows.size());
-    for (size_t id = start_id; id < start_id + m_flows.size(); ++id) {
-        ReceiveStreamSettings stream_settings(TwoTupleFlow(id, m_devices[0], 0),  // Currently supporting receiving on one device.
-            m_app_settings.rx_stream_type,
+}
+
+template<typename SettingsType>
+void RTPReceiverIONode<SettingsType>::initialize_streams(size_t start_id, const std::vector<ReceiveFlow>& flows)
+{
+    this->m_settings.flows = flows;
+    this->m_data_consumers.reserve(flows.size());
+    for (size_t id = start_id; id < start_id + this->m_settings.flows.size(); ++id) {
+        ReceiveStreamSettings stream_settings(TwoTupleFlow(id, this->m_settings.devices[0], 0),  // Currently supporting receiving on one device.
+            this->m_settings.app_settings->rx_stream_type,
             RMX_INPUT_TIMESTAMP_RAW_NANO,
             {RMX_INPUT_STREAM_CREATE_INFO_PER_PACKET},
-            m_app_settings.num_of_packets_in_chunk,
-            m_app_settings.packet_payload_size,
-            m_app_settings.packet_app_header_size,
-            0, m_app_settings.num_of_packets_in_chunk);
-        m_streams.emplace_back(new AppRTPReceiveStream(stream_settings,
-            m_is_extended_sequence_number,
-            m_app_settings.packet_app_header_size != 0,
-            m_process_headers));
-        m_data_consumers.emplace_back(new NullReceiveDataConsumer());
+            this->m_settings.app_settings->num_of_packets_in_chunk,
+            this->m_settings.app_settings->packet_payload_size,
+            this->m_settings.app_settings->packet_app_header_size,
+            0, this->m_settings.app_settings->num_of_packets_in_chunk);
+        this->m_streams.emplace_back(new AppRTPReceiveStream(stream_settings,
+            this->m_settings.is_extended_sequence_number,
+            this->m_settings.app_settings->packet_app_header_size != 0,
+            this->m_settings.process_headers));
+        this->m_data_consumers.emplace_back(new NullReceiveDataConsumer());
     }
 }
 
-void RTPReceiverIONode::assign_streams(size_t start_id, const std::vector<ReceiveFlow>& flows,
+template<typename SettingsType>
+void RTPReceiverIONode<SettingsType>::assign_streams(size_t start_id, const std::vector<ReceiveFlow>& flows,
     std::vector<std::unique_ptr<IReceiveStream>>& streams)
 {
-    m_flows = flows;
-    m_streams = std::move(streams);
-    m_data_consumers.reserve(m_streams.size());
-    for (auto& s : m_streams) {
-        m_data_consumers.emplace_back(new NullReceiveDataConsumer());
+    this->m_settings.flows = flows;
+    this->m_streams = std::move(streams);
+    this->m_data_consumers.reserve(this->m_streams.size());
+    for (auto& s : this->m_streams) {
+        this->m_data_consumers.emplace_back(new NullReceiveDataConsumer());
     }
 }
 
-ReturnStatus RTPReceiverIONode::process_flows(bool is_attach)
+template<typename SettingsType>
+ReturnStatus RTPReceiverIONode<SettingsType>::process_flows(bool is_attach)
 {
     const char* operation_name = is_attach ? "attach" : "detach";
     const char* preposition = is_attach ? "to" : "from";
 
-    if (m_flows.empty() || m_streams.empty()) {
+    if (this->m_settings.flows.empty() || this->m_streams.empty()) {
         std::cerr << "No flows or streams to " << operation_name << std::endl;
         return ReturnStatus::failure;
     }
 
-    if (m_flows.size() < m_streams.size()) {
+    if (this->m_settings.flows.size() < this->m_streams.size()) {
         std::cerr << "Number of flows is less than number of streams" << std::endl;
         return ReturnStatus::failure;
     }
 
-    size_t flows_per_stream = m_flows.size() / m_streams.size();
-    size_t remainder_flows = m_flows.size() % m_streams.size();
+    size_t flows_per_stream = this->m_settings.flows.size() / this->m_streams.size();
+    size_t remainder_flows = this->m_settings.flows.size() % this->m_streams.size();
     size_t flow_idx = 0;
 
-    for (size_t stream_idx = 0; stream_idx < m_streams.size(); ++stream_idx) {
-        auto stream = to_derived_stream(m_streams[stream_idx]);
+    for (size_t stream_idx = 0; stream_idx < this->m_streams.size(); ++stream_idx) {
+        auto stream = to_derived_stream(this->m_streams[stream_idx]);
         size_t stream_flow_count = flows_per_stream + (stream_idx < remainder_flows ? 1 : 0);
 
-        for (size_t stream_flow_idx = 0; stream_flow_idx < stream_flow_count && flow_idx < m_flows.size();
+        for (size_t stream_flow_idx = 0; stream_flow_idx < stream_flow_count && flow_idx < this->m_settings.flows.size();
              ++stream_flow_idx, ++flow_idx) {
-            auto rc = is_attach ? stream->attach_flow(m_flows[flow_idx]) : stream->detach_flow(m_flows[flow_idx]);
+            auto rc = is_attach ? stream->attach_flow(this->m_settings.flows[flow_idx]) : stream->detach_flow(this->m_settings.flows[flow_idx]);
             if (rc != ReturnStatus::success) {
                 std::cerr << "Failed to " << operation_name << " flow " << flow_idx << " " << preposition
                     << " stream (" << stream->get_id() << ")" << std::endl;
@@ -279,11 +284,12 @@ ReturnStatus RTPReceiverIONode::process_flows(bool is_attach)
     return ReturnStatus::success;
 }
 
-ReturnStatus RTPReceiverIONode::consume_chunk(std::unique_ptr<IReceiveDataConsumer>& data_consumer,
+template<typename SettingsType>
+ReturnStatus RTPReceiverIONode<SettingsType>::consume_chunk(std::unique_ptr<IReceiveDataConsumer>& data_consumer,
     const ReceiveChunk& chunk, IReceiveStream& stream)
 {
     size_t consumed_packets = 0;
-    auto rc = ReceiverIONodeBase::consume_chunk(data_consumer, chunk, stream);
+    auto rc = ReceiverIONodeBase<SettingsType>::consume_chunk(data_consumer, chunk, stream);
     if (rc != ReturnStatus::success) {
         return rc;
     }
@@ -292,3 +298,6 @@ ReturnStatus RTPReceiverIONode::consume_chunk(std::unique_ptr<IReceiveDataConsum
         consumed_packets, chunk.get_length() - consumed_packets);
     return ReturnStatus::success;
 }
+
+template class RTPReceiverIONode<RTPReceiverIONodeSettings>;
+template class RTPReceiverIONode<IPOReceiverIONodeSettings>;

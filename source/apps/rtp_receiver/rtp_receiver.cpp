@@ -115,7 +115,7 @@ ReturnStatus RTPReceiverCLISettingsBuilder::add_cli_options(RTPReceiverSettings&
 }
 
 RTPReceiverApp::RTPReceiverApp(std::unique_ptr<ISettingsBuilder<RTPReceiverSettings>> settings_builder) :
-    ReceiverBaseApp(),
+    ReceiverBaseApp<RTPReceiverIONodeSettings>(),
     m_settings_builder(std::move(settings_builder))
 {
     m_num_paths_per_stream = 1;
@@ -143,6 +143,17 @@ ReturnStatus RTPReceiverApp::initialize_app_settings()
 void RTPReceiverApp::run_receiver_threads()
 {
     run_threads(m_receivers);
+}
+
+std::vector<RTPReceiverIONodeSettings> RTPReceiverApp::get_io_nodes_settings() const
+{
+    std::vector<RTPReceiverIONodeSettings> settings;
+
+    settings.reserve(m_receivers.size());
+    for (const auto& receiver : m_receivers) {
+        settings.push_back(receiver->get_settings());
+    }
+    return settings;
 }
 
 void RTPReceiverApp::configure_network_flows()
@@ -174,15 +185,23 @@ void RTPReceiverApp::initialize_receive_io_nodes()
         auto flows = std::vector<ReceiveFlow>(
             m_flows.begin() + streams_offset,
             m_flows.begin() + streams_offset + m_streams_per_thread[rx_idx]);
-        m_receivers.push_back(std::unique_ptr<ReceiverIONodeBase>(new RTPReceiverIONode(
-            *m_app_settings,
-            m_rtp_receiver_settings->is_extended_sequence_number,
-            { m_app_settings->local_ip },
-            rx_idx,
-            recv_cpu_core,
-            *m_memory_utils)));
-        static_cast<RTPReceiverIONode*>(m_receivers[rx_idx].get())->initialize_streams(streams_offset, flows);
-        m_receivers[rx_idx]->set_statistics_report_interval(m_app_settings->stats_report_interval_ms);
+        auto receiver = std::make_unique<RTPReceiverIONode<RTPReceiverIONodeSettings>>(
+            build_node_settings(rx_idx, recv_cpu_core), *m_memory_utils);
+        receiver->initialize_streams(streams_offset, flows);
+        receiver->set_statistics_report_interval(m_app_settings->stats_report_interval_ms);
+        m_receivers.push_back(std::move(receiver));
         streams_offset += m_streams_per_thread[rx_idx];
     }
+}
+
+RTPReceiverIONodeSettings RTPReceiverApp::build_node_settings(size_t index, int cpu_core_affinity) const
+{
+    RTPReceiverIONodeSettings settings;
+
+    settings.id = index;
+    settings.app_settings = m_app_settings;
+    settings.cpu_core_affinity = cpu_core_affinity;
+    settings.devices = { m_app_settings->local_ip };
+    settings.is_extended_sequence_number = m_rtp_receiver_settings->is_extended_sequence_number;
+    return settings;
 }
