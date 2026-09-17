@@ -23,9 +23,12 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <thread>
+#include <unordered_set>
 #include <vector>
 
 #include "rdk/services/error_handling/return_status.h"
+#include "rdk/services/utils/lifecycle.h"
 
 namespace rdk
 {
@@ -39,7 +42,7 @@ namespace services
  * must implement. It provides a method for requesting synchronization between
  * multiple threads with a consensus time mechanism.
  */
-class ISynchronizer
+class ISynchronizer : public ILifecycle
 {
 public:
     /**
@@ -67,6 +70,16 @@ public:
      * to be reused for another round of synchronization.
      */
     virtual void reset() = 0;
+    /**
+     * @brief: Removes the calling thread from the set of participants.
+     */
+    virtual void withdraw() = 0;
+    /**
+     * @brief: Releases every waiting thread with @ref ReturnStatus::failure.
+     *
+     * Non-blocking, idempotent, safe to call from any thread.
+     */
+    void stop() noexcept override = 0;
 };
 
 /**
@@ -91,9 +104,9 @@ public:
      */
     LinearSynchronizer(size_t num_threads) :
         m_num_of_threads(num_threads),
-        m_request_count(0),
         m_new_candidate_time(0),
-        m_sync_status(ReturnStatus::success) {}
+        m_sync_status(ReturnStatus::success),
+        m_completed(false) {}
     /**
      * @brief: Virtual destructor.
      */
@@ -108,9 +121,12 @@ public:
      *
      * The synchronization process:
      * 1. Each thread calls this method with their requested time
-     * 2. The method waits until all threads have made their requests
+     * 2. The method waits until all threads that have not withdrawn have made their requests
      * 3. The checker function is called for each thread to validate/adjust the time
      * 4. A consensus time is reached when all threads agree
+     *
+     * Each thread contributes once: a thread that already requested or withdrew gets
+     * @ref ReturnStatus::failure and leaves the party as it was.
      *
      * @param [in] requested_time: The time requested by the calling thread.
      * @param [in] checker: Function that validates the proposed time and returns adjustment values.
@@ -123,12 +139,25 @@ public:
     ReturnStatus request(uint64_t requested_time,
                         std::function<int(uint64_t)> checker,
                         uint64_t &consensus_time) override;
+    /**
+     * @brief: Withdraws the calling thread from the synchronization.
+     *
+     * A no-op for a thread that already requested or withdrew. If the withdrawal completes
+     * the party, computes the consensus time and releases the remaining threads.
+     */
+    void withdraw() override;
+    void stop() noexcept override;
 
 private:
+    /**
+     * @brief: Computes the consensus time and releases the waiting threads.
+     *
+     * @note: The caller must hold @ref LinearSynchronizer::m_mutex.
+     */
+    void complete_consensus();
+
     /* Number of threads participating in synchronization */
     size_t m_num_of_threads;
-    /* Current count of threads that have made synchronization requests */
-    size_t m_request_count;
     /* The current candidate time for consensus */
     uint64_t m_new_candidate_time;
     /* Mutex for protecting shared state */
@@ -137,6 +166,10 @@ private:
     std::condition_variable m_cv;
     /* Status of the synchronization operation */
     ReturnStatus m_sync_status;
+    /* Threads that already requested or withdrew */
+    std::unordered_set<std::thread::id> m_participants;
+    /* Set once the barrier is over, by consensus or by @ref stop */
+    bool m_completed;
     /* Vector to store each thread's checker function */
     std::vector<std::function<int(uint64_t)>> m_checkers;
 };
