@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,8 @@
 #ifndef RDK_IO_NODE_IO_NODE_H_
 #define RDK_IO_NODE_IO_NODE_H_
 
+#include "rdk/io_node/io_node_interface.h"
+#include "rdk/io_node/io_node_settings.h"
 #include "rdk/io_node/common/common.h"
 #include "rdk/io_node/misc/misc.h"
 #include "rdk/io_node/senders/senders.h"
