@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 #ifndef RDK_IO_NODE_MISC_MISC_H_
 #define RDK_IO_NODE_MISC_MISC_H_
 
+#include "rdk/io_node/misc/stream_dimensions.h"
 #include "rdk/io_node/misc/generic_latency_io_node.h"
 #include "rdk/io_node/misc/media_latency_io_node.h"
 #include "rdk/io_node/misc/latency_io_node.h"

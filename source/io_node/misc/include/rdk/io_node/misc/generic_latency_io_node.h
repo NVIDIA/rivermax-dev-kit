@@ -29,6 +29,7 @@
 #include "rdk/io_node/common/checksum_buffer_writer.h"
 #include "rdk/io_node/common/generic_buffer_writer.h"
 #include "rdk/io_node/misc/latency_io_node.h"
+#include "rdk/io_node/misc/stream_dimensions.h"
 #include "rdk/core/stream/send/generic_stream.h"
 #include "rdk/core/stream/receive/receive_stream.h"
 
@@ -39,22 +40,6 @@ namespace rdk
 {
 namespace io_node
 {
-
-/**
- * @brief: Data dimensions of a generic stream.
- */
-struct StreamDimensions {
-    size_t num_of_chunks;
-    size_t num_of_packets_in_chunk;
-    size_t header_size;
-    size_t payload_size;
-    StreamDimensions(size_t a_num_of_chunks, size_t a_num_of_packets,
-                     size_t a_header_size, size_t a_payload_size) :
-        num_of_chunks(a_num_of_chunks),
-        num_of_packets_in_chunk(a_num_of_packets),
-        header_size(a_header_size),
-        payload_size(a_payload_size) {};
-};
 
 /**
  * @brief: GenericLatencyIONode class.
