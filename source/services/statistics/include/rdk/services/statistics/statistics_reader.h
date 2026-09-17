@@ -19,13 +19,17 @@
 #ifndef RDK_SERVICES_STATISTICS_STATISTICS_READER_H_
 #define RDK_SERVICES_STATISTICS_STATISTICS_READER_H_
 
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <functional>
+#include <thread>
 #include <unordered_map>
 
 #include <rmx_stats_api.h>
 
 #include "rdk/services/error_handling/error_handling.h"
+#include "rdk/services/utils/lifecycle.h"
 
 
 namespace rdk
@@ -43,7 +47,7 @@ typedef std::unordered_map<rmx_stats_type, statistics_handler_cb_t> statistics_h
  * This is a basic class offers common statistics reader implementation.
  * The user of this interface can override it's virtual methods.
  */
-class StatisticsReader
+class StatisticsReader : public ILifecycle
 {
 protected:
     /** Statistics related */
@@ -69,6 +73,8 @@ protected:
     uint32_t m_update_time_sec;
     /* Statistics type to handler method map */
     statistics_handler_cb_map_t m_statistics_handler_cb_map;
+    enum class State : uint8_t { active, stop_requested, stopped };
+    std::atomic<State> m_state{State::active};
 public:
     StatisticsReader();
     virtual ~StatisticsReader();
@@ -90,11 +96,52 @@ public:
      */
     virtual ReturnStatus set_stats_config();
     /**
-     * @brief: Starts statistics reader operation.
+     * @brief: Runs the reader as a thread context.
      *
-     * This operator initializes the statistics reader and starts to read statistics messages in a loop.
+     * Calls @ref start and nothing else, so the reader can be passed straight to
+     * @ref std::thread. Sealed, like @ref start.
      */
-    virtual void operator()();
+    virtual void operator()() final { start(); }
+    /**
+     * @brief: Runs the reader's worker.
+     *
+     * Sealed: initializes the statistics reader and reads statistics messages in a loop until
+     * asked to stop, then publishes completion.
+     *
+     * @return: Status the reader finished with.
+     */
+    ReturnStatus start() final;
+    /**
+     * @brief: Requests the statistics reader to stop.
+     *
+     * Non-blocking, idempotent, thread-safe. The reader observes the request at the end of
+     * its current update cycle, in the same way it observes a process signal.
+     */
+    void stop() noexcept override
+    {
+        State expected = State::active;
+        m_state.compare_exchange_strong(expected, State::stop_requested);
+    }
+    /**
+     * @brief: Waits for the reader to publish its completion.
+     *
+     * Returns immediately if the reader has already published completion. Otherwise blocks
+     * for @p timeout, then reports whether it has.
+     *
+     * @param [in] timeout: Maximum time to wait.
+     *
+     * @return: @ref ReturnStatus::success if the reader finished; @ref ReturnStatus::still_active
+     *          if @p timeout elapsed first.
+     */
+    ReturnStatus await(std::chrono::nanoseconds timeout) const override
+    {
+        if (m_state.load() == State::stopped) {
+            return ReturnStatus::success;
+        }
+        std::this_thread::sleep_for(timeout);
+        return m_state.load() == State::stopped ?
+            ReturnStatus::success : ReturnStatus::still_active;
+    }
     /**
      * @brief: Sets process ID.
      *
@@ -128,6 +175,17 @@ public:
      */
     void  set_cpu_core_affinity(int cpu_core_affinity) { m_cpu_core_affinity = cpu_core_affinity; }
 protected:
+    /**
+     * @brief: Checks whether the reader should stop.
+     *
+     * True once @ref stop has been called on this reader, or the process has received SIGINT.
+     *
+     * @return: true if the reader should stop.
+     */
+    bool should_stop() const noexcept
+    {
+        return m_state.load() != State::active || SignalHandler::get_received_signal() >= 0;
+    }
     /**
      * @brief: Reads one statistic message in to m_stats_message data member.
      *
@@ -179,6 +237,18 @@ protected:
      */
     virtual void display_hdr();
 private:
+    /**
+     * @brief: The reader's own work.
+     *
+     * Called by @ref start, which publishes completion unconditionally once this returns.
+     *
+     * @return: Status of the operation.
+     */
+    ReturnStatus do_work();
+    /**
+     * @brief: Publishes the reader's completion.
+     */
+    void publish_completion() noexcept { m_state.store(State::stopped); }
     static statistics_handler_cb_map_t s_statistics_handler_cb_map;
 };
 

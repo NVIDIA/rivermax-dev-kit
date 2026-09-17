@@ -105,7 +105,17 @@ ReturnStatus StatisticsReader::init_stats_reader()
     return ReturnStatus::success;
 }
 
-void StatisticsReader::operator()()
+ReturnStatus StatisticsReader::start()
+{
+    ReturnStatus rc = do_work();
+    if (should_stop()) {
+        rc = ReturnStatus::success;
+    }
+    publish_completion();
+    return rc;
+}
+
+ReturnStatus StatisticsReader::do_work()
 {
     std::cout << "Start StatisticsReader thread" << std::endl;
     if (m_cpu_core_affinity != NO_CPU_AFFINITY) {
@@ -115,14 +125,14 @@ void StatisticsReader::operator()()
     ReturnStatus rc = init_stats_reader();
     if (rc == ReturnStatus::failure) {
         std::cerr << "Failed to initialize Rivermax statistics" << std::endl;
-        return;
+        return rc;
     }
 
     try {
 
         // Main cycle
         do {
-            while (read_stats_msg() == ReturnStatus::success) {
+            while (!should_stop() && read_stats_msg() == ReturnStatus::success) {
 
                 if (skip()) {
                     continue;
@@ -131,12 +141,14 @@ void StatisticsReader::operator()()
             }
             std::this_thread::sleep_for(std::chrono::seconds(m_update_time_sec));
         }
-        while (likely(SignalHandler::get_received_signal() < 0)) ;
+        while (likely(!should_stop()));
     }
     catch (const std::exception & error) {
         std::cerr << error.what() << std::endl;
-        return;
+        return ReturnStatus::failure;
     }
+
+    return ReturnStatus::success;
 }
 
 ReturnStatus StatisticsReader::read_stats_msg()
