@@ -34,6 +34,8 @@ This submodule contains examples for media streaming:
 
 - **cli_settings_media_file_sender**: This example demonstrates CLI-based media file streaming with configurable command-line parameters. It shows how to implement file-based media transmission using user-configurable options and demonstrates proper command-line parameter parsing and handling.
 
+- **node_shutdown_video_file_sender**: This example demonstrates stopping one I/O node, and then the whole application, while media is being sent. It is based on **user_provided_settings_video_file_sender**, with a second I/O node added and the shutdown steps appended. It shows how to find the I/O nodes an application built, stop one of them while the other keeps sending, and wait for that node and then the application to finish.
+
 - **user_provided_settings_video_file_sender**: This example demonstrates software-based video file transmission using app-level settings structures for configuration. It shows how to manage configuration through dedicated settings objects and implement programmatic configuration for file-based video streaming.
 
 - **video_frames_sender**: This example demonstrates video frame transmission using the media unit abstract API for efficient media streaming. It shows how to use the media essence source API where media units represent video frames, providing direct control over individual frame processing and delivery.
