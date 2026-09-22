@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -211,6 +212,12 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         video_settings.bytes_per_media_unit /= 2;
     }
 
+    if (video_settings.packets_in_media_unit == 0) {
+        std::cerr << "Error: Resolution " << video_settings.resolution.width << "x"
+                  << video_settings.resolution.height << " holds no complete pgroup row\n";
+        return ReturnStatus::failure;
+    }
+
     bool chunk_size_applied = false;
     if (video_settings.packets_in_chunk) {
         if (video_settings.packets_in_media_unit % video_settings.packets_in_chunk == 0) {
@@ -224,8 +231,15 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     }
 
     if (!chunk_size_applied) {
-        constexpr size_t pgroup_rows_in_chunk = 4;
-        video_settings.packets_in_chunk = pgroup_rows_in_chunk * video_settings.packets_in_pgroup_row;
+        constexpr size_t max_pgroup_rows_in_chunk = 4;
+        const size_t pgroup_rows_in_media_unit =
+            video_settings.packets_in_media_unit / video_settings.packets_in_pgroup_row;
+        const size_t pgroup_rows_in_chunk = std::min({ max_pgroup_rows_in_chunk, pgroup_rows_in_media_unit,
+            MAX_DEFAULT_PACKETS_IN_CHUNK / video_settings.packets_in_pgroup_row });
+        /* A single pgroup row above the chunk limit is split across chunks. */
+        video_settings.packets_in_chunk = pgroup_rows_in_chunk ?
+            pgroup_rows_in_chunk * video_settings.packets_in_pgroup_row :
+            std::min<size_t>(video_settings.packets_in_media_unit, MAX_DEFAULT_PACKETS_IN_CHUNK);
     }
 
     video_settings.chunks_in_media_unit =

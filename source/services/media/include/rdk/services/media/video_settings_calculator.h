@@ -49,6 +49,10 @@ class ST_2110_20_MediaSettingsCalculator : public MediaSettingsCalculator<SMPTE_
 {
 public:
     /**
+     * @brief: Maximal number of packets in a default chunk.
+     */
+    static constexpr size_t MAX_DEFAULT_PACKETS_IN_CHUNK = 8192;
+    /**
      * @brief: ST_2110_20_MediaSettingsCalculator constructor.
      *
      * @param [in] video_settings: Reference to the video settings to configure.
