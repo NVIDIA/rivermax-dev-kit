@@ -143,7 +143,7 @@ IPMXStreamSender::IPMXStreamSender(size_t sender_id, const TwoTupleFlow& src_add
 
 void IPMXStreamSender::configure_memory_layout()
 {
-    m_mem_block_payload_sizes.resize(m_media_settings->chunks_in_mem_block * m_media_settings->packets_in_chunk,
+    MediaStreamMemBlockset::build_block_layout(m_mem_block_payload_sizes, *m_media_settings,
         m_media_settings->packet_payload_size);
 
     m_mem_blockset = std::make_unique<MediaStreamMemBlockset>(

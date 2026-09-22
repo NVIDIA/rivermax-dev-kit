@@ -118,16 +118,14 @@ void MediaTxIONode::distribute_memory_for_streams(rmx_mem_region& tx_header_mreg
                                               tx_payload_mreg.mkey);
         m_send_mem_blockset->set_block_memory(0, 1, tx_payload_mreg.addr, tx_payload_mreg.length,
                                               tx_payload_mreg.mkey);
-        m_send_block_header_sizes.resize(m_settings.media_settings->packets_in_chunk *
-            m_settings.media_settings->chunks_in_mem_block,
+        MediaStreamMemBlockset::build_block_layout(m_send_block_header_sizes, *m_settings.media_settings,
             m_settings.media_settings->packet_app_header_size);
     } else {
       m_send_mem_blockset->set_block_memory(0, 0, tx_payload_mreg.addr,
                                             tx_payload_mreg.length,
                                             tx_payload_mreg.mkey);
     }
-    m_send_block_payload_sizes.resize(m_settings.media_settings->packets_in_chunk *
-        m_settings.media_settings->chunks_in_mem_block,
+    MediaStreamMemBlockset::build_block_layout(m_send_block_payload_sizes, *m_settings.media_settings,
         m_settings.media_settings->packet_payload_size);
     m_send_mem_blockset->set_block_layout(0, m_send_block_payload_sizes.data(),
                                           m_settings.media_settings->packet_app_header_size ?

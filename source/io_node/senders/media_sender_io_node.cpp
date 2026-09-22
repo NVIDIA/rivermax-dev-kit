@@ -282,9 +282,11 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents()
     // Dynamic streams (ancillary) provides sizes at runtime. Otherwise, pre-fill size arrays.
     if (!m_settings.media_settings->needs_dynamic_packet_sizes()) {
         if (m_settings.media_settings->packet_app_header_size) {
-            m_mem_block_header_sizes.resize(m_settings.media_settings->packets_in_mem_block, m_settings.media_settings->packet_app_header_size);
+            MediaStreamMemBlockset::build_block_layout(m_mem_block_header_sizes, *m_settings.media_settings,
+                m_settings.media_settings->packet_app_header_size);
         }
-        m_mem_block_payload_sizes.resize(m_settings.media_settings->packets_in_mem_block, m_settings.media_settings->packet_payload_size);
+        MediaStreamMemBlockset::build_block_layout(m_mem_block_payload_sizes, *m_settings.media_settings,
+            m_settings.media_settings->packet_payload_size);
     }
 
     for (auto& stream_pack : m_stream_packs) {
@@ -310,9 +312,11 @@ ReturnStatus MediaSenderIONode::apply_memory_layout_to_subcomponents(
     // Dynamic streams (ancillary) provides sizes at runtime. Otherwise, pre-fill size arrays.
     if (!m_settings.media_settings->needs_dynamic_packet_sizes()) {
         if (m_settings.media_settings->packet_app_header_size) {
-            m_mem_block_header_sizes.resize(m_settings.media_settings->packets_in_mem_block, m_settings.media_settings->packet_app_header_size);
+            MediaStreamMemBlockset::build_block_layout(m_mem_block_header_sizes, *m_settings.media_settings,
+                m_settings.media_settings->packet_app_header_size);
         }
-        m_mem_block_payload_sizes.resize(m_settings.media_settings->packets_in_mem_block, m_settings.media_settings->packet_payload_size);
+        MediaStreamMemBlockset::build_block_layout(m_mem_block_payload_sizes, *m_settings.media_settings,
+            m_settings.media_settings->packet_payload_size);
     }
 
     uint8_t* header_memory_ptr = static_cast<uint8_t*>(memory_layout.header_memory_ptr);
@@ -716,9 +720,12 @@ inline void MediaSenderIONode::preload_media_data()
                     std::cerr << "Failed to write to buffer" << std::endl;
                 }
 
-                block_payload_ptr += m_settings.media_settings->packets_in_media_unit * m_settings.media_settings->data_stride_size;
+                const size_t reserved_packets_in_media_unit =
+                    m_settings.media_settings->chunks_in_media_unit * m_settings.media_settings->packets_in_chunk;
+
+                block_payload_ptr += reserved_packets_in_media_unit * m_settings.media_settings->data_stride_size;
                 block_header_ptr += is_hds_on() ?
-                    m_settings.media_settings->packets_in_media_unit * m_settings.media_settings->app_header_stride_size : 0;
+                    reserved_packets_in_media_unit * m_settings.media_settings->app_header_stride_size : 0;
             }
         }
     }
