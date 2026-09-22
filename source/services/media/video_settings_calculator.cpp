@@ -218,19 +218,17 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         return ReturnStatus::failure;
     }
 
-    bool chunk_size_applied = false;
-    if (video_settings.packets_in_chunk) {
-        if (video_settings.packets_in_media_unit % video_settings.packets_in_chunk == 0) {
-            chunk_size_applied = true;
-            std::cout << "Using custom chunk size: " << video_settings.packets_in_chunk << std::endl;
-        } else {
-            std::cout << "Custom chunk size (" << video_settings.packets_in_chunk
-                << ") is ignored: must be divisor of packets in media unit ("
-                << video_settings.packets_in_media_unit << ")" << std::endl;
-        }
+    /* A chunk beyond the media unit only reserves memory that no packet can reach. */
+    if (video_settings.packets_in_chunk > video_settings.packets_in_media_unit) {
+        std::cerr << "Warning: Custom chunk size (" << video_settings.packets_in_chunk
+            << ") is reduced to the packets in media unit ("
+            << video_settings.packets_in_media_unit << ")" << std::endl;
+        video_settings.packets_in_chunk = video_settings.packets_in_media_unit;
     }
 
-    if (!chunk_size_applied) {
+    if (video_settings.packets_in_chunk) {
+        std::cout << "Using custom chunk size: " << video_settings.packets_in_chunk << std::endl;
+    } else {
         constexpr size_t max_pgroup_rows_in_chunk = 4;
         const size_t pgroup_rows_in_media_unit =
             video_settings.packets_in_media_unit / video_settings.packets_in_pgroup_row;
@@ -242,8 +240,9 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
             std::min<size_t>(video_settings.packets_in_media_unit, MAX_DEFAULT_PACKETS_IN_CHUNK);
     }
 
+    /* The final chunk of a media unit holds the remainder, its reserved slots stay empty. */
     video_settings.chunks_in_media_unit =
-        static_cast<size_t>(std::ceil(video_settings.packets_in_media_unit / static_cast<double>(video_settings.packets_in_chunk)));
+        (video_settings.packets_in_media_unit + video_settings.packets_in_chunk - 1) / video_settings.packets_in_chunk;
     video_settings.chunks_in_mem_block = video_settings.media_units_in_mem_block * video_settings.chunks_in_media_unit;
     video_settings.packets_in_mem_block = video_settings.chunks_in_mem_block * video_settings.packets_in_chunk;
 
