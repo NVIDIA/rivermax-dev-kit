@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <iostream>
@@ -170,6 +171,18 @@ ReturnStatus MediaStreamMemBlockset::set_block_layout(size_t idx, uint16_t data_
         rmx_output_media_set_packet_layout(&block, 1, data_sizes);
     }
     return ReturnStatus::success;
+}
+
+void MediaStreamMemBlockset::build_block_layout(std::vector<uint16_t>& sizes,
+    const MediaSettings& settings, uint16_t size_per_packet)
+{
+    const size_t reserved_packets_in_media_unit = settings.chunks_in_media_unit * settings.packets_in_chunk;
+
+    sizes.assign(settings.media_units_in_mem_block * reserved_packets_in_media_unit, 0);
+    for (size_t media_unit = 0; media_unit < settings.media_units_in_mem_block; ++media_unit) {
+        std::fill_n(sizes.begin() + media_unit * reserved_packets_in_media_unit,
+            settings.packets_in_media_unit, size_per_packet);
+    }
 }
 
 MediaSendStream::MediaSendStream(const MediaStreamSettings& settings) :

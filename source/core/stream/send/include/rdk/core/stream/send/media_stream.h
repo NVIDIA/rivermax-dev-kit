@@ -210,6 +210,20 @@ public:
     */
     void set_rivermax_to_allocate_memory();
     /**
+    * @brief: Builds one size array of a block for @ref set_block_layout, either its data sizes or
+    *         its application header sizes.
+    *
+    * Each media unit reserves @ref MediaSettings::chunks_in_media_unit chunks. Its final chunk may be
+    * partially populated; its trailing packet slots receive a zero size and are not transmitted.
+    *
+    * @param [out] sizes: Size array to build, one entry per packet in the block.
+    * @param [in] settings: Media settings holding the chunk and media unit geometry.
+    * @param [in] size_per_packet: Size of each packet's share of the media unit, either its data or its
+    *                              application header.
+    */
+    static void build_block_layout(std::vector<uint16_t>& sizes, const MediaSettings& settings,
+        uint16_t size_per_packet);
+    /**
     * @brief: Sets the sizes for all packets in one block.
     *
     * @param [in] idx: Block number, see @ref MediaStreamMemBlockset constructor.
