@@ -44,7 +44,7 @@ void MediaSenderSettings::init_default_values()
     destination_ports = {DESTINATION_PORT_DEFAULT};
     media.frames_fields_in_mem_block = MediaSenderSettings::DEFAULT_FRAME_FIELDS_IN_MEM_BLOCK;
     media.resolution = { _1080_WIDTH, _1080_HEIGHT };
-    num_of_packets_in_chunk = get_default_packets_in_chunk(media.resolution);
+    num_of_packets_in_chunk = 0;
 }
 
 ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& settings) const
@@ -237,11 +237,18 @@ ReturnStatus MediaSenderApp::post_load_settings()
     if(m_app_settings->media.enable_ancillary) {
         m_media_sender_settings->enabled_smpte_standards.insert(SMPTEStandard::ST_2110_40);
     }
-    uint32_t default_packets_in_chunk = MediaSenderSettings::get_default_packets_in_chunk(
-        m_app_settings->media.resolution);
     m_app_settings->num_of_total_flows = m_app_settings->num_of_total_streams;
-    if (m_app_settings->num_of_packets_in_chunk != default_packets_in_chunk) {
+    // A requested chunk size wins, a known resolution brings its own, and the rest
+    // is left to the calculator, which derives one from the video geometry.
+    if (m_app_settings->num_of_packets_in_chunk) {
         m_app_settings->num_of_packets_in_chunk_specified = true;
+    } else {
+        auto default_packets_in_chunk = MediaSenderSettings::find_default_packets_in_chunk(
+            m_app_settings->media.resolution);
+        if (default_packets_in_chunk) {
+            m_app_settings->num_of_packets_in_chunk = *default_packets_in_chunk;
+            m_app_settings->num_of_packets_in_chunk_specified = true;
+        }
     }
     return ReturnStatus::success;
 }

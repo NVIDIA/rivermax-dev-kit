@@ -19,10 +19,12 @@
 #ifndef RDK_APPS_MEDIA_SENDER_MEDIA_SENDER_H_
 #define RDK_APPS_MEDIA_SENDER_MEDIA_SENDER_H_
 
+#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <set>
 #include <unordered_map>
 
@@ -58,20 +60,21 @@ public:
     std::vector<std::pair<std::shared_ptr<const MediaSettings>, size_t>> smpte_standard_to_nodes;
 
     /**
-     * @brief: Returns the default number of packets in chunk for a given resolution.
+     * @brief: Returns the default number of packets in chunk of a given resolution.
      *
      * @param [in] resolution: The resolution to get the default number of packets in chunk for.
      *
-     * @return: The default number of packets in chunk.
+     * @return: The default number of packets in chunk, or no value where the resolution has none.
      */
-    static uint32_t get_default_packets_in_chunk(const Resolution& resolution)
+    static std::optional<uint32_t> find_default_packets_in_chunk(const Resolution& resolution)
     {
+        if (std::find(SUPPORTED_VIDEO_RESOLUTIONS.begin(), SUPPORTED_VIDEO_RESOLUTIONS.end(), resolution) ==
+            SUPPORTED_VIDEO_RESOLUTIONS.end()) {
+            return std::nullopt;
+        }
         auto it = DEFAULT_PACKETS_IN_CHUNK.find(static_cast<uint32_t>(resolution.width) * resolution.height);
         if (it == DEFAULT_PACKETS_IN_CHUNK.end()) {
-            std::cerr << "No default packets in chunk found for resolution: " << resolution.width << "x"
-                      << resolution.height << std::endl;
-            std::cerr << "Using default packets in chunk for: " << Resolution(_1080_WIDTH, _1080_HEIGHT) << std::endl;
-            return DEFAULT_PACKETS_IN_CHUNK.at(static_cast<uint32_t>(_1080_WIDTH * _1080_HEIGHT));
+            return std::nullopt;
         }
         return it->second;
     }
