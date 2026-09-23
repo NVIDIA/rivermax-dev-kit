@@ -29,6 +29,7 @@
 #include "rdk/services/media/media_settings_ancillary.h"
 #include "rdk/services/media/media_settings_audio.h"
 #include "rdk/services/media/media_settings_video.h"
+#include "rdk/services/protocol/ipv4.h"
 #include "rdk/services/sdp/sdp_defs.h"
 #include "rdk/services/utils/clock.h"
 #include "rdk/services/utils/defs.h"
@@ -113,6 +114,27 @@ ReturnStatus MediaSenderSettingsValidator::validate(const MediaSenderSettings& s
                   << CLIOptStr::ENABLE_ANCILLARY << std::endl;
         return ReturnStatus::failure;
     }
+    if (settings.media.enable_video && !settings.media.enable_extended_video_formats) {
+        auto is_supported = [](const auto& values, const auto& value) {
+            return std::find(values.begin(), values.end(), value) != values.end();
+        };
+        if (!is_supported(SUPPORTED_VIDEO_RESOLUTIONS, settings.media.resolution)) {
+            std::cerr << "Error: Video resolution " << settings.media.resolution
+                      << " requires extended video formats" << std::endl;
+            return ReturnStatus::failure;
+        }
+        if (!is_supported(SUPPORTED_VIDEO_BIT_DEPTHS, settings.media.color_bit_depth)) {
+            std::cerr << "Error: Video bit depth " << enum_to_string(settings.media.color_bit_depth)
+                      << " requires extended video formats" << std::endl;
+            return ReturnStatus::failure;
+        }
+        if (settings.media.alpha_bit_depth != VideoBitDepth::Unknown &&
+            !is_supported(SUPPORTED_VIDEO_BIT_DEPTHS, settings.media.alpha_bit_depth)) {
+            std::cerr << "Error: Alpha bit depth " << enum_to_string(settings.media.alpha_bit_depth)
+                      << " requires extended video formats" << std::endl;
+            return ReturnStatus::failure;
+        }
+    }
     bool media_file_used = (!settings.video_file.empty() || !settings.audio_file.empty());
     bool valid_memory_strategy = settings.app_memory_alloc || settings.dynamic_media_file_load;
     if (media_file_used && !valid_memory_strategy) {
@@ -142,8 +164,15 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
     };
 
     auto add_grouped_option = [&](const std::string& option_name, const std::string& group) {
-        if (auto* option = add_option(option_name)) {
+        auto* option = add_option(option_name);
+        if (option) {
             option->group(group);
+        }
+        return option;
+    };
+    auto add_extended_video_format_option = [&](const std::string& option_name) {
+        if (auto* option = add_grouped_option(option_name, CLIGroupStr::VIDEO_FORMAT_OPTIONS)) {
+            option->description(option->get_description() + " (use --evf for extended)");
         }
     };
 
@@ -189,14 +218,15 @@ ReturnStatus MediaSenderCLISettingsBuilder::add_cli_options(MediaSenderSettings&
         add_option(CLIOptStr::ENABLE_REDUNDANCY);
         add_grouped_option(CLIOptStr::ENABLE_VIDEO, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::ENABLE_ALPHA, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_grouped_option(CLIOptStr::ENABLE_EXTENDED_VIDEO_FORMATS, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::VIDEO_FILE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         add_option(CLIOptStr::DYNAMIC_FILE_LOADING);
-        add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_extended_video_format_option(CLIOptStr::VIDEO_RESOLUTION);
         add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::VIDEO_SAMPLING, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-        add_grouped_option(CLIOptStr::VIDEO_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-        add_grouped_option(CLIOptStr::ALPHA_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        add_extended_video_format_option(CLIOptStr::VIDEO_BIT_DEPTH);
+        add_extended_video_format_option(CLIOptStr::ALPHA_BIT_DEPTH);
         add_option(CLIOptStr::PACKETS);
         add_grouped_option(CLIOptStr::ENABLE_AUDIO, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::AUDIO_FILE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
@@ -470,18 +500,32 @@ ReturnStatus MediaSenderApp::configure_video_types()
         return ReturnStatus::failure;
     }
 
+    auto warn_about_short_packets = [](const SMPTE_2110_20_MediaSettings& settings, const char* stream_type) {
+        /* ST 2110-20 advises avoiding IP datagrams under 1000 bytes. */
+        constexpr size_t small_ip_datagram_threshold = 1000;
+        const size_t ip_datagram_size = IPV4_MIN_HEADER_SIZE + UDP_HEADER_SIZE +
+            settings.protocol_header_size + settings.raw_packet_payload_size;
+        if (settings.packets_in_media_unit > 1 && ip_datagram_size < small_ip_datagram_threshold) {
+            std::cerr << "Warning: current packetization produces small IP datagrams ("
+                      << ip_datagram_size << " bytes) for this " << stream_type
+                      << std::endl;
+        }
+    };
+
     auto video_settings = std::make_shared<SMPTE_2110_20_MediaSettings>(*m_app_settings);
-    ReturnStatus rc = configure_media_type_helper(
-        std::move(video_settings), "2110-20");
+    ReturnStatus rc = configure_media_type_helper(video_settings, "2110-20");
     if (rc != ReturnStatus::success) {
         return rc;
     }
+    warn_about_short_packets(*video_settings, "2110-20 video");
 
     if (m_app_settings->media.alpha_bit_depth != VideoBitDepth::Unknown) {
         auto alpha_settings = std::make_shared<SMPTE_2110_20_MediaSettings>(
             *m_app_settings, true);
-        rc = configure_media_type_helper(
-            std::move(alpha_settings), "2110-20 alpha/key");
+        rc = configure_media_type_helper(alpha_settings, "2110-20 alpha/key");
+        if (rc == ReturnStatus::success) {
+            warn_about_short_packets(*alpha_settings, "2110-20 alpha/key");
+        }
     }
 
     return rc;

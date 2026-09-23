@@ -45,7 +45,9 @@ constexpr const char* APP_EXAMPLES = \
     "  9. rdk_media_sender --local-ips 1.2.3.4 -m --enable-video --vf video_file.ycbcr"
     " --enable-audio --af audio_file.wav --asr 48000 --enable-ancillary\n"
     "  10. rdk_media_sender --local-ips 1.2.3.4,1.2.3.5 --dst-ips 224.1.1.2,224.1.1.3"
-    " --dst-ports 5000,5000 --enable-video --enable-redundancy -v\n";
+    " --dst-ports 5000,5000 --enable-video --enable-redundancy -v\n"
+    "  11. rdk_media_sender --local-ips 1.2.3.4 --enable-video --enable-extended-video-formats"
+    " --video-resolution 1280x720 --video-bit-depth 16\n";
 
 int main(int argc, const char* argv[])
 {
