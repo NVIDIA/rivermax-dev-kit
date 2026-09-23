@@ -41,6 +41,7 @@ SMPTE_2110_20_MediaSettings::SMPTE_2110_20_MediaSettings(const AppSettings& app_
     frame_rate = app_settings.media.frame_rate;
     bit_depth = is_alpha_stream ? app_settings.media.alpha_bit_depth : app_settings.media.color_bit_depth;
     video_scan_type = app_settings.media.video_scan_type;
+    enable_extended_video_formats = app_settings.media.enable_extended_video_formats;
 
     if (is_alpha_stream) {
         sampling_type = VideoSampling::KEY;

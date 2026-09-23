@@ -135,6 +135,21 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
 {
     auto& video_settings = m_media_settings;
 
+    if (!video_settings.enable_extended_video_formats) {
+        if (std::find(SUPPORTED_VIDEO_RESOLUTIONS.begin(), SUPPORTED_VIDEO_RESOLUTIONS.end(),
+            video_settings.resolution) == SUPPORTED_VIDEO_RESOLUTIONS.end()) {
+            std::cerr << "Error: Unsupported video resolution " << video_settings.resolution
+                      << " for this configuration\n";
+            return ReturnStatus::failure;
+        }
+        if (std::find(SUPPORTED_VIDEO_BIT_DEPTHS.begin(), SUPPORTED_VIDEO_BIT_DEPTHS.end(),
+            video_settings.bit_depth) == SUPPORTED_VIDEO_BIT_DEPTHS.end()) {
+            std::cerr << "Error: Unsupported video bit depth " << enum_to_string(video_settings.bit_depth)
+                      << " for this configuration\n";
+            return ReturnStatus::failure;
+        }
+    }
+
     if (!is_bit_depth_supported(video_settings.sampling_type, video_settings.bit_depth)) {
         std::cerr << "Unsupported width/sampling/bit depth combination: " << video_settings.resolution.width
             << " for sampling: " << enum_to_string(video_settings.sampling_type) << "\n";

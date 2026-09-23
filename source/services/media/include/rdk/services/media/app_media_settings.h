@@ -45,6 +45,7 @@ struct AppMediaSettings
     VideoBitDepth color_bit_depth = VideoBitDepth::_10;
     VideoBitDepth alpha_bit_depth = VideoBitDepth::Unknown;
     bool enable_alpha = false;
+    bool enable_extended_video_formats = false;
     VideoScanType video_scan_type = VideoScanType::Progressive;
     SenderType sender_type = SenderType::_2110TPN;
     size_t sample_rate = 90000;
