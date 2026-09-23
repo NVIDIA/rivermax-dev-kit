@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstring>
@@ -33,6 +34,12 @@ RTP_SMPTE_2110_20_PacketBufferWriter::RTP_SMPTE_2110_20_PacketBufferWriter(const
         media_settings, std::move(header_mem_utils), std::move(payload_mem_utils), enable_zero_copy)
 {
     m_rtp_packet_context->srd_length = media_settings.raw_packet_payload_size;
+}
+
+size_t RTP_SMPTE_2110_20_PacketBufferWriter::get_num_packets_for_next_chunk() const
+{
+    return std::min<size_t>(m_media_settings.packets_in_chunk,
+        m_media_settings.packets_in_media_unit - m_packet_counter);
 }
 
 void RTP_SMPTE_2110_20_PacketBufferWriter::reset_in_media_unit_state()

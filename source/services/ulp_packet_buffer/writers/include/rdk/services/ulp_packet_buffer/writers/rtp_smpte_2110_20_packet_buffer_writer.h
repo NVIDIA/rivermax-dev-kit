@@ -51,6 +51,14 @@ public:
      * @brief: Destructor for RTP_SMPTE_2110_20_PacketBufferWriter.
      */
     virtual ~RTP_SMPTE_2110_20_PacketBufferWriter() = default;
+    /**
+     * @brief: Returns the number of packets needed for the next chunk.
+     *
+     * Returns the packets left in the current media unit when they do not fill a whole chunk.
+     *
+     * @return: Number of packets for the next chunk.
+     */
+    size_t get_num_packets_for_next_chunk() const override;
 
 protected:
     /** Media unit tracking state */
