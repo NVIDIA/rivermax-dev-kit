@@ -151,6 +151,30 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
         return ReturnStatus::failure;
     }
 
+    if (video_settings.resolution.width > MAX_ST_2110_20_VIDEO_DIMENSION ||
+        video_settings.resolution.height > MAX_ST_2110_20_VIDEO_DIMENSION) {
+        std::cerr << "Error: Invalid resolution " << video_settings.resolution
+                  << ": width and height must each be at most " << MAX_ST_2110_20_VIDEO_DIMENSION << "\n";
+        return ReturnStatus::failure;
+    }
+
+    /* A media unit must hold whole pgroup rows. */
+    if (video_settings.resolution.height % pgroup.rows != 0) {
+        std::cerr << "Error: Invalid resolution " << video_settings.resolution << " for "
+                  << enum_to_string(video_settings.sampling_type) << " "
+                  << enum_to_string(video_settings.video_scan_type)
+                  << " video: height must be a multiple of " << pgroup.rows << "\n";
+        return ReturnStatus::failure;
+    }
+
+    /* Current field handling assumes equal-height fields. */
+    if (video_settings.video_scan_type == VideoScanType::Interlaced &&
+        video_settings.resolution.height % 2 != 0) {
+        std::cerr << "Error: Unsupported interlaced resolution " << video_settings.resolution
+                  << ": the current sender requires equal-height fields (even frame height)\n";
+        return ReturnStatus::failure;
+    }
+
     const uint32_t bytes_in_pgroup = pgroup.octets;
     const uint32_t pixel_columns_in_pgroup = pgroup.columns;
     const uint32_t pgroups_in_pgroup_row =

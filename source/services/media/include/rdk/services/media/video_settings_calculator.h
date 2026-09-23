@@ -53,6 +53,10 @@ public:
      */
     static constexpr size_t MAX_DEFAULT_PACKETS_IN_CHUNK = 8192;
     /**
+     * @brief: Maximal video width and height, as defined by SMPTE ST 2110-20.
+     */
+    static constexpr uint16_t MAX_ST_2110_20_VIDEO_DIMENSION = 32767;
+    /**
      * @brief: ST_2110_20_MediaSettingsCalculator constructor.
      *
      * @param [in] video_settings: Reference to the video settings to configure.
