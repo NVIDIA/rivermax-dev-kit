@@ -452,7 +452,8 @@ private:
      *
      * @param [in] essence_size: Total size in bytes of the media essence.
      *
-     * @return: Required number of memory blocks.
+     * @return: Number of whole memory blocks the essence media units fill, zero when it holds fewer
+     *          media units than one memory block.
      */
     size_t calculate_required_memory_blocks(size_t essence_size) const;
 };

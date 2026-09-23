@@ -759,8 +759,8 @@ size_t MediaSenderIONode::calculate_required_memory_blocks(size_t essence_size) 
     if (essence_size == 0) {
         return DEFAULT_NUMBER_OF_MEM_BLOCKS;
     }
-    size_t required_number_of_memory_blocks = essence_size / m_block_payload_memory_size;
-    return required_number_of_memory_blocks;
+    const size_t media_units = essence_size / m_settings.media_settings->bytes_per_media_unit;
+    return media_units / m_settings.media_settings->media_units_in_mem_block;
 }
 
 void MediaSenderIONode::stop() noexcept
@@ -830,22 +830,41 @@ ReturnStatus MediaSenderIONode::set_media_essence_sources(
             std::cerr << "Failed to create packet buffer writer" << std::endl;
             return ReturnStatus::failure;
         }
-        {
-            std::lock_guard<std::mutex> lock(m_essence_sources_mutex);
-            m_stream_packs[stream_index].preload_essence_source = std::move(preload_essence_source);
-        }
-        m_stream_packs[stream_index].preload_packet_buffer_writer = std::move(preload_packet_buffer_writer);
         // Update memory requirements based on preload essence size
         size_t essence_size = 0;
-        ReturnStatus rc = m_stream_packs[stream_index].preload_essence_source->get_data_size(essence_size);
+        ReturnStatus rc = preload_essence_source->get_data_size(essence_size);
         if (rc != ReturnStatus::success) {
             std::cerr << "Failed to get data size for preload essence source" << std::endl;
             return ReturnStatus::failure;
         }
         size_t required_number_of_memory_blocks = calculate_required_memory_blocks(essence_size);
-        size_t diff_number_of_memory_blocks = required_number_of_memory_blocks - m_stream_packs[stream_index].number_of_memory_blocks;
-        m_header_total_memory_size += m_block_header_memory_size * diff_number_of_memory_blocks;
-        m_payload_total_memory_size += m_block_payload_memory_size * diff_number_of_memory_blocks;
+        if (essence_size) {
+            const size_t media_units_in_mem_block = m_settings.media_settings->media_units_in_mem_block;
+            const size_t media_units = essence_size / m_settings.media_settings->bytes_per_media_unit;
+            const size_t trailing_bytes = essence_size % m_settings.media_settings->bytes_per_media_unit;
+            const size_t sent_media_units = required_number_of_memory_blocks * media_units_in_mem_block;
+            if (required_number_of_memory_blocks == 0) {
+                std::cerr << "Preload essence holds " << media_units << " media units, needs at least "
+                          << media_units_in_mem_block << " to fill one memory block" << std::endl;
+                return ReturnStatus::failure;
+            }
+            if (sent_media_units < media_units || trailing_bytes) {
+                std::cerr << "Warning: Preload essence holds " << media_units << " media units and "
+                          << trailing_bytes << " trailing bytes, only the " << sent_media_units
+                          << " media units of whole memory blocks (" << media_units_in_mem_block << ") are sent"
+                          << std::endl;
+            }
+        }
+        {
+            std::lock_guard<std::mutex> lock(m_essence_sources_mutex);
+            m_stream_packs[stream_index].preload_essence_source = std::move(preload_essence_source);
+        }
+        m_stream_packs[stream_index].preload_packet_buffer_writer = std::move(preload_packet_buffer_writer);
+        size_t current_number_of_memory_blocks = m_stream_packs[stream_index].number_of_memory_blocks;
+        m_header_total_memory_size -= m_block_header_memory_size * current_number_of_memory_blocks;
+        m_payload_total_memory_size -= m_block_payload_memory_size * current_number_of_memory_blocks;
+        m_header_total_memory_size += m_block_header_memory_size * required_number_of_memory_blocks;
+        m_payload_total_memory_size += m_block_payload_memory_size * required_number_of_memory_blocks;
         m_stream_packs[stream_index].number_of_memory_blocks = required_number_of_memory_blocks;
     } else {
         {
