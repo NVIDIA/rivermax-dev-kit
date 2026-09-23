@@ -76,8 +76,13 @@ struct Resolution
             std::string width_str = resolution.substr(0, x_position);
             std::string height_str = resolution.substr(x_position + 1);
             if (is_number(width_str) && is_number(height_str)) {
-                width = static_cast<uint16_t>(std::stoi(width_str));
-                height = static_cast<uint16_t>(std::stoi(height_str));
+                const unsigned long parsed_width = std::stoul(width_str);
+                const unsigned long parsed_height = std::stoul(height_str);
+                if (parsed_width > UINT16_MAX || parsed_height > UINT16_MAX) {
+                    throw std::out_of_range("Resolution dimensions exceed the 16-bit limit (65535)");
+                }
+                width = static_cast<uint16_t>(parsed_width);
+                height = static_cast<uint16_t>(parsed_height);
                 return;
             }
         }
@@ -335,6 +340,14 @@ const std::vector<VideoBitDepth> SUPPORTED_VIDEO_BIT_DEPTHS = {
     VideoBitDepth::_8,
     VideoBitDepth::_10,
     VideoBitDepth::_12
+};
+/* Video bit depths of the extended video formats */
+const std::vector<VideoBitDepth> EXTENDED_VIDEO_BIT_DEPTHS = {
+    VideoBitDepth::_8,
+    VideoBitDepth::_10,
+    VideoBitDepth::_12,
+    VideoBitDepth::_16,
+    VideoBitDepth::_16f
 };
 
 } // namespace services

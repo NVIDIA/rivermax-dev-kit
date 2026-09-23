@@ -110,7 +110,10 @@ ReturnStatus IPMXSenderCLISettingsBuilder::add_cli_options(IPMXSenderSettings& s
         add_option(CLIOptStr::SLEEP);
         add_option(CLIOptStr::ALLOCATOR_TYPE);
         auto parser = m_cli_parser_manager->get_parser();
-        add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        if (auto* option = add_option(CLIOptStr::VIDEO_RESOLUTION)) {
+            option->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+            option->check(CLI::IsMember(SUPPORTED_VIDEO_RESOLUTIONS).description(""));
+        }
         add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         // TODO: move PTP flag to App

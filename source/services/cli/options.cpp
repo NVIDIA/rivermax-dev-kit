@@ -22,6 +22,7 @@
 #include <map>
 #include <memory>
 #include <rivermax_api.h>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -78,6 +79,7 @@ const char* CLIOptStr::VIDEO_BIT_DEPTH = "--vbd,--video-bit-depth";
 const char* CLIOptStr::ALPHA_BIT_DEPTH = "--abd,--alpha-bit-depth";
 const char* CLIOptStr::ENABLE_VIDEO = "--enable-video";
 const char* CLIOptStr::ENABLE_ALPHA = "--enable-alpha";
+const char* CLIOptStr::ENABLE_EXTENDED_VIDEO_FORMATS = "--evf,--enable-extended-video-formats";
 const char* CLIOptStr::ENABLE_AUDIO = "--enable-audio";
 const char* CLIOptStr::ENABLE_ANCILLARY = "--enable-ancillary";
 const char* CLIOptStr::VIDEO_FILE = "--vf,--video-file";
@@ -150,6 +152,32 @@ std::vector<std::pair<std::string, EnumType>> create_mapping_vector(const std::v
         mapping.emplace_back(enum_to_string(val), val);
     }
     return mapping;
+}
+
+/**
+ * @brief: Help text listing the supported video resolutions.
+ */
+std::string supported_video_resolutions_help()
+{
+    std::ostringstream help;
+    help << "Supported: ";
+    for (size_t i = 0; i < SUPPORTED_VIDEO_RESOLUTIONS.size(); ++i) {
+        help << (i ? ", " : "") << SUPPORTED_VIDEO_RESOLUTIONS[i];
+    }
+    return help.str();
+}
+
+/**
+ * @brief: Help text listing the supported video bit depths.
+ */
+std::string supported_video_bit_depths_help()
+{
+    std::ostringstream help;
+    help << "Supported: ";
+    for (size_t i = 0; i < SUPPORTED_VIDEO_BIT_DEPTHS.size(); ++i) {
+        help << (i ? ", " : "") << enum_to_string(SUPPORTED_VIDEO_BIT_DEPTHS[i]);
+    }
+    return help.str();
 }
 
 /**
@@ -512,9 +540,9 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         RDK_CLI_OPTION_BUILDER(CLIOptStr::VIDEO_RESOLUTION,
             return parser->add_option(CLIOptStr::VIDEO_RESOLUTION,
                                       app_settings->media.resolution,
-                                      "Video resolution in format <width>x<height>")
+                                      "Video resolution in format <width>x<height>. " +
+                                      supported_video_resolutions_help())
                                       ->check(VideoResolutionValidator())
-                                      ->check(CLI::IsMember(SUPPORTED_VIDEO_RESOLUTIONS))
                                       ->default_val(Resolution(_1080_WIDTH, _1080_HEIGHT));
         )
     },
@@ -556,9 +584,9 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         RDK_CLI_OPTION_BUILDER(CLIOptStr::VIDEO_BIT_DEPTH,
             return parser->add_option(CLIOptStr::VIDEO_BIT_DEPTH,
                                       app_settings->media.color_bit_depth,
-                                      "Video bit depth")
+                                      "Video bit depth. " + supported_video_bit_depths_help())
                                       ->transform(CLI::CheckedTransformer(create_mapping_vector(
-                                                  SUPPORTED_VIDEO_BIT_DEPTHS), CLI::ignore_case))
+                                                  EXTENDED_VIDEO_BIT_DEPTHS), CLI::ignore_case).description(""))
                                       ->default_val(enum_to_string(VideoBitDepth::_10));
         )
     },
@@ -567,9 +595,9 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
         RDK_CLI_OPTION_BUILDER(CLIOptStr::ALPHA_BIT_DEPTH,
             return parser->add_option(CLIOptStr::ALPHA_BIT_DEPTH,
                                       app_settings->media.alpha_bit_depth,
-                                      "Alpha channel bit depth")
+                                      "Alpha channel bit depth. " + supported_video_bit_depths_help())
                                       ->transform(CLI::CheckedTransformer(create_mapping_vector(
-                                                  SUPPORTED_VIDEO_BIT_DEPTHS), CLI::ignore_case));
+                                                  EXTENDED_VIDEO_BIT_DEPTHS), CLI::ignore_case).description(""));
         )
     },
     {
@@ -586,6 +614,14 @@ cli_opt_factory_map_t CLIParserManager::s_cli_opt_fuctory {
             return parser->add_flag(CLIOptStr::ENABLE_ALPHA,
                                     app_settings->media.enable_alpha,
                                     "Enable Alpha channel with default bit depth of main video");
+        )
+    },
+    {
+        CLIOptStr::ENABLE_EXTENDED_VIDEO_FORMATS,
+        RDK_CLI_OPTION_BUILDER(CLIOptStr::ENABLE_EXTENDED_VIDEO_FORMATS,
+            return parser->add_flag(CLIOptStr::ENABLE_EXTENDED_VIDEO_FORMATS,
+                                    app_settings->media.enable_extended_video_formats,
+                                    "Enable extended video formats");
         )
     },
     {

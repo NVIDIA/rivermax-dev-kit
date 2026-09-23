@@ -154,7 +154,10 @@ ReturnStatus LatencyCLISettingsBuilder::add_cli_options(LatencySettings& setting
                          "Disable processing of realtime completion timestamps");
         parser->add_flag("--disable-percent", settings.disable_percentile,
                          "Disable percentile calculation");
-        add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        if (auto* option = add_option(CLIOptStr::VIDEO_RESOLUTION)) {
+            option->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+            option->check(CLI::IsMember(SUPPORTED_VIDEO_RESOLUTIONS).description(""));
+        }
         add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         parser->add_option("--mode", settings.latency_mode,
                            "Latency measurement mode", true)->

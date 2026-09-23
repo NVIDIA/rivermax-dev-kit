@@ -143,11 +143,17 @@ ReturnStatus MediaReceiverCLISettingsBuilder::add_cli_options(MediaReceiverSetti
         add_option(CLIOptStr::VERBOSE);
         add_option(CLIOptStr::STATS_REPORT_INTERVAL);
         add_grouped_option(CLIOptStr::ENABLE_VIDEO, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-        add_grouped_option(CLIOptStr::VIDEO_RESOLUTION, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        if (auto* option = add_option(CLIOptStr::VIDEO_RESOLUTION)) {
+            option->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+            option->check(CLI::IsMember(SUPPORTED_VIDEO_RESOLUTIONS).description(""));
+        }
         add_grouped_option(CLIOptStr::VIDEO_FRAME_RATE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::VIDEO_SAMPLING, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::VIDEO_SCAN_TYPE, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
-        add_grouped_option(CLIOptStr::VIDEO_BIT_DEPTH, CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+        if (auto* option = add_option(CLIOptStr::VIDEO_BIT_DEPTH)) {
+            option->group(CLIGroupStr::VIDEO_FORMAT_OPTIONS);
+            option->check(CLI::IsMember(SUPPORTED_VIDEO_BIT_DEPTHS).description(""));
+        }
         add_grouped_option(CLIOptStr::ENABLE_AUDIO, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::PTIME_US, CLIGroupStr::AUDIO_FORMAT_OPTIONS);
         add_grouped_option(CLIOptStr::AUDIO_SAMPLING_RATE, CLIGroupStr::AUDIO_FORMAT_OPTIONS);

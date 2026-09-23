@@ -108,6 +108,7 @@ public:
     static const char* ALPHA_BIT_DEPTH;
     static const char* ENABLE_VIDEO;
     static const char* ENABLE_ALPHA;
+    static const char* ENABLE_EXTENDED_VIDEO_FORMATS;
     static const char* ENABLE_AUDIO;
     static const char* ENABLE_ANCILLARY;
     static const char* VIDEO_FILE;
