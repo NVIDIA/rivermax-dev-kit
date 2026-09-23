@@ -57,15 +57,21 @@ const VideoDepthPgroupGeometryMap VIDEO_DEPTH_TO_PGROUP_GEOMETRY = {
     {VideoSampling::RGB,
         {{VideoBitDepth::_8, {3, 1, 1}},
          {VideoBitDepth::_10, {15, 4, 1}},
-         {VideoBitDepth::_12, {9, 2, 1}}}},
+         {VideoBitDepth::_12, {9, 2, 1}},
+         {VideoBitDepth::_16, {6, 1, 1}},
+         {VideoBitDepth::_16f, {6, 1, 1}}}},
     {VideoSampling::YCbCr_4_4_4,
         {{VideoBitDepth::_8, {3, 1, 1}},
          {VideoBitDepth::_10, {15, 4, 1}},
-         {VideoBitDepth::_12, {9, 2, 1}}}},
+         {VideoBitDepth::_12, {9, 2, 1}},
+         {VideoBitDepth::_16, {6, 1, 1}},
+         {VideoBitDepth::_16f, {6, 1, 1}}}},
     {VideoSampling::YCbCr_4_2_2,
         {{VideoBitDepth::_8, {4, 2, 1}},
          {VideoBitDepth::_10, {5, 2, 1}},
-         {VideoBitDepth::_12, {6, 2, 1}}}},
+         {VideoBitDepth::_12, {6, 2, 1}},
+         {VideoBitDepth::_16, {8, 2, 1}},
+         {VideoBitDepth::_16f, {8, 2, 1}}}},
     {VideoSampling::YCbCr_4_2_0,
         {{VideoBitDepth::_8, {6, 2, 2}},
          {VideoBitDepth::_10, {15, 4, 2}},
@@ -73,7 +79,9 @@ const VideoDepthPgroupGeometryMap VIDEO_DEPTH_TO_PGROUP_GEOMETRY = {
     {VideoSampling::KEY,
         {{VideoBitDepth::_8, {1, 1, 1}},
          {VideoBitDepth::_10, {5, 4, 1}},
-         {VideoBitDepth::_12, {3, 2, 1}}}}
+         {VideoBitDepth::_12, {3, 2, 1}},
+         {VideoBitDepth::_16, {2, 1, 1}},
+         {VideoBitDepth::_16f, {2, 1, 1}}}}
 };
 
 bool ST_2110_20_MediaSettingsCalculator::is_bit_depth_supported(VideoSampling sampling, VideoBitDepth bit_depth)
@@ -151,8 +159,8 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     }
 
     if (!is_bit_depth_supported(video_settings.sampling_type, video_settings.bit_depth)) {
-        std::cerr << "Unsupported width/sampling/bit depth combination: " << video_settings.resolution.width
-            << " for sampling: " << enum_to_string(video_settings.sampling_type) << "\n";
+        std::cerr << "Error: Unsupported bit depth " << enum_to_string(video_settings.bit_depth)
+                  << " for " << enum_to_string(video_settings.sampling_type) << " sampling\n";
         return ReturnStatus::failure;
     }
 
