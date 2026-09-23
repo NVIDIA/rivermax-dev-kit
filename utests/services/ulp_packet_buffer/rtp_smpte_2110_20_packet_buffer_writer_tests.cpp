@@ -70,6 +70,26 @@ static std::shared_ptr<SMPTE_2110_20_MediaSettings> create_1080p60_420_settings(
     return settings;
 }
 
+static std::shared_ptr<SMPTE_2110_20_MediaSettings> create_1921x1080p60_16bit_settings()
+{
+    auto settings = std::make_shared<SMPTE_2110_20_MediaSettings>();
+    settings->video_scan_type = VideoScanType::Progressive;
+    settings->frame_rate = FrameRate(60);
+    settings->resolution = Resolution(1921, _1080_HEIGHT);
+    settings->sampling_type = VideoSampling::YCbCr_4_2_2;
+    settings->bit_depth = VideoBitDepth::_16;
+    settings->enable_extended_video_formats = true;
+    settings->sample_rate = 90000;
+
+    ST_2110_20_MediaSettingsCalculator calculator(*settings);
+    if (calculator.calculate_media_settings() != ReturnStatus::success) {
+        ADD_FAILURE() << "Failed to calculate 1921x1080p60 YCbCr 4:2:2 16-bit media settings";
+        return nullptr;
+    }
+
+    return settings;
+}
+
 static std::shared_ptr<MediaUnit> create_test_media_unit(size_t bytes_per_media_unit)
 {
     auto media_unit = std::make_shared<MediaUnit>(bytes_per_media_unit, SMPTEStandard::ST_2110_20);
@@ -98,6 +118,11 @@ static uint16_t extract_line_number(const uint8_t* rtp_payload_header)
 static uint16_t extract_srd_offset(const uint8_t* rtp_payload_header)
 {
     return static_cast<uint16_t>(((rtp_payload_header[6] & 0x7F) << 8) | rtp_payload_header[7]);
+}
+
+static uint16_t extract_srd_length(const uint8_t* rtp_payload_header)
+{
+    return static_cast<uint16_t>((rtp_payload_header[2] << 8) | rtp_payload_header[3]);
 }
 
 static uint32_t extract_timestamp(const uint8_t* rtp_header)
@@ -236,6 +261,33 @@ TEST_F(RTP_SMPTE_2110_20_PacketBufferWriterTest, Progressive_420_UsesRowPairsAnd
     const uint8_t* next_row_pair_srd = packet_data_at(m_settings->packets_in_pgroup_row) + RTP_HEADER_SIZE;
     EXPECT_EQ(extract_line_number(next_row_pair_srd), 2);
     EXPECT_EQ(extract_srd_offset(next_row_pair_srd), 0);
+}
+
+/* Test an odd width accounts for the final padded pgroup of each row */
+TEST_F(RTP_SMPTE_2110_20_PacketBufferWriterTest, OddWidth_FinalPacketCoversPaddedPgroup)
+{
+    m_settings = create_1921x1080p60_16bit_settings();
+    ASSERT_NE(m_settings, nullptr);
+    // 1921 pixels need 961 pgroups of 2 pixels, sent as 31 packets of 31 pgroups of 8 bytes
+    ASSERT_EQ(m_settings->pgroups_in_pgroup_row, 961);
+    ASSERT_EQ(m_settings->pgroups_in_packet, 31);
+    ASSERT_EQ(m_settings->packets_in_pgroup_row, 31);
+
+    const size_t num_packets = m_settings->packets_in_pgroup_row + 1;
+    init_writer();
+    allocate_buffers(num_packets);
+    set_media_unit();
+
+    ASSERT_EQ(write_chunk(num_packets), ReturnStatus::success);
+
+    const uint8_t* last_srd = packet_data_at(m_settings->packets_in_pgroup_row - 1) + RTP_HEADER_SIZE;
+    EXPECT_EQ(extract_line_number(last_srd), 0);
+    EXPECT_EQ(extract_srd_offset(last_srd), 30 * 31 * 2);
+    EXPECT_EQ(extract_srd_length(last_srd), 31 * 8);
+
+    const uint8_t* next_row_srd = packet_data_at(m_settings->packets_in_pgroup_row) + RTP_HEADER_SIZE;
+    EXPECT_EQ(extract_line_number(next_row_srd), 1);
+    EXPECT_EQ(extract_srd_offset(next_row_srd), 0);
 }
 
 /* Test F-bit alternates between fields */

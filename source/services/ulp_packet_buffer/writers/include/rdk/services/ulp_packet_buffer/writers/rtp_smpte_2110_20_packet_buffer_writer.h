@@ -54,7 +54,8 @@ public:
     /**
      * @brief: Returns the number of packets needed for the next chunk.
      *
-     * Returns the packets left in the current media unit when they do not fill a whole chunk.
+     * Returns the configured packets per chunk, or the packets left in the current
+     * media unit when fewer than a full chunk remain.
      *
      * @return: Number of packets for the next chunk.
      */

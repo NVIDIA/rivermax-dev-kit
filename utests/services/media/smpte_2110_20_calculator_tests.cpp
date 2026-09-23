@@ -52,6 +52,17 @@ protected:
         m_settings.sample_rate = 90000;
     }
 
+    /** Create raw media settings of an extended video format without running the calculator. */
+    void create_extended_settings(Resolution resolution, VideoSampling sampling_type, VideoBitDepth bit_depth,
+                                  VideoScanType scan_type = VideoScanType::Progressive)
+    {
+        m_settings = SMPTE_2110_20_MediaSettings();
+        create_settings(scan_type, FrameRate(60), resolution);
+        m_settings.sampling_type = sampling_type;
+        m_settings.bit_depth = bit_depth;
+        m_settings.enable_extended_video_formats = true;
+    }
+
     /** Create media settings and run calculator, asserting success. */
     void init_settings(VideoScanType scan_type, FrameRate frame_rate,
                        Resolution resolution = {_1080_WIDTH, _1080_HEIGHT})
@@ -76,6 +87,18 @@ protected:
 
     SMPTE_2110_20_MediaSettings m_settings;
 };
+
+struct VideoPgroupCase
+{
+    const char* name;
+    VideoSampling sampling_type;
+    VideoBitDepth bit_depth;
+    uint16_t pixel_columns_in_pgroup;
+    size_t bytes_per_pixel;
+};
+
+class VideoSettingsCalculatorPgroupTest : public VideoSettingsCalculatorTest,
+                                          public testing::WithParamInterface<VideoPgroupCase> {};
 
 /* Test interlaced 1080i50 field-based calculations */
 TEST_F(VideoSettingsCalculatorTest, Interlaced_1080i50_FieldBasedValues)
@@ -308,4 +331,89 @@ TEST_F(VideoSettingsCalculatorTest, Interlaced_12bit_ByteCount)
     // Field: 1920 * 540 * 3 = 3,110,400 bytes
     EXPECT_EQ(m_settings.bytes_per_media_unit, static_cast<size_t>(1920 * 540 * 3))
         << "Bytes per field should be correct for 12-bit interlaced";
+}
+
+/* Test a resolution outside the supported ones needs extended video formats */
+TEST_F(VideoSettingsCalculatorTest, ExtendedFormatsDisabled_RejectsUnsupportedResolution)
+{
+    create_settings(VideoScanType::Progressive, FrameRate(60), {1280, 720});
+
+    EXPECT_EQ(calculate(), ReturnStatus::failure)
+        << "1280x720 must be rejected without extended video formats";
+}
+
+/* Test a bit depth outside the supported ones needs extended video formats */
+TEST_F(VideoSettingsCalculatorTest, ExtendedFormatsDisabled_Rejects16BitDepth)
+{
+    create_settings(VideoScanType::Progressive, FrameRate(60));
+    m_settings.bit_depth = VideoBitDepth::_16;
+
+    EXPECT_EQ(calculate(), ReturnStatus::failure)
+        << "16-bit depth must be rejected without extended video formats";
+}
+
+/* Test extended video formats accept a resolution outside the supported ones */
+TEST_F(VideoSettingsCalculatorTest, ExtendedFormats_AcceptsUnsupportedResolution)
+{
+    create_extended_settings({1280, 720}, VideoSampling::YCbCr_4_2_2, VideoBitDepth::_10);
+    calculate_and_assert_success();
+
+    // For 1280x720 4:2:2 10-bit: 640 pgroups of 5 bytes per row.
+    EXPECT_EQ(m_settings.pgroups_in_pgroup_row, 640);
+    EXPECT_EQ(m_settings.bytes_per_media_unit, static_cast<size_t>(640 * 5 * 720));
+}
+
+/* Test 16-bit and 16-bit float pgroup geometry */
+TEST_P(VideoSettingsCalculatorPgroupTest, ExtendedFormats_16BitPgroupGeometry)
+{
+    const auto& test_case = GetParam();
+    create_extended_settings({_1080_WIDTH, _1080_HEIGHT}, test_case.sampling_type, test_case.bit_depth);
+    calculate_and_assert_success();
+
+    EXPECT_EQ(m_settings.pixel_columns_in_pgroup, test_case.pixel_columns_in_pgroup);
+    EXPECT_EQ(m_settings.pixel_rows_in_pgroup, 1);
+    EXPECT_EQ(m_settings.bytes_per_media_unit,
+              static_cast<size_t>(_1080_WIDTH) * _1080_HEIGHT * test_case.bytes_per_pixel);
+}
+
+static std::string VideoPgroupCaseName(const testing::TestParamInfo<VideoPgroupCase>& info)
+{
+    return info.param.name;
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    VideoPgroupGeometry,
+    VideoSettingsCalculatorPgroupTest,
+    testing::Values(
+        VideoPgroupCase{"YCbCr422_16", VideoSampling::YCbCr_4_2_2, VideoBitDepth::_16, 2, 4},
+        VideoPgroupCase{"YCbCr444_16f", VideoSampling::YCbCr_4_4_4, VideoBitDepth::_16f, 1, 6},
+        VideoPgroupCase{"RGB_16", VideoSampling::RGB, VideoBitDepth::_16, 1, 6},
+        VideoPgroupCase{"KEY_16f", VideoSampling::KEY, VideoBitDepth::_16f, 1, 2}),
+    VideoPgroupCaseName);
+
+/* Test a 4:2:0 frame of odd height is rejected */
+TEST_F(VideoSettingsCalculatorTest, ExtendedFormats_Progressive_420_RejectsOddHeight)
+{
+    create_extended_settings({1920, 1081}, VideoSampling::YCbCr_4_2_0, VideoBitDepth::_10);
+
+    EXPECT_EQ(calculate(), ReturnStatus::failure)
+        << "4:2:0 pgroups span two rows, so an odd height must be rejected";
+}
+
+/* Test both ends of the valid resolution range */
+TEST_F(VideoSettingsCalculatorTest, ExtendedFormats_ResolutionRange)
+{
+    constexpr uint16_t max_dimension = 32767;
+
+    create_extended_settings({1, 1}, VideoSampling::YCbCr_4_2_2, VideoBitDepth::_8);
+    EXPECT_EQ(calculate(), ReturnStatus::success);
+
+    create_extended_settings({max_dimension, max_dimension}, VideoSampling::YCbCr_4_2_2, VideoBitDepth::_8);
+    EXPECT_EQ(calculate(), ReturnStatus::success);
+
+    create_extended_settings({max_dimension + 1, 2}, VideoSampling::YCbCr_4_2_2, VideoBitDepth::_10);
+    EXPECT_EQ(calculate(), ReturnStatus::failure) << "Width above the maximum must be rejected";
+
+    create_extended_settings({2, max_dimension + 1}, VideoSampling::YCbCr_4_2_2, VideoBitDepth::_10);
+    EXPECT_EQ(calculate(), ReturnStatus::failure) << "Height above the maximum must be rejected";
 }
