@@ -158,7 +158,7 @@ ReturnStatus ST_2110_20_MediaSettingsCalculator::calculate_media_settings()
     const uint32_t pgroup_rows_in_frame = video_settings.resolution.height / pgroup.rows;
 
     video_settings.bytes_per_media_unit =
-        bytes_in_pgroup * pgroups_in_pgroup_row * pgroup_rows_in_frame;
+        static_cast<size_t>(bytes_in_pgroup) * pgroups_in_pgroup_row * pgroup_rows_in_frame;
 
     const size_t protocol_header_size = RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE;
     const size_t max_raw_payload = max_raw_media_bytes(protocol_header_size);
