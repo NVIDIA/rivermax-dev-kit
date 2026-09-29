@@ -16,8 +16,11 @@
  * limitations under the License.
  */
 
+#include <iostream>
+
 #include "rdk/services/media/media_settings.h"
 #include "rdk/services/media/media_settings_calculator.h"
+#include "rdk/services/utils/rational.h"
 
 using namespace rdk::services;
 
@@ -27,10 +30,15 @@ void MediaSettings::set_calculator(std::shared_ptr<IMediaSettingsCalculator> cal
 }
 
 ReturnStatus MediaSettings::create_default_calculator(const std::vector<FormatSpecificParameter>& extra_parameters)
-{
+try {
     media_settings_calculator = IMediaSettingsCalculatorFactory::get_media_settings_calculator(*this, extra_parameters);
     if (!media_settings_calculator) {
         return ReturnStatus::failure;
     }
     return media_settings_calculator->calculate_media_settings();
+} catch (const RationalException& error) {
+    std::cerr << "Failed to calculate media settings: "
+              << error.what() << std::endl;
+    media_settings_calculator.reset();
+    return ReturnStatus::failure;
 }
