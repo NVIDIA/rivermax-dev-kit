@@ -175,8 +175,18 @@ public:
      *
      * @param [in] settings: The node's settings, already filled in.
      * @param [in] memory_utils: Memory utilities.
+     *
+     * @throws std::runtime_error if the settings are invalid.
      */
     RTPReceiverIONode(const SettingsType& settings, IONodeMemoryUtils& memory_utils);
+    /**
+     * @brief: Constructor taking ownership of settings the caller built.
+     *
+     * @param [in] settings: The node's settings, already filled in.
+     * @param [in] memory_utils: Memory utilities.
+     *
+     * @throws std::runtime_error if the settings are invalid.
+     */
     RTPReceiverIONode(SettingsType&& settings, IONodeMemoryUtils& memory_utils);
     virtual ~RTPReceiverIONode() = default;
 

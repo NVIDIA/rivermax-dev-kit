@@ -53,8 +53,6 @@ static_assert(!std::is_convertible<Rational, uint64_t>::value,
 static_assert(!std::is_convertible<Rational, int64_t>::value,
     "Rational should not be implicitly convertible to int64_t");
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational::Rational(uint64_t integer, uint64_t numerator, uint64_t denominator)
 {
     init(integer, numerator, denominator);
@@ -74,15 +72,11 @@ Rational::Rational(uint64_t integer) :
 {
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational::Rational(uint64_t numerator, uint64_t denominator)
     : Rational(0, numerator, denominator)
 {
 }
 
-// Rational's public API intentionally throws (RationalException / std::invalid_argument) on invalid input (see rational.h).
-// coverity[uncaught_exception]
 Rational::Rational(const std::string& str)
 {
     auto is_number = [](const std::string& s) {
@@ -147,8 +141,6 @@ std::ostream& operator<<(std::ostream& os, const Rational& other)
     return os;
 }
 
-// Rational's public API intentionally throws (RationalException / std::invalid_argument) on invalid input (see rational.h).
-// coverity[uncaught_exception]
 std::istream& operator>>(std::istream& is, Rational& other)
 {
     std::string str;
@@ -180,8 +172,6 @@ void Rational::init(uint64_t integer, uint64_t numerator, uint64_t denominator)
     m_numerator -= quotient;
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 void Rational::init()
 {
     init(m_integer, m_numerator, m_denominator);
@@ -296,29 +286,21 @@ Rational& Rational::add_sub_assign(const Rational& other, bool is_add)
     return *this;
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational Rational::operator+(const Rational& other) const
 {
     return add_sub(*this, other, true);
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational& Rational::operator+=(const Rational& other)
 {
     return add_sub_assign(other, true);
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational Rational::operator-(const Rational& other) const
 {
     return add_sub(*this, other, false);
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational& Rational::operator-=(const Rational& other)
 {
     return add_sub_assign(other, false);
@@ -363,29 +345,21 @@ Rational& Rational::mul_div_assign(const Rational& lhs, const Rational& rhs, boo
     return *this;
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational Rational::operator*(const Rational& other) const
 {
     return mul_div(*this, other, true);
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational& Rational::operator*=(const Rational& other)
 {
     return mul_div_assign(*this, other, true);
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational Rational::operator/(const Rational& other) const
 {
     return mul_div(*this, other, false);
 }
 
-// Rational's public API intentionally throws RationalException on invalid operations (see rational.h).
-// coverity[uncaught_exception]
 Rational& Rational::operator/=(const Rational& other)
 {
     return mul_div_assign(*this, other, false);

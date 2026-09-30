@@ -39,9 +39,6 @@ Affinity::~Affinity()
 {
 }
 
-// Exceptions are part of this C++ API's contract. Callers requiring a
-// non-throwing interface use set_affinity(), which returns false on failure.
-// coverity[uncaught_exception]
 void Affinity::set(std::thread &thread, const size_t processor)
 {
     editor editor(*this, thread.native_handle());
@@ -49,9 +46,6 @@ void Affinity::set(std::thread &thread, const size_t processor)
     editor.apply();
 }
 
-// Exceptions are part of this C++ API's contract. Callers requiring a
-// non-throwing interface use set_affinity(), which returns false on failure.
-// coverity[uncaught_exception]
 void Affinity::set(std::thread &thread, const mask &cpu_mask)
 {
     editor editor(*this, thread.native_handle());
@@ -59,9 +53,6 @@ void Affinity::set(std::thread &thread, const mask &cpu_mask)
     editor.apply();
 }
 
-// Exceptions are part of this C++ API's contract. Callers requiring a
-// non-throwing interface use set_affinity(), which returns false on failure.
-// coverity[uncaught_exception]
 void Affinity::set(const size_t processor)
 {
     editor editor(*this, m_os_api.this_thread_handle());
@@ -69,9 +60,6 @@ void Affinity::set(const size_t processor)
     editor.apply();
 }
 
-// Exceptions are part of this C++ API's contract. Callers requiring a
-// non-throwing interface use set_affinity(), which returns false on failure.
-// coverity[uncaught_exception]
 void Affinity::set(const mask &cpu_mask)
 {
     editor editor(*this, m_os_api.this_thread_handle());
