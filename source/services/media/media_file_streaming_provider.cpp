@@ -17,6 +17,7 @@
  */
 
 #include <chrono>
+#include <exception>
 #include <iostream>
 #include <thread>
 
@@ -36,20 +37,11 @@ MediaFileStreamingProvider::MediaFileStreamingProvider(
     m_smpte_standard(smpte_standard),
     m_media_unit_size(media_unit_size),
     m_essence_source(std::move(essence_source)),
-    m_memory_utils(memory_allocator->get_memory_utils()),
     m_memory_allocator(std::move(memory_allocator)),
     m_loop_media_units(loop),
     m_stop(false),
-    m_sleep_duration_microseconds(sleep_duration_microseconds),
-    m_file_reader(file_path, m_memory_utils, loop)
+    m_sleep_duration_microseconds(sleep_duration_microseconds)
 {
-    if (!m_memory_allocator) {
-        std::cerr << "MemoryAllocator is not valid" << std::endl;
-        throw std::runtime_error("MemoryAllocator is not valid");
-    }
-
-    m_media_unit_pool = std::make_unique<MediaUnitPool>(
-        MEMORY_POOL_MEDIA_UNIT_COUNT, m_media_unit_size, m_smpte_standard, *m_memory_allocator);
 }
 
 MediaFileStreamingProvider::~MediaFileStreamingProvider()
@@ -63,14 +55,39 @@ ReturnStatus MediaFileStreamingProvider::initialize()
         return ReturnStatus::success;
     }
 
-    auto rc = m_file_reader.open();
-    if (rc != ReturnStatus::success) {
-        std::cerr << "Failed to open file: " << m_file_path << std::endl;
-        return rc;
+    if (!m_memory_allocator) {
+        std::cerr << "MemoryAllocator is not valid" << std::endl;
+        return ReturnStatus::failure;
     }
 
-    if (!m_memory_utils) {
-        std::cerr << "Failed to get memory utils" << std::endl;
+    if (!m_essence_source) {
+        std::cerr << "BufferedEssenceSource is not valid" << std::endl;
+        return ReturnStatus::failure;
+    }
+
+    try {
+        auto memory_utils = m_memory_allocator->get_memory_utils();
+        if (!memory_utils) {
+            std::cerr << "Failed to get memory utils" << std::endl;
+            return ReturnStatus::failure;
+        }
+
+        auto file_reader = std::make_unique<MediaFileReader>(
+            m_file_path, memory_utils, m_loop_media_units);
+        auto rc = file_reader->open();
+        if (rc != ReturnStatus::success) {
+            std::cerr << "Failed to open file: " << m_file_path << std::endl;
+            return rc;
+        }
+
+        auto media_unit_pool = std::make_unique<MediaUnitPool>(
+            MEMORY_POOL_MEDIA_UNIT_COUNT, m_media_unit_size, m_smpte_standard, *m_memory_allocator);
+
+        m_memory_utils = std::move(memory_utils);
+        m_file_reader = std::move(file_reader);
+        m_media_unit_pool = std::move(media_unit_pool);
+    } catch (const std::exception& error) {
+        std::cerr << "Failed to initialize MediaFileStreamingProvider: " << error.what() << std::endl;
         return ReturnStatus::failure;
     }
 
@@ -101,7 +118,7 @@ void MediaFileStreamingProvider::operator()()
 
         // Read data directly into unit buffer using @ref MediaFileReader
         size_t bytes_read = 0;
-        auto rc = m_file_reader.read_and_copy(media_unit->data->get(), m_media_unit_size, bytes_read);
+        auto rc = m_file_reader->read_and_copy(media_unit->data->get(), m_media_unit_size, bytes_read);
 
         if (rc != ReturnStatus::success) {
             std::cerr << "Failed to read media unit from file: " << m_file_path << std::endl;
@@ -109,8 +126,8 @@ void MediaFileStreamingProvider::operator()()
         }
 
         if (bytes_read == 0) {
-            if (m_file_reader.is_eof()) {
-                if (m_file_reader.handle_eof()) {
+            if (m_file_reader->is_eof()) {
+                if (m_file_reader->handle_eof()) {
                     continue;  // Looping, continue reading
                 }
                 break;  // No loop, we're done

@@ -59,7 +59,7 @@ private:
     std::mutex m_mutex;
     std::atomic<bool> m_initialized{false};
     size_t m_sleep_duration_microseconds;
-    MediaFileReader m_file_reader;
+    std::unique_ptr<MediaFileReader> m_file_reader;
     static constexpr auto SLEEP_DURATION_MICROSECONDS = 10000;
     static constexpr auto MEMORY_POOL_MEDIA_UNIT_COUNT = 15;
 public:
@@ -84,7 +84,9 @@ public:
      */
     virtual ~MediaFileStreamingProvider();
     /**
-     * @brief: Initialize the streaming process.
+     * @brief: Initialize the streaming provider.
+     *
+     * Validates dependencies, opens the media file, and creates the media unit pool.
      *
      * @return: Status of the operation.
      */
