@@ -242,13 +242,15 @@ public:
      * Each stream is initialized with @ref NullEssenceSource for both sources by default.
      * @ref NullEssenceSource generates only RTP headers; payload data is not written
      * during the transmission loop. At least one source should be set to a real
-     * implementation for meaningful data transmission.
+     * implementation for meaningful data transmission. SMPTE ST 2110-40 streams are
+     * initialized with a runtime source only because preloading is not supported.
      *
      * @param [in] stream_index: The index of the stream to configure.
      * @param [in] smpte_standard: The SMPTE standard for media formatting.
      * @param [in] preload_essence_source: Source for preloading data into memory blocks
-     *                                     before transmission. Pass nullptr to preserve the
+     *                                     before transmission. Pass nullptr to clear the
      *                                     existing preload source (default: nullptr).
+     *                                     Must be nullptr for SMPTE ST 2110-40.
      * @param [in] runtime_essence_source: Source for supplying media data during active
      *                                     transmission. Pass nullptr to preserve the existing
      *                                     runtime source (default: nullptr).

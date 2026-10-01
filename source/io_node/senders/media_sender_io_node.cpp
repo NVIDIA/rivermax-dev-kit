@@ -131,16 +131,20 @@ ReturnStatus MediaSenderIONode::initialize_streams()
         MediaStreamSettings stream_settings(stream_pack.flows, *m_settings.media_settings, m_dscp, m_pcp, m_ecn);
         stream_pack.stream = std::make_unique<MediaSendStream>(stream_settings);
         auto runtime_essence_source = std::make_shared<NullEssenceSource>(*m_settings.media_settings);
-        auto preload_essence_source = std::make_shared<NullEssenceSource>(*m_settings.media_settings);
+        std::shared_ptr<IMediaEssenceSource> preload_essence_source;
+        if (smpte_standard != SMPTEStandard::ST_2110_40) {
+            preload_essence_source = std::make_shared<NullEssenceSource>(*m_settings.media_settings);
+        }
 
         rc = set_media_essence_sources(stream_idx, smpte_standard,
             std::move(preload_essence_source), std::move(runtime_essence_source), false);
         if (rc != ReturnStatus::success) {
-            std::cerr << "Failed to set preload essence source for stream " << stream_idx << std::endl;
+            std::cerr << "Failed to set essence sources for stream " << stream_idx << std::endl;
             return rc;
         }
-        if (!stream_pack.preload_packet_buffer_writer || !stream_pack.runtime_packet_buffer_writer) {
-            std::cerr << "Failed to create preload or runtime packet buffer writer for stream " << stream_idx << std::endl;
+        if (!stream_pack.runtime_packet_buffer_writer ||
+            (smpte_standard != SMPTEStandard::ST_2110_40 && !stream_pack.preload_packet_buffer_writer)) {
+            std::cerr << "Failed to create packet buffer writers for stream " << stream_idx << std::endl;
             return ReturnStatus::failure;
         }
 
@@ -706,6 +710,8 @@ inline void MediaSenderIONode::preload_media_data()
                 }
 
                 if (is_hds_on()) {
+                    // ST 2110-40 does not support preload, so its writer cannot reach this call.
+                    // coverity[var_deref_model]
                     rc = stream_pack.preload_packet_buffer_writer->write_buffer(
                         block_header_ptr,
                         block_payload_ptr,
@@ -796,6 +802,10 @@ ReturnStatus MediaSenderIONode::set_media_essence_sources(
     std::shared_ptr<IMediaEssenceSource> runtime_essence_source,
     bool runtime_contains_payload)
 {
+    if (smpte_standard == SMPTEStandard::ST_2110_40 && preload_essence_source) {
+        std::cerr << "Preloading media data is not supported for SMPTE ST 2110-40" << std::endl;
+        return ReturnStatus::failure;
+    }
     if (runtime_essence_source == nullptr && preload_essence_source == nullptr) {
         std::cerr << "Invalid media essence source" << std::endl;
         return ReturnStatus::failure;
