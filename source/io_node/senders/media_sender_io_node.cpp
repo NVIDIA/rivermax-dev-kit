@@ -555,6 +555,8 @@ ReturnStatus MediaSenderIONode::do_work()
     std::function<ReturnStatus(MediaStreamPack&)> write_buffer_callback;
     if (is_hds_on()) {
         write_buffer_callback = [](auto& stream_pack) {
+            // The callback is used only for HDS chunks, which have a header-size array.
+            // coverity[returned_null]
             return stream_pack.runtime_packet_buffer_writer->write_buffer(
                 stream_pack.chunk_handler->get_app_hdr_ptr(),
                 stream_pack.chunk_handler->get_data_ptr(),
