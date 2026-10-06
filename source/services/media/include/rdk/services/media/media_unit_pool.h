@@ -85,6 +85,11 @@ public:
      * @param [in] media_unit_size: Size of each media unit in bytes.
      * @param [in] smpte_standard: SMPTE standard for media units.
      * @param [in] mem_allocator: Memory allocator to use.
+     *
+     * @throws std::invalid_argument if the media unit count or size is zero, or if their
+     *                               product cannot be represented by size_t.
+     * @throws std::runtime_error if the requested memory cannot be aligned or allocated.
+     * @throws std::bad_alloc if the internal media unit storage cannot be allocated.
      */
     MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SMPTEStandard smpte_standard,
         MemoryAllocator& mem_allocator);
@@ -98,7 +103,10 @@ public:
      * @param [in] memory_size: Size of the external memory block in bytes.
      * @param [in] memory_location: Memory location of the external memory block.
      *
-     * @throws std::invalid_argument if the provided memory is insufficient.
+     * @throws std::invalid_argument if the media unit count or size is zero, their product
+     *                               cannot be represented by size_t, the memory block is null,
+     *                               or the provided memory is insufficient.
+     * @throws std::bad_alloc if the internal media unit storage cannot be allocated.
      */
     MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SMPTEStandard smpte_standard,
         byte_t* memory_block, size_t memory_size,

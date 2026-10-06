@@ -16,9 +16,25 @@
  * limitations under the License.
  */
 
+#include <limits>
+#include <stdexcept>
+
 #include "rdk/services/media/media_unit_pool.h"
 
 using namespace rdk::services;
+
+namespace {
+
+size_t checked_total_memory_size(size_t media_unit_count, size_t media_unit_size)
+{
+    if (media_unit_count == 0 || media_unit_size == 0 ||
+        media_unit_count > std::numeric_limits<size_t>::max() / media_unit_size) {
+        throw std::invalid_argument("Invalid media unit pool dimensions");
+    }
+    return media_unit_count * media_unit_size;
+}
+
+} // namespace
 
 MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SMPTEStandard smpte_standard,
     MemoryAllocator& mem_allocator) :
@@ -27,8 +43,12 @@ MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SM
     m_memory_location(mem_allocator.get_memory_location()),
     m_smpte_standard(smpte_standard)
 {
-    m_total_memory_size = media_unit_count * media_unit_size;
-    m_total_memory_size = mem_allocator.align_length(m_total_memory_size);
+    m_total_memory_size = checked_total_memory_size(media_unit_count, media_unit_size);
+    const size_t requested_memory_size = m_total_memory_size;
+    m_total_memory_size = mem_allocator.align_length(requested_memory_size);
+    if (m_total_memory_size == 0 || m_total_memory_size < requested_memory_size) {
+        throw std::runtime_error("Failed to align memory for MediaUnitPool");
+    }
     m_memory_block = static_cast<byte_t*>(mem_allocator.allocate_aligned(
         m_total_memory_size, mem_allocator.get_page_size()));
 
@@ -49,14 +69,14 @@ MediaUnitPool::MediaUnitPool(size_t media_unit_count, size_t media_unit_size, SM
     m_memory_block(memory_block),
     m_media_unit_size(media_unit_size),
     m_media_unit_count(media_unit_count),
-    m_total_memory_size(media_unit_count * media_unit_size),
     m_memory_location(memory_location),
     m_smpte_standard(smpte_standard)
 {
     if (!m_memory_block) {
-        throw std::runtime_error("No memory provided for for MediaUnitPool");
+        throw std::invalid_argument("No memory provided for MediaUnitPool");
     }
 
+    m_total_memory_size = checked_total_memory_size(media_unit_count, media_unit_size);
     if (memory_size < m_total_memory_size) {
         throw std::invalid_argument("Insufficient external memory provided for MediaUnitPool");
     }
