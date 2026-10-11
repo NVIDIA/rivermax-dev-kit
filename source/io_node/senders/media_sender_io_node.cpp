@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include <climits>
+#include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <iomanip>
@@ -573,7 +574,8 @@ ReturnStatus MediaSenderIONode::do_work()
         };
     }
 
-    auto stats_start_time = high_resolution_clock::now();
+    auto stats_start_time = steady_clock::now();
+    bool is_warmup_report = true;
     while (likely(rc != ReturnStatus::failure && !should_stop())) {
         chunk_in_media_unit_counter = 0;
         send_time_ns = get_send_time_ns();
@@ -615,10 +617,11 @@ ReturnStatus MediaSenderIONode::do_work()
         m_stats_sent_media_unit_chunk_counter++;
 
         if (m_stats_report_interval_ms > 0) {
-            auto now = high_resolution_clock::now();
+            auto now = steady_clock::now();
             auto duration = now - stats_start_time;
             if (duration >= milliseconds{m_stats_report_interval_ms}) {
-                print_statistics(std::cout, duration);
+                print_statistics(std::cout, duration, is_warmup_report);
+                is_warmup_report = false;
                 reset_statistics();
                 stats_start_time = now;
             }
@@ -889,18 +892,34 @@ ReturnStatus MediaSenderIONode::set_media_essence_sources(
 }
 
 void MediaSenderIONode::print_statistics(
-    std::ostream& out, const std::chrono::high_resolution_clock::duration& interval_duration) const
+    std::ostream& out, const std::chrono::steady_clock::duration& interval_duration, bool is_warmup) const
 {
-    uint64_t bytes_sent = (m_stats_sent_media_unit_chunk_counter) * m_settings.media_settings->packets_in_media_unit * m_stream_packs.size() *
-        (m_settings.media_settings->packet_app_header_size + m_settings.media_settings->packet_payload_size + RTP_ST_2110_20_SINGLE_SRD_HEADER_SIZE);
-    float mbps = (bytes_sent * CHAR_BIT) / duration_cast<duration<float, std::micro>>(interval_duration).count();
+    const uint64_t bytes_per_media_unit = m_settings.media_settings->packets_in_media_unit * m_stream_packs.size() *
+        (m_settings.media_settings->packet_app_header_size + m_settings.media_settings->packet_payload_size);
+    const uint64_t bytes_sent = m_stats_sent_media_unit_chunk_counter * bytes_per_media_unit;
+    const float measured_mbps = (bytes_sent * CHAR_BIT) / duration_cast<duration<float, std::micro>>(interval_duration).count();
+    const float expected_mbps = (bytes_per_media_unit * CHAR_BIT) /
+        static_cast<float>(m_settings.media_settings->media_unit_time_interval_ns / NS_IN_USEC);
+    // Rounded to the printed precision, so that the sign below is taken from the printed value.
+    const float deviation_percent = std::round((measured_mbps - expected_mbps) / expected_mbps * 100.0f * 1000.0f) / 1000.0f;
+
     std::ostringstream oss;
     oss << " Sender: " << std::setw(3) << m_settings.id
         << "  Streams: " << std::setw(3) << m_stream_packs.size()
         << "  Type: " << std::setw(11) << std::left << m_settings.media_settings->media_settings_calculator->get_smpte_standard_name()
         << "  Media units sent: " << std::setw(3) << std::right << m_stats_sent_media_unit_chunk_counter
+        << " in " << std::fixed << std::setprecision(3) << duration_cast<duration<float, std::milli>>(interval_duration).count() << " ms"
         << "  Bytes sent: " << std::setw(11) << bytes_sent
-        << "  BW: " << std::setw(10) << std::fixed << std::setprecision(3) << mbps << " Mbps" << std::endl;
+        << "  BW: " << std::setw(10) << std::fixed << std::setprecision(3) << measured_mbps << " Mbps";
+    if (is_warmup) {
+        // The first window opens before the stream start time and covers the pre-roll, so its
+        // count and bandwidth are not a rate.
+        oss << " (warmup)";
+    } else {
+        oss << " (" << (deviation_percent < 0.0f ? '-' : '+') << std::setprecision(3) << std::fabs(deviation_percent)
+            << "% from expected)";
+    }
+    oss << std::endl;
     out << oss.str();
 }
 

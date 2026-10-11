@@ -289,9 +289,10 @@ protected:
      *
      * @param [out] out: Output stream to print statistics to.
      * @param [in] interval_duration: Statistics interval duration.
+     * @param [in] is_warmup: True for the first window, which opens before the stream start time.
      */
     virtual void print_statistics(std::ostream& out,
-        const std::chrono::high_resolution_clock::duration& interval_duration) const;
+        const std::chrono::steady_clock::duration& interval_duration, bool is_warmup) const;
     /**
      * @brief: Resets statistics.
      */
